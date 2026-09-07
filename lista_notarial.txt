@@ -1,0 +1,35 @@
+# Terminos aceptados por la notaria: siglas, juridico, toponimos.
+# Una palabra por linea. Lo que este aqui deja de reportarse como errata.
+# Los nombres de las partes NO van aqui: los valida la capa de reglas.
+SUNARP
+SUNAT
+RENIEC
+AFP
+SBS
+BCP
+BCRP
+DNI
+CCI
+CUI
+EVICCION
+EVICCIÓN
+PRECLUSION
+PRECLUSIÓN
+SUBSANACION
+SUBSANACIÓN
+SUBSANACIONES
+DESGRAVAMEN
+CONCURSAL
+REGISTRAL
+PREDIAL
+MORATORIO
+MORATORIOS
+INDEMNIZATORIA
+IMPUGNANTE
+INTERVINIENTES
+EXIGIBILIDAD
+PERIMETRICAS
+PERIMÉTRICAS
+INAFECTA
+KARDEX
+MINUTA

@@ -1,0 +1,70 @@
+# Identidad de Notaría Espinosa aplicada al confrontador.
+#
+# Los colores estan tomados del sitio (notariaespinosa.com), leidos de los
+# estilos computados de la pagina, no estimados a ojo:
+#
+#   #0F2765  navy de marca    barra superior, hero, palabra "ESPINOSA"
+#   #00112C  navy profundo    texto
+#   #44D880  verde de accion  boton "Contactanos", enlace activo, logo
+#   #C3C9D9  gris azulado     separadores
+#
+# El verde NO se usa como color de boton: blanco sobre #44D880 da 1.85:1 de
+# contraste, ilegible. El propio sitio lo resuelve poniendo texto navy encima
+# del boton verde. Aqui manda el navy en los controles y el verde queda como
+# acento y como color afirmativo, que es su papel en la marca.
+#
+# Los tonos auxiliares son pasos de luminosidad de esos mismos colores, no
+# matices nuevos: #F2F3F7 es el gris de marca al 22% sobre blanco.
+
+[theme]
+base = "light"
+
+backgroundColor          = "#FFFFFF"
+secondaryBackgroundColor = "#F2F3F7"
+textColor                = "#00112C"
+primaryColor             = "#0F2765"
+linkColor                = "#0F2765"
+borderColor              = "#C3C9D9"
+
+# tipografia del sitio
+font        = "Prompt"
+headingFont = "Prompt"
+codeFont    = "ui-monospace, SFMono-Regular, Menlo, monospace"
+
+baseRadius   = "small"   # el boton del sitio es rectangular, casi sin radio
+buttonRadius = "small"
+showWidgetBorder = true
+
+dataframeHeaderBackgroundColor = "#F2F3F7"
+dataframeBorderColor           = "#C3C9D9"
+
+# familia afirmativa: el verde de la marca
+greenColor           = "#44D880"
+greenTextColor       = "#176E3A"
+greenBackgroundColor = "#E5FAED"
+
+# la familia azul de los avisos se alinea con el navy en vez del azul de fabrica
+blueColor           = "#0F2765"
+blueTextColor       = "#0F2765"
+blueBackgroundColor = "#ECEEF3"
+
+[[theme.fontFaces]]
+family = "Prompt"
+url    = "https://fonts.gstatic.com/s/prompt/v12/-W__XJnvUD7dzB2KYNodREEjew.woff2"
+weight = 400
+style  = "normal"
+
+[[theme.fontFaces]]
+family = "Prompt"
+url    = "https://fonts.gstatic.com/s/prompt/v12/-W_8XJnvUD7dzB2Cv_4IaWMuUZctdg.woff2"
+weight = 600
+style  = "normal"
+
+# La barra lateral repite la franja navy del encabezado del sitio.
+[theme.sidebar]
+backgroundColor = "#0F2765"
+secondaryBackgroundColor = "#16326F"
+textColor       = "#FFFFFF"
+primaryColor    = "#44D880"
+linkColor       = "#44D880"
+borderColor     = "#2A427A"

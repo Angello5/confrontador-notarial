@@ -1,0 +1,33 @@
+# ---- Datos de expedientes: NUNCA se versionan ----
+# Contienen DNI, nombres, domicilios y escrituras de personas reales.
+Cliente/
+Proyecto*/
+Resultado/
+expedientes/
+*.docx
+*.doc
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.xlsx
+*.xls
+!docs/*.png
+
+# ---- Secretos ----
+.env
+.env.*
+!.env.example
+*.key
+
+# ---- Cachés y artefactos ----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+capturas*/
+.streamlit/secrets.toml
+
+# ---- Sistema ----
+.DS_Store
+.venv/
+venv/
