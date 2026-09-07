@@ -3,7 +3,9 @@
 Cliente/
 Proyecto*/
 Resultado/
+Plantilla/
 expedientes/
+*-[0-9][0-9][0-9][0-9][0-9]/   # un expediente por carpeta: mutuo-71213/, etc.
 *.docx
 *.doc
 *.pdf

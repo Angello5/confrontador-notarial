@@ -28,7 +28,7 @@ if __name__ == "__main__":
     from extraer import leer
     borrador = next(iter(recolectar([str(BASE / "Proyecto(borrador)")]).values()))
     assert diagnostico(fuentes, borrador) is None, diagnostico(fuentes, borrador)
-    ajeno = leer(Path("/Users/angellollerena/Downloads/MUTUO IMAGEN.doc"))
+    ajeno = leer(BASE / "mutuo-71213" / "Plantilla" / "MUTUO IMAGEN.doc")
     assert "no corresponde" in (diagnostico(fuentes, ajeno) or ""), diagnostico(fuentes, ajeno)
     # una plantilla ajena MEZCLADA entre las fuentes no debe hundir a la minuta
     assert diagnostico(fuentes | {"plantilla.doc": ajeno}, borrador) is None

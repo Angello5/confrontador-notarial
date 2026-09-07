@@ -101,8 +101,19 @@ python3 test_extraer.py && python3 test_verificar.py && python3 test_lexico.py \
 escrituras públicas de personas reales. `.gitignore` bloquea las carpetas
 `Cliente/`, `Proyecto*/`, `Resultado/` y las extensiones de documento.
 
-Para trabajar, coloca los archivos del caso junto al código con esa estructura;
-quedan ignorados automáticamente.
+Para trabajar, coloca cada expediente en su **propia carpeta** junto al código.
+Uno por carpeta: si se mezclan dos, el catálogo junta los DNI de ambos y las
+comprobaciones dejan de tener sentido.
+
+```
+confrontador-notarial/
+   Cliente/  Proyecto(borrador)/  Resultado/   ← expediente de referencia
+   mutuo-71213/
+      Cliente/  Proyecto(borrador)/  Plantilla/
+```
+
+Todo eso queda ignorado por git automáticamente. La copia de seguridad de los
+expedientes es responsabilidad de la notaría, fuera de este repositorio.
 
 > **Pendiente de limpieza:** los tests conservan DNI y apellidos reales en sus
 > aserciones, heredados del expediente con el que se midió. Deben sustituirse
