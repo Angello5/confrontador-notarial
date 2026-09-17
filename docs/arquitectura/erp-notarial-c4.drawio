@@ -1,0 +1,239 @@
+<mxfile host="drawio">
+  <diagram id="c1" name="C1 - Contexto">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t" value="&lt;b&gt;C4 Nivel 1 - Diagrama de Contexto&lt;/b&gt;&lt;br&gt;ERP Notarial (flujo: Confrontador)" style="text;html=1;align=left;verticalAlign=top;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="usr" value="&lt;b&gt;Usuario notarial&lt;/b&gt;&lt;br&gt;[Persona]&lt;br&gt;&lt;br&gt;Notario, abogado o asistente. Sube escrituras y borradores y revisa observaciones." style="shape=mxgraph.c4.person2;whiteSpace=wrap;html=1;align=center;fillColor=#08427B;fontColor=#ffffff;strokeColor=#073B6F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="220" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="adm" value="&lt;b&gt;Administrador&lt;/b&gt;&lt;br&gt;[Persona]&lt;br&gt;&lt;br&gt;Gestiona usuarios, roles y respaldos." style="shape=mxgraph.c4.person2;whiteSpace=wrap;html=1;align=center;fillColor=#08427B;fontColor=#ffffff;strokeColor=#073B6F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="460" y="80" width="220" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="erp" value="&lt;b&gt;ERP Notarial&lt;/b&gt;&lt;br&gt;[Sistema de software]&lt;br&gt;&lt;br&gt;Flujos automatizados de la notaría. Primer flujo: confrontación de escrituras contra borradores (OCR + reglas)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1168BD;fontColor=#ffffff;strokeColor=#0B4884;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="220" y="370" width="340" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="nas" value="&lt;b&gt;NAS / Disco externo&lt;/b&gt;&lt;br&gt;[Sistema externo]&lt;br&gt;&lt;br&gt;Destino de respaldos diarios." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8C8496;fontColor=#ffffff;strokeColor=#736782;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="460" y="650" width="260" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="out" value="&lt;b&gt;Fuera de alcance (por ahora)&lt;/b&gt;&lt;br&gt;RENIEC / SUNARP: sin integración.&lt;br&gt;IA (LLM): no se usa, solo comparación por reglas." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#000000;align=left;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="780" y="390" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="Sube documentos, revisa observaciones&lt;br&gt;[Navegador, LAN]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="usr" target="erp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="Gestiona usuarios y roles&lt;br&gt;[Navegador, LAN]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="adm" target="erp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="Respaldo diario" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="erp" target="nas">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c2" name="C2 - Contenedores">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t" value="&lt;b&gt;C4 Nivel 2 - Diagrama de Contenedores&lt;/b&gt;&lt;br&gt;ERP Notarial" style="text;html=1;align=left;verticalAlign=top;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="usr" value="&lt;b&gt;Usuarios (máx. 10)&lt;/b&gt;&lt;br&gt;[Persona]&lt;br&gt;&lt;br&gt;Notario, abogado, asistente, administrador." style="shape=mxgraph.c4.person2;whiteSpace=wrap;html=1;align=center;fillColor=#08427B;fontColor=#ffffff;strokeColor=#073B6F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="130" y="60" width="220" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="bnd" value="&lt;b&gt;ERP Notarial&lt;/b&gt; [Sistema de software]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 4;strokeColor=#666666;verticalAlign=bottom;align=left;spacingLeft=10;spacingBottom=6;arcSize=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="900" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="web" value="&lt;b&gt;Aplicación web&lt;/b&gt;&lt;br&gt;[Contenedor: Python, Django, plantillas + AdminLTE 4 + Alpine.js]&lt;br&gt;&lt;br&gt;Pantallas, formularios, permisos por rol, casos de uso. Encola el procesamiento de documentos." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="340" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="wrk" value="&lt;b&gt;Worker de tareas&lt;/b&gt;&lt;br&gt;[Contenedor: Python, mismo código Django]&lt;br&gt;&lt;br&gt;Corre en el servidor, en segundo plano: OCR → reglas de confrontación → guarda observaciones." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="340" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="db" value="&lt;b&gt;Base de datos&lt;/b&gt;&lt;br&gt;[Contenedor: PostgreSQL]&lt;br&gt;&lt;br&gt;Usuarios, roles, resultados (observaciones + hash SHA-256 del archivo), auditoría y cola de tareas. Sin PDFs." style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="300" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="med" value="&lt;b&gt;Archivos temporales&lt;/b&gt;&lt;br&gt;[Contenedor: sistema de archivos, tmp/]&lt;br&gt;&lt;br&gt;PDFs solo mientras se procesan. Se borran al terminar. No se respaldan." style="shape=folder;whiteSpace=wrap;html=1;tabWidth=60;tabHeight=16;tabPosition=left;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="600" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="nas" value="&lt;b&gt;NAS / Disco externo&lt;/b&gt;&lt;br&gt;[Sistema externo]&lt;br&gt;Respaldos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8C8496;fontColor=#ffffff;strokeColor=#736782;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="640" width="260" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="Sube PDFs desde su PC, revisa observaciones&lt;br&gt;[HTTPS, navegador]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="usr" target="web">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="Lee/escribe datos, encola tareas&lt;br&gt;[ORM]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="web" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="Guarda PDF temporal" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="web" target="med">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="Toma tareas, guarda resultados&lt;br&gt;[ORM]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="wrk" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="Lee PDF y lo borra al terminar" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="wrk" target="med">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="pg_dump diario" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;dashed=1;" edge="1" parent="1" source="db" target="nas">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n1" value="La web y el worker se comunican solo por la cola en PostgreSQL (sin Redis).&lt;br&gt;Los PDFs no quedan en el servidor: solo se guarda el resultado." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#000000;align=left;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="300" height="110" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c3" name="C3 - Componentes (confrontacion)">
+    <mxGraphModel dx="1400" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1150" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t" value="&lt;b&gt;C4 Nivel 3 - Diagrama de Componentes&lt;/b&gt;&lt;br&gt;Proyecto Django: flujo de confrontación" style="text;html=1;align=left;verticalAlign=top;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="usr" value="&lt;b&gt;Usuario notarial&lt;/b&gt;&lt;br&gt;[Persona]" style="shape=mxgraph.c4.person2;whiteSpace=wrap;html=1;align=center;fillColor=#08427B;fontColor=#ffffff;strokeColor=#073B6F;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="150" y="50" width="180" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="bnd" value="&lt;b&gt;Proyecto Django&lt;/b&gt; [Aplicación web + Worker comparten el mismo código]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 4;strokeColor=#666666;verticalAlign=bottom;align=left;spacingLeft=10;spacingBottom=6;arcSize=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="250" width="1260" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="vw" value="&lt;b&gt;views.py&lt;/b&gt;&lt;br&gt;[Componente: vistas Django]&lt;br&gt;&lt;br&gt;Formularios de subida, listado, detalle y endpoint JSON de estado." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85BBF0;fontColor=#000000;strokeColor=#78A8D8;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="110" y="290" width="270" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="sv" value="&lt;b&gt;services.py&lt;/b&gt;&lt;br&gt;[Componente: casos de uso]&lt;br&gt;&lt;br&gt;Crear expediente, adjuntar documentos, encolar procesamiento." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85BBF0;fontColor=#000000;strokeColor=#78A8D8;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="110" y="500" width="270" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="md" value="&lt;b&gt;models.py&lt;/b&gt;&lt;br&gt;[Componente: Django ORM]&lt;br&gt;&lt;br&gt;Confrontacion (usuario, fecha, hash SHA-256), Observacion. No guarda el PDF." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85BBF0;fontColor=#000000;strokeColor=#78A8D8;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="110" y="710" width="270" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="tk" value="&lt;b&gt;tasks.py&lt;/b&gt;&lt;br&gt;[Componente: tarea en segundo plano, corre en el Worker]&lt;br&gt;&lt;br&gt;Orquesta: OCR → reglas → guardar → borrar PDF (siempre, en finally)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85BBF0;fontColor=#000000;strokeColor=#78A8D8;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="540" y="290" width="290" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="rg" value="&lt;b&gt;reglas.py - NÚCLEO DEL NEGOCIO&lt;/b&gt;&lt;br&gt;[Componente: funciones puras]&lt;br&gt;&lt;br&gt;extraer_campos(texto): DNI, montos, partidas, nombres.&lt;br&gt;confrontar(escritura, borrador): observaciones.&lt;br&gt;Sin Django, sin OCR, sin BD." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD966;fontColor=#000000;strokeColor=#B8860B;strokeWidth=3;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="540" y="490" width="290" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="oc" value="&lt;b&gt;ocr.py&lt;/b&gt;&lt;br&gt;[Componente: adaptador]&lt;br&gt;&lt;br&gt;Imagen → texto. RapidOCR PP-OCRv5 latin, use_cls=False." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85BBF0;fontColor=#000000;strokeColor=#78A8D8;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="540" y="720" width="290" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ct" value="&lt;b&gt;cuentas / core&lt;/b&gt;&lt;br&gt;[Componente: apps Django]&lt;br&gt;&lt;br&gt;Login, roles (Groups), permisos, auditoría, layout base." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85BBF0;fontColor=#000000;strokeColor=#78A8D8;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="970" y="290" width="270" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="db" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;[Contenedor]" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="135" y="950" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="med" value="&lt;b&gt;Temporal tmp/&lt;/b&gt;&lt;br&gt;[Contenedor]" style="shape=folder;whiteSpace=wrap;html=1;tabWidth=60;tabHeight=16;tabPosition=left;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="575" y="950" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="Usa [HTTPS]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="usr" target="vw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="Verifica permisos" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="vw" target="ct">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="Llama casos de uso" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="vw" target="sv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="Crea / consulta" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="sv" target="md">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="Encola procesamiento" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;dashed=1;" edge="1" parent="1" source="sv" target="tk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="2. Texto → campos → observaciones" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="tk" target="rg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="1. Imagen → texto" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="tk" target="oc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="890" y="355" />
+              <mxPoint x="890" y="785" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" value="3. Guarda resultados" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="tk" target="md">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="355" />
+              <mxPoint x="460" y="775" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" value="SQL" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="md" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="Lee PDF" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="oc" target="med">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lg" value="&lt;b&gt;Leyenda&lt;/b&gt;&lt;br&gt;Amarillo = núcleo del negocio (se prueba solo con texto).&lt;br&gt;Celeste = componentes de soporte / adaptadores.&lt;br&gt;Línea punteada = asíncrono u opcional." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#000000;align=left;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="60" width="380" height="110" as="geometry" />
+        </mxCell>
+      <mxCell id="e13" value="4. Borra PDF" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#C0392B;fontColor=#C0392B;fontSize=11;labelBackgroundColor=default;dashed=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="tk" target="med"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="920" y="387" /><mxPoint x="920" y="1000" /></Array></mxGeometry></mxCell><mxCell id="cln" value="&lt;b&gt;limpieza diaria&lt;/b&gt;&lt;br&gt;[Componente: tarea programada]&lt;br&gt;&lt;br&gt;Borra de tmp/ archivos huérfanos con más de 24 h (si el worker se cayó)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85BBF0;fontColor=#000000;strokeColor=#78A8D8;arcSize=8;fontSize=12;" vertex="1" parent="1"><mxGeometry x="970" y="720" width="270" height="130" as="geometry" /></mxCell><mxCell id="e14" value="Borra huérfanos" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;dashed=1;" edge="1" parent="1" source="cln" target="med"><mxGeometry relative="1" as="geometry" /></mxCell></root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="dep" name="Despliegue (físico)">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1560" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t" value="&lt;b&gt;C4 - Diagrama de Despliegue&lt;/b&gt;&lt;br&gt;Arquitectura física on-premise" style="text;html=1;align=left;verticalAlign=top;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lan" value="LAN de la notaría" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;fontStyle=1;arcSize=2;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1100" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="pcs" value="PCs de usuarios (máx. 10)&lt;br&gt;[Windows]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#888888;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="260" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="nav" value="&lt;b&gt;Navegador web&lt;/b&gt;&lt;br&gt;[Chrome / Edge]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="110" y="210" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="nas" value="&lt;b&gt;NAS / Disco externo&lt;/b&gt;&lt;br&gt;[Respaldos diarios]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8C8496;fontColor=#ffffff;strokeColor=#736782;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="560" width="260" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="srv" value="Windows Server&lt;br&gt;[16 GB RAM]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#888888;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="130" width="710" height="650" as="geometry" />
+        </mxCell>
+        <mxCell id="vm" value="VM Ubuntu Server&lt;br&gt;[Hyper-V]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#888888;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="430" y="190" width="650" height="570" as="geometry" />
+        </mxCell>
+        <mxCell id="dc" value="Docker Compose" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#888888;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="250" width="590" height="480" as="geometry" />
+        </mxCell>
+        <mxCell id="cad" value="&lt;b&gt;caddy&lt;/b&gt;&lt;br&gt;[Proxy inverso, HTTPS interno]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="300" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="web" value="&lt;b&gt;web&lt;/b&gt;&lt;br&gt;[Django + gunicorn]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="790" y="300" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="wrk" value="&lt;b&gt;worker&lt;/b&gt;&lt;br&gt;[OCR + reglas, usa la CPU del servidor]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;arcSize=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="790" y="460" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="&lt;b&gt;postgres&lt;/b&gt;&lt;br&gt;[PostgreSQL]" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="450" width="230" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="vol" value="&lt;b&gt;Volúmenes&lt;/b&gt;: pgdata (persistente, se respalda) · tmp/ (temporal, no se respalda)" style="shape=folder;whiteSpace=wrap;html=1;tabWidth=60;tabHeight=14;tabPosition=left;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="620" width="520" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="HTTPS :443 (subida de PDFs)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="nav" target="cad">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="HTTP :8000" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="cad" target="web">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value=":5432" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="web" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value=":5432" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;" edge="1" parent="1" source="wrk" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="pg_dump diario (solo base de datos)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;dashed=1;" edge="1" parent="1" source="vol" target="nas">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
