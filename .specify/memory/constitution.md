@@ -1,9 +1,10 @@
 <!--
 Sync Impact Report
-- Version: 1.0.0 → 1.1.0 (MINOR: se añade el principio VII DevSecOps)
-- Principios añadidos: VII. DevSecOps y análisis de seguridad
-- Secciones modificadas: Restricciones técnicas (herramientas de seguridad),
-  Flujo de desarrollo (puertas de calidad), numeración de fases del roadmap
+- Version: 1.1.0 → 1.2.0 (MINOR: se añade el principio VIII Usabilidad)
+- Principios añadidos: VIII. Usabilidad según las heurísticas de Nielsen
+- Secciones modificadas: Flujo de desarrollo (requisitos de UX en specs con
+  interfaz y revisión heurística antes del merge)
+- Historial: 1.1.0 añadió VII DevSecOps; 1.0.0 ratificación inicial
 - Plantillas: plan-template.md lee la constitución en "Constitution Check" (sin cambios necesarios)
 - TODO pendientes:
   - TODO(SONAR): SonarQube Cloud vs SonarQube Server autoalojado. Decidir en F1.
@@ -119,6 +120,39 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   repositorio NO debe contener datos personales reales (incluidos los tests).
   Herramienta: TODO(SONAR), se decide en F1.
 
+### VIII. Usabilidad: heurísticas de Nielsen
+
+Toda pantalla del ERP cumple las 10 heurísticas de Nielsen, aplicadas así:
+
+1. **Visibilidad del estado del sistema:** todo proceso de más de 1 s muestra
+   su estado (pendiente, procesando, listo, error); tras cada acción hay un
+   mensaje de confirmación.
+2. **Coincidencia con el mundo real:** textos en español y con el vocabulario
+   de la notaría (expediente, minuta, borrador, partida), nunca términos
+   técnicos (task, hash, worker) en la interfaz.
+3. **Control y libertad del usuario:** toda operación en curso se puede
+   cancelar, y siempre hay un camino claro para volver atrás.
+4. **Consistencia y estándares:** mismos componentes de AdminLTE 4 para la
+   misma función en todo el ERP (botón primario, tablas, badges de estado),
+   mismo lugar para las mismas acciones.
+5. **Prevención de errores:** validar antes de enviar (tipo y tamaño de
+   archivo, campos obligatorios) y pedir confirmación antes de acciones
+   destructivas o irreversibles.
+6. **Reconocer antes que recordar:** menú visible según el rol, migas de pan,
+   datos del expediente visibles en cada paso; nada que el usuario deba
+   memorizar entre pantallas.
+7. **Flexibilidad y eficiencia:** filtros y búsqueda en listados; atajos solo
+   donde el uso repetido lo justifique.
+8. **Diseño estético y minimalista:** cada pantalla muestra solo lo necesario
+   para su tarea; las observaciones se agrupan por capa y gravedad.
+9. **Ayudar a reconocer y recuperarse de errores:** mensajes en lenguaje claro
+   que dicen qué pasó y qué hacer, sin trazas técnicas ni datos personales.
+10. **Ayuda y documentación:** textos de ayuda breves junto a los campos que lo
+    requieran, y una guía de uso por flujo.
+
+Además, mínimos de accesibilidad: etiquetas en todos los campos, navegación
+con teclado, foco visible y contraste suficiente.
+
 ## Restricciones técnicas
 
 - **Backend:** Python + Django (versión LTS vigente), PostgreSQL.
@@ -160,6 +194,10 @@ la minuta y los documentos del cliente, y señalar las diferencias.
 - Cada `spec.md` incluye una sección de requisitos de seguridad (quién puede
   hacer qué, qué datos toca, qué se valida) y cada `plan.md` indica cómo se
   cumplen.
+- Cada `spec.md` con interfaz incluye requisitos de UX según el principio VIII
+  (estados, mensajes, validaciones, confirmaciones). Antes del merge se revisa
+  la pantalla contra las 10 heurísticas (se puede generar la lista con
+  `/speckit-checklist`).
 - Recomendado: el agente que no implementó revisa el diff contra `spec.md` y
   esta constitución.
 
@@ -171,7 +209,7 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   actualización del Sync Impact Report.
 - Versionado semántico: MAJOR = se elimina o redefine un principio; MINOR = se
   añade un principio o sección, o se resuelve un TODO; PATCH = redacción.
-- El "Constitution Check" de cada `plan.md` verifica los principios I–VII; una
+- El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-17
+**Version**: 1.2.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-17
