@@ -1,13 +1,15 @@
 <!--
 Sync Impact Report
-- Version: plantilla → 1.0.0 (ratificación inicial)
-- Principios añadidos: I–VI (todos nuevos)
-- Secciones añadidas: Restricciones técnicas, Flujo de desarrollo, Gobernanza
+- Version: 1.0.0 → 1.1.0 (MINOR: se añade el principio VII DevSecOps)
+- Principios añadidos: VII. DevSecOps y análisis de seguridad
+- Secciones modificadas: Restricciones técnicas (herramientas de seguridad),
+  Flujo de desarrollo (puertas de calidad), numeración de fases del roadmap
 - Plantillas: plan-template.md lee la constitución en "Constitution Check" (sin cambios necesarios)
 - TODO pendientes:
-  - TODO(RETENCION_TEXTO): ¿se conserva el texto extraído (caché de OCR)? Decidir en F2.
-  - TODO(ROLES): roles concretos. Decidir en F0.
-  - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F6.
+  - TODO(SONAR): SonarQube Cloud vs SonarQube Server autoalojado. Decidir en F1.
+  - TODO(ROLES): roles concretos. Decidir en F2.
+  - TODO(RETENCION_TEXTO): ¿se conserva el texto extraído (caché de OCR)? Decidir en F4.
+  - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
 -->
 
 # Constitución del ERP Notarial (Confrontador)
@@ -64,7 +66,7 @@ la minuta y los documentos del cliente, y señalar las diferencias.
 - Persistencia mínima: resultados (observaciones), hash SHA-256 de cada archivo,
   quién, cuándo y estado. Nunca el archivo original.
 - Texto extraído: NO se persiste hasta que se decida lo contrario
-  (TODO(RETENCION_TEXTO), a resolver en F2 y enmendar aquí).
+  (TODO(RETENCION_TEXTO), a resolver en F4 y enmendar aquí).
 - Los logs y mensajes de error no incluyen DNI, nombres ni contenido de
   documentos.
 
@@ -82,7 +84,7 @@ la minuta y los documentos del cliente, y señalar las diferencias.
 ### VI. Seguridad y control de acceso
 
 - Autenticación de Django. Toda vista exige login y permiso explícito por rol
-  (Groups/permissions). Roles concretos: TODO(ROLES), se definen en F0.
+  (Groups/permissions). Roles concretos: TODO(ROLES), se definen en F2.
 - Validación de archivos por contenido real (no solo extensión) y por tamaño
   máximo, en el servidor.
 - Los archivos nunca se sirven como estáticos públicos.
@@ -90,6 +92,32 @@ la minuta y los documentos del cliente, y señalar las diferencias.
 - Funciona 100 % en la LAN, sin dependencias de internet en tiempo de ejecución:
   modelos de OCR, diccionario `es_PE` y assets front se aprovisionan en el
   despliegue.
+
+### VII. DevSecOps: la seguridad se verifica en cada cambio
+
+- La seguridad se comprueba de forma automática y continua, desde el primer
+  commit, no al final del proyecto.
+- **Pipeline de CI obligatorio** (GitHub Actions) en cada Pull Request y en
+  `main`: lint, tests, análisis estático y de seguridad (SAST), dependencias
+  vulnerables (SCA) y búsqueda de secretos.
+- **SonarQube es la puerta de calidad**: un PR NO se mergea si el Quality Gate
+  falla. Como mínimo, en código nuevo: 0 vulnerabilidades, 0 bugs nuevos
+  críticos o bloqueantes, 100 % de Security Hotspots revisados y cobertura
+  mínima de 80 %.
+- **Secretos:** nunca en el repositorio. `gitleaks` corre en pre-commit y en el
+  CI; los tokens (p. ej. `SONAR_TOKEN`) viven en GitHub Secrets o en el `.env`
+  del servidor.
+- **Dependencias:** `pip-audit` en el CI y Dependabot activado. Una
+  vulnerabilidad alta o crítica sin corrección bloquea el merge, salvo
+  excepción documentada.
+- **Contenedores o imágenes de despliegue:** si se usan, se escanean (p. ej.
+  Trivy) antes de desplegar.
+- **Hallazgos:** no se marcan como "falso positivo" ni se aceptan sin una
+  justificación escrita en el PR.
+- **Rama `main` protegida:** solo se integra por PR con el CI en verde.
+- **Código enviado a análisis:** antes de cualquier análisis en la nube, el
+  repositorio NO debe contener datos personales reales (incluidos los tests).
+  Herramienta: TODO(SONAR), se decide en F1.
 
 ## Restricciones técnicas
 
@@ -106,9 +134,12 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   texto), `.xlsx`, `.txt`, `.csv`, imágenes.
 - **Dependencias:** versiones fijadas. Ninguna dependencia nueva si la
   biblioteca estándar, Django o una ya instalada lo resuelve.
-- **Calidad:** `ruff` (lint + formato) y `pytest`.
+- **Calidad:** `ruff` (lint + formato, con reglas de seguridad `S`/bandit) y
+  `pytest` con cobertura.
+- **Seguridad:** SonarQube (Quality Gate), `gitleaks`, `pip-audit`,
+  Dependabot, `pre-commit`.
 - **Despliegue:** on-premise en el Windows Server de la notaría, dentro de la
-  LAN. Mecanismo: TODO(DESPLIEGUE), se decide en F6.
+  LAN. Mecanismo: TODO(DESPLIEGUE), se decide en F8.
 - **Prueba de concepto Streamlit** (`app.py`, `app_ortografia.py`): se mantiene
   hasta que el ERP alcance paridad funcional y luego se elimina.
 
@@ -122,9 +153,13 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   negocio queda como `[NEEDS CLARIFICATION]` hasta que el usuario responda.
 - Un worktree de Orca por funcionalidad; integración a `main` mediante Pull
   Request.
-- Puertas de calidad antes del merge: `ruff` y `pytest` en verde, migraciones
-  incluidas, sin datos reales en el diff, y, si se tocó el núcleo, medición
-  contra el expediente de referencia sin retroceso.
+- Puertas de calidad antes del merge (automáticas en el CI): `ruff`, `pytest`,
+  Quality Gate de SonarQube, `pip-audit` y `gitleaks` en verde. Además:
+  migraciones incluidas, sin datos reales en el diff y, si se tocó el núcleo,
+  medición contra el expediente de referencia sin retroceso.
+- Cada `spec.md` incluye una sección de requisitos de seguridad (quién puede
+  hacer qué, qué datos toca, qué se valida) y cada `plan.md` indica cómo se
+  cumplen.
 - Recomendado: el agente que no implementó revisa el diff contra `spec.md` y
   esta constitución.
 
@@ -136,7 +171,7 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   actualización del Sync Impact Report.
 - Versionado semántico: MAJOR = se elimina o redefine un principio; MINOR = se
   añade un principio o sección, o se resuelve un TODO; PATCH = redacción.
-- El "Constitution Check" de cada `plan.md` verifica los principios I–VI; una
+- El "Constitution Check" de cada `plan.md` verifica los principios I–VII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-16
+**Version**: 1.1.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-17
