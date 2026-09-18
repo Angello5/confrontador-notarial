@@ -2,7 +2,7 @@
 
 # Herramientas de calidad y generación de locks.
 pytest==9.0.3
-pytest-cov==7.0.0
+pytest-cov==7.1.0
 ruff==0.16.8
 pip-audit==2.10.1
 pre-commit==4.6.2
