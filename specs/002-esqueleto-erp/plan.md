@@ -67,6 +67,8 @@ config/                         # settings, urls, ASGI/WSGI del proyecto Django
 accounts/
 ├── models.py                   # AbstractUser de proyecto e indicadores de sesión/claves
 ├── backends.py                 # autenticación común con contador y bloqueo persistente
+├── apps.py                     # permisos mínimos del grupo Administrador tras migraciones
+├── admin_site.py               # acceso nativo limitado a staff del grupo Administrador
 ├── admin.py                    # personalización acotada del Django UserAdmin nativo
 ├── forms.py                    # formularios Django auth, renderizados con crispy-bootstrap5
 ├── views.py                    # login, cambio inicial de clave e inicio
@@ -74,6 +76,7 @@ accounts/
 ├── management/commands/
 │   └── bootstrap_admin.py      # aprovisiona el primer Administrador
 └── migrations/                 # modelo de usuario desde la migración inicial
+config/apps.py                  # configura el AdminSite nativo del proyecto
 tests/test_login_lockout.py     # persistencia, respuestas genéricas y concurrencia del bloqueo
 core/
 ├── urls.py                     # rutas de login, cambio de clave e inicio

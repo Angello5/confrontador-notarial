@@ -5,6 +5,7 @@ from datetime import timedelta
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
+from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils import timezone
 
@@ -51,6 +52,19 @@ def test_admin_creates_account_with_one_temporary_role_and_no_email(
     assert list(user.groups.values_list("name", flat=True)) == ["Usuario"]
 
 
+def test_admin_account_form_uses_spanish_labels_and_minimum_fields(
+    cliente_administrador,
+):
+    response = cliente_administrador.get(reverse("admin:accounts_user_add"))
+    content = response.content.decode()
+
+    assert "Nombre de usuario" in content
+    assert "Clave temporal" in content
+    assert "Confirmar clave temporal" in content
+    assert "Rol" in content
+    assert 'id="id_email"' not in content
+
+
 def test_admin_rejects_role_tampering_and_superuser_escalation(
     cliente_administrador,
 ):
@@ -87,6 +101,18 @@ def test_admin_can_unlock_account_from_changelist(cliente_administrador):
     )
 
     blocked.refresh_from_db()
+    action_messages = list(get_messages(response.wsgi_request))
     assert response.status_code == 302
+    assert str(action_messages[0]) == "Se desbloquearon las cuentas seleccionadas."
     assert blocked.failed_login_attempts == 0
     assert blocked.login_locked_until is None
+
+
+def test_administrator_role_has_minimum_user_admin_permissions(db):
+    permissions = set(
+        Group.objects.get(name="Administrador")
+        .permissions.filter(codename__in=("add_user", "change_user", "view_user"))
+        .values_list("codename", flat=True)
+    )
+
+    assert permissions == {"add_user", "change_user", "view_user"}

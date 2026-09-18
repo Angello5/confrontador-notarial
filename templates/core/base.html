@@ -12,10 +12,12 @@
     <div class="app-wrapper">
       <header class="app-header navbar navbar-expand bg-body">
         <div class="container-fluid">
-          <button class="btn btn-link d-lg-none" type="button" @click="menuAbierto = !menuAbierto" :aria-expanded="menuAbierto" aria-controls="menu-principal">
-            <span class="visually-hidden">Abrir o cerrar navegación</span>
-            <span aria-hidden="true">☰</span>
-          </button>
+          {% if not user.force_password_change %}
+            <button class="btn btn-link d-lg-none" type="button" @click="menuAbierto = !menuAbierto" :aria-expanded="menuAbierto" aria-controls="menu-principal">
+              <span class="visually-hidden">Abrir o cerrar navegación</span>
+              <span aria-hidden="true">☰</span>
+            </button>
+          {% endif %}
           {% if not user.force_password_change %}<a class="navbar-brand" href="{% url 'home' %}">ERP Notarial</a>{% endif %}
           <form method="post" action="{% url 'logout' %}" class="ms-auto">
             {% csrf_token %}
@@ -54,7 +56,7 @@
           {% block content %}{% endblock %}
         </div></div>
       </main>
-      <footer class="app-footer"><span>ERP Notarial</span></footer>
+      {% if not user.force_password_change %}<footer class="app-footer"><span>ERP Notarial</span></footer>{% endif %}
     </div>
   </body>
 </html>

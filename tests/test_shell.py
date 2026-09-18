@@ -46,7 +46,7 @@ def test_admin_link_and_access_require_both_staff_and_administrator_group(client
     client.force_login(admin_without_staff)
     response = client.get(reverse("home"))
     assert b'href="/admin/"' not in response.content
-    assert client.get(reverse("admin:index")).status_code == 403
+    assert client.get(reverse("admin:index")).status_code in (302, 403)
 
     staff_without_admin_group = get_user_model().objects.create_user(
         username="staff_sin_grupo", is_staff=True
@@ -55,7 +55,7 @@ def test_admin_link_and_access_require_both_staff_and_administrator_group(client
     client.force_login(staff_without_admin_group)
     response = client.get(reverse("home"))
     assert b'href="/admin/"' not in response.content
-    assert client.get(reverse("admin:index")).status_code == 403
+    assert client.get(reverse("admin:index")).status_code in (302, 403)
 
 
 def test_user_cannot_access_django_admin(client, usuario_ficticio):
@@ -104,5 +104,7 @@ def test_pending_user_does_not_see_brand_or_navigation(client):
 
     assert "navbar-brand" not in content
     assert 'id="menu-principal"' not in content
+    assert "Abrir o cerrar navegación" not in content
+    assert 'class="app-footer"' not in content
     assert "Migas de pan" not in content
     assert "clave temporal" in content

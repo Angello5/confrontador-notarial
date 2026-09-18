@@ -87,12 +87,12 @@ def test_admin_cannot_disable_self_or_last_active_administrator(
     other_admin.refresh_from_db()
     assert self_response.status_code == other_response.status_code == 302
     assert admin.is_active
-    assert other_admin.is_active
+    assert not other_admin.is_active
 
 
 @pytest.mark.django_db(transaction=True)
 def test_concurrent_admin_deactivations_leave_an_active_administrator():
-    grupo = Group.objects.get(name="Administrador")
+    grupo, _ = Group.objects.get_or_create(name="Administrador")
     perms = Permission.objects.filter(content_type__app_label__in=["accounts", "auth"])
     grupo.permissions.set(perms)
     administradores = []

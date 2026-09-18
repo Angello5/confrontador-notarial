@@ -8,5 +8,7 @@ def home(request):
     grupos = request.user.groups
     if not grupos.filter(name__in=("Administrador", "Usuario")).exists():
         raise PermissionDenied
-    es_administrador = grupos.filter(name="Administrador").exists()
+    es_administrador = (
+        request.user.is_staff and grupos.filter(name="Administrador").exists()
+    )
     return render(request, "core/home.html", {"es_administrador": es_administrador})

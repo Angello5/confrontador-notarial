@@ -28,7 +28,7 @@ class PasswordChangeView(auth_views.PasswordChangeView):
 class LogoutView(auth_views.LogoutView):
     next_page = reverse_lazy("login")
 
-    def dispatch(self, request, *args, **kwargs):
-        response = super().dispatch(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
         messages.info(request, "Cerró sesión correctamente.")
         return response

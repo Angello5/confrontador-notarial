@@ -69,6 +69,13 @@ def test_logout_confirms_success(client, usuario_ficticio):
     assert str(messages[0]) == "Cerró sesión correctamente."
 
 
+def test_rejected_logout_does_not_confirm_success(client):
+    response = client.get(reverse("logout"))
+
+    assert response.status_code == 405
+    assert list(get_messages(response.wsgi_request)) == []
+
+
 def test_anonymous_user_is_redirected_from_protected_home(client):
     response = client.get("/")
 
