@@ -28,15 +28,15 @@
 
 **Independent test criteria**: comprobar login público, rechazo genérico de credenciales inválidas/inactivas, obligación del cambio temporal, bloqueo de otras rutas antes del cambio, inicio autenticado, navegación por permisos y denegación servidor-side de rutas no autorizadas.
 
-- [ ] T009 [P] [US1] Add failing tests for valid/invalid/inactive login, generic errors, redirects and protected routes in `tests/test_login.py`.
-- [ ] T010 [P] [US1] Add failing tests for mandatory initial password change, password validation and route blocking in `tests/test_password_change.py`.
-- [ ] T011 [P] [US1] Add failing tests for role-based home/menu rendering, access control and accessibility-visible labels in `tests/test_shell.py`.
-- [ ] T012 [US1] Implement `force_password_change` and `session_version` fields with migrations in `accounts/models.py` and `accounts/migrations/0003_account_security_state.py`.
-- [ ] T013 [US1] Implement login, password-change forms, views and URL routes using Django auth in `accounts/forms.py`, `accounts/views.py`, `accounts/urls.py` and `config/urls.py`.
-- [ ] T014 [US1] Implement middleware that restricts pending-change sessions across every internal route, including `/admin/`, to logout/password change in `accounts/middleware.py` and register it in `config/settings.py`.
-- [ ] T015 [US1] Create Spanish login and password-change templates with AdminLTE 4, crispy-bootstrap5, keyboard labels, visible focus, help, confirmations and clear recovery messages in `templates/registration/login.html` and `templates/registration/password_change_form.html`.
-- [ ] T016 [US1] Create the permission-filtered Spanish ERP shell with minimal empty F2 navigation in `templates/core/base.html`, `templates/core/home.html`, `core/views.py` and `core/urls.py`.
-- [ ] T017 [US1] **Checkpoint**: confirm T009–T011 fail before implementation, then run the US1 tests, Django checks, lint and format; review `accounts/`, `core/`, `templates/`, and `tests/test_login.py`, `tests/test_password_change.py`, `tests/test_shell.py`; commit this stage locally as `feat(f2): add login and ERP shell`.
+- [X] T009 [P] [US1] Add failing tests for valid/invalid/inactive login, generic errors, redirects and protected routes in `tests/test_login.py`.
+- [X] T010 [P] [US1] Add failing tests for mandatory initial password change, password validation and route blocking in `tests/test_password_change.py`.
+- [X] T011 [P] [US1] Add failing tests for role-based home/menu rendering, access control and accessibility-visible labels in `tests/test_shell.py`.
+- [X] T012 [US1] Implement `force_password_change` and `session_version` fields with migrations in `accounts/models.py` and `accounts/migrations/0003_account_security_state.py`.
+- [X] T013 [US1] Implement login, password-change forms, views and URL routes using Django auth in `accounts/forms.py`, `accounts/views.py`, `accounts/urls.py` and `config/urls.py`.
+- [X] T014 [US1] Implement middleware that restricts pending-change sessions across every internal route, including `/admin/`, to logout/password change in `accounts/middleware.py` and register it in `config/settings.py`.
+- [X] T015 [US1] Create Spanish login and password-change templates with AdminLTE 4, crispy-bootstrap5, keyboard labels, visible focus, help, confirmations and clear recovery messages in `templates/registration/login.html` and `templates/registration/password_change_form.html`.
+- [X] T016 [US1] Create the permission-filtered Spanish ERP shell with minimal empty F2 navigation in `templates/core/base.html`, `templates/core/home.html`, `core/views.py` and `core/urls.py`.
+- [X] T017 [US1] **Checkpoint**: confirm T009–T011 fail before implementation, then run the US1 tests, Django checks, lint and format; review `accounts/`, `core/`, `templates/`, and `tests/test_login.py`, `tests/test_password_change.py`, `tests/test_shell.py`; commit this stage locally as `feat(f2): add login and ERP shell`.
 
 ## Phase 4: User Story 2 - Administrar cuentas (Priority: P1)
 

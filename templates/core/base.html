@@ -1,0 +1,58 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}ERP Notarial{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'vendor/adminlte/adminlte.min.css' %}">
+    <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
+  </head>
+  <body class="layout-fixed sidebar-expand-lg bg-body-tertiary" x-data="{ menuAbierto: false }">
+    <div class="app-wrapper">
+      <header class="app-header navbar navbar-expand bg-body">
+        <div class="container-fluid">
+          <button class="btn btn-link d-lg-none" type="button" @click="menuAbierto = !menuAbierto" :aria-expanded="menuAbierto" aria-controls="menu-principal">
+            <span class="visually-hidden">Abrir o cerrar navegación</span>
+            <span aria-hidden="true">☰</span>
+          </button>
+          <a class="navbar-brand" href="{% url 'home' %}">ERP Notarial</a>
+          <form method="post" action="{% url 'logout' %}" class="ms-auto">
+            {% csrf_token %}
+            <button class="btn btn-outline-secondary" type="submit">Cerrar sesión</button>
+          </form>
+        </div>
+      </header>
+      <aside id="menu-principal" class="app-sidebar bg-body-secondary d-lg-block" :class="menuAbierto ? 'd-block' : 'd-none d-lg-block'">
+        <nav class="mt-2" aria-label="Navegación principal">
+          <ul class="nav sidebar-menu flex-column">
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'home' %}" aria-current="page">
+                <span class="nav-icon" aria-hidden="true">⌂</span>
+                <span>Inicio</span>
+              </a>
+            </li>
+            {% if es_administrador %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'admin:index' %}">
+                  <span class="nav-icon" aria-hidden="true">⚙</span>
+                  <span>Administración</span>
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      </aside>
+      <main class="app-main">
+        <div class="app-content-header"><div class="container-fluid"><h1 class="h3">{% block heading %}Inicio{% endblock %}</h1></div></div>
+        <div class="app-content"><div class="container-fluid">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" role="status">{{ message }}</div>
+          {% endfor %}
+          {% block content %}{% endblock %}
+        </div></div>
+      </main>
+      <footer class="app-footer"><span>ERP Notarial</span></footer>
+    </div>
+  </body>
+</html>

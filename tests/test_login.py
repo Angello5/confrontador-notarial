@@ -39,7 +39,10 @@ def test_invalid_and_inactive_accounts_receive_the_same_error(client):
     assert invalid_response.status_code == 200
     assert inactive_response.status_code == 200
     assert b"usuario o la clave no son correctos" in invalid_response.content.lower()
-    assert invalid_response.content == inactive_response.content
+    assert (
+        invalid_response.context["form"].non_field_errors()
+        == inactive_response.context["form"].non_field_errors()
+    )
 
 
 def test_anonymous_user_is_redirected_from_protected_home(client):

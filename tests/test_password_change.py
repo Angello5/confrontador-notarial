@@ -37,6 +37,15 @@ def test_pending_user_cannot_open_other_routes(client, cuenta_pendiente):
     assert response.url == reverse("password_change")
 
 
+def test_pending_user_cannot_open_admin(client, cuenta_pendiente):
+    client.force_login(cuenta_pendiente)
+
+    response = client.get(reverse("admin:index"))
+
+    assert response.status_code == 302
+    assert response.url == reverse("password_change")
+
+
 def test_password_change_validates_and_clears_pending_flag(client, cuenta_pendiente):
     client.force_login(cuenta_pendiente)
     path = reverse("password_change")
