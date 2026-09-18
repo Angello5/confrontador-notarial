@@ -10,8 +10,14 @@ Sync Impact Report
   F1; 1.2.0 añadió VIII Usabilidad; 1.1.0 añadió VII DevSecOps; 1.0.0
   ratificación inicial
 - Plantillas: plan-template.md lee la constitución en "Constitution Check" (sin cambios necesarios)
+- Version: 1.4.0 → 1.5.0 (MINOR: se resuelve TODO(ROLES) con dos roles y
+  administración de cuentas mediante Django admin)
+- Principios modificados: VI. Seguridad y control de acceso (roles concretos,
+  administración vía Django admin y salvaguardas de administradores)
+- Motivo: F2 requiere definir dos roles y el uso del Django admin nativo para
+  administrar cuentas, además de crear el primer Administrador en el servidor
+- Fecha: 2026-09-18
 - TODO pendientes:
-  - TODO(ROLES): roles concretos. Decidir en F2.
   - TODO(RETENCION_TEXTO): ¿se conserva el texto extraído (caché de OCR)? Decidir en F4.
   - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
 -->
@@ -88,7 +94,13 @@ la minuta y los documentos del cliente, y señalar las diferencias.
 ### VI. Seguridad y control de acceso
 
 - Autenticación de Django. Toda vista exige login y permiso explícito por rol
-  (Groups/permissions). Roles concretos: TODO(ROLES), se definen en F2.
+  (Groups/permissions). Existen exactamente dos roles: **Administrador**,
+  quien puede administrar cuentas y usar las funciones del ERP, y **Usuario**,
+  quien puede usar las funciones del ERP. La gestión de cuentas y roles se hace
+  desde el Django admin nativo (`/admin`), sin pantallas propias ni asistente
+  de primer uso. El primer administrador se crea con un comando de gestión en
+  el servidor. No se permite que un administrador se desactive a sí mismo ni
+  que una acción deje el sistema sin ningún administrador activo.
 - Validación de archivos por contenido real (no solo extensión) y por tamaño
   máximo, en el servidor.
 - Los archivos nunca se sirven como estáticos públicos.
@@ -226,4 +238,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.4.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-18
+**Version**: 1.5.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-18
