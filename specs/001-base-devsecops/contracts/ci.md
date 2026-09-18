@@ -45,7 +45,7 @@ Escaneo de secretos histórico previo: ejecutar localmente con redacción; no im
 
 ## Reglas de seguridad de Ruff
 
-En `pyproject.toml`, `[tool.ruff.lint.per-file-ignores]` permite únicamente `S101` para `"test_*.py"` y `"tests/**"`. No se justifica cada assert: la política de pruebas se documenta una vez en el PR. S101 sigue activo fuera de esos patrones y todas las demás reglas S permanecen activas sin exclusiones, incluidas las pruebas.
+En `pyproject.toml`, `[tool.ruff.lint.per-file-ignores]` permite únicamente `S101` para `"test_*.py"` y `"tests/**"`. No se justifica cada assert: la política de pruebas se documenta una vez en el PR. S101 sigue activo fuera de esos patrones. S101 permitido en tests por per-file-ignores; cualquier otra excepción S solo como noqa individual con código y motivo, listada en el PR.
 
 ## Protección y confianza
 

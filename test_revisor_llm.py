@@ -2,11 +2,14 @@
 
 No llama a la API. python -m pytest test_revisor_llm.py
 """
+
 from revisor_llm import filtrar
 
-DOC = ("LOS COMPARECIENTES DECLARAN QUÉ SON DE ESTADO CIVIL. OCTAO: SAN MARTIN "
-       "EN LA UIRBANIZACION, DE OCUPACIÒN ARTESANO, CON LOTE 42 MANZANA 2. "
-       "MARIA NUBELIA ZURBELIA.")
+DOC = (
+    "LOS COMPARECIENTES DECLARAN QUÉ SON DE ESTADO CIVIL. OCTAO: SAN MARTIN "
+    "EN LA UIRBANIZACION, DE OCUPACIÒN ARTESANO, CON LOTE 42 MANZANA 2. "
+    "MARIA NUBELIA ZURBELIA."
+)
 FUENTES = "URBANIZACION CIVIL NUBELIA ZURBELIA"
 
 CASOS = [
@@ -23,14 +26,18 @@ CASOS = [
     ("MARIA", "MARÍA", False, "tilde sobre mayusculas"),
 ]
 
+
 def test_filtro():
-    ok, fuera = filtrar([{"encontrado": e, "correccion": c} for e, c, _, _ in CASOS],
-                        DOC, FUENTES)
+    ok, fuera = filtrar(
+        [{"encontrado": e, "correccion": c} for e, c, _, _ in CASOS], DOC, FUENTES
+    )
     aceptados = {h["encontrado"] for h in ok}
     for enc, cor, esperado, motivo in CASOS:
         real = enc in aceptados
         estado = "acepta" if real else "descarta"
-        assert real == esperado, f"{enc!r} -> {cor!r}: {estado} y deberia ser lo contrario ({motivo})"
+        assert real == esperado, (
+            f"{enc!r} -> {cor!r}: {estado} y deberia ser lo contrario ({motivo})"
+        )
 
     # el respaldo distingue lo que se puede confirmar contra la minuta
     respaldos = {h["encontrado"]: h["respaldo"] for h in ok}

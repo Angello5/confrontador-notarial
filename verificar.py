@@ -10,7 +10,11 @@ aparicion en el destino. Un dato repetido dos veces (comparecencia y minuta
 transcrita) se valida dos veces: por eso detecta el error aunque la otra copia
 este bien.
 """
-import argparse, re, sys, unicodedata
+
+import argparse
+import re
+import sys
+import unicodedata
 from pathlib import Path
 
 from rapidfuzz import fuzz, process
@@ -43,9 +47,34 @@ RE_NOMBRE = re.compile(
 )
 RE_RENIEC = {"nom": "NOMBRES", "pat": "APELLIDO PATERNO", "mat": "APELLIDO MATERNO"}
 STOP = {
-    "DE", "DEL", "LA", "EL", "LOS", "LAS", "Y", "CON", "UNA", "OTRA", "PARTE",
-    "CASADA", "CASADO", "SOLTERA", "SOLTERO", "QUIEN", "SENOR", "NOTARIO", "A",
-    "FAVOR", "QUE", "SE", "SU", "ES", "AMBOS", "CELEBRAN", "OTORGA", "PERUANA",
+    "DE",
+    "DEL",
+    "LA",
+    "EL",
+    "LOS",
+    "LAS",
+    "Y",
+    "CON",
+    "UNA",
+    "OTRA",
+    "PARTE",
+    "CASADA",
+    "CASADO",
+    "SOLTERA",
+    "SOLTERO",
+    "QUIEN",
+    "SENOR",
+    "NOTARIO",
+    "A",
+    "FAVOR",
+    "QUE",
+    "SE",
+    "SU",
+    "ES",
+    "AMBOS",
+    "CELEBRAN",
+    "OTORGA",
+    "PERUANA",
 }
 
 
@@ -100,7 +129,9 @@ def correspondencia(cat: dict[str, set[str]], destino: str) -> tuple[float, int]
     for v in cat["DNI"]:
         total += 1
         aciertos += v in d
-    candidatos = nombres(d) + [norm(l).rstrip(",.") for l in destino.splitlines()]
+    candidatos = nombres(d) + [
+        norm(linea).rstrip(",.") for linea in destino.splitlines()
+    ]
     for v in cat["NOMBRE"]:
         total += 1
         m = process.extractOne(v, candidatos, scorer=fuzz.ratio) if candidatos else None
@@ -116,22 +147,29 @@ def diagnostico(fuentes: dict[str, str], destino: str) -> str | None:
     expediente trae fuentes que no llevan identidades (un anexo, una plantilla) y
     promediarlas hunde la cobertura de la minuta, que es la que manda. Se ignoran
     las fuentes sin nombres ni DNI porque no pueden opinar."""
-    mejor, ajenos_mejor = -1.0, 0   # -1 y no 0: con cobertura 0 hay que registrar los DNI ajenos
+    mejor, ajenos_mejor = (
+        -1.0,
+        0,
+    )  # -1 y no 0: con cobertura 0 hay que registrar los DNI ajenos
     for nombre, texto in fuentes.items():
         cat = catalogo({nombre: texto})
         if not (cat["NOMBRE"] or cat["DNI"]):
-            continue                      # no lleva identidades: no aporta al juicio
+            continue  # no lleva identidades: no aporta al juicio
         cob, ajenos = correspondencia(cat, destino)
         if cob > mejor:
             mejor, ajenos_mejor = cob, ajenos
     if mejor >= 0.34:
         return None
     if ajenos_mejor >= 2:
-        return (f"El borrador no corresponde a estas fuentes: no comparte ningun dato "
-                f"identificatorio y trae {ajenos_mejor} DNI distintos. Parece otro "
-                f"expediente o una plantilla.")
-    return ("El borrador no repite los nombres ni los DNI de las fuentes. Si es un anexo "
-            "o un cronograma es normal; si deberia ser la escritura, revisa los archivos.")
+        return (
+            f"El borrador no corresponde a estas fuentes: no comparte ningun dato "
+            f"identificatorio y trae {ajenos_mejor} DNI distintos. Parece otro "
+            f"expediente o una plantilla."
+        )
+    return (
+        "El borrador no repite los nombres ni los DNI de las fuentes. Si es un anexo "
+        "o un cronograma es normal; si deberia ser la escritura, revisa los archivos."
+    )
 
 
 def revisar(cat: dict[str, set[str]], destino: str, umbral: int) -> list[str]:
@@ -143,7 +181,11 @@ def revisar(cat: dict[str, set[str]], destino: str, umbral: int) -> list[str]:
         if valor in cat[campo]:
             return
         m = process.extractOne(valor, cat[campo], scorer=fuzz.ratio)
-        esperado = f"debe decir «{m[0]}»" if m and m[1] >= 65 else "no coincide con ninguna fuente"
+        esperado = (
+            f"debe decir «{m[0]}»"
+            if m and m[1] >= 65
+            else "no coincide con ninguna fuente"
+        )
         obs.append(f"[{campo}] «{valor}» {esperado}{ctx}")
 
     for n in nombres(d):
@@ -162,7 +204,7 @@ def revisar(cat: dict[str, set[str]], destino: str, umbral: int) -> list[str]:
             obs.append(f"[NOMBRE] «{cand}» debe decir «{m[0]}»   (caratula)")
             vistos["NOMBRE"].add(m[0])
     for m in RE_DNI_DOC.finditer(d):
-        check("DNI", m.group(1), f"   …{d[max(0, m.start() - 55):m.end()][-70:]}")
+        check("DNI", m.group(1), f"   …{d[max(0, m.start() - 55) : m.end()][-70:]}")
     for v in RE_PARTIDA.findall(d):
         check("PARTIDA", v)
     for v in RE_MONTO.findall(d):
@@ -170,12 +212,14 @@ def revisar(cat: dict[str, set[str]], destino: str, umbral: int) -> list[str]:
 
     for campo, vals in cat.items():
         for falta in sorted(vals - vistos[campo]):
-            obs.append(f"[{campo}] FALTA: «{falta}» esta en las fuentes y no aparece en el destino")
+            obs.append(
+                f"[{campo}] FALTA: «{falta}» esta en las fuentes y no aparece en el destino"
+            )
     return obs
 
 
 def parrafos(t: str) -> list[str]:
-    return [p for l in t.splitlines() if len(p := norm(l)) > 80]
+    return [p for linea in t.splitlines() if len(p := norm(linea)) > 80]
 
 
 def revisar_parrafos(minutas: list[str], destino: str, umbral: int) -> list[str]:
@@ -187,17 +231,25 @@ def revisar_parrafos(minutas: list[str], destino: str, umbral: int) -> list[str]
             if not m or m[1] < umbral:
                 # con dos decimales: a 99.7% redondeado a 0 decimales salia "100%",
                 # que se lee como "coincide del todo y aun asi lo marco"
-                obs.append(f"[PARRAFO] falta o alterado ({m[1]:.2f}%): {p[:100]}…" if m
-                           else f"[PARRAFO] falta: {p[:100]}…")
+                obs.append(
+                    f"[PARRAFO] falta o alterado ({m[1]:.2f}%): {p[:100]}…"
+                    if m
+                    else f"[PARRAFO] falta: {p[:100]}…"
+                )
     return obs
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("fuentes", nargs="+", help="archivos o carpetas con la verdad")
-    ap.add_argument("-d", "--destino", nargs="+", required=True, help="documento(s) a revisar")
-    ap.add_argument("-u", "--umbral", type=int, default=88, help="%% minimo de similitud de parrafo")
+    ap.add_argument(
+        "-d", "--destino", nargs="+", required=True, help="documento(s) a revisar"
+    )
+    ap.add_argument(
+        "-u", "--umbral", type=int, default=88, help="%% minimo de similitud de parrafo"
+    )
     a = ap.parse_args()
 
     print("FUENTES:", file=sys.stderr)

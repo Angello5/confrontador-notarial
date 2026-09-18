@@ -1,3 +1,6 @@
-# Solo herramientas de pruebas; el generador usa requirements.txt y stdlib.
-pytest==8.4.2
+# Herramientas de calidad; el generador usa requirements.txt y stdlib.
+pytest==9.0.3
 pytest-cov==7.0.0
+ruff==0.16.8
+pip-audit==2.10.1
+pre-commit==4.6.2

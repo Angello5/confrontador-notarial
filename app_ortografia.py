@@ -7,6 +7,7 @@ resultado es el mismo en cada corrida. Incluye el bucle de curacion: las
 palabras que el diccionario no conoce se marcan una vez como termino de la casa
 o como errata, y no vuelven a preguntarse.
 """
+
 import time
 from pathlib import Path
 
@@ -19,8 +20,10 @@ from verificar import catalogo, diagnostico, revisar, revisar_parrafos
 
 st.set_page_config(page_title="Vía determinista", page_icon="📐", layout="wide")
 st.title("Confrontamiento determinista")
-st.caption("Reglas para los datos duros · hunspell es_PE para la ortografía · sin modelo de "
-           "lenguaje. La misma entrada da siempre exactamente la misma salida.")
+st.caption(
+    "Reglas para los datos duros · hunspell es_PE para la ortografía · sin modelo de "
+    "lenguaje. La misma entrada da siempre exactamente la misma salida."
+)
 
 
 @st.cache_resource(show_spinner="Cargando el diccionario es_PE (una sola vez)…")
@@ -33,6 +36,7 @@ def diccionario_residente():
 
 def textos(archivos) -> dict[str, str]:
     import tempfile
+
     out = {}
     with tempfile.TemporaryDirectory() as tmp:
         for f in archivos:
@@ -44,15 +48,21 @@ def textos(archivos) -> dict[str, str]:
 
 n_lemas, seg_carga = diccionario_residente()
 st.sidebar.metric("Lemas en el diccionario", f"{n_lemas:,}".replace(",", " "))
-st.sidebar.caption(f"Cargado en {seg_carga:.2f} s · reside en RAM (~55 MB) mientras la app viva.")
+st.sidebar.caption(
+    f"Cargado en {seg_carga:.2f} s · reside en RAM (~55 MB) mientras la app viva."
+)
 st.sidebar.divider()
 st.sidebar.metric("Términos de la casa", len(ortografia.lista_casa()))
-st.sidebar.caption(f"Se guardan en `{ortografia.LISTA.name}`. Siglas, jurídico y topónimos que "
-                   "el diccionario general no trae.")
+st.sidebar.caption(
+    f"Se guardan en `{ortografia.LISTA.name}`. Siglas, jurídico y topónimos que "
+    "el diccionario general no trae."
+)
 umbral = st.sidebar.slider("Umbral de similitud de párrafo (%)", 70, 100, 88)
 
 izq, der = st.columns(2)
-fuentes_up = izq.file_uploader("Minuta y documentos del cliente", accept_multiple_files=True)
+fuentes_up = izq.file_uploader(
+    "Minuta y documentos del cliente", accept_multiple_files=True
+)
 borrador_up = der.file_uploader("Proyecto (borrador)", accept_multiple_files=True)
 
 if st.button("Comparar", type="primary", disabled=not (fuentes_up and borrador_up)):
@@ -90,8 +100,11 @@ if st.button("Comparar", type="primary", disabled=not (fuentes_up and borrador_u
 
         if obs:
             st.markdown("**Datos duros** — verificados contra la fuente")
-            st.dataframe(pd.DataFrame([{"Observación": o} for o in obs]),
-                         width="stretch", hide_index=True)
+            st.dataframe(
+                pd.DataFrame([{"Observación": o} for o in obs]),
+                width="stretch",
+                hide_index=True,
+            )
         else:
             st.success("Datos duros sin observaciones: coinciden con las fuentes.")
 
@@ -105,18 +118,38 @@ if st.button("Comparar", type="primary", disabled=not (fuentes_up and borrador_u
 if faltas := st.session_state.get("resultado"):
     st.divider()
     st.markdown("### Revisión de palabras desconocidas")
-    st.caption("Marca las que sean término de la notaría —siglas, jurídico, topónimos— y guárdalas. "
-               "No se volverán a reportar. Lo que dejes sin marcar es una errata.")
+    st.caption(
+        "Marca las que sean término de la notaría —siglas, jurídico, topónimos— y guárdalas. "
+        "No se volverán a reportar. Lo que dejes sin marcar es una errata."
+    )
 
     editable = st.data_editor(
-        pd.DataFrame([{"Es término de la casa": False, "Palabra": w,
-                       "Motivo": m, "Sugerencia": s} for w, m, s in faltas]),
-        width="stretch", hide_index=True, disabled=["Palabra", "Motivo", "Sugerencia"],
-        column_config={"Es término de la casa": st.column_config.CheckboxColumn(width="small")})
+        pd.DataFrame(
+            [
+                {
+                    "Es término de la casa": False,
+                    "Palabra": w,
+                    "Motivo": m,
+                    "Sugerencia": s,
+                }
+                for w, m, s in faltas
+            ]
+        ),
+        width="stretch",
+        hide_index=True,
+        disabled=["Palabra", "Motivo", "Sugerencia"],
+        column_config={
+            "Es término de la casa": st.column_config.CheckboxColumn(width="small")
+        },
+    )
 
     marcadas = editable[editable["Es término de la casa"]]["Palabra"].tolist()
-    if st.button(f"Guardar {len(marcadas)} términos en la lista", disabled=not marcadas):
+    if st.button(
+        f"Guardar {len(marcadas)} términos en la lista", disabled=not marcadas
+    ):
         n = ortografia.agregar_a_lista(marcadas)
-        st.success(f"{n} términos guardados en {ortografia.LISTA.name}. Vuelve a comparar.")
+        st.success(
+            f"{n} términos guardados en {ortografia.LISTA.name}. Vuelve a comparar."
+        )
         st.session_state.resultado = [f for f in faltas if f[0] not in marcadas]
         st.rerun()

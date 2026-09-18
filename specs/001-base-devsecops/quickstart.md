@@ -1,7 +1,7 @@
 # Quickstart de validación · F1
 
 Esta guía distingue los checkpoints ejecutados de las etapas pendientes. Las
-etapas 1 y 2 tienen evidencia local abajo; no se afirma CI verde ni F1 completa.
+etapas 1–4 tienen evidencia local abajo; no se afirma CI verde ni F1 completa.
 
 ## Checkpoint ejecutado · Etapa 1 (T001–T006)
 
@@ -52,7 +52,7 @@ repositorio exige limpiarlo en una fase aparte. La etapa 2 no se inicia aquí.
 
 Para etapa 2 basta Python 3.13, los dos archivos de requisitos y los recursos
 OCR/diccionario indicados a continuación. LibreOffice se integra en etapa 3;
-gitleaks, Ruff configurado y controles remotos pertenecen a etapas posteriores.
+Ruff y pip-audit se validan en etapa 4; gitleaks y controles remotos pertenecen a etapas posteriores.
 
 - Clon limpio privado, Python 3.13, Git y LibreOffice (`soffice` en PATH) en Linux; gitleaks fijado y verificado según documentación de implementación.
 - Recursos OCR y diccionario es_PE aprovisionados con los orígenes/versiones documentados. Solo fixtures ficticios; ningún expediente privado en el clon.
@@ -187,6 +187,72 @@ Python 3.13.
   `EXPEDIENTES_REFERENCIA_DIR`; antes de este cambio los `.doc` fallaban en Linux,
   así que solo puede mejorar la cobertura de lectura.
 
+## Checkpoint ejecutado · Etapa 4 (T020–T025)
+
+Entorno nuevo `.venv/t024`, Python 3.13.9, instalado únicamente desde ambos
+archivos de requisitos; recursos OCR/diccionario verificados con los hashes de
+T012. Herramientas fijadas: Ruff 0.16.8, pip-audit 2.10.1, pre-commit 4.6.2,
+pytest 9.0.3 y pytest-cov 7.0.0. Pre-commit queda instalado; su configuración y
+activación pertenecen a etapa 5.
+
+Cambios de versiones: Pillow 11.0.0 → 12.3.0 y pytest 8.4.2 → 9.0.3.
+La auditoría inicial emitió 35 filas (18 IDs únicos) en esos dos paquetes;
+la final no encuentra vulnerabilidades, sin IDs exceptuados. Se corrigieron
+los IDs de Pillow PYSEC-2026-{165,2249,2250,2252,2253,2254,2255,2256,2257,
+2874,3451,3453,3454,3493,3494,3495,3496} y de pytest PYSEC-2026-1845.
+Las restantes versiones directas no cambiaron; `pip check` confirma compatibilidad.
+Versiones consultadas en [PyPI](https://pypi.org/) y comprobadas por instalación
+real en Python 3.13 y auditoría estricta de las dependencias transitivas.
+
+Ruff: 13 hallazgos iniciales, 7 corregidos y 6 justificados. Se separaron dos
+imports E401 y renombraron tres variables E741; se aplicó formato a los 18
+archivos Python propios. S324: SHA-1 solo identifica la caché, se declara
+`usedforsecurity=False` y se conserva la clave anterior. S607: macOS usa
+`/usr/bin/textutil`, evitando buscar el binario en PATH; el nuevo test ficticio
+falló antes del cambio y pasó después, conservando argumentos y tabuladores.
+No se alteraron reglas de negocio ni se ejecutaron modelos o expedientes reales.
+
+Política para el PR: S101 permitido únicamente en `test_*.py` y `tests/**` por
+per-file-ignores, porque pytest usa asserts. Las demás excepciones S requieren
+`noqa` individual con código exacto y motivo, listadas en el PR. El coordinador
+aprobó esta precisión durante T021 y se sincronizó la frase en spec, plan y
+contrato CI; no hay exclusiones globales ni por archivo de otras reglas.
+Copiar al PR las seis excepciones revisadas:
+
+| Ubicación | Regla | Justificación individual |
+|---|---|---|
+| `extraer.py:111` | S603 | LibreOffice: conversor configurado por código, argumentos en lista sin shell, perfil temporal propio; no se interpreta una cadena de comandos del documento. |
+| `extraer.py:139` | S603 | textutil: ejecutable absoluto fijo, opciones fijas y ruta como argumento, sin shell. |
+| `ortografia.py:41` | S310 | Descarga de diccionario desde URL HTTPS fija en código; solo concatena `.aff`/`.dic` internas, no una URL suministrada por documentos. |
+| `revisor_llm.py:97` | S310 | Request construido con esquema HTTPS y host fijos; modelo va en la ruta, no cambia el esquema; no se invocó la red de modelos durante las pruebas. |
+| `tests/conftest.py:44` | S314 | XML local de confianza generado por coverage en la misma ejecución; no es XML de documentos subidos. |
+| `tests/test_seleccion_local.py:49` | S603 | Intérprete propio y argumentos de pytest fijados por el test, entorno controlado y sin shell. |
+
+No se añadieron dependencias para estas revisiones ni se cambiaron APIs para
+eludir el detector. Las excepciones deben revisarse si cambia la procedencia de
+argumentos, URLs o XML; no autorizan procesar entradas arbitrarias sin validación.
+
+Con el entorno nuevo activado, resultados del checkpoint T024:
+
+| Comando / comprobación | Resultado |
+|---|---|
+| `python -m pip install -r requirements.txt -r requirements-dev.txt` | PASS en entorno nuevo, sin dependencias previas. |
+| Aprovisionamiento T012 | PASS: SHA-256 de tres modelos OCR y dos archivos del diccionario. |
+| `python scripts/generar_fixtures.py` | PASS: fixtures exclusivamente ficticios. |
+| `ruff check .` | PASS: cero hallazgos pendientes. |
+| `ruff format --check .` | PASS: 56 archivos examinados, sin reformatear. |
+| `python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml` | PASS: 17 passed, 1 deselected; incluye los 16 casos previos y el test macOS. |
+| `coverage.xml` | XML válido, ocho módulos productivos, rutas relativas, 665 líneas válidas / 366 cubiertas (55,04 %); sin imponer umbral global. |
+| `pip-audit --strict -r requirements.txt -r requirements-dev.txt` | PASS: No known vulnerabilities found; cero excepciones. |
+| `python -m pip check` | PASS: No broken requirements found. |
+| Muestras ficticias por stdin de Ruff | S101 detectada fuera de tests; S301 detectada dentro de tests; assert permitido en tests. No se conservaron muestras. |
+| Revisión del diff y `git diff --check` | PASS: cambios de formato, correcciones descritas y documentación; sin nuevos datos reales ni secretos. |
+
+T024 aprobado. T025 registra el commit local `chore: pass lint and dependency audit`.
+No se inicia etapa 5, no hay push, PR, cambios de CI ni activación de Sonar.
+Los marcadores T018/T019 de la etapa anterior ya estaban pendientes al comenzar;
+se conservan tal como se recibieron (HEAD previo `2be5a48`, «Finalizar etapa 3»).
+
 ## Validación local sintética
 
 Desde la raíz del repositorio, después de implementar:
@@ -200,6 +266,11 @@ python -m ruff check .
 python -m ruff format --check .
 python -m pytest -m 'not local_reference' --cov --cov-report=term --cov-report=xml:coverage.xml
 python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
+```
+
+En etapa 5, una vez configurados gitleaks y `.pre-commit-config.yaml`, añadir:
+
+```bash
 gitleaks dir --redact .
 python -m pre_commit install
 python -m pre_commit run --all-files
