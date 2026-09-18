@@ -74,9 +74,10 @@ accounts/
 └── migrations/                 # modelo de usuario desde la migración inicial
 core/
 ├── urls.py                     # rutas de login, cambio de clave e inicio
-└── templates/
-    ├── registration/           # login/cambio de clave en español
-    └── core/                   # layout AdminLTE y navegación por permisos
+└── views.py                    # inicio autenticado
+templates/
+├── registration/               # login/cambio de clave en español
+└── core/                       # layout AdminLTE y navegación por permisos
 static/vendor/                  # versiones locales anotadas; sin CDN
 requirements.in                 # dependencias directas de Django y formularios
 requirements.txt                # lock con hashes generado desde requirements.in

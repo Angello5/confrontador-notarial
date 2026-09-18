@@ -9,7 +9,7 @@ Modelo de proyecto basado en `django.contrib.auth.models.AbstractUser`; conserva
 | `force_password_change` | boolean, requerido, default false | Para una cuenta creada por Administración con clave temporal vale true hasta que la persona cambie la clave en su primer ingreso. |
 | `session_version` | entero positivo, requerido, default 0 | Aumenta al desactivar la cuenta; participa en el hash de autenticación de sesión y vuelve irrecuperables las sesiones anteriores incluso si se reactiva. |
 
-El campo nativo `is_active` determina si se permite autenticar. No se guardan claves temporales en claro, dirección de correo ni datos personales adicionales. La clave temporal se entrega fuera de la aplicación por el administrador creador y no se envía por correo. `bootstrap_admin` aplica el mismo cambio obligatorio que las cuentas creadas en Django admin.
+El campo nativo `is_active` determina si se permite autenticar. No se guardan claves temporales en claro ni datos personales adicionales; el campo de correo heredado de Django no se solicita ni se usa en F2 y permanece vacío. La clave temporal se entrega fuera de la aplicación por el administrador creador y no se envía por correo. `bootstrap_admin` aplica el mismo cambio obligatorio que las cuentas creadas en Django admin.
 
 ## Rol
 
