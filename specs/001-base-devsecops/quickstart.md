@@ -79,43 +79,11 @@ RapidOCR 3.4.3 y onnxruntime 1.23.2 usan los modelos PP-OCRv4 de
 `cls/ch_ppocr_mobile_v2.0_cls_infer.onnx`. Sus SHA-256 coinciden con el manifiesto
 `default_models.yaml` del paquete. El diccionario es_PE se fija al commit
 `32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4` de LibreOffice/dictionaries.
-Antes de los tests, aprovisionar y verificar así (solo descarga recursos públicos):
+Antes de los tests, ejecutar el paso `Verify public test resources` de
+`.github/workflows/ci.yml`, que aprovisiona únicamente esos recursos públicos y
+comprueba sus cinco SHA-256. Después:
 
 ```bash
-python - <<'PY'
-from hashlib import sha256
-from pathlib import Path
-from urllib.request import urlopen
-import rapidocr
-from extraer import _ocr
-
-_ocr()  # Aprovisiona/carga modelos; no procesa documentos.
-modelos = {
-    "ch_PP-OCRv4_det_infer.onnx": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
-    "ch_PP-OCRv4_rec_infer.onnx": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b",
-    "ch_ppocr_mobile_v2.0_cls_infer.onnx": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
-}
-for nombre, esperado in modelos.items():
-    rutas = list(Path(rapidocr.__file__).parent.rglob(nombre))
-    assert len(rutas) == 1 and sha256(rutas[0].read_bytes()).hexdigest() == esperado
-
-base = "https://raw.githubusercontent.com/LibreOffice/dictionaries/32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4/es/es_PE"
-for extension, esperado in {
-    ".aff": "d966cb748e4a688ed75ec84b50c0835ac438e5325ee4fce703a093794f9cba7e",
-    ".dic": "1d810a0a319fee329000538cf4df76621bb71228172558b87490f8b9c19b9d75",
-}.items():
-    ruta = Path.home() / ".cache/notaria-ocr" / ("es_PE" + extension)
-    if ruta.exists():
-        contenido = ruta.read_bytes()
-    else:
-        with urlopen(base + extension, timeout=30) as respuesta:
-            contenido = respuesta.read()
-    assert sha256(contenido).hexdigest() == esperado, "Recurso distinto de la versión fijada"
-    if not ruta.exists():
-        ruta.parent.mkdir(parents=True, exist_ok=True)
-        ruta.write_bytes(contenido)
-print("Recursos de pruebas verificados.")
-PY
 python scripts/generar_fixtures.py
 python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 ```
@@ -268,15 +236,17 @@ Acciones fijadas a SHA completo y verificadas contra sus tags remotos:
 
 | Acción | Versión | SHA |
 |---|---|---|
-| `actions/checkout` | v4.4.0 | `11d5960a326750d5838078e36cf38b85af677262` |
-| `actions/setup-python` | v5.6.0 | `a26af69be951a213d495a4c3e4e4022e16d87065` |
-| `actions/upload-artifact` | v4.6.2 | `ea165f8d65b6e75b540449e92b4886f43607fa02` |
-| `gitleaks/gitleaks-action` | v2.3.9 | `ff98106e4c7b2bc287b24eaf42907196329070c7` |
+| `actions/checkout` | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
+| `actions/setup-python` | v7.0.0 | `5fda3b95a4ea91299a34e894583c3862153e4b97` |
+| `actions/upload-artifact` | v7.0.1 | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` |
 
-El escáner CI fija además Gitleaks 8.28.0, redacta resultados y desactiva
-comentarios, resumen y artefacto SARIF. Revisa los commits introducidos y luego
-el árbol actual. `sonar-project.properties` solo delimita fuentes, tests y
-`coverage.xml`: no contiene token, organización/proyecto ni activa análisis.
+Las tres acciones usan Node 24 y conservan las entradas empleadas. El escáner
+CI descarga el binario oficial Gitleaks 8.28.0 para Linux x64 y verifica el
+SHA-256 publicado `a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb`
+antes de extraerlo. Escanea con redacción el árbol y el rango exacto base..head;
+en el primer push limita el escaneo a HEAD. `sonar-project.properties` solo
+delimita fuentes, tests y `coverage.xml`: no contiene token, organización o
+proyecto ni activa análisis.
 
 Pre-commit se instala y activa así:
 
@@ -297,12 +267,14 @@ Dependabot contiene exactamente dos revisiones semanales (`pip` y
 | Comprobación | Resultado |
 |---|---|
 | YAML y workflow | PASS: tres YAML parseables; Actionlint 1.7.12 sin hallazgos. |
+| Tags e inputs de acciones | PASS: SHA verificados con `git ls-remote --tags`; runtime Node 24 e inputs usados presentes en cada `action.yml`. |
+| Binario Gitleaks 8.28.0 | PASS: tar oficial Linux x64 coincide con el checksum publicado; un checksum ficticio incorrecto falla. |
 | `python -m ruff check .` | PASS. |
 | `python -m ruff format --check .` | PASS: 56 archivos ya formateados. |
-| Generador + pytest explícitamente sin `local_reference` | PASS: 17 aprobadas, 1 deseleccionada; `coverage.xml` válido, rutas relativas, 665 líneas válidas / 366 cubiertas (55,04 %). |
+| Generador + pytest explícitamente sin `local_reference` | PASS: 17 aprobadas, 1 deseleccionada; el paso CI adicional confirma clases en `coverage.xml`, con rutas relativas, 665 líneas válidas / 366 cubiertas (55,04 %). |
 | `python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt` | PASS: sin vulnerabilidades conocidas. |
 | `python -m pre_commit run --all-files` | PASS: Ruff check, Ruff format y Gitleaks. |
-| Gitleaks sobre copia limpia del árbol versionable | PASS: sin hallazgos; salida redactada. |
+| Gitleaks sobre copia limpia y rango `9ca2cc9..HEAD` | PASS: árbol y commits de etapa sin hallazgos; salida redactada. |
 | Revisión de configuración/diff | PASS: sin datos reales, secretos, dependencias Python nuevas, jobs posteriores ni artefactos privados. |
 
 Este checkpoint es local: los cuatro checks remotos siguen pendientes de T034.
@@ -327,7 +299,9 @@ python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
 En etapa 5, una vez configurados gitleaks y `.pre-commit-config.yaml`, añadir:
 
 ```bash
+# En una copia limpia del árbol versionable, sin el entorno virtual local:
 gitleaks dir --redact .
+gitleaks git --redact --log-opts="$BASE..$HEAD"
 python -m pre_commit install
 python -m pre_commit run --all-files
 ```

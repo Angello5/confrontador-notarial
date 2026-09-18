@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 2eeb5678de71a00c0902cbda7105d328432f72cb
+    rev: 2eeb5678de71a00c0902cbda7105d328432f72cb # v0.16.8
     hooks:
       - id: ruff-check
       - id: ruff-format
         args: [--check]
   - repo: https://github.com/gitleaks/gitleaks
-    rev: 4fb43823ef3d152d239e92d7d5cb04783b548062
+    rev: 4fb43823ef3d152d239e92d7d5cb04783b548062 # v8.28.0
     hooks:
       - id: gitleaks
