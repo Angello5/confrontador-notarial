@@ -1,13 +1,16 @@
 <!--
 Sync Impact Report
-- Version: 1.1.0 → 1.2.0 (MINOR: se añade el principio VIII Usabilidad)
-- Principios añadidos: VIII. Usabilidad según las heurísticas de Nielsen
-- Secciones modificadas: Flujo de desarrollo (requisitos de UX en specs con
-  interfaz y revisión heurística antes del merge)
-- Historial: 1.1.0 añadió VII DevSecOps; 1.0.0 ratificación inicial
+- Version: 1.2.0 → 1.3.0 (MINOR: se resuelve TODO(SONAR) y se autoriza el
+  arranque excepcional de F1)
+- Principios modificados: VII. DevSecOps (herramienta decidida: SonarQube
+  Cloud; cláusula de arranque para el PR que sanea el repositorio)
+- Motivo: el Quality Gate no puede existir antes de que `main` esté saneada;
+  sin esta enmienda previa, el PR de arranque contradiría la constitución
+  vigente (hallazgo C1 de `$speckit-analyze` en F1)
+- Historial: 1.2.0 añadió VIII Usabilidad; 1.1.0 añadió VII DevSecOps; 1.0.0
+  ratificación inicial
 - Plantillas: plan-template.md lee la constitución en "Constitution Check" (sin cambios necesarios)
 - TODO pendientes:
-  - TODO(SONAR): SonarQube Cloud vs SonarQube Server autoalojado. Decidir en F1.
   - TODO(ROLES): roles concretos. Decidir en F2.
   - TODO(RETENCION_TEXTO): ¿se conserva el texto extraído (caché de OCR)? Decidir en F4.
   - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
@@ -116,9 +119,19 @@ la minuta y los documentos del cliente, y señalar las diferencias.
 - **Hallazgos:** no se marcan como "falso positivo" ni se aceptan sin una
   justificación escrita en el PR.
 - **Rama `main` protegida:** solo se integra por PR con el CI en verde.
+- **Herramienta:** SonarQube Cloud, con el análisis ejecutado desde el CI
+  (Automatic Analysis desactivado) y el proyecto en modo privado.
 - **Código enviado a análisis:** antes de cualquier análisis en la nube, el
   repositorio NO debe contener datos personales reales (incluidos los tests).
-  Herramienta: TODO(SONAR), se decide en F1.
+  Solo se envía el árbol saneado de la revisión analizada; el historial previo
+  no se publica ni se analiza, y el repositorio permanece privado.
+- **Arranque excepcional (una sola vez, en F1):** el PR que sanea el
+  repositorio y añade el pipeline se integra con los cuatro controles ya
+  disponibles (lint, tests, dependencias, secretos), porque el Quality Gate no
+  puede existir antes de que `main` esté saneada. Desde el PR que activa
+  SonarQube, los cinco controles, el gate y la protección de `main` son
+  obligatorios sin excepción. Esta cláusula no habilita ninguna otra omisión
+  de controles, ni en F1 ni en fases posteriores.
 
 ### VIII. Usabilidad: heurísticas de Nielsen
 
@@ -212,4 +225,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.2.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-17
+**Version**: 1.3.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-17
