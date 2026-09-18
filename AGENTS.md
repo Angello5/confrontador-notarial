@@ -49,6 +49,11 @@ prohibida en CI. La política y excepciones individuales de Ruff están document
 en `specs/001-base-devsecops/quickstart.md`. La activación de pre-commit queda
 para la etapa 5.
 
+En el workflow de CI nunca usar **Re-run failed jobs**: usar **Re-run all jobs**,
+porque `sonar` necesita la cobertura generada en el mismo `run_attempt`. Al
+publicar una versión del ERP, incrementar `sonar.projectVersion` para reiniciar
+la línea base de código nuevo.
+
 ## Antes de dar una tarea por terminada
 
 - Tests y lint en verde (y, desde F1, el Quality Gate de SonarQube).
