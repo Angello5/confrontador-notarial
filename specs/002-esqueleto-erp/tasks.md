@@ -46,7 +46,7 @@
 
 - [ ] T018 [P] [US2] Add failing tests for creating accounts with username, temporary password, required role and no email; include group tampering attempts in `tests/test_account_admin.py`.
 - [ ] T019 [P] [US2] Add failing tests for instant session invalidation across deactivation/reactivation and protection against self-disable/last-admin removal in `tests/test_account_lifecycle.py`.
-- [ ] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields in `accounts/forms.py` and `accounts/admin.py`.
+- [ ] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields, with account and role-group deletion disabled, in `accounts/forms.py` and `accounts/admin.py`.
 - [ ] T021 [US2] Implement transactional deactivation/reactivation and role changes, locking active Administrators, incrementing `session_version` and rejecting self/last-administrator transitions in `accounts/admin.py` and `accounts/models.py`.
 - [ ] T022 [US2] Implement `bootstrap_admin` command that creates the first staff Administrator with a one-time temporary password and mandatory first-login change, without a default or logged password in `accounts/management/commands/bootstrap_admin.py`.
 - [ ] T023 [US2] Add Spanish confirmation, result and validation messages to native Django admin account actions in `accounts/admin.py` and `accounts/apps.py`.
