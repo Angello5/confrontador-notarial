@@ -49,13 +49,13 @@
 - [ ] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields, with account and role-group deletion disabled, in `accounts/forms.py` and `accounts/admin.py`.
 - [ ] T021 [US2] Implement transactional deactivation/reactivation and role changes, locking active Administrators, incrementing `session_version` and rejecting self/last-administrator transitions in `accounts/admin.py` and `accounts/models.py`.
 - [ ] T022 [US2] Implement `bootstrap_admin` command that creates the first staff Administrator with a one-time temporary password and mandatory first-login change, without a default or logged password in `accounts/management/commands/bootstrap_admin.py`.
-- [ ] T023 [US2] Add Spanish confirmation, result and validation messages to native Django admin account actions in `accounts/admin.py` and `accounts/apps.py`.
+- [ ] T023 [US2] Set Spanish locale for native Django admin confirmations and validation messages in `config/settings.py`; verify role-specific menu links and admin action feedback in `tests/test_account_admin.py` and `tests/test_shell.py`.
 - [ ] T024 [US2] **Checkpoint**: confirm T018–T019 fail before implementation; run account admin/lifecycle tests, auth integration suite, concurrent last-administrator test, lint, format and migrations against PostgreSQL; review `accounts/` and `tests/test_account_admin.py`, `tests/test_account_lifecycle.py`; commit this stage locally as `feat(f2): manage accounts in Django admin`.
 
 ## Phase 5: Polish and cross-cutting validation
 
 - [ ] T025 [P] Document PostgreSQL configuration, bootstrap command and manual login/password/admin scenarios in `specs/002-esqueleto-erp/quickstart.md`.
-- [ ] T026 [P] Generate the Nielsen and accessibility review checklist for login, password change and ERP shell in `specs/002-esqueleto-erp/checklists/ux.md`.
+- [ ] T026 [P] Generate the Nielsen and accessibility review checklist for login, password change, ERP shell and native Django admin in `specs/002-esqueleto-erp/checklists/ux.md`.
 - [ ] T027 Verify no external runtime/CDN calls, real personal data, secrets, or F3 behavior; audit dependency locks and asset licenses in `requirements.txt`, `requirements-dev.txt`, `static/vendor/README.md`, and the F2 source tree.
 - [ ] T028 **Final checkpoint**: execute all commands from `AGENTS.md`, confirm Sonar Quality Gate and existing CI controls for the eventual PR, review `specs/002-esqueleto-erp/` and the F2 source tree; commit this stage locally as `docs(f2): finish validation checklist`.
 

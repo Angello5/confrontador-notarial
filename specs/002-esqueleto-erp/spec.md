@@ -67,7 +67,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **FR-001**: El sistema MUST permitir que una persona con cuenta habilitada se autentique antes de ver contenido interno.
 - **FR-002**: El sistema MUST impedir el inicio de sesión de cuentas desactivadas.
 - **FR-003**: El sistema MUST presentar a cada persona autenticada un layout principal con navegación lateral.
-- **FR-004**: Las opciones visibles del menú MUST corresponder a los permisos del rol asignado; la autorización MUST comprobarse también en el servidor en cada acción protegida.
+- **FR-004**: En F2, ambos roles MUST ver la opción «Inicio»; solo Administrador MUST ver la opción «Administración» que enlaza al Django admin. Las opciones visibles MUST corresponder a los permisos del rol asignado; la autorización MUST comprobarse también en el servidor en cada acción protegida.
 - **FR-005**: Un Administrador MUST poder crear cuentas con nombre de usuario y clave temporal, asignar exactamente uno de los roles Administrador o Usuario, desactivar y reactivar cuentas desde el Django admin nativo en `/admin`; no habrá pantallas propias de gestión ni asistente de primer uso.
 - **FR-006**: Una cuenta creada con clave temporal MUST cambiarla obligatoriamente en su primer ingreso; no se utilizará correo para crear o recuperar la cuenta en F2.
 - **FR-007**: Solo una persona con rol Administrador MUST poder gestionar cuentas y roles. Una cuenta Usuario MUST poder acceder solo a las funciones autorizadas para ese rol.
@@ -111,7 +111,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 
 - **SC-001**: El 100 % de las pantallas internas requiere una sesión válida, y el 100 % de las acciones protegidas rechaza solicitudes sin permiso.
 - **SC-002**: El 100 % de las cuentas desactivadas es rechazado al iniciar sesión.
-- **SC-003**: El 100 % de las opciones mostradas en el menú coincide con la matriz de roles y permisos que la notaría confirme; ningún acceso denegado depende únicamente de ocultar una opción.
+- **SC-003**: Administrador ve «Inicio» y «Administración»; Usuario ve solo «Inicio». Ningún acceso denegado depende únicamente de ocultar una opción.
 - **SC-004**: El 100 % de las acciones de administración de cuentas en `/admin` requiere permiso de Administrador; el 100 % de las desactivaciones revoca sesiones y ninguna permite desactivar al propio operador ni al último Administrador activo.
 - **SC-008**: El 100 % de las cuentas nuevas exige cambio de clave temporal en su primer ingreso, sin requerir correo.
 - **SC-005**: El 100 % de los campos visibles tiene etiqueta y se puede recorrer usando teclado con foco visible.

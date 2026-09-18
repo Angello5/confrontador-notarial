@@ -26,7 +26,7 @@ Entregar login, cambio obligatorio de clave temporal y layout base con navegaci�
 
 **Constraints**: sin dependencia externa en tiempo de ejecución, sin CDN, correo, SPA, API pública, IA ni pantallas propias de administración. Mantener los cinco controles y la puerta Sonar del CI sin crear jobs nuevos. Login, cambio de clave y layout deben cumplir VIII de la constitución y A11Y-001. No usar suberusuario para cuentas ordinarias; persistir claves solo como hashes. Nunca datos reales en tests, fixtures o logs.
 
-**Scale/Scope**: hasta 10 cuentas del ERP; dos roles; login, cambio inicial de clave, layout/navegación y gestión de cuenta/rol en Django admin. No funcionalidades F3 en adelante.
+**Scale/Scope**: hasta 10 cuentas del ERP; dos roles; ambos ven «Inicio», solo Administrador ve el enlace «Administración»; login, cambio inicial de clave, layout/navegación y gestión de cuenta/rol en Django admin. No funcionalidades F3 en adelante.
 
 ## Constitution Check
 
@@ -90,7 +90,7 @@ pyproject.toml                  # configuración de pytest/pytest-django
 
 ## Constitution Check después del diseño
 
-Pasan I–VIII: roles y administración concuerdan con la enmienda VI, no hay pantallas administrativas propias, los controles de cuenta se fuerzan también en servidor y la interfaz tiene revisión Nielsen y accesibilidad. No se requiere exención constitucional. Complejidad añadida queda limitada a framework/driver/formularios/assets necesarios para el stack definido y pruebas Django.
+Pasan I–VIII: roles y administración concuerdan con la enmienda VI, no hay pantallas administrativas propias, los controles de cuenta se fuerzan también en servidor y la interfaz (login, cambio, layout y Admin nativo) tiene revisión Nielsen y accesibilidad. No se requiere exención constitucional. Complejidad añadida queda limitada a framework/driver/formularios/assets necesarios para el stack definido y pruebas Django.
 
 ## Complexity Tracking
 
