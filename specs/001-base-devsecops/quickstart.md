@@ -138,7 +138,7 @@ local `test: add synthetic fixtures and pytest`; no hay push ni avance a etapa 3
 ## Etapa 3: T015–T019 ejecutadas (T018 con medición local del usuario)
 
 LibreOffice en Linux: paquete de la distribución (`apt install libreoffice-writer`
-o equivalente), ejecutable `soffice` en PATH. Probado con LibreOffice 26.2,
+o el paquete correspondiente), ejecutable `soffice` en PATH. Probado con LibreOffice 26.2,
 Python 3.13.
 
 - Tests primero: `test_legacy` y `test_legacy_sin_libreoffice` fallaron antes del
@@ -300,9 +300,9 @@ valores de credenciales.
 
 ## Implementación local · T039–T041
 
-La constitución v1.3.0 cubre el uso de SonarQube Cloud privado, el análisis desde
-CI y la excepción única de arranque ya consumida por PR 1; no se encontró una
-discrepancia que requiera enmienda. El roadmap conserva F1 en curso.
+La constitución v1.4.0 cubre el uso de SonarQube Cloud privado, el análisis desde
+CI, Sonar way y la excepción única de arranque ya consumida por PR 1. El roadmap
+conserva F1 en curso.
 
 El job `sonar` descarga `coverage.xml` del mismo `run_id` y `run_attempt`, usa
 checkout completo sin credenciales persistentes y ejecuta únicamente la acción
@@ -342,8 +342,11 @@ python -m piptools compile --generate-hashes --allow-unsafe --output-file=requir
 
 La instalación conserva `--only-binary :all:` y una excepción individual:
 `antlr4-python3-runtime==4.9.3`, dependencia transitiva fijada de `omegaconf`,
-solo publica un sdist para esa versión. Su sdist queda protegido por el hash del
-lock; ningún otro paquete puede ejecutar un script de construcción.
+solo publica un sdist para esa versión. El hash del lock protege el sdist, pero
+su aislamiento de compilación instala `setuptools>=40.8.0` sin versión fija ni
+hash y ejecuta con él el código de construcción. Es un riesgo residual aceptado
+y registrado en `docs/deuda-f3.md`; se revisará una instalación en dos pasos con
+`setuptools` bloqueado y `--no-build-isolation`. El CI no cambia en F1.
 
 En etapa 5, una vez configurados gitleaks y `.pre-commit-config.yaml`, añadir:
 
@@ -400,11 +403,11 @@ exclusión ni un `noqa` de Sonar.
 
 El proyecto usa el Quality Gate **Sonar way**: Security Rating A (0
 vulnerabilidades nuevas), Reliability Rating A (0 bugs nuevos), 100 % de
-Security Hotspots revisados y cobertura de al menos 80 % en código nuevo. Es
-equivalente a los mínimos de la constitución; la única diferencia es que Sonar
-way no aplica la condición de cobertura cuando el cambio contiene menos de 20
-líneas nuevas. Los code smells previos no forman parte de este gate y los
-umbrales de código nuevo no se redujeron.
+Security Hotspots revisados y cobertura de al menos 80 % en código nuevo. El
+plan gratuito no permite gates personalizados y Sonar way no evalúa duplicación
+ni cobertura cuando el cambio contiene menos de 20 líneas nuevas. La
+constitución v1.4.0 acepta expresamente esta limitación y exige revisar la
+decisión si cambia el plan. Los code smells previos no forman parte del gate.
 
 Esperado: ejecución únicamente tras selección expresa, resumen sin datos personales y fallo saneado si falta el directorio o los archivos requeridos. Ejecutar el mismo comando con indicador CI debe ser rechazado. Si se modificó el núcleo, comparar con baseline local sin regresión antes del merge; no subir reportes de contenido.
 
@@ -423,7 +426,7 @@ El usuario conecta SonarQube Cloud privado y realiza el primer análisis de main
 ## PR 2 · Etapa 6
 
 1. Inventariar vulnerabilidades, bugs y Security Hotspots existentes; corregirlos o justificarlos individualmente por escrito. Registrar code smells existentes como deuda F3 en `docs/deuda-f3.md`, sin bloquear ni excluir código del análisis.
-2. Añadir sonar y ci-required de cinco dependencias y el gate de código nuevo del contrato; la constitución v1.3.0 ya resolvió TODO(SONAR) y la cláusula de arranque.
+2. Añadir sonar y ci-required de cinco dependencias y Sonar way; la constitución v1.4.0 documenta la limitación del plan gratuito y conserva la cláusula de arranque.
 3. Validación previa local y evidencias de hallazgos; commit/push; abrir PR 2.
 4. Verificar cinco controles y agregado. Probar fallos individuales, omisión/cancelación, ausencia de cobertura/credenciales, umbrales, cambios pequeños y sin código productivo nuevo. Solo material ficticio; retirar pruebas antes de merge.
 5. Verificar PR de Dependabot y documentación, sin auto-merge. No ensayo de forks ni escenario independiente de SHA obsoleto; mantener protección de rama actualizada y prohibición de pull_request_target.

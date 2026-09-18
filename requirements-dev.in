@@ -1,3 +1,5 @@
+-c requirements.txt
+
 # Herramientas de calidad y generación de locks.
 pytest==9.0.3
 pytest-cov==7.0.0

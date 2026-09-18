@@ -10,7 +10,7 @@ Python 3.13 tanto en CI como localmente; runner CI Ubuntu 24.04. Validar depende
 
 - **PR 1 (etapas 1–5)**: solo `lint`, `tests`, `dependencies` y `secrets`, todos en verde antes del merge. No incluye `sonar` ni `ci-required`; no hay un agregado rojo que se ignore. Commit/push, PR en borrador, validación de cuatro checks, merge y comprobación de main por separado. No usar bypass.
 - **Entre PRs**: el usuario conecta Cloud privado y realiza el primer análisis de main saneada con cobertura de esa revisión. `sonar-project.properties` estará preparado antes de conectar; no analizar commits anteriores ni exponer historia sensible. No se solicita ningún secreto en chat.
-- **PR 2 (etapa 6)**: añade los jobs `sonar` y `ci-required` definidos abajo, gate y protección final. La constitución v1.3.0 ya resolvió TODO(SONAR) y fijó la cláusula de arranque. Desde PR 2 todos los controles son obligatorios.
+- **PR 2 (etapa 6)**: añade los jobs `sonar` y `ci-required` definidos abajo, gate y protección final. La constitución v1.4.0 fija Sonar way y conserva la cláusula de arranque. Desde PR 2 todos los controles son obligatorios.
 
 ## Eventos y resultados
 
@@ -55,7 +55,7 @@ Jobs sin token de Sonar para instalar dependencias/ejecutar tests. Escaneo en ru
 
 ## Gate y activación
 
-Gate personalizado: nuevas vulnerabilidades=0, nuevos bugs=0, hotspots revisados=100 %, cobertura nueva>=80 %, tolerancia de cambios pequeños desactivada. Cero bugs nuevos es deliberadamente más estricto que el mínimo constitucional por gravedad. Ante cambio sin líneas productivas nuevas, verificar la semántica del servicio: un gate calculado OK sin condición de cobertura aplicable es admisible, pero un informe global ausente o gate no calculado falla.
+Gate **Sonar way**: nuevas vulnerabilidades=0, nuevos bugs=0, hotspots revisados=100 % y cobertura nueva>=80 %. El plan gratuito no permite un gate personalizado y Sonar way no evalúa duplicación ni cobertura en cambios de menos de 20 líneas nuevas; esta diferencia constitucionalmente aceptada se revisará si cambia el plan. Un informe global ausente o un gate no calculado falla.
 
 Conectar Cloud solo después del merge de PR 1, saneamiento y comprobación de capacidades privadas. El usuario realiza el primer análisis de esa main; en PR 2 se activa el análisis desde workflow y la protección completa. F1 no se declara implantada por la mera presencia del YAML. Historial sensible nunca se publica ni se envía al analizador; si una configuración requiere enviarlo, activación bloqueada.
 

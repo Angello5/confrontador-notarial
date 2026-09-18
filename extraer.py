@@ -204,8 +204,8 @@ def _docx(p: Path) -> str:
 
 def leer(p: Path) -> str:
     """Texto plano de cualquier formato soportado. Cachea lo que pasa por OCR."""
-    p = p.resolve(strict=True)
     s = p.suffix.lower()
+    p = p.resolve(strict=True)
     if s == ".docx":
         return _docx(p)
     if s in LEGACY:

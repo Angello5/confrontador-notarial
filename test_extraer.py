@@ -104,12 +104,23 @@ def test_legacy_macos_ejecutable_y_ruta_absolutos(tmp_path, monkeypatch):
     assert extraer.leer(Path(ruta.name)) == "CAMPO  VALOR"
 
 
+def test_leer_conserva_sufijo_del_enlace(tmp_path, monkeypatch):
+    destino = tmp_path / "documento-ficticio.bin"
+    destino.write_text("DOCUMENTO FICTICIO")
+    enlace = tmp_path / "documento-ficticio.rtf"
+    enlace.symlink_to(destino)
+    monkeypatch.setattr(extraer, "_legacy", lambda ruta: f"legacy:{ruta.name}")
+    assert extraer.leer(enlace) == f"legacy:{destino.name}"
+
+
 @pytest.mark.parametrize(
-    "nombre,es_directorio", [("ficticio.txt", False), ("ficticio.rtf", True)]
+    "nombre,es_directorio",
+    [("ficticio.txt", False), ("ficticio.rtf", True), ("inexistente.rtf", None)],
 )
 def test_legacy_valida_archivo_y_sufijo(tmp_path, monkeypatch, nombre, es_directorio):
     ruta = tmp_path / nombre
-    ruta.mkdir() if es_directorio else ruta.write_text("DOCUMENTO FICTICIO")
+    if es_directorio is not None:
+        ruta.mkdir() if es_directorio else ruta.write_text("DOCUMENTO FICTICIO")
     monkeypatch.setattr(
         extraer.subprocess, "run", lambda *_args, **_kwargs: pytest.fail("subprocess")
     )
