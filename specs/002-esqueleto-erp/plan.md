@@ -14,9 +14,9 @@ Entregar login, cambio obligatorio de clave temporal y layout base con navegaci�
 
 **Primary Dependencies**: Django 5.2 LTS (último parche soportado al implementar), `psycopg[binary]`, `django-crispy-forms`, `crispy-bootstrap5`; AdminLTE 4, Bootstrap 5 y Alpine.js vendorizados en `static/vendor/`, sin CDN.
 
-**Storage**: PostgreSQL en producción; SQLite en memoria solo para las pruebas Django de F2 en CI.
+**Storage**: PostgreSQL en producción y en pruebas Django de F2 mediante service container en el job `tests` existente.
 
-**Testing**: pytest + pytest-django y pytest-cov, pruebas con datos ficticios en el job `tests` actual; migraciones, arranque y flujo manual también validados con PostgreSQL local.
+**Testing**: pytest + pytest-django y pytest-cov, con datos ficticios y PostgreSQL service container en el job `tests` actual; incluir pruebas concurrentes de la regla del último Administrador.
 
 **Target Platform**: servidor on-premise accesible por LAN; CI existente Ubuntu 24.04, Python 3.13.
 
@@ -41,7 +41,7 @@ Entregar login, cambio obligatorio de clave temporal y layout base con navegaci�
 | VII. DevSecOps | Tests en job `tests` existente; lint, formato, SAST/Sonar, SCA y secretos siguen en el workflow sin relajar gates. Locks mantienen hashes. No escanear/añadir dependencias sin actualización de locks. |
 | VIII. Usabilidad | Se especifican estados, mensajes, vocabulario español, navegación consistente, validación, confirmación, foco, teclado y ayuda para login, cambio de clave y layout. Revisar las 10 heurísticas con checklist antes del merge. |
 
-**Resultado previo a investigación**: compatible. La selección temporal de SQLite es solo de test y requiere la justificación de Complexity Tracking; no reemplaza PostgreSQL de producción.
+**Resultado previo a investigación**: compatible. PostgreSQL de CI valida el mismo backend de producción y la regla concurrente de seguridad.
 
 ## Project Structure
 
@@ -100,5 +100,5 @@ Pasan I–VIII: roles y administración concuerdan con la enmienda VI, no hay pa
 | `django-crispy-forms` y `crispy-bootstrap5` | La constitución exige formularios con crispy-bootstrap5 para las pantallas propias. | Formularios Django sin crispy no cumplirían el stack establecido. |
 | pytest-django | Integra fixtures/configuración y ciclo de DB de Django en las pruebas existentes con pytest. | Configurar manualmente cada test requeriría más código y produciría una integración incompleta. |
 | AdminLTE 4 y Alpine.js locales | Requisitos de interfaz de la constitución; UI local sin CDN. | No incluirlos incumple el stack; no se añade otro toolkit ni gestor JS de runtime. |
-| SQLite en memoria solo para tests CI | Los flujos F2 usan auth, sesiones y ORM portables; conserva el workflow actual y evita otro servicio en cada ejecución. El quickstart valida el backend PostgreSQL y sus migraciones. | Un service container en tests añade gestión de servicio/credenciales sin consultas específicas de PostgreSQL en el alcance F2. Añadirlo si los tests incorporan locks, SQL específico o restricciones propias del motor. |
+| PostgreSQL service container en job `tests` | La transacción con bloqueo que garantiza conservar un Administrador debe probarse con la semántica del motor de producción y frente a operaciones concurrentes. Se conserva el job único de tests y sus gates actuales. | SQLite no implementa los bloqueos de fila de PostgreSQL y no demostraría la regla del último Administrador bajo concurrencia. No se añaden jobs ni servicios externos persistentes. |
 | `force_password_change` y `session_version` en el usuario | Hacen verificables el cambio temporal obligatorio y la invalidación inmediata incluso después de reactivar una cuenta. | Borrar sesiones requiere recorrerlas y acopla el flujo a su almacén; cambiar la clave temporal invalida sesiones pero altera credencial y no permite reactivación limpia. |
