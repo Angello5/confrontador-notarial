@@ -51,6 +51,7 @@
 
 - [X] T018 [P] [US2] Add failing tests for creating accounts with username, temporary password, required role and no email; include group tampering attempts and administrative unlock in `tests/test_account_admin.py` (verified red before T020).
 - [X] T019 [P] [US2] Add failing tests for instant session invalidation across deactivation/reactivation, `session_version` in `get_session_auth_hash`, and protection against self-disable/last-admin removal in `tests/test_account_lifecycle.py` (verified red before T020–T021).
+- [X] T019a [US2] Add failing tests for one-time bootstrap creation, mandatory first password change, no password output and duplicate active Administrator rejection in `tests/test_bootstrap_admin.py` (verified red before T022).
 - [ ] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields; allow Administrators to clear the login lockout fields and disable account/role-group deletion in `accounts/forms.py` and `accounts/admin.py`.
 - [ ] T021 [US2] Implement transactional deactivation/reactivation and role changes, locking active Administrators, incrementing `session_version` (used by `get_session_auth_hash`) and rejecting self/last-administrator transitions in `accounts/admin.py` and `accounts/models.py`.
 - [ ] T022 [US2] Implement `bootstrap_admin` command that creates the first staff Administrator with a one-time temporary password and mandatory first-login change, without a default or logged password in `accounts/management/commands/bootstrap_admin.py`.
