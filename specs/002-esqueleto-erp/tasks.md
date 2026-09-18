@@ -47,11 +47,11 @@
 **Independent test criteria**: con cuentas ficticias probar alta con rol único, primer cambio de clave, revocación efectiva de sesiones al desactivar, reactivación con nueva autenticación, denegación de acciones directas por Usuario y rechazo del propio operador o del último Administrador activo.
 
 - [X] T017a [US2] Add failing tests for five consecutive login failures, generic response for locked/nonexistent accounts, successful reset, `/admin` coverage and concurrent PostgreSQL attempts in `tests/test_login_lockout.py` (verified red before T017b).
-- [ ] T017b [US2] Implement database-backed login lockout fields, migration and shared Django authentication backend; expose manual unlock in Django admin as part of T020 in `accounts/models.py`, `accounts/backends.py` and `accounts/admin.py`.
+- [X] T017b [US2] Implement database-backed login lockout fields, migration and shared Django authentication backend in `accounts/models.py` and `accounts/backends.py`.
 
 - [ ] T018 [P] [US2] Add failing tests for creating accounts with username, temporary password, required role and no email; include group tampering attempts and administrative unlock in `tests/test_account_admin.py`.
 - [ ] T019 [P] [US2] Add failing tests for instant session invalidation across deactivation/reactivation and protection against self-disable/last-admin removal in `tests/test_account_lifecycle.py`.
-- [ ] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields, with account and role-group deletion disabled, in `accounts/forms.py` and `accounts/admin.py`.
+- [ ] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields; allow Administrators to clear the login lockout fields and disable account/role-group deletion in `accounts/forms.py` and `accounts/admin.py`.
 - [ ] T021 [US2] Implement transactional deactivation/reactivation and role changes, locking active Administrators, incrementing `session_version` (used by `get_session_auth_hash`) and rejecting self/last-administrator transitions in `accounts/admin.py` and `accounts/models.py`.
 - [ ] T022 [US2] Implement `bootstrap_admin` command that creates the first staff Administrator with a one-time temporary password and mandatory first-login change, without a default or logged password in `accounts/management/commands/bootstrap_admin.py`.
 - [ ] T023 [US2] Set Spanish locale for native Django admin confirmations and validation messages in `config/settings.py`; verify role-specific menu links and admin action feedback in `tests/test_account_admin.py` and `tests/test_shell.py`.

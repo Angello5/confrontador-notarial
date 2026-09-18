@@ -27,6 +27,7 @@ def test_settings_require_a_secret_key():
 
     environment = os.environ.copy()
     environment.pop("DJANGO_SECRET_KEY", None)
+    environment["DJANGO_SETTINGS_MODULE"] = "config.settings"
     result = subprocess.run(
         [sys.executable, "manage.py", "check"],
         cwd=Path(__file__).resolve().parents[1],
