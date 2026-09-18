@@ -8,7 +8,7 @@
 
 **Propósito**: demostrar el comportamiento actual con datos ficticios y detectar E/S indebida desde el núcleo antes de refactorizar.
 
-- [X] T001 [P] Añadir pruebas ficticias de frontera para la extracción de campos desde texto, verificación, léxico y ortografía en `tests/test_nucleo_puro.py`; comprobar que importar reglas del núcleo no importa el adaptador de extracción de texto desde archivos, OCR, red ni accede a rutas, y usar las rutas finales `nucleo/`.
+- [X] T001 [P] Añadir pruebas ficticias de frontera para la extracción de campos desde texto, verificación, léxico y ortografía en `tests/test_nucleo_puro.py`; comprobar que importar reglas del núcleo no importa el adaptador de extracción de texto desde archivos, OCR, red ni accede a rutas, y usar las rutas finales `nucleo/`; T008/T009 completan la verificación sobre rutas finales y acceso a archivos.
 - [X] T002 [P] Añadir casos sintéticos de líneas, acentos y Ñ que caractericen la extracción de texto desde archivos/OCR actual en `test_extraer.py`.
 - [X] T003 Registrar en `specs/003-migracion-nucleo-puro/quickstart.md` los resultados agregados de caracterización sintética y los comandos reproducibles, sin copiar salidas que contengan documentos.
 
@@ -55,13 +55,13 @@
 
 - [ ] T017 [US3] Actualizar `app.py` para importar extracción/verificación de `adaptadores/` y `nucleo/`, preservando su ejecución Streamlit hasta paridad ERP.
 - [ ] T018 [US3] Actualizar `app_ortografia.py` para importar ortografía/extracción de `nucleo/` y `adaptadores/`, preservando el flujo Streamlit hasta paridad ERP.
-- [ ] T019 [US3] Mover `revisor_llm.py` y `bench_llm.py` a `experimental/`, adaptar sus imports del adaptador en `experimental/revisor_llm.py` y `app.py`, y mantener `test_revisor_llm.py` opt-in, fuera de la suite ordinaria, con ejecución explícita documentada sin red ni modelos; confirmar que ningún módulo del ERP/núcleo importa esos módulos.
+- [ ] T019 [US3] Mover `revisor_llm.py` y `bench_llm.py` a `experimental/`, adaptar sus imports del adaptador en `experimental/revisor_llm.py` y `app.py`, y mantener `test_revisor_llm.py` opt-in, fuera de la suite ordinaria, con ejecución explícita documentada sin red ni modelos; confirmar que ningún módulo del ERP/núcleo importa esos módulos. Nota: `test_revisor_llm.py` todavía se importa al recolectar; resolver con `collect_ignore` o importación diferida.
 - [ ] T020 [US3] Añadir primero en `test_revisor_llm.py` un test que demuestre que la API key no forma parte de la query URL; después cambiar `experimental/revisor_llm.py` para enviarla en el mecanismo de autenticación soportado y no imprimirla.
 - [ ] T021 [US3] Resolver o justificar por ID los olores AaCzSzcyMhSFhiPLM0QS y AaCzSzcyMhSFhiPLM0QR en `app_ortografia.py`, con cambios mínimos y sin alterar comportamiento.
 - [ ] T022 [US3] Resolver o justificar por ID los olores AaCzSzcYMhSFhiPLM0QI, AaCzSzcYMhSFhiPLM0QJ, AaCzSzcYMhSFhiPLM0QK y AaCzSzdRMhSFhiPLM0Qh en `test_extraer.py` y `test_ortografia.py`, manteniendo aserciones y datos ficticios.
 - [ ] T023 [US3] Añadir primero en `test_verificar.py` cobertura sintética para regex/correspondencia/resultados; después resolver o justificar por ID AaCzSzZyMhSFhiPLM0QE, AaCzSzZyMhSFhiPLM0QF, AaCzSzZyMhSFhiPLM0QH y AaCzSzZyMhSFhiPLM0QG en `verificar.py`.
 - [ ] T024 [US3] Validar en un entorno limpio el riesgo de antlr4 con `setuptools` fijado por hash y `--no-build-isolation`; actualizar `requirements.in`, `requirements.txt` y `requirements-dev.txt` solo si la instalación reproducible pasa; registrar cualquier riesgo residual en `specs/003-migracion-nucleo-puro/research.md`.
-- [ ] T025 [US3] Verificar en `tests/conftest.py` y `.github/workflows/ci.yml` que la suite ordinaria excluye `experimental/`, no importa sus módulos ni ejecuta modelos; ajustar solo las reglas de recolección/test necesarias.
+- [ ] T025 [US3] Verificar en `tests/conftest.py` y `.github/workflows/ci.yml` que la suite ordinaria excluye `experimental/`, no importa sus módulos ni ejecuta modelos; ajustar solo las reglas de recolección/test necesarias. `test_revisor_llm.py` todavía se importa al recolectar; resolver con `collect_ignore` o importación diferida.
 
 **Checkpoint y commit local**: smoke tests de ambas apps, tests deterministas, revisión por ID de los diez smells, tests de prosa sin red y validación de instalación completados; crear un commit de la etapa.
 
