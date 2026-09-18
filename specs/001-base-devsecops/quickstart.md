@@ -54,7 +54,7 @@ El usuario conecta SonarQube Cloud privado y realiza el primer análisis de main
 ## PR 2 · Etapa 6
 
 1. Inventariar vulnerabilidades, bugs y Security Hotspots existentes; corregirlos o justificarlos individualmente por escrito. Registrar code smells existentes como deuda F3 en `docs/deuda-f3.md`, sin bloquear ni excluir código del análisis.
-2. Preparar enmienda constitucional de TODO(SONAR) y la única excepción de arranque de PR 1. Añadir sonar y ci-required de cinco dependencias y gate de código nuevo del contrato.
+2. Añadir sonar y ci-required de cinco dependencias y el gate de código nuevo del contrato; la constitución v1.3.0 ya resolvió TODO(SONAR) y la cláusula de arranque.
 3. Validación previa local y evidencias de hallazgos; commit/push; abrir PR 2.
 4. Verificar cinco controles y agregado. Probar fallos individuales, omisión/cancelación, ausencia de cobertura/credenciales, umbrales, cambios pequeños y sin código productivo nuevo. Solo material ficticio; retirar pruebas antes de merge.
 5. Verificar PR de Dependabot y documentación, sin auto-merge. No ensayo de forks ni escenario independiente de SHA obsoleto; mantener protección de rama actualizada y prohibición de pull_request_target.

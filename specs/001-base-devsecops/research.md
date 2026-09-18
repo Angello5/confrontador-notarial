@@ -28,9 +28,9 @@ Fecha: 2026-09-17. Decisiones técnicas resueltas; las cuentas remotas no se han
 
 ## 4. Integración y arranque — decisión actualizada del usuario
 
-**Decision**: Dos PRs. PR 1 integra etapas 1–5 con lint, tests, dependencies y secrets en verde, sin sonar ni ci-required. Tras merge el usuario conecta Cloud privado y analiza main saneada. PR 2 añade sonar y ci-required, resuelve hallazgos existentes de seguridad/bugs/hotspots y formaliza la excepción constitucional única; code smells existentes son deuda F3 no bloqueante.
+**Decision**: Dos PRs. PR 1 integra etapas 1–5 con lint, tests, dependencies y secrets en verde, sin sonar ni ci-required. Tras merge el usuario conecta Cloud privado y analiza main saneada. PR 2 añade sonar y ci-required y resuelve hallazgos existentes de seguridad/bugs/hotspots, al amparo de la constitución v1.3.0 ya vigente; code smells existentes son deuda F3 no bloqueante.
 
-**Rationale**: Elimina la dependencia circular entre primer merge y baseline. No usa bypass y no autoriza nuevas excepciones después de PR 1. La excepción pendiente de enmienda debe evaluarse expresamente frente a la constitución vigente durante analyze.
+**Rationale**: Elimina la dependencia circular entre primer merge y baseline. No usa bypass y no autoriza nuevas excepciones después de PR 1. La cláusula de arranque está en la constitución v1.3.0, vigente antes de PR 1, por lo que no queda ninguna enmienda pendiente.
 
 **Alternatives considered**: Un PR único deja sin definir cómo sanear main antes del primer gate. Ignorar un agregado rojo no corresponde a la decisión: en PR 1 el agregado no existe.
 

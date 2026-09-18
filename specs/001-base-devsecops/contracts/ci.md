@@ -10,7 +10,7 @@ Python 3.13 tanto en CI como localmente; runner CI Ubuntu 24.04. Validar depende
 
 - **PR 1 (etapas 1–5)**: solo `lint`, `tests`, `dependencies` y `secrets`, todos en verde antes del merge. No incluye `sonar` ni `ci-required`; no hay un agregado rojo que se ignore. Commit/push, PR en borrador, validación de cuatro checks, merge y comprobación de main por separado. No usar bypass.
 - **Entre PRs**: el usuario conecta Cloud privado y realiza el primer análisis de main saneada con cobertura de esa revisión. `sonar-project.properties` estará preparado antes de conectar; no analizar commits anteriores ni exponer historia sensible. No se solicita ningún secreto en chat.
-- **PR 2 (etapa 6)**: añade los jobs `sonar` y `ci-required` definidos abajo, gate y protección final. Incluye enmienda constitucional para TODO(SONAR) y esta excepción única de arranque. Desde PR 2 todos los controles son obligatorios.
+- **PR 2 (etapa 6)**: añade los jobs `sonar` y `ci-required` definidos abajo, gate y protección final. La constitución v1.3.0 ya resolvió TODO(SONAR) y fijó la cláusula de arranque. Desde PR 2 todos los controles son obligatorios.
 
 ## Eventos y resultados
 

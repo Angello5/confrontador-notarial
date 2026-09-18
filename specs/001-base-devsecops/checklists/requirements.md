@@ -32,7 +32,7 @@
 ## Notes
 
 - Revisión final: 16 de 16 criterios satisfechos. Estos marcadores evalúan requisitos, no implementación.
-- FR-011 resuelto con la respuesta del usuario: SonarQube Cloud con código saneado. La enmienda constitucional queda exigida antes de implantar el análisis.
+- FR-011 resuelto con la respuesta del usuario: SonarQube Cloud con código saneado. La constitución v1.3.0 resolvió TODO(SONAR) y la cláusula de arranque antes de PR 1; no queda enmienda pendiente.
 - Los nombres de herramientas en FR-003, FR-008 y FR-009 son restricciones expresas del usuario y la constitución; no se han añadido decisiones sobre versiones, archivos de configuración o arquitectura.
 - US1 cubre saneamiento y pruebas autónomas; US2 cubre controles, umbrales y bloqueo; US3 cubre prevención local y actualizaciones. FR-011 se verifica mediante la modalidad y enmienda indicadas.
 - No hay hooks de extensión registrados: `.specify/extensions.yml` no existe.
