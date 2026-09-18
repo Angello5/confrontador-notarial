@@ -10,10 +10,10 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Add pinned Django 5.2 LTS, psycopg, django-crispy-forms and crispy-bootstrap5 direct dependencies in `requirements.in`; add pytest-django in `requirements-dev.in`; compile hash-pinned `requirements.txt` and `requirements-dev.txt`.
-- [ ] T002 [P] Vendor AdminLTE 4, its Bootstrap 5 assets, and Alpine.js into `static/vendor/`; record exact upstream versions, licenses and SHA-256 values in `static/vendor/README.md`.
-- [ ] T003 Configure Django test discovery in `pyproject.toml` and PostgreSQL service container in the existing `tests` job in `.github/workflows/ci.yml`; make pytest collect Django tests without adding a CI job.
-- [ ] T004 **Checkpoint**: run dependency lock verification, `ruff check`, `ruff format --check`, and existing tests; review `requirements.in`, `requirements-dev.in`, both lock files, `static/vendor/`, `pyproject.toml`, and `.github/workflows/ci.yml`; commit this stage locally as `feat(f2): set up Django test foundation`.
+- [X] T001 Add pinned Django 5.2 LTS, psycopg, django-crispy-forms and crispy-bootstrap5 direct dependencies in `requirements.in`; add pytest-django in `requirements-dev.in`; compile hash-pinned `requirements.txt` and `requirements-dev.txt`.
+- [X] T002 [P] Vendor AdminLTE 4, its Bootstrap 5 assets, and Alpine.js into `static/vendor/`; record exact upstream versions, licenses and SHA-256 values in `static/vendor/README.md`.
+- [X] T003 Configure Django test discovery in `pyproject.toml` and PostgreSQL service container in the existing `tests` job in `.github/workflows/ci.yml`; make pytest collect Django tests without adding a CI job.
+- [X] T004 **Checkpoint**: run dependency lock verification, `ruff check`, `ruff format --check`, and existing tests; review `requirements.in`, `requirements-dev.in`, both lock files, `static/vendor/`, `pyproject.toml`, and `.github/workflows/ci.yml`; commit this stage locally as `feat(f2): set up Django test foundation`.
 
 ## Phase 2: Foundational
 

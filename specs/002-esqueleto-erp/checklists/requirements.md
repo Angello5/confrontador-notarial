@@ -27,10 +27,9 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [ ] No implementation details leak into specification
 
 ## Notes
 
-- Las decisiones abiertas de roles/permisos, identificación y credenciales de cuentas, y efectos de desactivación deben resolverse antes de planificar permisos y ciclo de vida.
-- Los requisitos constitucionales VI y VIII se incluyen; las opciones concretas por rol dependen de la respuesta de la notaría.
+- Los roles, credenciales temporales, administración de cuentas y efectos de desactivación quedaron definidos en Clarifications y en la constitución vigente.
+- Los requisitos constitucionales VI y VIII se incluyen; el diseño concreto se desarrolla en el plan.
 - Los detalles técnicos del C4 se mencionan solo como contexto en Assumptions y deben concretarse en plan, no ampliarse aquí.
