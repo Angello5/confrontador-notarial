@@ -255,6 +255,60 @@ previsto); T018 sigue abierta. Pendiente: medición local_reference con EXPEDIEN
 
 Deuda fuera de alcance: revisor_llm.py envía la API key en la query (?key=); usar cabecera x-goog-api-key si la capa experimental se reactiva.
 
+## Checkpoint local · Etapa 5 (T026–T032)
+
+PR 1 queda preparado con un único workflow para `pull_request` y push a `main`,
+sin filtros de rutas: `lint`, `tests`, `dependencies` y `secrets`. Todos usan
+`ubuntu-24.04`, timeout de 30 minutos y permisos `contents: read`; checkout no
+persiste credenciales. No existen jobs `sonar`, `ci-required` ni evento
+`pull_request_target`. Solo `coverage.xml` se publica, por ejecución/intento y
+con retención de 7 días; los fixtures y el workspace no son artefactos.
+
+Acciones fijadas a SHA completo y verificadas contra sus tags remotos:
+
+| Acción | Versión | SHA |
+|---|---|---|
+| `actions/checkout` | v4.4.0 | `11d5960a326750d5838078e36cf38b85af677262` |
+| `actions/setup-python` | v5.6.0 | `a26af69be951a213d495a4c3e4e4022e16d87065` |
+| `actions/upload-artifact` | v4.6.2 | `ea165f8d65b6e75b540449e92b4886f43607fa02` |
+| `gitleaks/gitleaks-action` | v2.3.9 | `ff98106e4c7b2bc287b24eaf42907196329070c7` |
+
+El escáner CI fija además Gitleaks 8.28.0, redacta resultados y desactiva
+comentarios, resumen y artefacto SARIF. Revisa los commits introducidos y luego
+el árbol actual. `sonar-project.properties` solo delimita fuentes, tests y
+`coverage.xml`: no contiene token, organización/proyecto ni activa análisis.
+
+Pre-commit se instala y activa así:
+
+```bash
+python -m pre_commit install
+python -m pre_commit run --all-files
+```
+
+La configuración fija Ruff 0.16.8 y Gitleaks 8.28.0 por SHA. El checkpoint
+local aprobó los tres hooks sobre todo el árbol. En una copia temporal externa,
+muestras exclusivamente ficticias confirmaron por separado el bloqueo S307,
+el formato no aplicado y un secreto de prueba; Gitleaks mostró únicamente el
+valor redactado. Tras retirar las muestras, los tres hooks volvieron a verde.
+
+Dependabot contiene exactamente dos revisiones semanales (`pip` y
+`github-actions`) desde la raíz, sin auto-merge. La validación local final dio:
+
+| Comprobación | Resultado |
+|---|---|
+| YAML y workflow | PASS: tres YAML parseables; Actionlint 1.7.12 sin hallazgos. |
+| `python -m ruff check .` | PASS. |
+| `python -m ruff format --check .` | PASS: 56 archivos ya formateados. |
+| Generador + pytest explícitamente sin `local_reference` | PASS: 17 aprobadas, 1 deseleccionada; `coverage.xml` válido, rutas relativas, 665 líneas válidas / 366 cubiertas (55,04 %). |
+| `python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt` | PASS: sin vulnerabilidades conocidas. |
+| `python -m pre_commit run --all-files` | PASS: Ruff check, Ruff format y Gitleaks. |
+| Gitleaks sobre copia limpia del árbol versionable | PASS: sin hallazgos; salida redactada. |
+| Revisión de configuración/diff | PASS: sin datos reales, secretos, dependencias Python nuevas, jobs posteriores ni artefactos privados. |
+
+Este checkpoint es local: los cuatro checks remotos siguen pendientes de T034.
+T033 conserva pendientes el push privado y las tareas T034–T036; no se afirma
+PR 1 ni `main` en verde.
+
 ## Validación local sintética
 
 Desde la raíz del repositorio, después de implementar:
