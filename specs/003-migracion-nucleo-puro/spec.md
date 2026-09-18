@@ -8,6 +8,14 @@
 
 **Input**: User description: "Convertir los módulos actuales (extraer, verificar, léxico, ortografía) en un núcleo de funciones puras, sin interfaz, conservando exactamente el resultado medido en el expediente de referencia. La capa de prosa (revisor_llm.py, bench_llm.py) se mueve a experimental/. Se atiende la deuda registrada en docs/deuda-f3.md (code smells de SonarCloud, riesgo residual de antlr4, API key en query de revisor_llm) y la decisión sobre actualizar RapidOCR (PR de Dependabot #11, bloqueado por cambio de modelos con hash), que exige medición de calidad de OCR antes de cambiar la configuración."
 
+## Clarifications
+
+### Session 2026-09-18
+
+- Q: ¿Qué organización de paquetes debe adoptar el núcleo puro? → A: Un paquete común (por ejemplo, `nucleo/`) mantiene `verificar`, léxico y ortografía casi como están; extracción queda como adaptador separado para OCR y archivos. Solo se separa lo que exige el principio II: el núcleo no usa sistema de archivos, red ni OCR; la descarga del diccionario `es_PE` pasa a un adaptador.
+- Q: ¿Qué debe ocurrir con las aplicaciones Streamlit y los módulos de prosa durante F3? → A: `app.py` y `app_ortografia.py` siguen funcionando hasta la paridad del ERP en F4/F5 y durante F3 solo se adaptan a los nuevos imports. `revisor_llm.py` y `bench_llm.py` pasan a `experimental/`; el ERP no los importa.
+- Q: ¿Qué alternativa OCR se debe evaluar y qué evidencia permite cambiar la configuración actual? → A: Medir RapidOCR 3.4.3 con PP-OCRv4 ch frente a PP-OCRv5 latin con `use_cls=False`, actualizando RapidOCR si hace falta y fijando modelos por hash. Cambiar a v5 latin solo si la medición local `local_reference` da 8 observaciones, salidas idénticas en 5 corridas, 0 observaciones en la escritura correcta y el test sintético OCR no pierde líneas ni acentos/Ñ; si no, conservar la configuración actual y documentar el resultado. El PR #11 de Dependabot se cierra o reemplaza según ese resultado.
+
 ## User Scenarios & Testing
 
 ### User Story 1 - Ejecutar las capas deterministas (Priority: P1)
@@ -69,10 +77,10 @@ El equipo puede conservar la capa de prosa existente en el área experimental si
 - **FR-006**: La deuda de los diez code smells registrados en `docs/deuda-f3.md` MUST revisarse durante F3 y su resolución o justificación debe quedar verificable sin cambiar reglas de negocio no acordadas.
 - **FR-007**: La estrategia de instalación de `antlr4-python3-runtime==4.9.3` MUST revisarse para reducir el riesgo de su aislamiento de compilación descrito en `docs/deuda-f3.md`, preservando instalación verificable por hash.
 - **FR-008**: La capa de prosa MUST evitar enviar la API key en la query URL. Las pruebas de esa capa no deben llamar a modelos ni registrar credenciales.
-- **FR-009**: La configuración OCR existente MUST permanecer sin cambio hasta que se realice una medición de calidad que permita comparar el resultado actual con la alternativa considerada.
-- **FR-010**: La decisión de estructura de paquetes del núcleo MUST quedar pendiente de clarificación antes del plan: [NEEDS CLARIFICATION: ¿Qué organización de paquetes debe adoptar el núcleo puro?]
-- **FR-011**: El límite de interfaz durante F3 MUST quedar pendiente de clarificación antes del plan: [NEEDS CLARIFICATION: ¿Se mantienen las aplicaciones Streamlit fuera del núcleo hasta F4, se retiran durante F3 o se requiere otra disposición?]
-- **FR-012**: La alternativa OCR y el alcance de la medición MUST quedar pendientes de clarificación antes de cambiar RapidOCR o sus modelos: [NEEDS CLARIFICATION: ¿Se conserva RapidOCR 3.4.3 con PP-OCRv4 o se mide y evalúa una actualización a RapidOCR/modelos OCR v5 latin antes de decidir?]
+- **FR-009**: La configuración OCR actual (RapidOCR 3.4.3 con PP-OCRv4 ch) MUST permanecer hasta medirla frente a PP-OCRv5 latin con `use_cls=False`; los modelos se fijan por hash y RapidOCR se actualiza solo si es necesario para esa comparación.
+- **FR-010**: El núcleo MUST organizar `verificar`, léxico y ortografía en un paquete común (por ejemplo, `nucleo/`) manteniendo su lógica casi como está; extracción de OCR y archivos MUST quedar en un adaptador separado. El núcleo no importa ni usa sistema de archivos, red u OCR; la descarga del diccionario `es_PE` pertenece a un adaptador.
+- **FR-011**: `app.py` y `app_ortografia.py` MUST seguir funcionando hasta que el ERP alcance paridad en F4/F5 y durante F3 solo se adaptan a los nuevos imports. `revisor_llm.py` y `bench_llm.py` MUST moverse a `experimental/`; el ERP no los importa.
+- **FR-012**: La configuración OCR MUST cambiar a PP-OCRv5 latin solo si la medición local `local_reference` produce 8 observaciones, salidas idénticas en 5 corridas y 0 observaciones en la escritura correcta, y el test sintético no pierde líneas ni acentos/Ñ. Si cualquier condición falla, se conserva la configuración actual y se documenta el resultado. El destino del PR #11 de Dependabot se decide según el resultado.
 
 ### Key Entities
 
@@ -90,6 +98,7 @@ El equipo puede conservar la capa de prosa existente en el área experimental si
 - **SC-003**: La suite predeterminada puede ejecutarse íntegramente con datos ficticios y sin acceso al directorio privado de referencia.
 - **SC-004**: El código del núcleo y las dependencias productivas no contienen imports ni llamadas a la capa de prosa o a modelos de lenguaje.
 - **SC-005**: La verificación de los recursos OCR/diccionario comprueba los hashes documentados antes de ejecutar pruebas que los requieren.
+- **SC-006**: La comparación OCR registra la versión del motor, modelos y hashes, el conteo de observaciones, la igualdad de las cinco salidas, el resultado de la escritura correcta y la conservación de líneas y acentos/Ñ en la prueba sintética; solo se acepta v5 latin cuando todos los umbrales de FR-012 pasan.
 
 ## Assumptions
 
@@ -98,3 +107,4 @@ El equipo puede conservar la capa de prosa existente en el área experimental si
 - Los tests predeterminados usan pytest y los recursos públicos OCR/diccionario fijados por hash que documenta `specs/001-base-devsecops/quickstart.md`.
 - Esta fase solo especifica y planifica la migración del núcleo; la especificación no ejecuta cambios de código de migración.
 - Las reglas de negocio existentes se conservan; cualquier regla nueva requiere decisión explícita y prueba primero.
+- Si la comparación OCR no satisface todos los criterios de FR-012, RapidOCR 3.4.3 con PP-OCRv4 ch permanece como configuración elegida y la evidencia se documenta sin cambiar el PR #11.
