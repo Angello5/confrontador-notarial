@@ -46,13 +46,16 @@
 
 **Independent test criteria**: con cuentas ficticias probar alta con rol único, primer cambio de clave, revocación efectiva de sesiones al desactivar, reactivación con nueva autenticación, denegación de acciones directas por Usuario y rechazo del propio operador o del último Administrador activo.
 
-- [ ] T018 [P] [US2] Add failing tests for creating accounts with username, temporary password, required role and no email; include group tampering attempts in `tests/test_account_admin.py`.
+- [X] T017a [US2] Add failing tests for five consecutive login failures, generic response for locked/nonexistent accounts, successful reset, `/admin` coverage and concurrent PostgreSQL attempts in `tests/test_login_lockout.py` (verified red before T017b).
+- [ ] T017b [US2] Implement database-backed login lockout fields, migration and shared Django authentication backend; expose manual unlock in Django admin as part of T020 in `accounts/models.py`, `accounts/backends.py` and `accounts/admin.py`.
+
+- [ ] T018 [P] [US2] Add failing tests for creating accounts with username, temporary password, required role and no email; include group tampering attempts and administrative unlock in `tests/test_account_admin.py`.
 - [ ] T019 [P] [US2] Add failing tests for instant session invalidation across deactivation/reactivation and protection against self-disable/last-admin removal in `tests/test_account_lifecycle.py`.
 - [ ] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields, with account and role-group deletion disabled, in `accounts/forms.py` and `accounts/admin.py`.
-- [ ] T021 [US2] Implement transactional deactivation/reactivation and role changes, locking active Administrators, incrementing `session_version` and rejecting self/last-administrator transitions in `accounts/admin.py` and `accounts/models.py`.
+- [ ] T021 [US2] Implement transactional deactivation/reactivation and role changes, locking active Administrators, incrementing `session_version` (used by `get_session_auth_hash`) and rejecting self/last-administrator transitions in `accounts/admin.py` and `accounts/models.py`.
 - [ ] T022 [US2] Implement `bootstrap_admin` command that creates the first staff Administrator with a one-time temporary password and mandatory first-login change, without a default or logged password in `accounts/management/commands/bootstrap_admin.py`.
 - [ ] T023 [US2] Set Spanish locale for native Django admin confirmations and validation messages in `config/settings.py`; verify role-specific menu links and admin action feedback in `tests/test_account_admin.py` and `tests/test_shell.py`.
-- [ ] T024 [US2] **Checkpoint**: confirm T018–T019 fail before implementation; run account admin/lifecycle tests, auth integration suite, concurrent last-administrator test, lint, format and migrations against PostgreSQL; review `accounts/` and `tests/test_account_admin.py`, `tests/test_account_lifecycle.py`; commit this stage locally as `feat(f2): manage accounts in Django admin`.
+- [ ] T024 [US2] **Checkpoint**: confirm T017a, T018–T019 fail before implementation; run lockout, account admin/lifecycle and auth integration tests, concurrent lockout and last-administrator tests, lint, format and migrations against PostgreSQL; review `accounts/` and auth/account tests; commit this stage locally as `feat(f2): manage accounts in Django admin`.
 
 ## Phase 5: Polish and cross-cutting validation
 
@@ -65,13 +68,13 @@
 
 - Setup (T001–T004) → Foundation (T005–T008) → US1 (T009–T017) → US2 (T018–T024) → Polish (T025–T028).
 - US1 requires Foundation because Django settings, custom user model and tests must exist first.
-- US2 requires US1's authentication routes and custom user state; US1 remains independently usable as the MVP before account lifecycle administration is completed.
+- US2 requires US1's authentication routes and custom user state; the lockout backend test (T017a) must be committed red before T017b, which precedes account lifecycle administration. US1 remains independently usable as the MVP before US2 is completed.
 
 ## Parallel opportunities
 
 - T002 can run alongside dependency declaration/locking in T001 because assets are separate from Python locks.
 - T009, T010 and T011 target different test files and can be authored in parallel after Foundation.
-- T018 and T019 target separate test files and can be authored in parallel after US1.
+- T017a is committed red, then T017b is implemented before T018–T019; T018 and T019 target separate test files and can be authored in parallel.
 - T025 and T026 edit separate documentation files and can run in parallel.
 
 ## Implementation strategy

@@ -6,7 +6,7 @@
 
 ## Summary
 
-Entregar login, cambio obligatorio de clave temporal y layout base con navegación por permisos, más administración de cuentas mediante el Django admin nativo. Se usarán dos grupos de negocio (`Administrador`, `Usuario`), autenticación/sesiones Django, PostgreSQL en producción y assets locales AdminLTE 4 + Alpine.js. Sin funciones de negocio, vistas propias de gestión, correo o IA.
+Entregar login, cambio obligatorio de clave temporal, bloqueo temporal de ingreso y layout base con navegación por permisos, más administración de cuentas mediante el Django admin nativo. Se usarán dos grupos de negocio (`Administrador`, `Usuario`), autenticación/sesiones Django, PostgreSQL en producción y assets locales AdminLTE 4 + Alpine.js. Sin funciones de negocio, vistas propias de gestión, correo o IA.
 
 ## Technical Context
 
@@ -16,7 +16,7 @@ Entregar login, cambio obligatorio de clave temporal y layout base con navegaci�
 
 **Storage**: PostgreSQL en producción y en pruebas Django de F2 mediante service container en el job `tests` existente.
 
-**Testing**: pytest + pytest-django y pytest-cov, con datos ficticios y PostgreSQL service container en el job `tests` actual; incluir pruebas concurrentes de la regla del último Administrador.
+**Testing**: pytest + pytest-django y pytest-cov, con datos ficticios y PostgreSQL service container en el job `tests` actual; incluir pruebas concurrentes del bloqueo y la regla del último Administrador.
 
 **Target Platform**: servidor on-premise accesible por LAN; CI existente Ubuntu 24.04, Python 3.13.
 
@@ -37,7 +37,7 @@ Entregar login, cambio obligatorio de clave temporal y layout base con navegaci�
 | III. Pruebas primero | Pruebas Django ficticias deben reproducir primero el fallo para acceso, cambio inicial, autorización, revocación de sesión y reglas del último Administrador. |
 | IV. Privacidad | No se almacenan claves temporales en claro, correo ni documentos; mensajes de login genéricos y logs sin contraseñas, nombres o contenido de casos reales. |
 | V. Simplicidad | Monolito Django existente, grupos/permisos nativos, plantillas y Admin. No se añaden API, SPA, cola, caché ni abstracciones de un solo uso. La necesidad de cada dependencia está descrita en Complexity Tracking. |
-| VI. Seguridad y control de acceso | Dos grupos, `is_staff` técnico más permisos mínimos para Django Admin, autorización servidor en cada ruta; creación inicial por comando; cambio de clave obligatorio; sesiones invalidadas al desactivar; guardas contra auto-desactivación y último Administrador. |
+| VI. Seguridad y control de acceso | Dos grupos, `is_staff` técnico más grupo Administrador para Django Admin, autorización servidor en cada ruta; creación inicial por comando; cambio de clave obligatorio; sesiones invalidadas al desactivar; bloqueo de ingreso en PostgreSQL y guardas contra auto-desactivación y último Administrador. |
 | VII. DevSecOps | Tests en job `tests` existente; lint, formato, SAST/Sonar, SCA y secretos siguen en el workflow sin relajar gates. Locks mantienen hashes. No escanear/añadir dependencias sin actualización de locks. |
 | VIII. Usabilidad | Se especifican estados, mensajes, vocabulario español, navegación consistente, validación, confirmación, foco, teclado y ayuda para login, cambio de clave y layout. Revisar las 10 heurísticas con checklist antes del merge. |
 
@@ -66,6 +66,7 @@ specs/002-esqueleto-erp/
 config/                         # settings, urls, ASGI/WSGI del proyecto Django
 accounts/
 ├── models.py                   # AbstractUser de proyecto e indicadores de sesión/claves
+├── backends.py                 # autenticación común con contador y bloqueo persistente
 ├── admin.py                    # personalización acotada del Django UserAdmin nativo
 ├── forms.py                    # formularios Django auth, renderizados con crispy-bootstrap5
 ├── views.py                    # login, cambio inicial de clave e inicio
@@ -73,6 +74,7 @@ accounts/
 ├── management/commands/
 │   └── bootstrap_admin.py      # aprovisiona el primer Administrador
 └── migrations/                 # modelo de usuario desde la migración inicial
+tests/test_login_lockout.py     # persistencia, respuestas genéricas y concurrencia del bloqueo
 core/
 ├── urls.py                     # rutas de login, cambio de clave e inicio
 └── views.py                    # inicio autenticado
@@ -102,5 +104,5 @@ Pasan I–VIII: roles y administración concuerdan con la enmienda VI, no hay pa
 | `django-crispy-forms` y `crispy-bootstrap5` | La constitución exige formularios con crispy-bootstrap5 para las pantallas propias. | Formularios Django sin crispy no cumplirían el stack establecido. |
 | pytest-django | Integra fixtures/configuración y ciclo de DB de Django en las pruebas existentes con pytest. | Configurar manualmente cada test requeriría más código y produciría una integración incompleta. |
 | AdminLTE 4 y Alpine.js locales | Requisitos de interfaz de la constitución; UI local sin CDN. | No incluirlos incumple el stack; no se añade otro toolkit ni gestor JS de runtime. |
-| PostgreSQL service container en job `tests` | La transacción con bloqueo que garantiza conservar un Administrador debe probarse con la semántica del motor de producción y frente a operaciones concurrentes. Se conserva el job único de tests y sus gates actuales. | SQLite no implementa los bloqueos de fila de PostgreSQL y no demostraría la regla del último Administrador bajo concurrencia. No se añaden jobs ni servicios externos persistentes. |
+| PostgreSQL service container en job `tests` | Las transacciones con bloqueo que garantizan el contador de intentos y conservar un Administrador deben probarse con la semántica del motor de producción y frente a operaciones concurrentes. Se conserva el job único de tests y sus gates actuales. | SQLite no implementa los bloqueos de fila de PostgreSQL y no demostraría ambas reglas bajo concurrencia. No se añaden jobs ni servicios externos persistentes. |
 | `force_password_change` y `session_version` en el usuario | Hacen verificables el cambio temporal obligatorio y la invalidación inmediata incluso después de reactivar una cuenta. | Borrar sesiones requiere recorrerlas y acopla el flujo a su almacén; cambiar la clave temporal invalida sesiones pero altera credencial y no permite reactivación limpia. |

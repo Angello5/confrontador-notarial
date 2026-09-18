@@ -52,6 +52,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 4. **Given** un usuario que no tiene permiso administrativo, **When** intenta crear, desactivar, reactivar o cambiar el rol de una cuenta, **Then** la operación se deniega y no modifica cuentas.
 5. **Given** una acción administrativa que desactivaría al propio administrador o dejaría cero administradores activos, **When** intenta confirmarla, **Then** la operación se deniega.
 6. **Given** una acción administrativa confirmada, **When** termina, **Then** la interfaz informa el resultado sin exponer datos personales en mensajes o registros.
+7. **Given** cinco intentos fallidos consecutivos para una cuenta, **When** se intenta ingresar durante los siguientes 15 minutos desde cualquier punto de autenticación, **Then** se rechaza con el mismo mensaje genérico que para una cuenta inexistente y solo un Administrador puede desbloquearla desde `/admin`.
 
 ### Edge Cases
 
@@ -60,6 +61,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - El nombre de usuario o identificador de una cuenta ya está asignado: mostrar un error entendible sin revelar datos de otra cuenta.
 - Una petición directa o manipulada intenta asignar un rol no permitido al administrador que la ejecuta: denegarla en el servidor.
 - Una pantalla no tiene opciones habilitadas para el rol: mostrar un estado vacío comprensible y no aparentar un error.
+- El bloqueo temporal y los intentos concurrentes se almacenan en la base de datos; el proceso no depende de una caché en memoria.
 
 ## Requirements *(mandatory)*
 
@@ -76,6 +78,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **FR-009**: El sistema MUST denegar la desactivación de la propia cuenta por quien la ejecuta y toda acción que deje cero cuentas Administrador activas.
 - **FR-012**: El primer Administrador MUST aprovisionarse mediante un comando de gestión ejecutado en el servidor.
 - **FR-013**: Tras cinco intentos fallidos consecutivos para una cuenta existente, el backend de autenticación MUST rechazar su ingreso durante 15 minutos con el mismo mensaje genérico usado para credenciales inválidas; el bloqueo MUST persistir en la base de datos, cubrir toda autenticación incluida `/admin`, reiniciarse al ingresar correctamente y poder ser retirado por un Administrador desde `/admin`. El intento de una cuenta inexistente MUST conservar una respuesta genérica sin revelar existencia o bloqueo.
+- **FR-014**: El bloqueo MUST aplicar al usuario identificado por las credenciales, contar intentos concurrentes sin perder incrementos y permitir al Administrador desbloquear la cuenta desde su formulario en `/admin`.
 - **FR-010**: F2 MUST limitarse a autenticación, layout y navegación, y administración de cuentas y roles; no incluye expedientes, carga o procesamiento de archivos, confrontación, observaciones, informes ni otras funciones de negocio.
 - **FR-011**: El sistema MUST funcionar dentro de la LAN sin depender de servicios externos disponibles en tiempo de ejecución.
 
@@ -84,6 +87,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **SEC-001**: Toda pantalla y acción interna MUST requerir autenticación; cada acción protegida MUST exigir autorización explícita acorde con el rol. Ocultar una opción del menú no sustituye la autorización del servidor.
 - **SEC-002**: Solo Administradores autorizados MUST poder crear cuentas, desactivarlas, reactivarlas o asignar roles desde `/admin`. Las solicitudes manipuladas o directas también se deniegan.
 - **SEC-003**: Las cuentas desactivadas MUST quedar impedidas de iniciar sesión y todas sus sesiones MUST revocarse al instante; Administradores pueden reactivarlas. Nadie puede desactivarse a sí mismo ni dejar cero Administradores activos.
+- **SEC-008**: Los intentos fallidos y el vencimiento del bloqueo MUST persistirse en PostgreSQL, sin caché en proceso; los mensajes visibles MUST ser idénticos para credenciales incorrectas, cuenta inexistente y cuenta bloqueada.
 - **SEC-004**: La interfaz, errores y registros MUST evitar contraseñas, secretos, tokens y datos personales innecesarios; no se incluirán datos reales en pruebas, fixtures, ejemplos ni mensajes.
 - **SEC-005**: El sistema MUST usar autenticación de Django y permisos asociados a los grupos Administrador y Usuario. La gestión se realiza en Django admin (`/admin`); el primer Administrador se crea con un comando de gestión en el servidor.
 - **SEC-006**: El acceso al ERP MUST operar sin llamadas a modelos de lenguaje ni servicios de IA.
@@ -117,6 +121,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **SC-003**: Administrador ve «Inicio» y «Administración»; Usuario ve solo «Inicio». Ningún acceso denegado depende únicamente de ocultar una opción.
 - **SC-004**: El 100 % de las acciones de administración de cuentas en `/admin` requiere permiso de Administrador; el 100 % de las desactivaciones revoca sesiones y ninguna permite desactivar al propio operador ni al último Administrador activo.
 - **SC-008**: El 100 % de las cuentas nuevas exige cambio de clave temporal en su primer ingreso, sin requerir correo.
+- **SC-009**: La quinta falla consecutiva bloquea la cuenta por 15 minutos en el backend compartido (incluido `/admin`), sin perder incrementos concurrentes y con la misma respuesta genérica que para una cuenta inexistente.
 - **SC-005**: El 100 % de los campos visibles tiene etiqueta y se puede recorrer usando teclado con foco visible.
 - **SC-006**: La revisión de las pantallas de F2 cubre explícitamente las diez heurísticas de Nielsen y los mínimos de accesibilidad definidos en los requisitos UX y A11Y.
 - **SC-007**: La revisión de F2 encuentra cero datos personales reales, secretos o llamadas a servicios de IA en el material de la funcionalidad.
