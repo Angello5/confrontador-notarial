@@ -22,13 +22,13 @@
 
 **Prueba independiente**: ejecutar cada capa con entradas sintéticas sin iniciar Streamlit, OCR, red, Django ni acceso a archivos; mismas entradas dan las mismas salidas.
 
-- [ ] T004 [US1] Crear el paquete `nucleo/` y mover las funciones de dominio de `verificar.py` a `nucleo/verificar.py`, eliminando su importación de `extraer.py` sin cambiar reglas.
-- [ ] T005 [US1] Mover la lógica léxica de `lexico.py` a `nucleo/lexico.py` y retirar su dependencia de lectura/extracción mediante entrada de texto recibida.
-- [ ] T006 [US1] Separar reglas de `ortografia.py` hacia `nucleo/ortografia.py` y extraer lectura/escritura de lista de casa y carga del diccionario a `adaptadores/diccionario.py`.
-- [ ] T007 [US1] Mover lectura/conversión/OCR de `extraer.py` a `adaptadores/extraccion.py`, conservando formatos admitidos y outputs sintéticos.
-- [ ] T008 [US1] Actualizar `test_verificar.py`, `test_lexico.py`, `test_ortografia.py` y `test_extraer.py` para importar las nuevas rutas y mantener todos los asserts con fixtures ficticios.
-- [ ] T009 [US1] Completar primero los casos faltantes de pureza en `tests/test_nucleo_puro.py` y comprobar que el núcleo no importa ni usa `pathlib`, urllib, OCR o funciones de acceso al sistema de archivos.
-- [ ] T010 [US1] Actualizar `specs/003-migracion-nucleo-puro/data-model.md` y `specs/003-migracion-nucleo-puro/quickstart.md` si las firmas internas elegidas difieren del plan, sin documentar rutas ni datos privados.
+- [X] T004 [US1] Crear el paquete `nucleo/` y mover las funciones de dominio de `verificar.py` a `nucleo/verificar.py`, eliminando su importación de `extraer.py` sin cambiar reglas.
+- [X] T005 [US1] Mover la lógica léxica de `lexico.py` a `nucleo/lexico.py` y retirar su dependencia de lectura/extracción mediante entrada de texto recibida.
+- [X] T006 [US1] Separar reglas de `ortografia.py` hacia `nucleo/ortografia.py` y extraer lectura/escritura de lista de casa y carga del diccionario a `adaptadores/diccionario.py`.
+- [X] T007 [US1] Mover lectura/conversión/OCR de `extraer.py` a `adaptadores/extraccion.py`, conservando formatos admitidos y outputs sintéticos.
+- [X] T008 [US1] Actualizar `test_verificar.py`, `test_lexico.py`, `test_ortografia.py` y `test_extraer.py` para importar las nuevas rutas y mantener todos los asserts con fixtures ficticios.
+- [X] T009 [US1] Completar primero los casos faltantes de pureza en `tests/test_nucleo_puro.py` y comprobar que el núcleo no importa ni usa `pathlib`, urllib, OCR o funciones de acceso al sistema de archivos.
+- [X] T010 [US1] Actualizar `specs/003-migracion-nucleo-puro/data-model.md` y `specs/003-migracion-nucleo-puro/quickstart.md` si las firmas internas elegidas difieren del plan, sin documentar rutas ni datos privados.
 
 **Checkpoint y commit local**: tests de US1 verdes, formato/lint afectados verdes y salidas sintéticas preservadas; crear un commit de la etapa.
 

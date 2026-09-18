@@ -3,7 +3,8 @@
 python -m pytest test_ortografia.py
 """
 
-from ortografia import lista_casa, revisar
+from adaptadores.diccionario import diccionario, lista_casa
+from nucleo.ortografia import revisar
 
 ERRORES = {
     "DEUDORR": "no existe en castellano",
@@ -38,7 +39,14 @@ def test_ortografia():
     # ZURBELIA es inventado; LAMPARA prueba la aceptación de una tilde ausente.
     # Ambos se pasan como apellidos ficticios mediante extra.
     texto = " ".join(list(ERRORES) + CORRECTAS + ["ZURBELIA", "LAMPARA"])
-    hallado = {w: m for w, m, _ in revisar(texto, extra={"ZURBELIA", "LAMPARA"})}
+    d, lemas = diccionario()
+    aceptadas = lista_casa()
+    hallado = {
+        w: m
+        for w, m, _ in revisar(
+            texto, d, lemas, aceptadas, extra={"ZURBELIA", "LAMPARA"}
+        )
+    }
 
     for w, motivo in ERRORES.items():
         assert w in hallado, f"{w} deberia marcarse y no se marco"
@@ -49,11 +57,11 @@ def test_ortografia():
     # los apellidos se pasan en `extra`, no a la lista de la casa: cambian por caso
     assert "ZURBELIA" not in hallado and "LAMPARA" not in hallado
     # LAMPARA no se marca: existe "lámpara" y se acepta la tilde ausente.
-    sin_extra = {w for w, _, _ in revisar("ZURBELIA LAMPARA")}
+    sin_extra = {w for w, _, _ in revisar("ZURBELIA LAMPARA", d, lemas, aceptadas)}
     assert "ZURBELIA" in sin_extra, sin_extra
 
     # la correccion de tilde mal puesta es exacta, no adivinada
-    sug = {w: s for w, _, s in revisar("CLAÚSULA CÍVIL SÉXTA")}
+    sug = {w: s for w, _, s in revisar("CLAÚSULA CÍVIL SÉXTA", d, lemas, aceptadas)}
     assert sug == {"CLAÚSULA": "clausula", "CÍVIL": "civil", "SÉXTA": "sexta"}, sug
 
     print(

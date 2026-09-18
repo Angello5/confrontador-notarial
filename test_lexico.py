@@ -5,8 +5,8 @@ python -m pytest test_lexico.py
 
 from pathlib import Path
 
-from extraer import leer
-from lexico import erratas, vocabulario
+from adaptadores.extraccion import leer, recolectar
+from nucleo.lexico import contar, erratas
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
 FIRMADA = BASE / "resultado" / "correcto.docx"
@@ -15,7 +15,7 @@ MINUTA = BASE / "cliente" / "minuta.docx"
 
 
 def test_lexico():
-    vocab = vocabulario([str(FIRMADA)])
+    vocab = contar(recolectar([str(FIRMADA)]).values())
 
     hallado = {p: c for p, c, _ in erratas(leer(BORRADOR), vocab)}
     for mal, bien in [
@@ -38,12 +38,10 @@ def test_lexico():
     assert en_minuta == {"OCUPACIÒN", "UIRBANIZACION", "TIENE"}, en_minuta
 
     # el acento grave no necesita corpus: en castellano no existe
-    solo_acento = erratas("LA OCUPACIÒN Y EL ARTÌCULO", vocabulario([]))
+    solo_acento = erratas("LA OCUPACIÒN Y EL ARTÌCULO", contar([]))
     assert [c for _, c, _ in solo_acento] == ["OCUPACIÓN", "ARTÍCULO"], solo_acento
 
     # flexion: plural y genero no son erratas, pero una letra faltante si
-    from lexico import contar
-
     v2 = contar(["LA CLAUSULA SUSCRITA POR ZURBELIA Y LA IMPRESION DACTILAR"])
     marcadas = {
         p

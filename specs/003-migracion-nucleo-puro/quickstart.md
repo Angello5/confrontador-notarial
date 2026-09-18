@@ -24,7 +24,7 @@ Las pruebas opt-in de `test_revisor_llm.py` están excluidas de la suite ordinar
 python -m pytest -o addopts= -m revisor_llm test_revisor_llm.py
 ```
 
-**Caracterización de Etapa 1**: `test_extraer.py` prueba `ocr_lineas` con cajas y texto ficticios inyectados; no descarga ni carga modelos. La extracción debe conservar el orden de las líneas, las tildes y la Ñ. `tests/test_nucleo_puro.py` caracteriza funciones que reciben texto/estructuras y comprueba el límite de imports; las rutas definitivas son `nucleo.*` una vez creada esa etapa.
+**Caracterización de Etapa 1**: `test_extraer.py` prueba `ocr_lineas` con cajas y texto ficticios inyectados; no descarga ni carga modelos. La extracción debe conservar el orden de las líneas, las tildes y la Ñ. `tests/test_nucleo_puro.py` caracteriza funciones que reciben texto/estructuras, bloquea `open`/`os.open` durante su uso y verifica que importar `nucleo.*` no carga adaptadores, rutas, red ni OCR. El guard es estricto: su xfail solo aplica mientras `nucleo/` no exista.
 
 Comandos reproducibles y resultado de esta caracterización:
 
@@ -34,7 +34,7 @@ python -m pytest tests/test_nucleo_puro.py test_extraer.py test_revisor_llm.py -
 python -m pytest -o addopts= -m revisor_llm test_revisor_llm.py -q
 ```
 
-Resultado: caracterización focalizada `13 passed, 1 deselected, 1 xfailed`; el caso xfail deja constancia de que las rutas heredadas todavía importan límites de archivo, pendiente de T004–T010. Prueba opt-in de prosa: `1 passed`; únicamente filtra valores ficticios y no llama a red ni modelos. Se generaron fixtures exclusivamente ficticios.
+Etapa 2: los módulos de reglas viven en `nucleo/`; OCR, archivos y recursos del diccionario quedan en `adaptadores/`. Las capas reciben textos/estructuras y el corrector ortográfico recibe los recursos ya cargados. `test_verificar.py`, `test_lexico.py`, `test_ortografia.py` y `test_extraer.py` usan las rutas finales. Resultado de Etapa 2: suite `23 passed, 2 deselected`; guard `2 passed` sin xfail. La simulación en un árbol temporal con `nucleo.verificar` importando `adaptadores` falló el guard como se esperaba. Solo se usaron fixtures ficticios.
 
 Checkpoint de Etapa 1 (Python 3.13.9; entorno existente del proyecto):
 
@@ -43,6 +43,16 @@ Checkpoint de Etapa 1 (Python 3.13.9; entorno existente del proyecto):
 | `python -m ruff check .` | PASS |
 | `python -m ruff format --check .` | PASS: 65 archivos ya formateados |
 | `python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml` | PASS: 22 aprobadas, 2 deseleccionadas, 1 xfail esperado; cobertura total 52 % |
+| `python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt` | PASS: no se encontraron vulnerabilidades conocidas |
+| `pre-commit run --all-files` | PASS: Ruff check, Ruff format y detección de secretos |
+
+Checkpoint de Etapa 2 (Python 3.13.9, `.venv` instalado con los locks):
+
+| Comando | Resultado |
+|---|---|
+| `python -m ruff check .` | PASS |
+| `python -m ruff format --check .` | PASS: 72 archivos ya formateados |
+| `python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml` | PASS: 23 aprobadas, 2 deseleccionadas; cobertura total 36 %; XML validado con las tres rutas nuevas de `nucleo/` |
 | `python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt` | PASS: no se encontraron vulnerabilidades conocidas |
 | `pre-commit run --all-files` | PASS: Ruff check, Ruff format y detección de secretos |
 

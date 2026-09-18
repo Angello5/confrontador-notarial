@@ -17,7 +17,7 @@ F3 no persiste entidades y no añade tablas. Las estructuras siguientes son valo
 ## Configuración de recursos
 
 - **Contenido**: identificador de motor, versión, modelo, origen fijado y SHA-256 para OCR/diccionario.
-- **Relación**: la consume un adaptador que obtiene y valida el recurso antes de ponerlo a disposición de reglas puras.
+- **Relación**: `adaptadores.diccionario` carga los recursos locales y los entrega como diccionario, lemas y términos aceptados a `nucleo.ortografia.revisar`; la función pura no accede a archivos ni red.
 - **Validación**: el hash debe coincidir antes del uso; faltantes o discrepancias causan error explícito.
 
 ## Informe agregado de medición

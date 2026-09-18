@@ -7,8 +7,8 @@ python -m pytest test_verificar.py
 
 from pathlib import Path
 
-from extraer import recolectar
-from verificar import catalogo, revisar
+from adaptadores.extraccion import leer, recolectar
+from nucleo.verificar import catalogo, revisar
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
 
@@ -28,8 +28,7 @@ def test_verificacion():
     assert len(malo) >= 6, malo
     assert bueno == [], bueno  # sin falsos positivos
     # el borrador correcto SI corresponde a sus fuentes; una plantilla ajena no
-    from verificar import diagnostico
-    from extraer import leer
+    from nucleo.verificar import diagnostico
 
     borrador = next(iter(recolectar([str(BASE / "borrador")]).values()))
     assert diagnostico(fuentes, borrador) is None, diagnostico(fuentes, borrador)

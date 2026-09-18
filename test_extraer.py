@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import pymupdf
 import pytest
 
-import extraer
+from adaptadores import extraccion as extraer
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
 DNI = BASE / "cliente" / "dni.png"
