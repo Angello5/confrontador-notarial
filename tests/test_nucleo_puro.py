@@ -57,6 +57,16 @@ def test_reglas_reciben_texto_sintetico():
     assert plano("ACCIÓN") == "accion"
 
 
+def test_eñe_en_nombre_no_genera_observacion():
+    from nucleo.verificar import catalogo, revisar
+
+    con_enye = (
+        "DOÑA ZURBELIA ÑANDÚ PEÑALOZA, DE NACIONALIDAD PERUANA, CON DNI N° 90000004"
+    )
+    con_n = con_enye.replace("Ñ", "N")
+    assert revisar(catalogo({"minuta.docx": con_enye}), con_n, 90) == []
+
+
 def test_nucleo_solo_importa_lista_blanca_y_no_abre_accesos():
     for archivo in sorted(NUCLEO.glob("*.py")):
         assert not _errores_pureza(archivo.read_text()), archivo.name

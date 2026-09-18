@@ -39,7 +39,7 @@ def main():
     from pathlib import Path
 
     ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+        description=main.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument("documento")
     a = ap.parse_args()

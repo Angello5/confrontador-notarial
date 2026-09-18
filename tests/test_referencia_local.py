@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
+from reference_cache import cache_temporal
 
 
 class _MedicionInvalida(Exception):
@@ -38,7 +39,7 @@ def test_referencia_local(monkeypatch, capfd):
             contextlib.redirect_stdout(io.StringIO()),
             contextlib.redirect_stderr(io.StringIO()),
         ):
-            monkeypatch.setattr(extraer, "CACHE", Path(cache))
+            cache_temporal(monkeypatch, cache)
             fuentes = extraer.recolectar([str(raiz / "cliente")])
             cat = catalogo(fuentes)
             observado = extraer.leer(raiz / "observado.docx")

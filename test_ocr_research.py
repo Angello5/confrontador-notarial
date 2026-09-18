@@ -32,8 +32,6 @@ MODELOS = {
     "PP-OCRv5 latin (use_cls=False)": {
         "rec": "latin_PP-OCRv5_rec_mobile_infer.onnx",
         "rec_sha": "b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a",
-        "keys": "ppocrv5_dict.txt",
-        "keys_sha": "d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b",
         "use_cls": False,
     },
 }
@@ -53,7 +51,7 @@ def _render(font_path: Path, dpi: int) -> Image.Image:
     return image
 
 
-def _metrics(raw: str) -> tuple[int, int, int]:
+def _metrics(raw: str) -> tuple[int, int]:
     original = " ".join(raw.split())
     expected_original = " ".join(TEXTO)
     normalized = original.casefold()
@@ -90,20 +88,34 @@ def _line_count(boxes, dpi: int) -> int:
 def test_modelos_sinteticos_por_fuente_y_dpi():
     """Imprime conteos para transcribir a research.md; no escribe páginas ni OCR."""
     import rapidocr
+    import onnxruntime as ort
     from rapidocr import RapidOCR
+    from adaptadores.extraccion import OCR_MODELS, _OCR_FILES
 
-    model_dir = Path(rapidocr.__file__).parent / "models"
+    package_models = Path(rapidocr.__file__).parent / "models"
+    model_dir = OCR_MODELS
     det_name = "ch_PP-OCRv4_det_infer.onnx"
     det_sha = "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9"
     cls_name = "ch_ppocr_mobile_v2.0_cls_infer.onnx"
     cls_sha = "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c"
-    resources = [(det_name, det_sha), (cls_name, cls_sha)]
-    for model in MODELOS.values():
-        resources.extend(
-            [(model["rec"], model["rec_sha"]), (model["keys"], model["keys_sha"])]
-        )
+    resources = [(name, digest) for name, digest in _OCR_FILES.items()]
+    resources.extend(
+        [
+            (cls_name, cls_sha),
+            (MODELOS["PP-OCRv4 actual"]["rec"], MODELOS["PP-OCRv4 actual"]["rec_sha"]),
+            (
+                MODELOS["PP-OCRv4 actual"]["keys"],
+                MODELOS["PP-OCRv4 actual"]["keys_sha"],
+            ),
+        ]
+    )
+    assert _OCR_FILES[det_name] == det_sha
+    assert (
+        _OCR_FILES[MODELOS["PP-OCRv5 latin (use_cls=False)"]["rec"]]
+        == MODELOS["PP-OCRv5 latin (use_cls=False)"]["rec_sha"]
+    )
     for name, expected_hash in resources:
-        path = model_dir / name
+        path = model_dir / name if name in _OCR_FILES else package_models / name
         assert (
             path.is_file() and sha256(path.read_bytes()).hexdigest() == expected_hash
         ), name
@@ -120,13 +132,33 @@ def test_modelos_sinteticos_por_fuente_y_dpi():
             "Global.use_cls": model["use_cls"],
             "Global.log_level": "error",
             "Det.model_path": str(model_dir / det_name),
-            "Cls.model_path": str(model_dir / cls_name),
-            "Rec.model_path": str(model_dir / model["rec"]),
-            "Rec.rec_keys_path": str(model_dir / model["keys"]),
+            "Cls.model_path": str(package_models / cls_name),
+            "Rec.model_path": str(
+                (model_dir if model_name.startswith("PP-OCRv5") else package_models)
+                / model["rec"]
+            ),
         }
+        if "keys" in model:
+            params["Rec.rec_keys_path"] = str(package_models / model["keys"])
         ocr = RapidOCR(params=params)
-        keys = (model_dir / model["keys"]).read_text(encoding="utf-8").splitlines()
-        has_enye = ("Ñ" in keys, "ñ" in keys)
+        if model_name.startswith("PP-OCRv5"):
+            characters = (
+                ort.InferenceSession(
+                    params["Rec.model_path"], providers=["CPUExecutionProvider"]
+                )
+                .get_modelmeta()
+                .custom_metadata_map["character"]
+                .splitlines()
+            )
+            assert len(characters) == 502
+            assert {"ñ", "Ñ", "Ú", "Á", "Í"} <= set(characters)
+        else:
+            characters = (
+                (package_models / model["keys"])
+                .read_text(encoding="utf-8")
+                .splitlines()
+            )
+        has_enye = ("Ñ" in characters, "ñ" in characters)
         for font_name, font_path in fonts.items():
             assert font_path.is_file()
             for dpi in (200, 300):

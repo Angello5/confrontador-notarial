@@ -34,8 +34,8 @@ DPI = 200  # suficiente para DNI y sellos; a 300 tarda el doble sin ganar aciert
 _OCR_FILES = {
     "ch_PP-OCRv4_det_infer.onnx": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
     "latin_PP-OCRv5_rec_mobile_infer.onnx": "b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a",
-    "ppocrv5_dict.txt": "d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b",
 }
+_OCR_USE_CLS = False
 
 
 @lru_cache(maxsize=1)
@@ -52,19 +52,23 @@ def _ocr():
             raise RuntimeError(f"Recurso OCR ausente o inválido: {name}")
     return RapidOCR(
         params={
-            "Global.use_cls": False,
+            "Global.use_cls": _OCR_USE_CLS,
             "Global.log_level": "error",
             "Det.model_path": str(paths["ch_PP-OCRv4_det_infer.onnx"]),
             "Rec.model_path": str(paths["latin_PP-OCRv5_rec_mobile_infer.onnx"]),
-            "Rec.rec_keys_path": str(paths["ppocrv5_dict.txt"]),
         }
     )
 
 
 def _cacheado(clave: bytes, calcular):
-    """OCR cuesta segundos por pagina y estos archivos no cambian entre corridas."""
+    """Cachea OCR costoso usando también la identidad de sus modelos."""
     # Identificador de caché, no firma ni decisión de seguridad.
-    f = CACHE / (hashlib.sha1(clave, usedforsecurity=False).hexdigest() + ".json")
+    identidad = json.dumps(
+        {"modelos": _OCR_FILES, "use_cls": _OCR_USE_CLS}, sort_keys=True
+    ).encode()
+    f = CACHE / (
+        hashlib.sha1(clave + identidad, usedforsecurity=False).hexdigest() + ".json"
+    )
     if f.exists():
         return json.loads(f.read_text())
     txt = calcular()

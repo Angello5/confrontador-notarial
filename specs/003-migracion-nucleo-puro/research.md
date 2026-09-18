@@ -16,7 +16,7 @@
 
 ### Comparación OCR
 
-- **Decisión/evidencia**: se comparó localmente RapidOCR 3.4.3 con PP-OCRv4 ch y PP-OCRv5 latin (`use_cls=False`), usando modelos/diccionarios fijados por SHA-256. La tabla, el detalle de caracteres y la recomendación están abajo en "Investigación sintética de candidatos OCR". La página de modelos enumera latin PP-OCRv5 como familia que cubre español; no enumera un reconocedor `es` dedicado.
+- **Decisión/evidencia**: se comparó localmente RapidOCR 3.4.3 con PP-OCRv4 ch y PP-OCRv5 latin (`use_cls=False`), usando modelos fijados por SHA-256. v5 toma su alfabeto de la metadata ONNX `character`; `rec_keys_path` no modifica esa metadata. La tabla, el detalle de caracteres y la recomendación están abajo en "Investigación sintética de candidatos OCR". La página de modelos enumera latin PP-OCRv5 como familia que cubre español; no enumera un reconocedor `es` dedicado.
 - **Alternativas consideradas**: actualizar RapidOCR directamente a una versión flotante; descartada porque no sería reproducible. Conservar v4 sin medir; no responde a la decisión solicitada. La medición no se ejecuta en CI ni con datos versionados.
 - **Fuentes primarias**: [RapidOCR model list](https://rapidai.github.io/RapidOCRDocs/main/model_list/), [RapidOCR default model manifest](https://github.com/RapidAI/RapidOCR/blob/main/python/rapidocr/default_models.yaml).
 - **Criterio de adopción**: PP-OCRv5 latin es la configuración predeterminada de esta rama con `use_cls=False`; su test sintético ordinario exige igualar el piso medido (8/8 líneas, ≥82/85 palabras y ≥31/32 diacríticos). T014 sigue siendo requisito local para completar la adopción: 8 observaciones, cinco corridas idénticas y cero observaciones en la escritura correcta.
@@ -30,8 +30,8 @@
 ## Límites pendientes de ejecución
 
 - El usuario ejecuta `local_reference` desde su entorno autorizado; nadie incorpora ni comunica contenido documental. La tarea debe devolver solo los agregados requeridos y el resultado de aprobación.
-- Esta comparación cubre OCR sintético y no sustituye la medición privada `local_reference` ni autoriza seleccionar/cambiar el OCR predeterminado o actuar sobre el PR #11.
-# Investigación sintética de candidatos OCR
+- Esta comparación cubre OCR sintético y no sustituye la medición privada `local_reference` ni autoriza resolver el PR #11.
+## Investigación sintética de candidatos OCR
 
 Medición local ejecutada con `python -m pytest -o addopts= -m ocr_research -s
 test_ocr_research.py`. El test crea las páginas en memoria; cada página contiene
@@ -57,11 +57,9 @@ llamada OCR por página, CPU local; no es una estimación de producción.
 | PP-OCRv5 latin (`use_cls=False`) | Liberation Sans | 200 | 8/8 | 83 | 31 | 1.4232 |
 | PP-OCRv5 latin (`use_cls=False`) | Liberation Sans | 300 | 8/8 | 82 | 31 | 1.3975 |
 
-## Recursos fijados y diccionarios
+## Recursos fijados y alfabeto reconocido
 
-Todos los hashes siguientes se validan antes de inicializar los modelos en el
-test de investigación. Se comparte el detector v4 y el clasificador v4; así la
-comparación aísla el reconocedor y los diccionarios.
+Los hashes de modelos requeridos se validan antes de inicializar OCR. El detector v4 y el reconocedor v5 están en `OCR_MODELS`; el reconocedor y clasificador v4 siguen en el paquete RapidOCR para la comparación. El alfabeto v5 se lee desde la metadata ONNX.
 
 | Recurso | SHA-256 | Ñ | ñ |
 |---|---|---|---|
@@ -69,23 +67,16 @@ comparación aísla el reconocedor y los diccionarios.
 | Clasificador `ch_ppocr_mobile_v2.0_cls_infer.onnx` | `e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c` | — | — |
 | PP-OCRv4 `ch_PP-OCRv4_rec_infer.onnx` | `48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b` | No | No |
 | Diccionario v4 `ppocr_keys_v1.txt` | `28b2362ad4ab2dc38769aa72feb535e3a9ddb3fd2a7585a05920e6393b1dc7f7` | No | No |
-| PP-OCRv5 latin `latin_PP-OCRv5_rec_mobile_infer.onnx` | `b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a` | No | Sí |
-| Diccionario v5 latin `ppocrv5_dict.txt` | `d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b` | No | Sí |
+| PP-OCRv5 latin `latin_PP-OCRv5_rec_mobile_infer.onnx` | `b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a` | Sí | Sí |
 
-La ausencia en el diccionario hace imposible emitir literalmente ese carácter:
-v4 no puede reconocer Ñ ni ñ; v5 latin admite ñ minúscula pero no Ñ mayúscula.
-El catálogo RapidOCR incluye latin PP-OCRv5 (español entre los idiomas cubiertos)
-pero no un reconocedor PP-OCRv5 `es` dedicado ni otro modelo PP-OCRv5 ONNX
-listado que cubra español. El núcleo normaliza NFKD y mayúsculas antes de
-comparar, por lo que Ñ se reduce a N para la confrontación; se conserva como
-limitación conocida del texto OCR. Fuente del catálogo y compatibilidad:
+RapidOCR usa la metadata `character` incrustada en el ONNX v5 (502 caracteres; incluye ñ, Ñ, Ú, Á e Í) e ignora `rec_keys_path`; `ppocrv5_dict.txt` no se usa. El diccionario v4 `ppocr_keys_v1.txt` sí carece de ñ/Ñ. La disponibilidad de Ñ en metadata no garantiza que cada glifo se detecte: en una prueba con Ñ aislada, una lectura fue N y tres se descartaron. En las palabras SEÑORA, NÚÑEZ, MUÑOZ, ESPAÑA y ÑANDÚ se leyó correctamente; si se descarta dentro de un nombre sí se genera una observación. El catálogo RapidOCR incluye latin PP-OCRv5 (español entre los idiomas cubiertos), pero no un reconocedor PP-OCRv5 `es` dedicado. Fuente del catálogo y compatibilidad:
 [RapidOCR model list](https://rapidai.github.io/RapidOCRDocs/main/model_list/).
 
 ## Recomendación
 
 PP-OCRv5 latin supera claramente a v4 en esta muestra: 82–84/85 palabras,
-31/32 diacríticos con mayúsculas respetadas y 8/8 líneas en las cuatro páginas; v4 obtiene 32–56/85,
-1–3/32 y baja a 5/8 líneas en sans a 300 DPI. Recomiendo mantener v5 latin como
-candidato para la configuración predeterminada sujeta a T014, pero no
-declararlo apto para conservar Ñ mayúscula en el texto OCR: su diccionario no
-puede producirla. La confrontación normaliza Ñ a N antes de comparar.
+31/32 diacríticos y 8/8 líneas en las cuatro páginas; v4 obtiene 32–56/85,
+1–3/32 y baja a 5/8 líneas en sans a 300 DPI. Recomiendo mantener v5 latin
+(`use_cls=False`) sujeto a T014. Aunque el ONNX admite Ñ/ñ, la Ñ aislada puede
+descartarse; el riesgo es observable porque una omisión dentro de un nombre
+genera una observación.

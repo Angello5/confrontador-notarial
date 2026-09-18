@@ -16,7 +16,7 @@ python scripts/generar_fixtures.py
 python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 ```
 
-**Esperado**: pasan fixtures y pruebas ficticias de cada capa; `local_reference` no se selecciona por defecto. La suite no accede a la referencia privada.
+**Esperado**: pasan fixtures y pruebas ficticias de cada capa; `local_reference` y `ocr_research` no se seleccionan por defecto. La suite no accede a la referencia privada.
 
 Las pruebas opt-in de `test_revisor_llm.py` están excluidas de la suite ordinaria. Para ejecutar únicamente sus filtros sintéticos, sin red ni modelos:
 
@@ -58,7 +58,7 @@ Checkpoint de Etapa 2 (Python 3.13.9, `.venv` instalado con los locks):
 
 ## Recursos OCR/diccionario verificados en CI
 
-Estos hashes identifican los archivos de modelos/diccionario que usa la verificación de recursos del workflow. No son hashes de distribuciones Python; esos pertenecen a los locks `requirements*.txt`.
+Estos hashes identifican los modelos OCR y el diccionario `es_PE` que usa la verificación de recursos del workflow. No son hashes de distribuciones Python; esos pertenecen a los locks `requirements*.txt`.
 
 | Detector compartido y modelos de comparación PP-OCRv4 | SHA-256 |
 |---|---|
@@ -69,7 +69,6 @@ Estos hashes identifican los archivos de modelos/diccionario que usa la verifica
 | Recurso PP-OCRv5 latin predeterminado | SHA-256 |
 |---|---|
 | `latin_PP-OCRv5_rec_mobile_infer.onnx` | `b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a` |
-| `ppocrv5_dict.txt` | `d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b` |
 
 | Diccionario `es_PE` fijado a `LibreOffice/dictionaries@32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4` | SHA-256 |
 |---|---|
@@ -84,9 +83,31 @@ ejecución. RapidOCR 3.4.3 y onnxruntime 1.30.0 están fijados por hashes en
 ```bash
 mkdir -p ~/.cache/notaria-ocr/models
 cp "$(~/.venvs/confrontador/bin/python -c 'import rapidocr; from pathlib import Path; print(Path(rapidocr.__file__).parent / "models" / "ch_PP-OCRv4_det_infer.onnx")')" ~/.cache/notaria-ocr/models/
-cp "$(~/.venvs/confrontador/bin/python -c 'import rapidocr; from pathlib import Path; print(Path(rapidocr.__file__).parent / "models" / "ppocrv5_dict.txt")')" ~/.cache/notaria-ocr/models/
 curl -fsSL https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0/onnx/PP-OCRv5/rec/latin_PP-OCRv5_rec_mobile_infer.onnx -o ~/.cache/notaria-ocr/models/latin_PP-OCRv5_rec_mobile_infer.onnx
-(cd ~/.cache/notaria-ocr/models && printf '%s\n' 'd2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_det_infer.onnx' 'b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx' 'd1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b  ppocrv5_dict.txt' | sha256sum -c -)
+(cd ~/.cache/notaria-ocr/models && printf '%s\n' 'd2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_det_infer.onnx' 'b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx' | sha256sum -c -)
+```
+
+Para reproducir la tabla comparativa, con `fonts-liberation` instalado en Linux
+y esos recursos verificados, ejecutar explícitamente el test opt-in:
+
+```bash
+python -m pytest -o addopts= -m ocr_research -s test_ocr_research.py
+```
+
+El test usa el detector v4 y el reconocedor v5 de `OCR_MODELS`; toma el
+reconocedor/clasificador y el diccionario v4 del paquete RapidOCR. v5 lee su
+alfabeto de metadata ONNX y no requiere un archivo de claves externo.
+
+## Aprovisionamiento offline para el servidor (F8)
+
+En el equipo conectado, descarga/prepara los recursos como arriba. Copia íntegro `~/.cache/notaria-ocr/models/` al mismo directorio del usuario de servicio en el servidor sin red. Antes de iniciar el ERP, valida los nombres y hashes en el servidor:
+
+```bash
+cd ~/.cache/notaria-ocr/models
+sha256sum -c - <<'EOF'
+d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_det_infer.onnx
+b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx
+EOF
 ```
 
 ## Medición privada de comportamiento
@@ -115,10 +136,9 @@ de medir:
 
 Comunicar solo si hubo 8 observaciones, cero en la escritura correcta y cinco
 salidas idénticas. No copiar texto, imágenes, rutas ni logs del expediente.
-PP-OCRv5 latin no emite Ñ mayúscula; la confrontación normaliza Ñ a N antes de
-comparar.
+RapidOCR usa 502 caracteres de metadata `character` del ONNX v5 (incluye ñ, Ñ, Ú, Á e Í) e ignora `rec_keys_path`; v4 sí carece de ñ/Ñ. Una Ñ aislada a veces se descarta (una vez se leyó como N y tres se descartó); en SEÑORA, NÚÑEZ, MUÑOZ, ESPAÑA y ÑANDÚ se lee bien. Si se descarta dentro de un nombre, se genera una observación.
 
-**Esperado al aprobar**: 8 observaciones, cero observaciones en escritura correcta, cinco salidas iguales, piso sintético de v5 y hashes validados. La Ñ mayúscula es una limitación documentada; la confrontación la normaliza a N. La decisión sobre el PR #11 queda para después de T014; no se modifica el PR durante estas pruebas.
+**Esperado al aprobar**: 8 observaciones, cero observaciones en escritura correcta, cinco salidas iguales, piso sintético de v5 y hashes validados. La metadata v5 incluye Ñ/ñ, aunque una Ñ aislada puede descartarse y causar una observación en un nombre. La decisión sobre el PR #11 queda para después de T014; no se modifica el PR durante estas pruebas.
 
 ## Gates previos a completar F3
 

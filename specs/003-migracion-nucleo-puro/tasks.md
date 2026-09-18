@@ -36,11 +36,11 @@
 
 **Meta**: verificar resultado de referencia y comparar ambas configuraciones OCR con hashes reproducibles.
 
-**Prueba independiente**: evidencia agregada acredita 8 observaciones, 0 en la escritura correcta, cinco corridas idénticas y el piso sintético de v5 (8/8 líneas, 82/85 palabras, 31/32 diacríticos); Ñ mayúscula es una limitación conocida.
+**Prueba independiente**: evidencia agregada acredita 8 observaciones, 0 en la escritura correcta, cinco corridas idénticas y el piso sintético de v5 (8/8 líneas, 82/85 palabras, 31/32 diacríticos); la metadata v5 contiene Ñ/ñ, aunque una Ñ aislada puede descartarse.
 
 - [X] T011 [US2] Fijar versiones de RapidOCR/onnxruntime como paquetes Python en `requirements.in` y su lock `requirements.txt`. Registrar por separado los SHA-256 de modelos/diccionarios OCR en el paso o manifiesto de verificación de recursos del CI y en `specs/003-migracion-nucleo-puro/quickstart.md`; validar esos recursos antes de correr la comparación. RapidOCR 3.4.3 y onnxruntime 1.30.0 ya estaban fijados con hashes; se agregaron hashes para los recursos v5 y el test verifica antes de inicializar OCR.
 - [X] T012 [US2] Añadir primero en `test_extraer.py` la prueba sintética comparativa v4/v5 para conservar líneas, acentos y Ñ; ejecutarla con modelos fijados antes de cambiar la configuración predeterminada. Resultado ampliado por fuente/DPI en `test_ocr_research.py` (opt-in) y `research.md`; la prueba ordinaria fija el piso sintético de v5 (8/8 líneas, ≥82/85 palabras, ≥31/32 diacríticos).
-- [X] T013 [US2] Implementar en `adaptadores/extraccion.py` la configuración candidata PP-OCRv5 latin con `use_cls=False`, manteniendo disponible la configuración PP-OCRv4 ch para comparación y fallback. La inicialización usa rutas locales explícitas y valida hashes; no descarga recursos durante la ejecución.
+- [X] T013 [US2] Implementar en `adaptadores/extraccion.py` la configuración candidata PP-OCRv5 latin con `use_cls=False`; comparación v4 en test opt-in; el fallback es revertir `aaa45f0`. La inicialización usa rutas locales explícitas y valida hashes; no descarga recursos durante la ejecución.
 - [ ] T014 [US2] [REQUIERE MEDICIÓN LOCAL DE LA PERSONA USUARIA] Ejecutar `tests/test_referencia_local.py` con la configuración predeterminada PP-OCRv5 latin desde el entorno autorizado, fuera de CI/repositorio; comunicar solo conteos y booleanos, nunca texto, imágenes, rutas ni logs del expediente.
 - [ ] T015 [US2] Aplicar el gate de `specs/003-migracion-nucleo-puro/spec.md`: confirmar la adopción v5 solo con 8 observaciones, cinco salidas idénticas, cero en escritura correcta y test sintético al piso definido; si falla una condición, detener la adopción y comunicar el resultado agregado para decidir el siguiente paso.
 - [ ] T016 [US2] Registrar en `specs/003-migracion-nucleo-puro/quickstart.md` el resultado agregado y recomendar al responsable cerrar o reemplazar el PR #11 según la decisión; no editar el PR desde esta etapa.
@@ -96,7 +96,7 @@
 | Historia | Tareas asociadas | Prueba independiente |
 |---|---|---|
 | US1 | T004–T010 (7) | Lógica del paquete común con datos sintéticos, sin E/S, resultados iguales. |
-| US2 | T011–T016 (6) | 8 observaciones, cero en escritura correcta, cinco corridas idénticas y OCR sintético al piso v5; Ñ mayúscula documentada. |
+| US2 | T011–T016 (6) | 8 observaciones, cero en escritura correcta, cinco corridas idénticas y OCR sintético al piso v5; metadata de Ñ/ñ y omisión ocasional de Ñ aislada documentadas. |
 | US3 | T017–T025 (9) | Apps Streamlit funcionan; ERP/núcleo no importan prosa; API key fuera de URL; deuda atendida o justificada. |
 
 ## Oportunidades paralelas

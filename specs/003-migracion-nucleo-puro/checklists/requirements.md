@@ -6,7 +6,7 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [ ] No implementation details (languages, frameworks, APIs)
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
@@ -27,8 +27,10 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [ ] No implementation details leak into specification
 
 ## Notes
+
+- Excepción por decisión del usuario: la spec es una migración técnica interna y contiene decisiones de implementación OCR deliberadamente requeridas; estos dos ítems permanecen sin marcar.
 
 - Excepción por decisión del usuario: los criterios sobre detalles de implementación y audiencia no técnica se aceptan para esta migración técnica interna; el usuario fijó la estructura de paquetes y el candidato OCR que se medirá.

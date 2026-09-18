@@ -2,11 +2,13 @@
 
 ## Limitación conocida de OCR
 
-PP-OCRv5 latin no tiene Ñ mayúscula en su diccionario, por lo que no puede
-emitirla literalmente. La confrontación aplica NFKD y mayúsculas antes de
-comparar, así que Ñ se reduce a N en ambos textos; esta limitación queda
-aceptada para ese uso. La medición privada T014 sigue siendo el gate para
-completar la adopción.
+RapidOCR usa la metadata `character` incrustada en el ONNX latin v5 (502
+caracteres, incluidos ñ, Ñ, Ú, Á e Í) e ignora `rec_keys_path`;
+`ppocrv5_dict.txt` no se usa. PP-OCRv4 sí carece de ñ/Ñ. Una Ñ aislada a
+veces se descarta: en cuatro intentos, una vez se leyó como N y tres veces se
+descartó. En palabras (SEÑORA, NÚÑEZ, MUÑOZ, ESPAÑA, ÑANDÚ) se lee bien; si se
+descarta dentro de un nombre, se genera una observación. T014 sigue siendo el
+gate de la medición privada.
 
 Los diez code smells del análisis inicial de SonarCloud sobre `main` (`4cb625e`)
 se registran para la migración del núcleo en F3; no se corrigen en F1.
@@ -42,3 +44,15 @@ una lista de argumentos y sin shell. La ruta del documento se resuelve con
 `LEGACY` antes de llegar al subprocess; las opciones y formatos no provienen del
 documento. Esta justificación se revisará si una interfaz futura permite
 configurar el ejecutable o el formato desde una entrada no confiable.
+
+## Aprovisionamiento offline de modelos para F8
+
+En el equipo conectado, aprovisionar los dos modelos verificados en `~/.cache/notaria-ocr/models/`. Copiar ese directorio al servidor sin red, conservando nombres y estructura; en el servidor comprobarlo antes de arrancar:
+
+```bash
+cd ~/.cache/notaria-ocr/models
+sha256sum -c - <<'EOF'
+d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_det_infer.onnx
+b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx
+EOF
+```
