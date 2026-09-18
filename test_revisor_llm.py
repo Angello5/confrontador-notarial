@@ -1,13 +1,13 @@
-"""Check del filtro: cada caso viene de un hallazgo real observado en las pruebas.
+"""Test del filtro con casos de prosa inventados, sin documentos de clientes.
 
 No llama a la API. python3 test_revisor_llm.py
 """
 from revisor_llm import filtrar
 
-DOC = ("LAS DONANTES, DECLARAN QUÉ PARA EFECTOS REGISTRALES. OCTAO: SE INSTRUYO "
-       "EN LA UIRBANIZACION, DE OCUPACIÒN DOCENTE, JIRON LAS ÁGUILAS 24 TORRE 1. "
-       "RATIFICANDOSE EDELMIRA AVELLANEDA.")
-FUENTES = "URBANIZACION OCUPACION EDELMIRA AVELLANEDA"
+DOC = ("LOS COMPARECIENTES DECLARAN QUÉ SON DE ESTADO CIVIL. OCTAO: SAN MARTIN "
+       "EN LA UIRBANIZACION, DE OCUPACIÒN ARTESANO, CON LOTE 42 MANZANA 2. "
+       "MARIA NUBELIA ZURBELIA.")
+FUENTES = "URBANIZACION CIVIL NUBELIA ZURBELIA"
 
 CASOS = [
     # (encontrado, correccion, se_acepta, por que)
@@ -15,12 +15,12 @@ CASOS = [
     ("OCUPACIÒN", "OCUPACIÓN", True, "tilde invertida: el texto ya trae tilde"),
     ("QUÉ", "QUE", True, "tilde sobrante, no agregada"),
     ("UIRBANIZACION", "URBANIZACION", True, "el error tambien esta en la minuta"),
-    ("EDELMANDA", "EDELMIRA", False, "no existe en el documento"),
-    ("MENDOZ", "MENDOZ", False, "correccion identica al error"),
-    ("24", "248", False, "dato numerico"),
-    ("ÁGUILAS 24", "ÁGUILAS 284", False, "dato numerico"),
-    ("SE INSTRUYO", "SE INSTRUYÓ", False, "tilde sobre mayusculas"),
-    ("RATIFICANDOSE", "RATIFICÁNDOSE", False, "tilde sobre mayusculas"),
+    ("ZARDELIA", "NUBELIA", False, "no existe en el documento"),
+    ("ARTESANO", "ARTESANO", False, "correccion identica al error"),
+    ("42", "428", False, "dato numerico"),
+    ("LOTE 42", "LOTE 482", False, "dato numerico"),
+    ("SAN MARTIN", "SAN MARTÍN", False, "tilde sobre mayusculas"),
+    ("MARIA", "MARÍA", False, "tilde sobre mayusculas"),
 ]
 
 if __name__ == "__main__":

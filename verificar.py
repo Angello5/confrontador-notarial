@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verifica un documento notarial contra sus archivos fuente (minuta + DNIs escaneados).
 
-  python3 verificar.py Cliente/ -d "Proyecto(borrador)/71168_malo2.docx"
+  python3 verificar.py tests/fixtures/cliente/ -d tests/fixtures/borrador/observado.docx
 
 La lectura (OCR incluido) vive en extraer.py.
 
@@ -28,12 +28,12 @@ def norm(t: str) -> str:
 
 
 # ---------- extraccion ----------
-# CUI del RENIEC: 8 digitos + guion + verificador. El watermark (47521025) no lo trae.
+# CUI del RENIEC: 8 digitos + guion + verificador. El watermark (sello) no lo trae.
 RE_CUI = re.compile(r"\b(\d{8})\s*-\s*\d\b")
 # en documentos el DNI viene rotulado; aceptamos 6-9 digitos para cazar los mal escritos
 RE_DNI_DOC = re.compile(r"(?:DNI|IDENTIDAD)\s*(?:N[O°]?|NUMERO)?\s*[:.]?\s*(\d{6,9})")
 # "PARTIDA ELECTRONICA N° x" en unos actos y "PARTIDA N° x" en otros: el mutuo
-# de FLORES usa la forma corta y quedaba fuera del catalogo
+# de prueba usa la forma corta y quedaba fuera del catalogo
 RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
 RE_MONTO = re.compile(r"S/\s*(\d[\d,]*\.\d{2})")
 # nombre en mayusculas antes de "...NACIONALIDAD" o despues de "CASAD@ CON"

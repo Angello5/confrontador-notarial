@@ -90,8 +90,8 @@ python3 test_extraer.py && python3 test_verificar.py && python3 test_lexico.py \
   && python3 test_ortografia.py && python3 test_revisor_llm.py
 ```
 
-> **Necesitan los archivos del expediente**, que no están en este repositorio
-> (ver más abajo). En un clon limpio fallan por archivo no encontrado: es
+> **Necesitan los fixtures sintéticos de la etapa 2**, que no están en este repositorio
+> (todavía no generados). En un clon limpio fallan por archivo no encontrado: es
 > esperado. `test_ortografia.py` y `test_revisor_llm.py` sí corren solos —
 > el segundo no llama a la API, solo ejercita los filtros.
 
@@ -108,16 +108,16 @@ comprobaciones dejan de tener sentido.
 ```
 confrontador-notarial/
    Cliente/  Proyecto(borrador)/  Resultado/   ← expediente de referencia
-   mutuo-71213/
+   expediente-00001/
       Cliente/  Proyecto(borrador)/  Plantilla/
 ```
 
 Todo eso queda ignorado por git automáticamente. La copia de seguridad de los
 expedientes es responsabilidad de la notaría, fuera de este repositorio.
 
-> **Pendiente de limpieza:** los tests conservan DNI y apellidos reales en sus
-> aserciones, heredados del expediente con el que se midió. Deben sustituirse
-> por datos ficticios antes de que este repositorio deje de ser privado.
+> **Saneamiento F1:** los tests usan datos ficticios y rutas bajo
+> `tests/fixtures/`; su generador se implementará en la etapa 2. El historial
+> anterior permanece privado: publicar el repositorio exige limpiarlo en otra fase.
 
 ## Estado
 

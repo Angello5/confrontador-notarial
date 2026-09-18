@@ -1,4 +1,4 @@
-"""Check de lexico.py contra los documentos reales del caso.
+"""Test de lexico.py con documentos ficticios generados en la etapa 2.
 
   python3 test_lexico.py
 """
@@ -7,10 +7,10 @@ from pathlib import Path
 from extraer import leer
 from lexico import erratas, vocabulario
 
-BASE = Path(__file__).parent
-FIRMADA = BASE / "Resultado" / "72156.docx"
-BORRADOR = BASE / "Proyecto(borrador)" / "1785794688639_71168_malo2.docx"
-MINUTA = BASE / "Cliente" / "1785794688252_DONACION_ACCIONES_Y_DERECHOS_-_KARIN.docx"
+BASE = Path(__file__).parent / "tests" / "fixtures"
+FIRMADA = BASE / "resultado" / "correcto.docx"
+BORRADOR = BASE / "borrador" / "observado.docx"
+MINUTA = BASE / "cliente" / "minuta.docx"
 
 if __name__ == "__main__":
     vocab = vocabulario([str(FIRMADA)])
@@ -34,10 +34,10 @@ if __name__ == "__main__":
 
     # flexion: plural y genero no son erratas, pero una letra faltante si
     from lexico import contar
-    v2 = contar(["LA CLAUSULA SUSCRITA POR MENDOZA Y LA IMPRESION DACTILAR"])
+    v2 = contar(["LA CLAUSULA SUSCRITA POR ZURBELIA Y LA IMPRESION DACTILAR"])
     marcadas = {p for p, _, _ in erratas(
-        "LAS CLAUSULAS SUSCRITO IMPRESIONES DACTILARES DE MENDOZ", v2)}
-    assert marcadas == {"MENDOZ"}, marcadas
+        "LAS CLAUSULAS SUSCRITO IMPRESIONES DACTILARES DE ZURBELI", v2)}
+    assert marcadas == {"ZURBELI"}, marcadas
 
     print(f"OK — {len(hallado)} erratas en el borrador, 0 en la firmada, "
-          f"{len(en_minuta)} reales en la minuta")
+          f"{len(en_minuta)} erratas en la minuta ficticia")

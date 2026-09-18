@@ -13,12 +13,12 @@ Los commits indicados son tareas de implementación, no commits realizados por g
 **Objetivo**: contenido y nombres actuales ficticios antes de cualquier análisis remoto.
 **Prueba independiente**: revisión local del árbol y diff sin datos reales ni secretos; repositorio privado e historia intacta.
 
-- [ ] T001 [US1] Registrar en `specs/001-base-devsecops/quickstart.md` el inventario de alcance a sanear en código, tests, documentación y rutas, sin transcribir valores reales; comprobar localmente estado Git y privacidad del remoto sin activar SonarQube.
-- [ ] T002 [US1] Sustituir datos reales en `test_extraer.py`, `test_verificar.py`, `test_lexico.py`, `test_ortografia.py` y `test_revisor_llm.py` por datos ficticios coherentes, preservando casos y expectativas sin copiar documentos reales.
-- [ ] T003 [US1] Sanear cualquier dato real encontrado en el resto del código/documentación versionados del alcance de T001 y renombrar referencias de fixtures a nombres neutros en `test_*.py` y `tests/fixtures/`; no incluir nombres antiguos en mensajes de commit ni informes.
-- [ ] T004 [US1] Revisar `.gitignore` para conservar exclusión de expedientes y secretos y añadir artefactos locales de calidad; mantener el historial sin reescribir y documentar en `specs/001-base-devsecops/quickstart.md` que publicar exige limpieza histórica en otra fase.
-- [ ] T005 [US1] Ejecutar checkpoint de saneamiento de contenido, nombres, referencias y diff; registrar solo alcance/resultado en `specs/001-base-devsecops/quickstart.md`, sin enviar contenido ni historia a Cloud y sin confundir detección de secretos con revisión de datos personales.
-- [ ] T006 [US1] Crear commit local `chore: sanitize repository data` con los cambios revisados de `test_*.py`, `.gitignore` y las rutas saneadas en T003–T005; comprobar que no incluye archivos privados ni valores originales.
+- [X] T001 [US1] Registrar en `specs/001-base-devsecops/quickstart.md` el inventario de alcance a sanear en código, tests, documentación y rutas, sin transcribir valores reales; comprobar localmente estado Git y privacidad del remoto sin activar SonarQube.
+- [X] T002 [US1] Sustituir datos reales en `test_extraer.py`, `test_verificar.py`, `test_lexico.py`, `test_ortografia.py` y `test_revisor_llm.py` por datos ficticios coherentes, preservando casos y expectativas sin copiar documentos reales.
+- [X] T003 [US1] Sanear cualquier dato real encontrado en el resto del código/documentación versionados del alcance de T001 y renombrar referencias de fixtures a nombres neutros en `test_*.py` y `tests/fixtures/`; no incluir nombres antiguos en mensajes de commit ni informes.
+- [X] T004 [US1] Revisar `.gitignore` para conservar exclusión de expedientes y secretos y añadir artefactos locales de calidad; mantener el historial sin reescribir y documentar en `specs/001-base-devsecops/quickstart.md` que publicar exige limpieza histórica en otra fase.
+- [X] T005 [US1] Ejecutar checkpoint de saneamiento de contenido, nombres, referencias y diff; registrar solo alcance/resultado en `specs/001-base-devsecops/quickstart.md`, sin enviar contenido ni historia a Cloud y sin confundir detección de secretos con revisión de datos personales.
+- [X] T006 [US1] Crear commit local `chore: sanitize repository data` con los cambios revisados de `test_*.py`, `.gitignore` y las rutas saneadas en T003–T005; comprobar que no incluye archivos privados ni valores originales.
 
 **Checkpoint**: T005 aprobado y T006 creado. Los fallos existentes por ausencia de fixtures o compatibilidad aún se registran como pendientes de etapas 2–3; no iniciar análisis Cloud.
 

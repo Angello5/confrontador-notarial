@@ -1,8 +1,8 @@
-"""Compara modelos sobre los defectos de prosa YA verificados del borrador.
+"""Compara modelos sobre defectos de prosa de documentos ficticios.
 
   python3 bench_llm.py [modelo ...]
 
-Verdad: lo que esta mal en el borrador y bien en Resultado/72156.docx.
+Referencia ficticia: tests/fixtures/resultado/correcto.docx.
 """
 import sys
 import time
@@ -18,8 +18,8 @@ VERDAD = {"OCTAO": "OCTAVO", "DECIO": "DECIMO", "MEIO": "MEDIO",
 MODELOS = sys.argv[1:] or ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.7-flash"]
 CORRIDAS = 3
 
-doc = leer(BASE / "Proyecto(borrador)" / "1785794688639_71168_malo2.docx")
-fuentes = leer(BASE / "Cliente" / "1785794688252_DONACION_ACCIONES_Y_DERECHOS_-_KARIN.docx")
+doc = leer(BASE / "tests" / "fixtures" / "borrador" / "observado.docx")
+fuentes = leer(BASE / "tests" / "fixtures" / "cliente" / "minuta.docx")
 
 print(f"{'modelo':24} {'corrida':>7} {'crudos':>7} {'pasan':>6} {'aciertos':>9} {'ruido':>6} {'seg':>6}")
 for modelo in MODELOS:
