@@ -1,6 +1,6 @@
 # Extracción y OCR local
 rapidocr==3.4.3
-onnxruntime==1.23.2
+onnxruntime==1.30.0
 pymupdf==1.28.2
 openpyxl==3.1.5
 pillow==12.3.0
