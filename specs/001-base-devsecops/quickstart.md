@@ -323,13 +323,27 @@ Desde la raíz del repositorio, después de implementar:
 ```bash
 python3.13 -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pip install --require-hashes --only-binary :all: --no-binary antlr4-python3-runtime -r requirements.txt -r requirements-dev.txt
 python scripts/generar_fixtures.py
 python -m ruff check .
 python -m ruff format --check .
 python -m pytest -m 'not local_reference' --cov --cov-report=term --cov-report=xml:coverage.xml
 python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
 ```
+
+Los archivos `requirements.in` y `requirements-dev.in` son las fuentes que
+actualiza Dependabot; los `.txt` bloquean también las dependencias transitivas.
+Para regenerarlos con Python 3.13 y `pip-tools==7.6.1`:
+
+```bash
+python -m piptools compile --generate-hashes --output-file=requirements.txt requirements.in
+python -m piptools compile --generate-hashes --allow-unsafe --output-file=requirements-dev.txt requirements-dev.in
+```
+
+La instalación conserva `--only-binary :all:` y una excepción individual:
+`antlr4-python3-runtime==4.9.3`, dependencia transitiva fijada de `omegaconf`,
+solo publica un sdist para esa versión. Su sdist queda protegido por el hash del
+lock; ningún otro paquete puede ejecutar un script de construcción.
 
 En etapa 5, una vez configurados gitleaks y `.pre-commit-config.yaml`, añadir:
 
@@ -357,6 +371,40 @@ obtener verde.
 ```bash
 python -m pytest -o addopts= -m local_reference --tb=no -q
 ```
+
+## Análisis inicial y resolución T038
+
+El usuario ejecutó el análisis inicial de SonarCloud el 2026-09-18 sobre
+`main` `4cb625e` (`master` en SonarCloud), con cobertura del mismo análisis. El
+inventario resultó en 13 vulnerabilidades, 7 bugs, 10 code smells y 0 Security
+Hotspots.
+
+| Hallazgos | Resolución en PR 2 |
+|---|---|
+| githubactions:S8541, 3 casos de instalación | Corregidos: CI instala ambos locks con `--require-hashes --only-binary :all:`. |
+| githubactions:S8544, 3 casos de resolución | Corregidos: fuentes `.in` y locks `.txt` generados por pip-compile con hashes y transitivas. |
+| githubactions:S6506, descarga de Gitleaks | Corregido: curl exige HTTPS y TLS 1.2. |
+| pythonsecurity:S8707, 4 rutas en `extraer.py` | Corregidos en el adaptador compartido: ruta absoluta existente, archivo regular y sufijo legacy antes del subprocess. |
+| pythonsecurity:S8705, `_soffice` y `_legacy` | Mitigados y justificados: CLI local, argv sin shell, ejecutable/opciones internos y ruta validada; revisar si esas opciones pasan a ser entrada no confiable. |
+| python:S5779, 4 casos en `tests/conftest.py` | Corregidos con comprobaciones explícitas y `_CoberturaInvalida`. |
+| python:S5779, 3 casos en `tests/test_referencia_local.py` | Corregidos con comprobaciones explícitas y `_MedicionInvalida`; la salida sigue saneada. |
+| 10 code smells | Registrados individualmente en `docs/deuda-f3.md`; quedan para F3 sin bloquear F1. |
+
+La prueba ficticia con un archivo `-ficticio.rtf` falló antes del cambio y
+comprueba ahora que el subprocess recibe una ruta absoluta. Otra prueba impide
+invocar el conversor para directorios o sufijos fuera de `LEGACY`. El diseño de
+CLI local restante se justifica también en `docs/deuda-f3.md`; no se añadió una
+exclusión ni un `noqa` de Sonar.
+
+## Quality Gate T042
+
+El proyecto usa el Quality Gate **Sonar way**: Security Rating A (0
+vulnerabilidades nuevas), Reliability Rating A (0 bugs nuevos), 100 % de
+Security Hotspots revisados y cobertura de al menos 80 % en código nuevo. Es
+equivalente a los mínimos de la constitución; la única diferencia es que Sonar
+way no aplica la condición de cobertura cuando el cambio contiene menos de 20
+líneas nuevas. Los code smells previos no forman parte de este gate y los
+umbrales de código nuevo no se redujeron.
 
 Esperado: ejecución únicamente tras selección expresa, resumen sin datos personales y fallo saneado si falta el directorio o los archivos requeridos. Ejecutar el mismo comando con indicador CI debe ser rechazado. Si se modificó el núcleo, comparar con baseline local sin regresión antes del merge; no subir reportes de contenido.
 

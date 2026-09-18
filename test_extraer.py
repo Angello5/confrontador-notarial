@@ -4,6 +4,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import pymupdf
+import pytest
 
 import extraer
 
@@ -80,8 +81,12 @@ def test_pdf_texto_y_tabla_docx():
     assert "CAMPO  VALOR" in tabla
 
 
-def test_legacy_macos_ejecutable_absoluto(monkeypatch):
+def test_legacy_macos_ejecutable_y_ruta_absolutos(tmp_path, monkeypatch):
     from types import SimpleNamespace
+
+    ruta = tmp_path / "-ficticio.rtf"
+    ruta.write_text("{\\rtf1 DOCUMENTO FICTICIO}")
+    monkeypatch.chdir(tmp_path)
 
     def ejecutar(argv, **kwargs):
         assert argv == [
@@ -89,11 +94,24 @@ def test_legacy_macos_ejecutable_absoluto(monkeypatch):
             "-convert",
             "txt",
             "-stdout",
-            "ficticio.rtf",
+            str(ruta.resolve()),
         ]
         assert kwargs == {"capture_output": True, "text": True}
         return SimpleNamespace(returncode=0, stdout="CAMPO\tVALOR")
 
     monkeypatch.setattr(extraer.sys, "platform", "darwin")
     monkeypatch.setattr(extraer.subprocess, "run", ejecutar)
-    assert extraer.leer(Path("ficticio.rtf")) == "CAMPO  VALOR"
+    assert extraer.leer(Path(ruta.name)) == "CAMPO  VALOR"
+
+
+@pytest.mark.parametrize(
+    "nombre,es_directorio", [("ficticio.txt", False), ("ficticio.rtf", True)]
+)
+def test_legacy_valida_archivo_y_sufijo(tmp_path, monkeypatch, nombre, es_directorio):
+    ruta = tmp_path / nombre
+    ruta.mkdir() if es_directorio else ruta.write_text("DOCUMENTO FICTICIO")
+    monkeypatch.setattr(
+        extraer.subprocess, "run", lambda *_args, **_kwargs: pytest.fail("subprocess")
+    )
+    with pytest.raises(ValueError, match="formato legacy inválido"):
+        extraer._legacy(ruta)

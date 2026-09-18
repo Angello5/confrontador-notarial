@@ -7,6 +7,10 @@ from xml.etree import ElementTree
 import pytest
 
 
+class _CoberturaInvalida(Exception):
+    pass
+
+
 @pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(config, items):
     privados = [item for item in items if item.get_closest_marker("local_reference")]
@@ -42,16 +46,17 @@ def pytest_sessionfinish(session, exitstatus):
         if "xml" not in config.option.cov_report:
             raise ValueError("XML requerido")
         raiz = ElementTree.parse(Path(ruta or "coverage.xml")).getroot()  # noqa: S314 artefacto local de confianza generado por coverage
-        assert raiz.tag == "coverage" and int(raiz.attrib["lines-valid"]) > 0
+        if raiz.tag != "coverage" or int(raiz.attrib["lines-valid"]) <= 0:
+            raise _CoberturaInvalida
         clases = raiz.findall(".//class")
-        assert clases and all(
-            not Path(c.attrib["filename"]).is_absolute() for c in clases
-        )
-        assert all(
-            not c.attrib["filename"].startswith(("test_", "tests/", "scripts/"))
+        if not clases or any(Path(c.attrib["filename"]).is_absolute() for c in clases):
+            raise _CoberturaInvalida
+        if any(
+            c.attrib["filename"].startswith(("test_", "tests/", "scripts/"))
             for c in clases
-        )
-        assert {c.attrib["filename"] for c in clases} == {
+        ):
+            raise _CoberturaInvalida
+        if {c.attrib["filename"] for c in clases} != {
             "extraer.py",
             "verificar.py",
             "lexico.py",
@@ -60,8 +65,9 @@ def pytest_sessionfinish(session, exitstatus):
             "app.py",
             "app_ortografia.py",
             "bench_llm.py",
-        }
-    except (OSError, ValueError, KeyError, AssertionError, ElementTree.ParseError):
+        }:
+            raise _CoberturaInvalida
+    except (OSError, ValueError, KeyError, _CoberturaInvalida, ElementTree.ParseError):
         session.exitstatus = pytest.ExitCode.TESTS_FAILED
         terminal = config.pluginmanager.get_plugin("terminalreporter")
         if terminal:
