@@ -64,9 +64,9 @@ Notas de implementación que cuestan caro descubrir:
   no entra a los cuadros de texto ni a los encabezados, y en un caso real ahí
   vivían dos notas al notario con una errata. También se descarta `mc:Fallback`,
   que guarda cada cuadro de texto por duplicado.
-- El `.doc` binario va por `textutil`, que viene con macOS. **En Linux hay que
-  sustituirlo** por LibreOffice headless; el código lo detecta y falla con un
-  mensaje claro en vez de devolver texto corrupto.
+- El `.doc` binario va por `textutil` en macOS y por LibreOffice headless
+  (`soffice` en PATH) en Linux, con perfil temporal propio y timeout; si falta
+  o falla, el error es claro y no incluye contenido ni rutas.
 - El OCR se cachea por SHA-1 del contenido del archivo, no por ruta.
 
 ## Resultados medidos
@@ -94,8 +94,8 @@ python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 Usar Python 3.13. El generador crea los fixtures ficticios localmente, sin
 expedientes ni dependencias adicionales. El aprovisionamiento de OCR y
 diccionario está en [la guía F1](specs/001-base-devsecops/quickstart.md).
-El test del filtro no llama a la API. Al cerrar etapa 2 queda el fallo
-conocido de `test_legacy` en Linux por `textutil`, pendiente de etapa 3.
+El test del filtro no llama a la API. En Linux, los tests legacy requieren
+LibreOffice (`soffice`).
 
 ## Datos personales
 

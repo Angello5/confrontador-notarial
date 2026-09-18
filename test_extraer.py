@@ -1,5 +1,4 @@
 """Pruebas de extracción sobre documentos enteramente sintéticos."""
-import subprocess
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -23,17 +22,32 @@ def test_imagen_y_pdf_escaneado(tmp_path, monkeypatch):
     assert "90000004-1" in extraer.leer(pdf)
 
 
-def test_legacy(tmp_path):
-    # Fallo conocido en Linux: conversión y lector se resuelven en etapa 3.
-    doc = tmp_path / "minuta.doc"
+def test_legacy(tmp_path, monkeypatch):
+    monkeypatch.setattr(extraer.sys, "platform", "linux")
+    monkeypatch.setattr(extraer.tempfile, "tempdir", str(tmp_path))
     rtf = BASE / "formatos" / "minuta.rtf"
-    subprocess.run(["textutil", "-convert", "doc", "-output", str(doc), str(rtf)],
-                   check=True, capture_output=True)
+    doc = extraer._soffice(rtf, "doc", tmp_path).rename(tmp_path / "minuta.doc")
     assert doc.read_bytes()[:4] == b"\xd0\xcf\x11\xe0"
     texto_doc = extraer.leer(doc)
     assert "DONACION DE ACCIONES Y DERECHOS" in texto_doc, texto_doc
     assert "70001" in texto_doc, texto_doc
     assert extraer.leer(rtf).strip().startswith("DONACION"), extraer.leer(rtf)
+    assert sorted(x.name for x in tmp_path.iterdir()) == ["minuta.doc"]  # sin temporales
+
+
+def test_legacy_sin_libreoffice(tmp_path, monkeypatch):
+    monkeypatch.setattr(extraer.sys, "platform", "linux")
+    monkeypatch.setattr(extraer.tempfile, "tempdir", str(tmp_path))
+    rtf = BASE / "formatos" / "minuta.rtf"
+    for exe in ["no-existe-soffice", "false"]:  # ausente y fallo del ejecutable
+        monkeypatch.setattr(extraer, "SOFFICE", exe)
+        try:
+            extraer.leer(rtf)
+        except ValueError as e:
+            assert "DONACION" not in str(e) and str(tmp_path) not in str(e)
+        else:
+            raise AssertionError(exe)
+    assert not list(tmp_path.iterdir())
 
 
 def test_xlsx():

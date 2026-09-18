@@ -10,16 +10,17 @@ pesos que PaddleOCR sin arrastrar Paddle). ~4 s por pagina en este equipo.
 Los PDF se leen por su capa de texto; si no la traen (escaneo) se rasterizan
 pagina a pagina y se pasan por el mismo OCR.
 """
-import argparse, hashlib, json, re, subprocess, sys
+import argparse, hashlib, json, re, subprocess, sys, tempfile
 from functools import lru_cache
 from pathlib import Path
 
 IMGS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
-# formatos que abre textutil, que viene con macOS: no hace falta instalar nada
+# formatos que abre textutil (macOS) o LibreOffice (Linux)
 LEGACY = {".doc", ".rtf", ".odt", ".wordml"}
 DOCS = {".docx", ".pdf", ".xlsx", ".txt", ".md", ".csv"} | IMGS | LEGACY
 
 CACHE = Path.home() / ".cache" / "notaria-ocr"
+SOFFICE = "soffice"
 DPI = 200  # suficiente para DNI y sellos; a 300 tarda el doble sin ganar aciertos
 
 
@@ -88,17 +89,37 @@ def _xlsx(p: Path) -> str:
     )
 
 
+def _soffice(p: Path, formato: str, destino: Path) -> Path:
+    """Convierte con LibreOffice headless. Perfil propio en un temporal para no
+    chocar con otra instancia abierta; los errores no llevan stderr ni rutas."""
+    with tempfile.TemporaryDirectory() as perfil:
+        try:
+            r = subprocess.run([SOFFICE, f"-env:UserInstallation={Path(perfil).as_uri()}",
+                                "--headless", "--convert-to", formato,
+                                "--outdir", str(destino), str(p)],
+                               capture_output=True, timeout=120)
+        except (OSError, subprocess.TimeoutExpired):
+            raise ValueError(f"{p.name}: .doc necesita LibreOffice ({SOFFICE}) en PATH") from None
+    salida = destino / f"{p.stem}.{formato.split(':')[0]}"
+    if r.returncode or not salida.is_file():
+        raise ValueError(f"{p.name}: LibreOffice no pudo convertirlo")
+    return salida
+
+
 def _legacy(p: Path) -> str:
-    """Word 97-2003 y compañía, via textutil (parte de macOS). Un .doc no es un zip
-    sino un contenedor OLE, asi que python-docx no puede con el."""
-    if sys.platform != "darwin":
-        raise ValueError(f"{p.name}: .doc necesita textutil (macOS) o LibreOffice")
-    r = subprocess.run(["textutil", "-convert", "txt", "-stdout", str(p)],
-                       capture_output=True, text=True)
-    if r.returncode:
-        raise ValueError(f"{p.name}: textutil no pudo leerlo ({r.stderr.strip()[:80]})")
-    # textutil separa las celdas con tabulador; el resto del codigo espera dos espacios
-    return r.stdout.replace("\t", "  ")
+    """Word 97-2003 y compañía, via textutil en macOS o LibreOffice en Linux. Un
+    .doc no es un zip sino un contenedor OLE, asi que python-docx no puede con el."""
+    if sys.platform == "darwin":
+        r = subprocess.run(["textutil", "-convert", "txt", "-stdout", str(p)],
+                           capture_output=True, text=True)
+        if r.returncode:
+            raise ValueError(f"{p.name}: textutil no pudo leerlo ({r.stderr.strip()[:80]})")
+        txt = r.stdout
+    else:
+        with tempfile.TemporaryDirectory() as tmp:
+            txt = _soffice(p, "txt:Text (encoded):UTF8", Path(tmp)).read_text(encoding="utf-8-sig")
+    # separan las celdas con tabulador; el resto del codigo espera dos espacios
+    return txt.replace("\t", "  ")
 
 
 # document.xml primero; el resto son encabezados, pies y notas al pie

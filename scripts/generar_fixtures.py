@@ -1,7 +1,7 @@
 """Genera documentos ficticios desde cero, sin leer expedientes ni usar red.
 
 Ejecutar desde el repositorio: python scripts/generar_fixtures.py
-Los formatos binarios legacy se convierten en los tests (etapa 3 en Linux).
+El .doc binario lo crea test_legacy desde minuta.rtf con LibreOffice.
 """
 from datetime import datetime
 from html import escape

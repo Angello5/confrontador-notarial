@@ -38,8 +38,7 @@ python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 
 Usar Python 3.13 y aprovisionar OCR/diccionario según
 `specs/001-base-devsecops/quickstart.md`. Los tests predeterminados usan solo
-fixtures ficticios. Al cerrar etapa 2 queda un fallo conocido en Linux:
-`test_extraer.py::test_legacy` requiere `textutil`; se corrige en etapa 3.
+fixtures ficticios. En Linux, `.doc`/`.rtf` requieren LibreOffice (`soffice`).
 La medición privada exige `-o addopts= -m local_reference --tb=no` y está
 prohibida en CI. Ruff y auditoría se configuran en etapa 4.
 

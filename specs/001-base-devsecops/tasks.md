@@ -43,9 +43,9 @@ Los commits indicados son tareas de implementación, no commits realizados por g
 **Objetivo**: conservar formatos antiguos en Linux con la adaptación mínima del lector compartido.
 **Prueba independiente**: tests de conversión real con documentos sintéticos, éxito, errores y limpieza temporal.
 
-- [ ] T015 [US1] Añadir primero en `test_extraer.py` casos ficticios fallidos de lectura/conversión legacy en Linux, ausencia o fallo del ejecutable y limpieza temporal; identificar todos los callers de `_legacy` en `extraer.py` antes de cambiarlo.
-- [ ] T016 [US1] Adaptar `_legacy` en `extraer.py` a LibreOffice headless en Linux con argumentos sin shell, timeout, directorio temporal y perfil aislado; preservar comportamiento macOS cuando corresponda, validar resultados y no emitir contenido sensible en errores.
-- [ ] T017 [US1] Ajustar generación/conversión legacy en `scripts/generar_fixtures.py` y `test_extraer.py` para que deje de requerir textutil en Linux; documentar el ejecutable y aprovisionamiento en `specs/001-base-devsecops/quickstart.md` sin introducir nuevas abstracciones.
+- [X] T015 [US1] Añadir primero en `test_extraer.py` casos ficticios fallidos de lectura/conversión legacy en Linux, ausencia o fallo del ejecutable y limpieza temporal; identificar todos los callers de `_legacy` en `extraer.py` antes de cambiarlo.
+- [X] T016 [US1] Adaptar `_legacy` en `extraer.py` a LibreOffice headless en Linux con argumentos sin shell, timeout, directorio temporal y perfil aislado; preservar comportamiento macOS cuando corresponda, validar resultados y no emitir contenido sensible en errores.
+- [X] T017 [US1] Ajustar generación/conversión legacy en `scripts/generar_fixtures.py` y `test_extraer.py` para que deje de requerir textutil en Linux; documentar el ejecutable y aprovisionamiento en `specs/001-base-devsecops/quickstart.md` sin introducir nuevas abstracciones.
 - [ ] T018 [US1] Ejecutar checkpoint de toda la suite sintética en Linux y repetibilidad con `test_extraer.py` y `test_*.py`; comprobar errores/limpieza y medir no regresión local si se alteró el núcleo, registrando únicamente resultados saneados en `specs/001-base-devsecops/quickstart.md`.
 - [ ] T019 [US1] Crear commit local `fix: support legacy documents on Linux` con `extraer.py`, `test_extraer.py`, `scripts/generar_fixtures.py` y guía después de T018 aprobado.
 

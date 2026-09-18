@@ -54,7 +54,7 @@ Para etapa 2 basta Python 3.13, los dos archivos de requisitos y los recursos
 OCR/diccionario indicados a continuación. LibreOffice se integra en etapa 3;
 gitleaks, Ruff configurado y controles remotos pertenecen a etapas posteriores.
 
-- Clon limpio privado, Python 3.13, Git y LibreOffice (`libreoffice` en PATH) en Linux; gitleaks fijado y verificado según documentación de implementación.
+- Clon limpio privado, Python 3.13, Git y LibreOffice (`soffice` en PATH) en Linux; gitleaks fijado y verificado según documentación de implementación.
 - Recursos OCR y diccionario es_PE aprovisionados con los orígenes/versiones documentados. Solo fixtures ficticios; ningún expediente privado en el clon.
 - Antes de conectar Sonar: revisión de saneamiento del contenido y nombres, configuración CI presente, análisis automático desactivado, proyecto Cloud privado. GitHub Pro/Team/Enterprise y Sonar Team/Enterprise para las capacidades elegidas; verificar disponibilidad, no contratar automáticamente.
 - Variables públicas de proyecto/organización y `SONAR_TOKEN` aprovisionados por el responsable en almacenes de secretos; nunca pegarlos en comandos o documentos.
@@ -123,7 +123,7 @@ python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 No se descargan expedientes en pruebas. Si falta un recurso, se aprovisiona antes
 de ejecutar la suite. Los 11 documentos ficticios se regeneran y permanecen
 ignorados; no se añaden a Git a la fuerza. La conversión a `.doc` sigue dentro
-del test legacy y se adapta a LibreOffice en T017, no en esta etapa.
+del test legacy y usa LibreOffice desde T017 (ver etapa 3).
 
 ## Checkpoint ejecutado · Etapa 2 (T007–T014)
 
@@ -166,6 +166,26 @@ Resultados T013:
 
 T013 aprobado con la única limitación legacy prevista. T014 registra el commit
 local `test: add synthetic fixtures and pytest`; no hay push ni avance a etapa 3.
+
+## Checkpoint ejecutado · Etapa 3 (T015–T019)
+
+LibreOffice en Linux: paquete de la distribución (`apt install libreoffice-writer`
+o equivalente), ejecutable `soffice` en PATH. Probado con LibreOffice 26.2,
+Python 3.13.
+
+- Tests primero: `test_legacy` y `test_legacy_sin_libreoffice` fallaron antes del
+  cambio. Único caller de `_legacy`: `leer` en `extraer.py`.
+- `_legacy` usa `textutil` en macOS (sin cambios) y `soffice --headless` en el
+  resto: argumentos sin shell, timeout de 120 s, directorio temporal y perfil
+  aislado por conversión. Ejecutable ausente, fallo o sin salida → `ValueError`
+  sin stderr, contenido ni rutas.
+- `test_legacy` crea el `.doc` OLE desde `minuta.rtf` con el mismo conversor;
+  comprueba lectura `.doc`/`.rtf` y que no quedan temporales.
+- Suite completa con cobertura en Linux: **16 aprobadas, 1 deseleccionada**, sin
+  fallos; dos ejecuciones consecutivas y regeneración de fixtures sin cambios.
+- Medición `local_reference`: [PENDIENTE] ejecutarla en la máquina que tiene
+  `EXPEDIENTES_REFERENCIA_DIR`; antes de este cambio los `.doc` fallaban en Linux,
+  así que solo puede mejorar la cobertura de lectura.
 
 ## Validación local sintética
 
