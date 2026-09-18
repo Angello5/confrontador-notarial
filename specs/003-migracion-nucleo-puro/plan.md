@@ -24,7 +24,7 @@ Migrar extracción de campos desde texto, verificación, léxico y ortografía a
 
 **Performance Goals**: No degradar materialmente los tiempos de lectura existentes; no se fija una meta numérica nueva sin una línea base medida.
 
-**Constraints**: Comportamiento privado preservado: 8 observaciones, 0 falsos positivos, 0 observaciones en la escritura correcta y cinco corridas idénticas. Para el cambio de OCR, además, el test sintético debe conservar todas las líneas y acentos/Ñ. Solo datos ficticios en repo/logs; sin IA en el ERP; hashes de paquetes Python se guardan en `requirements*.txt` y hashes de modelos OCR en el paso/manifiesto de verificación de recursos del CI y en `quickstart.md`.
+**Constraints**: Comportamiento privado preservado: 8 observaciones, 0 falsos positivos, 0 observaciones en la escritura correcta y cinco corridas idénticas. PP-OCRv5 latin es el candidato predeterminado; el test ordinario debe sostener al menos su nivel sintético medido (8/8 líneas, 82/85 palabras, 31/32 diacríticos), y T014 sigue pendiente. La Ñ mayúscula no está en su diccionario; la confrontación la reduce a N. Solo datos ficticios en repo/logs; sin IA en el ERP; hashes de paquetes Python se guardan en `requirements*.txt` y hashes de modelos OCR en el paso/manifiesto de verificación de recursos del CI y en `quickstart.md`.
 
 **Scale/Scope**: Migrar los módulos actuales y sus pruebas; no construir todavía flujo Django/ERP ni retirar Streamlit antes de paridad F4/F5.
 
@@ -96,7 +96,7 @@ Las decisiones conocidas se basan en respuestas de clarificación, constitución
 
 ## Constitution Check (post-design)
 
-**PASS, sujeto a gates de ejecución**: el diseño mantiene pureza, determinismo, tests ficticios, límites de privacidad y dependencias existentes. La adopción de PP-OCRv5 latin está bloqueada hasta que la medición privada y los tests sintéticos pasen todos los criterios de FR-012. Si no pasan, se conserva PP-OCRv4 y se documenta el resultado. La persona usuaria ejecuta la medición privada; no se versionan expedientes ni resultados con contenido documental.
+**PASS, sujeto a gates de ejecución**: el diseño mantiene pureza, determinismo, tests ficticios, límites de privacidad y dependencias existentes. La configuración de esta rama es PP-OCRv5 latin, sujeta al test sintético de nivel y a la medición privada local T014 (8 observaciones, cinco corridas idénticas, cero observaciones en escritura correcta). La persona usuaria ejecuta T014; no se versionan expedientes ni resultados con contenido documental.
 
 ## Complexity Tracking
 

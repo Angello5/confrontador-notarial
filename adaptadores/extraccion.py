@@ -4,8 +4,7 @@
   python3 extraer.py Cliente/                 # todo el folder a stdout
   python3 extraer.py foto.jpg                 # una imagen por OCR
 
-El OCR es RapidOCR (modelos PP-OCRv4 sobre onnxruntime, solo CPU: los mismos
-pesos que PaddleOCR sin arrastrar Paddle). ~4 s por pagina en este equipo.
+El OCR es RapidOCR/onnxruntime en CPU, con PP-OCRv5 latin aprovisionado localmente.
 
 Los PDF se leen por su capa de texto; si no la traen (escaneo) se rasterizan
 pagina a pagina y se pasan por el mismo OCR.
@@ -28,15 +27,38 @@ LEGACY = {".doc", ".rtf", ".odt", ".wordml"}
 DOCS = {".docx", ".pdf", ".xlsx", ".txt", ".md", ".csv"} | IMGS | LEGACY
 
 CACHE = Path.home() / ".cache" / "notaria-ocr"
+OCR_MODELS = CACHE / "models"
 SOFFICE = "soffice"
 DPI = 200  # suficiente para DNI y sellos; a 300 tarda el doble sin ganar aciertos
+
+_OCR_FILES = {
+    "ch_PP-OCRv4_det_infer.onnx": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
+    "latin_PP-OCRv5_rec_mobile_infer.onnx": "b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a",
+    "ppocrv5_dict.txt": "d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b",
+}
 
 
 @lru_cache(maxsize=1)
 def _ocr():
+    """Carga recursos locales fijados; el proceso no descarga modelos."""
     from rapidocr import RapidOCR
 
-    return RapidOCR()
+    paths = {name: OCR_MODELS / name for name in _OCR_FILES}
+    for name, path in paths.items():
+        if (
+            not path.is_file()
+            or hashlib.sha256(path.read_bytes()).hexdigest() != _OCR_FILES[name]
+        ):
+            raise RuntimeError(f"Recurso OCR ausente o inválido: {name}")
+    return RapidOCR(
+        params={
+            "Global.use_cls": False,
+            "Global.log_level": "error",
+            "Det.model_path": str(paths["ch_PP-OCRv4_det_infer.onnx"]),
+            "Rec.model_path": str(paths["latin_PP-OCRv5_rec_mobile_infer.onnx"]),
+            "Rec.rec_keys_path": str(paths["ppocrv5_dict.txt"]),
+        }
+    )
 
 
 def _cacheado(clave: bytes, calcular):

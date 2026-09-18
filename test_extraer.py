@@ -40,6 +40,23 @@ def test_ocr_lineas_conserva_orden_acentos_y_eñe(monkeypatch):
     assert extraer.ocr_lineas(b"imagen sintetica") == "LÍNEA  ÑANDÚ\nACCIÓN"
 
 
+def test_ocr_requiere_recursos_fijados_sin_descarga(monkeypatch, tmp_path):
+    extraer._ocr.cache_clear()
+    monkeypatch.setattr(extraer, "OCR_MODELS", tmp_path)
+    with pytest.raises(RuntimeError, match="Recurso OCR ausente o inválido"):
+        extraer._ocr()
+
+
+def test_ocr_predeterminado_alcanza_piso_sintetico_v5():
+    from test_ocr_research import _line_count, _metrics, _render
+
+    font = Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf")
+    output = extraer._ocr()(_render(font, 300))
+    words, diacritics = _metrics("\n".join(output.txts or []))
+    assert _line_count(output.boxes, 300) == 8
+    assert (words, diacritics) >= (82, 31)
+
+
 def test_legacy(tmp_path, monkeypatch):
     monkeypatch.setattr(extraer.sys, "platform", "linux")
     monkeypatch.setattr(extraer.tempfile, "tempdir", str(tmp_path))

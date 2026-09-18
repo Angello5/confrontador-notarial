@@ -19,7 +19,7 @@
 - **Decisión/evidencia**: se comparó localmente RapidOCR 3.4.3 con PP-OCRv4 ch y PP-OCRv5 latin (`use_cls=False`), usando modelos/diccionarios fijados por SHA-256. La tabla, el detalle de caracteres y la recomendación están abajo en "Investigación sintética de candidatos OCR". La página de modelos enumera latin PP-OCRv5 como familia que cubre español; no enumera un reconocedor `es` dedicado.
 - **Alternativas consideradas**: actualizar RapidOCR directamente a una versión flotante; descartada porque no sería reproducible. Conservar v4 sin medir; no responde a la decisión solicitada. La medición no se ejecuta en CI ni con datos versionados.
 - **Fuentes primarias**: [RapidOCR model list](https://rapidai.github.io/RapidOCRDocs/main/model_list/), [RapidOCR default model manifest](https://github.com/RapidAI/RapidOCR/blob/main/python/rapidocr/default_models.yaml).
-- **Criterio de selección**: cambiar a v5 solo si `local_reference` produce 8 observaciones, las cinco salidas son idénticas, la escritura correcta produce cero observaciones y el test OCR sintético conserva todas las líneas y acentos/Ñ. Si falla un criterio, retener PP-OCRv4 y documentar la medición; el destino del PR #11 queda condicionado al resultado.
+- **Criterio de adopción**: PP-OCRv5 latin es la configuración predeterminada de esta rama con `use_cls=False`; su test sintético ordinario exige igualar el piso medido (8/8 líneas, ≥82/85 palabras y ≥31/32 diacríticos). T014 sigue siendo requisito local para completar la adopción: 8 observaciones, cinco corridas idénticas y cero observaciones en la escritura correcta.
 
 ### Deuda técnica
 
@@ -76,14 +76,16 @@ La ausencia en el diccionario hace imposible emitir literalmente ese carácter:
 v4 no puede reconocer Ñ ni ñ; v5 latin admite ñ minúscula pero no Ñ mayúscula.
 El catálogo RapidOCR incluye latin PP-OCRv5 (español entre los idiomas cubiertos)
 pero no un reconocedor PP-OCRv5 `es` dedicado ni otro modelo PP-OCRv5 ONNX
-listado que cubra español. Fuente del catálogo y compatibilidad: [RapidOCR model
-list](https://rapidai.github.io/RapidOCRDocs/main/model_list/).
+listado que cubra español. El núcleo normaliza NFKD y mayúsculas antes de
+comparar, por lo que Ñ se reduce a N para la confrontación; se conserva como
+limitación conocida del texto OCR. Fuente del catálogo y compatibilidad:
+[RapidOCR model list](https://rapidai.github.io/RapidOCRDocs/main/model_list/).
 
 ## Recomendación
 
 PP-OCRv5 latin supera claramente a v4 en esta muestra: 82–84/85 palabras,
 31/32 diacríticos con mayúsculas respetadas y 8/8 líneas en las cuatro páginas; v4 obtiene 32–56/85,
 1–3/32 y baja a 5/8 líneas en sans a 300 DPI. Recomiendo mantener v5 latin como
-candidato para la siguiente decisión, pero no declararlo apto para textos que
-exijan conservar Ñ mayúscula: su diccionario no puede producirla. La
-configuración OCR predeterminada no se modificó.
+candidato para la configuración predeterminada sujeta a T014, pero no
+declararlo apto para conservar Ñ mayúscula en el texto OCR: su diccionario no
+puede producirla. La confrontación normaliza Ñ a N antes de comparar.

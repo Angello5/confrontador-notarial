@@ -14,7 +14,7 @@
 
 - Q: ¿Qué organización de paquetes debe adoptar el núcleo puro? → A: Un paquete común (por ejemplo, `nucleo/`) mantiene `verificar`, léxico y ortografía casi como están; extracción queda como adaptador separado para OCR y archivos. Solo se separa lo que exige el principio II: el núcleo no usa sistema de archivos, red ni OCR; la descarga del diccionario `es_PE` pasa a un adaptador.
 - Q: ¿Qué debe ocurrir con las aplicaciones Streamlit y los módulos de prosa durante F3? → A: `app.py` y `app_ortografia.py` siguen funcionando hasta la paridad del ERP en F4/F5 y durante F3 solo se adaptan a los nuevos imports. `revisor_llm.py` y `bench_llm.py` pasan a `experimental/`; el ERP no los importa.
-- Q: ¿Qué alternativa OCR se debe evaluar y qué evidencia permite cambiar la configuración actual? → A: Medir RapidOCR 3.4.3 con PP-OCRv4 ch frente a PP-OCRv5 latin con `use_cls=False`, actualizando RapidOCR si hace falta y fijando modelos por hash. Cambiar a v5 latin solo si la medición local `local_reference` da 8 observaciones, salidas idénticas en 5 corridas, 0 observaciones en la escritura correcta y el test sintético OCR no pierde líneas ni acentos/Ñ; si no, conservar la configuración actual y documentar el resultado. El PR #11 de Dependabot se cierra o reemplaza según ese resultado.
+- Q: ¿Qué alternativa OCR se debe evaluar y qué evidencia permite cambiar la configuración actual? → A: Adoptar PP-OCRv5 latin con `use_cls=False` como configuración predeterminada, siempre que su test sintético sea igual o mejor que el nivel medido de v5 y la medición local T014 dé 8 observaciones, cinco corridas idénticas y 0 observaciones en la escritura correcta. El test sintético ordinario fija el nivel v5 (8/8 líneas, al menos 82/85 palabras y 31/32 diacríticos); la investigación comparativa permanece opt-in. PP-OCRv5 latin no contiene Ñ mayúscula; se registra como limitación conocida, mitigada en la confrontación porque `nucleo/verificar.py` normaliza NFKD y mayúsculas antes de comparar (Ñ→N). El PR #11 de Dependabot se resolverá después de T014.
 
 ## User Scenarios & Testing
 
@@ -77,10 +77,10 @@ El equipo puede conservar la capa de prosa existente en el área experimental si
 - **FR-006**: La deuda de los diez code smells registrados en `docs/deuda-f3.md` MUST revisarse durante F3 y su resolución o justificación debe quedar verificable sin cambiar reglas de negocio no acordadas.
 - **FR-007**: La estrategia de instalación de `antlr4-python3-runtime==4.9.3` MUST revisarse para reducir el riesgo de su aislamiento de compilación descrito en `docs/deuda-f3.md`, preservando instalación verificable por hash.
 - **FR-008**: La capa de prosa MUST evitar enviar la API key en la query URL. Las pruebas de esa capa no deben llamar a modelos ni registrar credenciales.
-- **FR-009**: La configuración OCR actual (RapidOCR 3.4.3 con PP-OCRv4 ch) MUST permanecer hasta medirla frente a PP-OCRv5 latin con `use_cls=False`; los modelos se fijan por SHA-256 en el manifiesto/paso de verificación de recursos del CI y en `quickstart.md`, separados de los hashes de paquetes Python en `requirements*.txt`. RapidOCR se actualiza solo si es necesario para esa comparación.
+- **FR-009**: RapidOCR 3.4.3 y onnxruntime 1.30.0 MUST quedar fijados con hashes en los locks. Los modelos OCR se fijan por SHA-256 en el paso de verificación de recursos del CI y en `quickstart.md`, separados de los hashes de paquetes Python; la aplicación no descarga recursos en tiempo de ejecución.
 - **FR-010**: El núcleo MUST organizar extracción de campos desde texto, `verificar`, léxico y ortografía en un paquete común (por ejemplo, `nucleo/`) manteniendo su lógica casi como está; extracción de texto desde archivos y OCR MUST quedar en un adaptador separado. El núcleo no importa ni usa sistema de archivos, red u OCR; la descarga del diccionario `es_PE` pertenece a un adaptador.
 - **FR-011**: `app.py` y `app_ortografia.py` MUST seguir funcionando hasta que el ERP alcance paridad en F4/F5 y durante F3 solo se adaptan a los nuevos imports. `revisor_llm.py` y `bench_llm.py` MUST moverse a `experimental/`; el ERP no los importa.
-- **FR-012**: La configuración OCR MUST cambiar a PP-OCRv5 latin solo si la medición local `local_reference` produce 8 observaciones, salidas idénticas en 5 corridas y 0 observaciones en la escritura correcta, y el test sintético no pierde líneas ni acentos/Ñ. Si cualquier condición falla, se conserva la configuración actual y se documenta el resultado. El destino del PR #11 de Dependabot se decide según el resultado.
+- **FR-012**: PP-OCRv5 latin con `use_cls=False` MUST ser la configuración predeterminada si el test sintético ordinario iguala o supera su línea base (8/8 líneas, al menos 82/85 palabras y 31/32 diacríticos) y T014 produce 8 observaciones, cinco salidas idénticas y 0 observaciones en la escritura correcta. La evaluación sintética comparativa detallada permanece opt-in. La limitación de Ñ mayúscula es conocida; el núcleo la normaliza a N antes de comparar. T014 no se sustituye ni se ejecuta en CI.
 
 ### Key Entities
 
@@ -98,7 +98,7 @@ El equipo puede conservar la capa de prosa existente en el área experimental si
 - **SC-003**: La suite predeterminada puede ejecutarse íntegramente con datos ficticios y sin acceso al directorio privado de referencia.
 - **SC-004**: El código del núcleo y las dependencias productivas no contienen imports ni llamadas a la capa de prosa o a modelos de lenguaje.
 - **SC-005**: La verificación de los recursos OCR/diccionario comprueba los hashes documentados antes de ejecutar pruebas que los requieren.
-- **SC-006**: La comparación OCR registra la versión del motor, modelos y hashes, el conteo de observaciones, la igualdad de las cinco salidas, el resultado de la escritura correcta y la conservación de líneas y acentos/Ñ en la prueba sintética; solo se acepta v5 latin cuando todos los umbrales de FR-012 pasan.
+- **SC-006**: La prueba sintética ordinaria mantiene el piso medido de PP-OCRv5 (8/8 líneas, ≥82/85 palabras, ≥31/32 diacríticos); T014 confirma 8 observaciones, cinco salidas idénticas y 0 observaciones en la escritura correcta antes de cerrar la etapa. La ausencia de Ñ mayúscula en el modelo queda documentada como limitación conocida y se mitiga mediante la normalización NFKD/mayúsculas de la confrontación.
 
 ## Assumptions
 
@@ -107,4 +107,4 @@ El equipo puede conservar la capa de prosa existente en el área experimental si
 - Los tests predeterminados usan pytest y los recursos públicos OCR/diccionario fijados por hash que documenta `specs/001-base-devsecops/quickstart.md`.
 - Esta fase solo especifica y planifica la migración del núcleo; la especificación no ejecuta cambios de código de migración.
 - Las reglas de negocio existentes se conservan; cualquier regla nueva requiere decisión explícita y prueba primero.
-- Si la comparación OCR no satisface todos los criterios de FR-012, RapidOCR 3.4.3 con PP-OCRv4 ch permanece como configuración elegida y la evidencia se documenta sin cambiar el PR #11.
+- PP-OCRv5 latin no puede emitir Ñ mayúscula; la comparación del núcleo la normaliza como N. Si la medición local T014 falla, la selección queda pendiente de decisión y la etapa no se cierra.

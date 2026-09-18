@@ -1,5 +1,13 @@
 # Deuda técnica para F3
 
+## Limitación conocida de OCR
+
+PP-OCRv5 latin no tiene Ñ mayúscula en su diccionario, por lo que no puede
+emitirla literalmente. La confrontación aplica NFKD y mayúsculas antes de
+comparar, así que Ñ se reduce a N en ambos textos; esta limitación queda
+aceptada para ese uso. La medición privada T014 sigue siendo el gate para
+completar la adopción.
+
 Los diez code smells del análisis inicial de SonarCloud sobre `main` (`4cb625e`)
 se registran para la migración del núcleo en F3; no se corrigen en F1.
 

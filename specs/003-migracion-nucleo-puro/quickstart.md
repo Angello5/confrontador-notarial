@@ -60,35 +60,65 @@ Checkpoint de Etapa 2 (Python 3.13.9, `.venv` instalado con los locks):
 
 Estos hashes identifican los archivos de modelos/diccionario que usa la verificación de recursos del workflow. No son hashes de distribuciones Python; esos pertenecen a los locks `requirements*.txt`.
 
-| Recurso PP-OCRv4 | SHA-256 |
+| Detector compartido y modelos de comparación PP-OCRv4 | SHA-256 |
 |---|---|
 | `ch_PP-OCRv4_det_infer.onnx` | `d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9` |
 | `ch_PP-OCRv4_rec_infer.onnx` | `48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b` |
 | `ch_ppocr_mobile_v2.0_cls_infer.onnx` | `e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c` |
+
+| Recurso PP-OCRv5 latin predeterminado | SHA-256 |
+|---|---|
+| `latin_PP-OCRv5_rec_mobile_infer.onnx` | `b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a` |
+| `ppocrv5_dict.txt` | `d1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b` |
 
 | Diccionario `es_PE` fijado a `LibreOffice/dictionaries@32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4` | SHA-256 |
 |---|---|
 | `es_PE.aff` | `d966cb748e4a688ed75ec84b50c0835ac438e5325ee4fce703a093794f9cba7e` |
 | `es_PE.dic` | `1d810a0a319fee329000538cf4df76621bb71228172558b87490f8b9c19b9d75` |
 
+El preaprovisionamiento local se instala en `~/.cache/notaria-ocr/models/`;
+la aplicación valida estos SHA-256 y no descarga ni consulta la red durante su
+ejecución. RapidOCR 3.4.3 y onnxruntime 1.30.0 están fijados por hashes en
+`requirements.txt`.
+
+```bash
+mkdir -p ~/.cache/notaria-ocr/models
+cp "$(~/.venvs/confrontador/bin/python -c 'import rapidocr; from pathlib import Path; print(Path(rapidocr.__file__).parent / "models" / "ch_PP-OCRv4_det_infer.onnx")')" ~/.cache/notaria-ocr/models/
+cp "$(~/.venvs/confrontador/bin/python -c 'import rapidocr; from pathlib import Path; print(Path(rapidocr.__file__).parent / "models" / "ppocrv5_dict.txt")')" ~/.cache/notaria-ocr/models/
+curl -fsSL https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0/onnx/PP-OCRv5/rec/latin_PP-OCRv5_rec_mobile_infer.onnx -o ~/.cache/notaria-ocr/models/latin_PP-OCRv5_rec_mobile_infer.onnx
+(cd ~/.cache/notaria-ocr/models && printf '%s\n' 'd2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_det_infer.onnx' 'b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx' 'd1979e9f794c464c0d2e0b70a7fe14dd978e9dc644c0e71f14158cdf8342af1b  ppocrv5_dict.txt' | sha256sum -c -)
+```
+
 ## Medición privada de comportamiento
 
 Ejecutar solo en el entorno autorizado, fuera de CI y con la referencia fuera del repositorio. No añadir contenido/ruta a archivos versionados ni guardar la salida de pytest.
 
-```bash
-test -n "$EXPEDIENTES_REFERENCIA_DIR" && python -m pytest -o addopts= -m local_reference --tb=no
-```
-
 **Esperado**: 8 observaciones en el borrador observado, 0 observaciones en la escritura correcta y cinco corridas idénticas. La prueba informa un resultado agregado sin documento, fragmentos, rutas ni credenciales.
 
-## Comparación OCR requerida para evaluar PP-OCRv5
+## Gate local T014
 
-1. Validar hashes de los modelos PP-OCRv4 ch y del candidato PP-OCRv5 latin, el diccionario y las versiones de RapidOCR/onnxruntime. El candidato v5 usa `use_cls=False`; no dejar modelos descargados automáticamente sin pin.
-2. Ejecutar los mismos recursos ficticios OCR con ambas configuraciones y comparar texto por salida; registrar conteos agregados de líneas y conservación de acentos/Ñ, sin guardar imágenes o texto real.
-3. La persona responsable ejecuta el test `local_reference` por separado con cada configuración en el entorno autorizado y devuelve solo: 8 observaciones, cero en escritura correcta y cinco salidas idénticas (sí/no por condición).
-4. Cambiar a PP-OCRv5 latin solo si todas las condiciones anteriores pasan. Si alguna falla o la medición no puede ejecutarse, retener PP-OCRv4 y documentar el motivo agregado.
+El test ordinario fija el piso sintético medido de PP-OCRv5 latin: 8/8 líneas,
+al menos 82/85 palabras y 31/32 diacríticos. La comparación detallada de
+investigación continúa opt-in. La medición local usa la instalación autorizada
+`~/.venvs/confrontador`, fuera de CI y con la referencia fuera del repo:
 
-**Esperado al aprobar**: mismos resultados deterministas requeridos, cero observaciones en escritura correcta, cinco salidas iguales, sin pérdida de líneas/acentos/Ñ y hashes validados. La decisión sobre el PR #11 sigue esa evidencia; no se modifica el PR durante estas pruebas.
+```bash
+test -n "$EXPEDIENTES_REFERENCIA_DIR" && ~/.venvs/confrontador/bin/python -m pytest tests/test_referencia_local.py -o addopts= -m local_reference --tb=no
+```
+
+Si `requirements.txt` o `requirements-dev.txt` cambió, instalar sus locks antes
+de medir:
+
+```bash
+~/.venvs/confrontador/bin/python -m pip install --require-hashes --only-binary :all: --no-binary antlr4-python3-runtime -r requirements.txt -r requirements-dev.txt
+```
+
+Comunicar solo si hubo 8 observaciones, cero en la escritura correcta y cinco
+salidas idénticas. No copiar texto, imágenes, rutas ni logs del expediente.
+PP-OCRv5 latin no emite Ñ mayúscula; la confrontación normaliza Ñ a N antes de
+comparar.
+
+**Esperado al aprobar**: 8 observaciones, cero observaciones en escritura correcta, cinco salidas iguales, piso sintético de v5 y hashes validados. La Ñ mayúscula es una limitación documentada; la confrontación la normaliza a N. La decisión sobre el PR #11 queda para después de T014; no se modifica el PR durante estas pruebas.
 
 ## Gates previos a completar F3
 
