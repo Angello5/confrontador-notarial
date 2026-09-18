@@ -55,7 +55,7 @@ Jobs sin token de Sonar para instalar dependencias/ejecutar tests. Escaneo en ru
 
 ## Gate y activación
 
-Gate **Sonar way**: nuevas vulnerabilidades=0, nuevos bugs=0, hotspots revisados=100 % y cobertura nueva>=80 %. El plan gratuito no permite un gate personalizado y Sonar way no evalúa duplicación ni cobertura en cambios de menos de 20 líneas nuevas; esta diferencia constitucionalmente aceptada se revisará si cambia el plan. Un informe global ausente o un gate no calculado falla.
+Gate **Sonar way**: nuevas vulnerabilidades=0, nuevos bugs=0, hotspots revisados=100 %, cobertura nueva>=80 %, Maintainability Rating A y duplicación<=3 % en código nuevo. El plan gratuito no permite un gate personalizado y Sonar way no evalúa duplicación ni cobertura en cambios de menos de 20 líneas nuevas; esta diferencia constitucionalmente aceptada se revisará si cambia el plan. En un PR sin código productivo nuevo es admisible un gate calculado OK sin condición de cobertura aplicable; un informe ausente o un gate no calculado falla.
 
 Conectar Cloud solo después del merge de PR 1, saneamiento y comprobación de capacidades privadas. El usuario realiza el primer análisis de esa main; en PR 2 se activa el análisis desde workflow y la protección completa. F1 no se declara implantada por la mera presencia del YAML. Historial sensible nunca se publica ni se envía al analizador; si una configuración requiere enviarlo, activación bloqueada.
 

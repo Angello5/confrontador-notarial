@@ -403,9 +403,10 @@ exclusión ni un `noqa` de Sonar.
 
 El proyecto usa el Quality Gate **Sonar way**: Security Rating A (0
 vulnerabilidades nuevas), Reliability Rating A (0 bugs nuevos), 100 % de
-Security Hotspots revisados y cobertura de al menos 80 % en código nuevo. El
-plan gratuito no permite gates personalizados y Sonar way no evalúa duplicación
-ni cobertura cuando el cambio contiene menos de 20 líneas nuevas. La
+Security Hotspots revisados, cobertura de al menos 80 %, Maintainability Rating
+A y duplicación máxima de 3 % en código nuevo. El plan gratuito no permite gates
+personalizados y Sonar way no evalúa duplicación ni cobertura cuando el cambio
+contiene menos de 20 líneas nuevas. La
 constitución v1.4.0 acepta expresamente esta limitación y exige revisar la
 decisión si cambia el plan. Los code smells previos no forman parte del gate.
 
@@ -433,3 +434,5 @@ El usuario conecta SonarQube Cloud privado y realiza el primer análisis de main
 6. Verificar protección de seis checks, PR obligatorio, cero reviews requeridas, sin bypass/force push. Si cambia código/configuración, nuevo commit/push y checks del SHA final.
 7. Mergear PR 2 con todos los checks verdes.
 8. Verificar ejecución completa en main después del merge; solo entonces declarar F1 terminada. Registrar evidencia posterior en el PR, sin commits directos a main.
+
+Evidencia parcial de etapa 6: el [PR #14](https://github.com/Angello5/confrontador-notarial/pull/14), sobre el commit `745ee94`, aprobó `lint`, `tests`, `dependencies`, `secrets`, `sonar` (Quality Gate OK) y `ci-required` en el [run 35360132624](https://github.com/Angello5/confrontador-notarial/actions/runs/35360132624). Esta ejecución positiva no completa por sí sola T043–T049: quedan sus validaciones específicas, protección, merge y comprobación posterior de `main`; por ello esas tareas permanecen sin marcar.
