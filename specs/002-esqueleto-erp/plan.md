@@ -56,6 +56,7 @@ specs/002-esqueleto-erp/
 ├── quickstart.md
 ├── contracts/ui.md
 ├── checklists/requirements.md
+├── checklists/ux.md            # lista generada por las tareas de F2
 └── tasks.md
 ```
 
