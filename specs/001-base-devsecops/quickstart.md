@@ -279,9 +279,42 @@ Dependabot contiene exactamente dos revisiones semanales (`pip` y
 | Gitleaks sobre copia limpia y rango `9ca2cc9..HEAD` | PASS: árbol y commits de etapa sin hallazgos; salida redactada. |
 | Revisión de configuración/diff | PASS: sin datos reales, secretos, dependencias Python nuevas, jobs posteriores ni artefactos privados. |
 
-Este checkpoint es local: los cuatro checks remotos siguen pendientes de T034.
-T033 conserva pendientes el push privado y las tareas T034–T036; no se afirma
-PR 1 ni `main` en verde.
+En ese checkpoint local, los cuatro checks remotos, el push y T033–T036 todavía
+estaban pendientes; su cierre posterior queda registrado a continuación.
+
+## Cierre remoto de PR 1 · T033–T036
+
+El commit de cierre T033 `9378343` se publicó mediante el
+[PR #8](https://github.com/Angello5/confrontador-notarial/pull/8). Su revisión
+final `9777e52` se integró en `main` como `4cb625e`, sin reescritura de historia.
+La [ejecución 35315252141](https://github.com/Angello5/confrontador-notarial/actions/runs/35315252141)
+de `main` terminó con `lint`, `tests`, `dependencies` y `secrets` en `success`.
+El commit `875a57b`, que registra la medición T018, es posterior a esa revisión y
+se incorpora con PR 2.
+
+Incidente registrado: Automatic Analysis permaneció activo en SonarQube Cloud
+desde el 2026-09-17 mientras `main` todavía contenía datos personales reales en
+tests. El 2026-09-18 se desactivó, se eliminó el proyecto y se recreó privado con
+Automatic Analysis desactivado. Este registro no reproduce datos afectados ni
+valores de credenciales.
+
+## Implementación local · T039–T041
+
+La constitución v1.3.0 cubre el uso de SonarQube Cloud privado, el análisis desde
+CI y la excepción única de arranque ya consumida por PR 1; no se encontró una
+discrepancia que requiera enmienda. El roadmap conserva F1 en curso.
+
+El job `sonar` descarga `coverage.xml` del mismo `run_id` y `run_attempt`, usa
+checkout completo sin credenciales persistentes y ejecuta únicamente la acción
+oficial de análisis. `SONAR_TOKEN` solo se expone al paso del escáner y su
+ausencia falla antes del análisis. La acción
+`SonarSource/sonarqube-scan-action` v8.2.2 quedó fijada a
+`ba9859eae8dd6bd29e412f25ddbbef3d032000f4`, verificado con
+`git ls-remote --tags`; el gate espera hasta 300 segundos. `ci-required` agrega
+exactamente los cinco controles y solo acepta cinco resultados `success`.
+El responsable confirmó que el secreto está aprovisionado en GitHub Actions y
+lo añadirá al almacén de Dependabot; su valor no se inspeccionó ni se registró.
+Actionlint 1.7.12 y `pre-commit run --all-files` aprobaron esta configuración.
 
 ## Validación local sintética
 

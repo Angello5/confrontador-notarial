@@ -7,7 +7,7 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 
 | Fase | Qué se construye | Resultado visible | Depende de | Decisión que se toma |
 |---|---|---|---|---|
-| **F1** | Base DevSecOps | Cada PR corre tests, SonarQube y escaneos de seguridad; `main` protegida | — | SonarQube Cloud o autoalojado |
+| **F1** | Base DevSecOps | Cada PR corre tests, SonarQube y escaneos de seguridad; `main` protegida | — | SonarQube Cloud privado, análisis desde CI |
 | **F2** | Esqueleto del ERP | Login, menú lateral según rol, AdminLTE 4 | F1 | Roles |
 | **F3** | Migración del código actual | extraer, verificar, léxico y ortografía como núcleo puro con pytest; mismo resultado medido | F1 | — |
 | **F4** | Expedientes | Subir archivos desde la PC, extracción en segundo plano, borrado al terminar | F2, F3 | Retención del texto extraído |
@@ -18,6 +18,9 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F9** | Catálogo por tipo de acto | Campos a verificar definidos por tipo (donación, mutuo…) | F5 | Tipos de acto iniciales |
 
 Después de F1, las fases F2 y F3 pueden avanzar en paralelo (worktrees distintos).
+
+F1 está en la etapa 6 (PR 2): PR 1 ya fue integrado; todavía faltan el Quality
+Gate, la protección de `main`, la integración de PR 2 y la verificación final.
 
 Criterio de MVP (del README): medir cobertura sobre 10 expedientes cerrados.
 
