@@ -167,7 +167,7 @@ Resultados T013:
 T013 aprobado con la única limitación legacy prevista. T014 registra el commit
 local `test: add synthetic fixtures and pytest`; no hay push ni avance a etapa 3.
 
-## Checkpoint ejecutado · Etapa 3 (T015–T019)
+## Etapa 3: T015–T017 y T019 ejecutadas; T018 pendiente de medición local
 
 LibreOffice en Linux: paquete de la distribución (`apt install libreoffice-writer`
 o equivalente), ejecutable `soffice` en PATH. Probado con LibreOffice 26.2,
@@ -183,9 +183,9 @@ Python 3.13.
   comprueba lectura `.doc`/`.rtf` y que no quedan temporales.
 - Suite completa con cobertura en Linux: **16 aprobadas, 1 deseleccionada**, sin
   fallos; dos ejecuciones consecutivas y regeneración de fixtures sin cambios.
-- Medición `local_reference`: [PENDIENTE] ejecutarla en la máquina que tiene
-  `EXPEDIENTES_REFERENCIA_DIR`; antes de este cambio los `.doc` fallaban en Linux,
-  así que solo puede mejorar la cobertura de lectura.
+- T018: medición `local_reference` pendiente con `EXPEDIENTES_REFERENCIA_DIR`;
+  la ejecuta el usuario en su máquina antes del merge de PR 1 porque cambió
+  `extraer.py`.
 
 ## Checkpoint ejecutado · Etapa 4 (T020–T025)
 
@@ -221,12 +221,12 @@ Copiar al PR las seis excepciones revisadas:
 
 | Ubicación | Regla | Justificación individual |
 |---|---|---|
-| `extraer.py:111` | S603 | LibreOffice: conversor configurado por código, argumentos en lista sin shell, perfil temporal propio; no se interpreta una cadena de comandos del documento. |
-| `extraer.py:139` | S603 | textutil: ejecutable absoluto fijo, opciones fijas y ruta como argumento, sin shell. |
-| `ortografia.py:41` | S310 | Descarga de diccionario desde URL HTTPS fija en código; solo concatena `.aff`/`.dic` internas, no una URL suministrada por documentos. |
-| `revisor_llm.py:97` | S310 | Request construido con esquema HTTPS y host fijos; modelo va en la ruta, no cambia el esquema; no se invocó la red de modelos durante las pruebas. |
-| `tests/conftest.py:44` | S314 | XML local de confianza generado por coverage en la misma ejecución; no es XML de documentos subidos. |
-| `tests/test_seleccion_local.py:49` | S603 | Intérprete propio y argumentos de pytest fijados por el test, entorno controlado y sin shell. |
+| `extraer.py` · `_soffice` | S603 | LibreOffice: conversor configurado por código, argumentos en lista sin shell, perfil temporal propio; no se interpreta una cadena de comandos del documento. |
+| `extraer.py` · `_legacy` | S603 | textutil: ejecutable absoluto fijo, opciones fijas y ruta como argumento, sin shell. |
+| `ortografia.py` · `_descargar` | S310 | Descarga de diccionario desde URL HTTPS fija en código; solo concatena `.aff`/`.dic` internas, no una URL suministrada por documentos. |
+| `revisor_llm.py` · `consultar` | S310 | Request construido con esquema HTTPS y host fijos; modelo va en la ruta, no cambia el esquema; no se invocó la red de modelos durante las pruebas. |
+| `tests/conftest.py` · `pytest_sessionfinish` | S314 | XML local de confianza generado por coverage en la misma ejecución; no es XML de documentos subidos. |
+| `tests/test_seleccion_local.py` · `test_seleccion_privada` | S603 | Intérprete propio y argumentos de pytest fijados por el test, entorno controlado y sin shell. |
 
 No se añadieron dependencias para estas revisiones ni se cambiaron APIs para
 eludir el detector. Las excepciones deben revisarse si cambia la procedencia de
@@ -250,8 +250,10 @@ Con el entorno nuevo activado, resultados del checkpoint T024:
 
 T024 aprobado. T025 registra el commit local `chore: pass lint and dependency audit`.
 No se inicia etapa 5, no hay push, PR, cambios de CI ni activación de Sonar.
-Los marcadores T018/T019 de la etapa anterior ya estaban pendientes al comenzar;
-se conservan tal como se recibieron (HEAD previo `2be5a48`, «Finalizar etapa 3»).
+T019 está completada por `2be5a48`, «Finalizar etapa 3» (mensaje distinto al
+previsto); T018 sigue abierta. Pendiente: medición local_reference con EXPEDIENTES_REFERENCIA_DIR, la ejecuta el usuario en su máquina antes del merge de PR 1 (extraer.py cambió).
+
+Deuda fuera de alcance: revisor_llm.py envía la API key en la query (?key=); usar cabecera x-goog-api-key si la capa experimental se reactiva.
 
 ## Validación local sintética
 
