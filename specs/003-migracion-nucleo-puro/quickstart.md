@@ -24,7 +24,7 @@ Las pruebas opt-in de `test_revisor_llm.py` están excluidas de la suite ordinar
 python -m pytest -o addopts= -m revisor_llm test_revisor_llm.py
 ```
 
-**Caracterización de Etapa 1**: `test_extraer.py` prueba `ocr_lineas` con cajas y texto ficticios inyectados; no descarga ni carga modelos. La extracción debe conservar el orden de las líneas, las tildes y la Ñ. `tests/test_nucleo_puro.py` caracteriza funciones que reciben texto/estructuras, bloquea `open`/`os.open` durante su uso y verifica que importar `nucleo.*` no carga adaptadores, rutas, red ni OCR. El guard es estricto: su xfail solo aplica mientras `nucleo/` no exista.
+**Caracterización de Etapa 1**: `test_extraer.py` prueba `ocr_lineas` con cajas y texto ficticios inyectados; no descarga ni carga modelos. La extracción debe conservar el orden de las líneas, las tildes y la Ñ. `tests/test_nucleo_puro.py` caracteriza funciones que reciben texto/estructuras, bloquea `open`/`os.open` durante su uso y verifica que importar `nucleo.*` no carga adaptadores, rutas, red ni OCR. El guard AST usa una lista blanca mínima de imports (`collections`, `rapidfuzz`, `re` y `unicodedata`), revisa también imports diferidos y relativos, y rechaza accesos dinámicos como `__builtins__`.
 
 Comandos reproducibles y resultado de esta caracterización:
 

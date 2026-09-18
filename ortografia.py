@@ -30,11 +30,17 @@ def revisar(texto: str, extra=frozenset()):
 
 
 def main():
+    """Revisa la ortografía de un documento local.
+
+    Uso: ``python ortografia.py documento.docx``.
+    """
     import argparse
     from adaptadores.extraccion import leer
     from pathlib import Path
 
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("documento")
     a = ap.parse_args()
     hallazgos = revisar(leer(Path(a.documento)))

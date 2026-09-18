@@ -53,8 +53,8 @@
 
 **Prueba independiente**: ambos comandos Streamlit inician con imports nuevos; tests ordinarios no importan prosa; riesgos y los diez IDs tienen resolución o justificación comprobable.
 
-- [ ] T017 [US3] Actualizar `app.py` para importar extracción/verificación de `adaptadores/` y `nucleo/`, preservando su ejecución Streamlit hasta paridad ERP.
-- [ ] T018 [US3] Actualizar `app_ortografia.py` para importar ortografía/extracción de `nucleo/` y `adaptadores/`, preservando el flujo Streamlit hasta paridad ERP.
+- [ ] T017 [US3] Actualizar `app.py` para importar extracción/verificación de `adaptadores/` y `nucleo/`, preservando su ejecución Streamlit hasta paridad ERP. Parcial: los imports ya migraron; queda validar y cerrar la tarea en Etapa 4.
+- [ ] T018 [US3] Actualizar `app_ortografia.py` para importar ortografía/extracción de `nucleo/` y `adaptadores/`, preservando el flujo Streamlit hasta paridad ERP. Parcial: los imports ya migraron; queda validar y cerrar la tarea en Etapa 4.
 - [ ] T019 [US3] Mover `revisor_llm.py` y `bench_llm.py` a `experimental/`, adaptar sus imports del adaptador en `experimental/revisor_llm.py` y `app.py`, y mantener `test_revisor_llm.py` opt-in, fuera de la suite ordinaria, con ejecución explícita documentada sin red ni modelos; confirmar que ningún módulo del ERP/núcleo importa esos módulos. Nota: `test_revisor_llm.py` todavía se importa al recolectar; resolver con `collect_ignore` o importación diferida.
 - [ ] T020 [US3] Añadir primero en `test_revisor_llm.py` un test que demuestre que la API key no forma parte de la query URL; después cambiar `experimental/revisor_llm.py` para enviarla en el mecanismo de autenticación soportado y no imprimirla.
 - [ ] T021 [US3] Resolver o justificar por ID los olores AaCzSzcyMhSFhiPLM0QS y AaCzSzcyMhSFhiPLM0QR en `app_ortografia.py`, con cambios mínimos y sin alterar comportamiento.

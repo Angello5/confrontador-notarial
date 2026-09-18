@@ -7,10 +7,8 @@ from pathlib import Path
 NUCLEO = Path(__file__).resolve().parents[1] / "nucleo"
 IMPORTS_PERMITIDOS = {
     "collections",
-    "dataclasses",
     "rapidfuzz",
     "re",
-    "typing",
     "unicodedata",
 }
 
@@ -27,11 +25,13 @@ def _errores_pureza(codigo):
             )
         elif isinstance(nodo, ast.ImportFrom):
             raiz = (nodo.module or "").split(".")[0]
-            if raiz not in IMPORTS_PERMITIDOS:
+            if nodo.level or raiz not in IMPORTS_PERMITIDOS:
                 errores.append(raiz or "import relativo")
         elif isinstance(nodo, ast.Call) and isinstance(nodo.func, ast.Name):
             if nodo.func.id in {"open", "exec", "eval", "compile", "__import__"}:
                 errores.append(nodo.func.id)
+        elif isinstance(nodo, ast.Name) and nodo.id == "__builtins__":
+            errores.append(nodo.id)
     return errores
 
 
@@ -76,6 +76,10 @@ def test_guard_ast_detecta_imports_peligrosos_y_diferidos():
         "def fn():\n import pathlib",
         "def fn():\n open('x')",
         "eval('1')",
+        "from dataclasses import dataclass",
+        "from typing import Any",
+        "from . import adaptadores",
+        "__builtins__",
     ):
         assert _errores_pureza(codigo), codigo
 
@@ -94,6 +98,19 @@ def test_shims_reutilizan_nucleo_y_adaptadores():
     assert lexico.contar is nucleo_lexico.contar
     assert verificar.catalogo is nucleo_verificar.catalogo
     assert ortografia._revisar is nucleo_ortografia.revisar
+
+
+def test_shim_ortografia_conserva_firma_y_resultado_con_extra():
+    import ortografia
+    from adaptadores.diccionario import diccionario, lista_casa
+    from nucleo.ortografia import revisar
+
+    texto = "ZURBELIA LAMPARA CLAÚSULA"
+    extra = {"ZURBELIA", "LAMPARA"}
+    d, lemas = diccionario()
+    assert ortografia.revisar(texto, extra) == revisar(
+        texto, d, lemas, lista_casa(), extra
+    )
 
 
 def test_apps_declaran_imports_de_nuevos_modulos_sin_ejecutar_streamlit():

@@ -222,19 +222,25 @@ def leer(p: Path) -> str:
     return p.read_text(errors="ignore")
 
 
+def archivos(rutas: list[str]) -> list[Path]:
+    """Expande carpetas y conserva solo los formatos de documentos admitidos."""
+    return [
+        archivo
+        for ruta in rutas
+        for archivo in (
+            sorted(x for x in Path(ruta).rglob("*") if x.suffix.lower() in DOCS)
+            if Path(ruta).is_dir()
+            else [Path(ruta)]
+        )
+    ]
+
+
 def recolectar(rutas: list[str]) -> dict[str, str]:
     """Nombre de archivo -> texto, recorriendo carpetas."""
     out = {}
-    for r in rutas:
-        p = Path(r)
-        archivos = (
-            sorted(x for x in p.rglob("*") if x.suffix.lower() in DOCS)
-            if p.is_dir()
-            else [p]
-        )
-        for a in archivos:
-            print(f"  leyendo {a.name}", file=sys.stderr)
-            out[a.name] = leer(a)
+    for archivo in archivos(rutas):
+        print(f"  leyendo {archivo.name}", file=sys.stderr)
+        out[archivo.name] = leer(archivo)
     return out
 
 

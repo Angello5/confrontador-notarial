@@ -17,21 +17,12 @@ import argparse
 import sys
 from pathlib import Path
 
-from adaptadores.extraccion import DOCS, leer
+from adaptadores.extraccion import archivos, leer
 from nucleo.lexico import contar, erratas
 
 
 def vocabulario(rutas: list[str]):
-    textos = []
-    for ruta in rutas:
-        p = Path(ruta)
-        archivos = (
-            sorted(x for x in p.rglob("*") if x.suffix.lower() in DOCS)
-            if p.is_dir()
-            else [p]
-        )
-        textos.extend(leer(archivo) for archivo in archivos)
-    return contar(textos)
+    return contar([leer(archivo) for archivo in archivos(rutas)])
 
 
 def main():
