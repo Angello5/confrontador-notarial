@@ -17,8 +17,7 @@ def test_user_home_has_accessible_spanish_navigation(client, usuario_ficticio):
 
     assert response.status_code == 200
     assert b"Inicio" in response.content
-    assert b"/static/vendor/adminlte/adminlte.min.css" in response.content
-    assert b"/static/vendor/alpine/alpine.min.js" in response.content
+    assert b":class=\"{ 'sidebar-open': menuAbierto }\"" in response.content
     assert ("Administraci" + "\u00f3n").encode() not in response.content
     assert (
         'aria-label="Navegaci' + "\u00f3" + 'n principal"'
@@ -59,8 +58,27 @@ def test_login_has_visible_spanish_field_labels(client):
     assert response.status_code == 200
     content = response.content.decode()
     assert re.search(r'<label[^>]*for="id_username"[^>]*>\s*Nombre de usuario', content)
-    assert re.search(r'<label[^>]*for="id_password"[^>]*>\s*Contraseña', content)
+    assert re.search(r'<label[^>]*for="id_password"[^>]*>\s*Clave', content)
 
 
 def test_adminlte_asset_is_available_locally():
     assert finders.find("vendor/adminlte/adminlte.min.css")
+
+
+def test_alpine_asset_is_available_locally():
+    assert finders.find("vendor/alpine/alpine.min.js")
+
+
+def test_pending_user_does_not_see_brand_or_navigation(client):
+    user = get_user_model().objects.create_user(
+        username="cambio_pendiente", force_password_change=True
+    )
+    client.force_login(user)
+
+    response = client.get(reverse("password_change"))
+    content = response.content.decode()
+
+    assert "navbar-brand" not in content
+    assert 'id="menu-principal"' not in content
+    assert "Migas de pan" not in content
+    assert "clave temporal" in content

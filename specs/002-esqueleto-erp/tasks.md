@@ -38,6 +38,8 @@
 - [X] T016 [US1] Create the permission-filtered Spanish ERP shell with minimal empty F2 navigation in `templates/core/base.html`, `templates/core/home.html`, `core/views.py` and `core/urls.py`.
 - [X] T017 [US1] **Checkpoint**: confirm T009–T011 fail before implementation, then run the US1 tests, Django checks, lint and format; review `accounts/`, `core/`, `templates/`, and `tests/test_login.py`, `tests/test_password_change.py`, `tests/test_shell.py`; commit this stage locally as `feat(f2): add login and ERP shell`.
 
+> Nota de revisión de T009–T011: cinco pruebas de login/layout (pendiente en `/admin`, cuenta sin rol con 403, etiquetas en español y disponibilidad local de AdminLTE/Alpine) se incorporaron junto con la implementación; no se atribuye el orden TDD retroactivamente.
+
 ## Phase 4: User Story 2 - Administrar cuentas (Priority: P1)
 
 **Goal**: el Administrador crea cuentas con clave temporal, gestiona roles desde Django admin y revoca sesiones al desactivar, con salvaguardas contra auto-desactivación y pérdida del último Administrador.

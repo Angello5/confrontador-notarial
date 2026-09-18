@@ -16,17 +16,13 @@
         <div class="card-body login-card-body">
           <h1 id="titulo-login" class="h4">Ingresar</h1>
           <p class="login-box-msg">Use la cuenta que le asignó la notaría.</p>
-          {% if form.errors %}
-            <div class="alert alert-danger" role="alert">
-              El usuario o la clave no son correctos. Revise los datos e inténtelo nuevamente.
-            </div>
-          {% endif %}
           {% for message in messages %}
             <div class="alert alert-{{ message.tags }}" role="status">{{ message }}</div>
           {% endfor %}
           <form method="post">
             {% csrf_token %}
             {{ form|crispy }}
+            <p class="form-text">Los campos marcados con * son obligatorios.</p>
             <button type="submit" class="btn btn-primary w-100">Ingresar</button>
           </form>
         </div>

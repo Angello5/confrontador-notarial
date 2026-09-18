@@ -1,7 +1,10 @@
 """Pruebas de acceso con cuentas ficticias."""
 
+import re
+
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.urls import reverse
 
 pytestmark = pytest.mark.django_db
@@ -38,11 +41,32 @@ def test_invalid_and_inactive_accounts_receive_the_same_error(client):
 
     assert invalid_response.status_code == 200
     assert inactive_response.status_code == 200
-    assert b"usuario o la clave no son correctos" in invalid_response.content.lower()
-    assert (
-        invalid_response.context["form"].non_field_errors()
-        == inactive_response.context["form"].non_field_errors()
+    for response in (invalid_response, inactive_response):
+        assert response.content.lower().count(b"no son correctos") == 1
+    assert _visible_error(invalid_response.content) == _visible_error(
+        inactive_response.content
     )
+
+
+def _visible_error(content):
+    match = re.search(
+        r'<div class="alert alert-block alert-danger">\s*<ul class="m-0">.*?</ul>\s*</div>',
+        content.decode(),
+        re.DOTALL,
+    )
+    assert match
+    return match.group()
+
+
+def test_logout_confirms_success(client, usuario_ficticio):
+    client.force_login(usuario_ficticio)
+
+    response = client.post(reverse("logout"))
+    messages = list(get_messages(response.wsgi_request))
+
+    assert response.status_code == 302
+    assert messages[0].level_tag == "info"
+    assert str(messages[0]) == "Cerró sesión correctamente."
 
 
 def test_anonymous_user_is_redirected_from_protected_home(client):

@@ -17,6 +17,7 @@
 - Q: ¿Qué ocurre con las sesiones y la reactivación al desactivar una cuenta? → A: Se revocan todas sus sesiones al instante y el administrador puede reactivar la cuenta.
 - Q: ¿Dónde se administran las cuentas y cómo se crea el primer administrador? → A: La gestión de usuarios y roles se realiza en Django admin (`/admin`), sin pantallas propias ni asistente de primer uso. El primer administrador se crea con un comando de gestión en el servidor.
 - Q: ¿Qué límites se aplican al desactivar cuentas de administradores? → A: Nadie puede desactivarse a sí mismo ni dejar el sistema sin ningún administrador activo.
+- Q: ¿Qué ocurre tras varios intentos de ingreso fallidos? → A: Tras cinco intentos consecutivos para una misma cuenta, se rechaza el ingreso durante 15 minutos con el mismo mensaje genérico; el estado queda en la base de datos, se reinicia al ingresar correctamente y un Administrador puede desbloquear la cuenta desde `/admin`.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -74,6 +75,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **FR-008**: Desactivar una cuenta MUST revocar todas sus sesiones al instante e impedir nuevos inicios de sesión; un Administrador MUST poder reactivarla.
 - **FR-009**: El sistema MUST denegar la desactivación de la propia cuenta por quien la ejecuta y toda acción que deje cero cuentas Administrador activas.
 - **FR-012**: El primer Administrador MUST aprovisionarse mediante un comando de gestión ejecutado en el servidor.
+- **FR-013**: Tras cinco intentos fallidos consecutivos para una cuenta existente, el backend de autenticación MUST rechazar su ingreso durante 15 minutos con el mismo mensaje genérico usado para credenciales inválidas; el bloqueo MUST persistir en la base de datos, cubrir toda autenticación incluida `/admin`, reiniciarse al ingresar correctamente y poder ser retirado por un Administrador desde `/admin`. El intento de una cuenta inexistente MUST conservar una respuesta genérica sin revelar existencia o bloqueo.
 - **FR-010**: F2 MUST limitarse a autenticación, layout y navegación, y administración de cuentas y roles; no incluye expedientes, carga o procesamiento de archivos, confrontación, observaciones, informes ni otras funciones de negocio.
 - **FR-011**: El sistema MUST funcionar dentro de la LAN sin depender de servicios externos disponibles en tiempo de ejecución.
 
@@ -82,10 +84,10 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **SEC-001**: Toda pantalla y acción interna MUST requerir autenticación; cada acción protegida MUST exigir autorización explícita acorde con el rol. Ocultar una opción del menú no sustituye la autorización del servidor.
 - **SEC-002**: Solo Administradores autorizados MUST poder crear cuentas, desactivarlas, reactivarlas o asignar roles desde `/admin`. Las solicitudes manipuladas o directas también se deniegan.
 - **SEC-003**: Las cuentas desactivadas MUST quedar impedidas de iniciar sesión y todas sus sesiones MUST revocarse al instante; Administradores pueden reactivarlas. Nadie puede desactivarse a sí mismo ni dejar cero Administradores activos.
-- **SEC-007**: Las cookies de sesión y CSRF MUST usar el atributo Secure cuando DEBUG está desactivado. El despliegue HTTPS interno se confirmará en F8.
 - **SEC-004**: La interfaz, errores y registros MUST evitar contraseñas, secretos, tokens y datos personales innecesarios; no se incluirán datos reales en pruebas, fixtures, ejemplos ni mensajes.
 - **SEC-005**: El sistema MUST usar autenticación de Django y permisos asociados a los grupos Administrador y Usuario. La gestión se realiza en Django admin (`/admin`); el primer Administrador se crea con un comando de gestión en el servidor.
 - **SEC-006**: El acceso al ERP MUST operar sin llamadas a modelos de lenguaje ni servicios de IA.
+- **SEC-007**: Las cookies de sesión y CSRF MUST usar el atributo Secure cuando DEBUG está desactivado. El despliegue HTTPS interno se confirmará en F8.
 
 ### Requisitos de usabilidad y accesibilidad (Constitución VIII)
 

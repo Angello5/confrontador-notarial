@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 
 from .forms import InitialPasswordChangeForm, LoginForm
@@ -16,7 +15,7 @@ class LoginView(auth_views.LoginView):
         return super().get_success_url()
 
 
-class PasswordChangeView(LoginRequiredMixin, auth_views.PasswordChangeView):
+class PasswordChangeView(auth_views.PasswordChangeView):
     form_class = InitialPasswordChangeForm
     template_name = "registration/password_change_form.html"
     success_url = reverse_lazy("home")
@@ -28,3 +27,8 @@ class PasswordChangeView(LoginRequiredMixin, auth_views.PasswordChangeView):
 
 class LogoutView(auth_views.LogoutView):
     next_page = reverse_lazy("login")
+
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+        messages.info(request, "Cerró sesión correctamente.")
+        return response

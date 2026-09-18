@@ -60,6 +60,10 @@ def test_password_change_validates_and_clears_pending_flag(client, cuenta_pendie
 
     assert invalid.status_code == 200
     assert invalid.context["form"].errors
+    content = invalid.content.decode()
+    assert "Clave actual (temporal)" in content
+    assert "Clave nueva" in content
+    assert "Confirmar clave nueva" in content
 
     response = client.post(
         path,
