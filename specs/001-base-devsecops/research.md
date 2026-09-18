@@ -36,7 +36,7 @@ Fecha: 2026-09-17. Decisiones técnicas resueltas; las cuentas remotas no se han
 
 ## 5. Cloud y controles permanentes
 
-**Decision**: Proyecto privado, Python 3.13 y análisis con cobertura del mismo SHA. Configuración previa a conectar para evitar análisis automático no controlado; el primer análisis de main lo realiza el usuario. En PR 2, token solo en job aislado; espera de gate 300 s. Gate nuevo: vulnerabilidades=0, bugs=0, hotspots revisados=100 %, cobertura>=80 %, sin tolerancia de cambios pequeños. Code smells antiguos no bloquean; los requisitos de código nuevo no se reducen. Protección final: seis checks, rama actualizada, cero reviews requeridas, sin bypass.
+**Decision**: Proyecto privado, Python 3.13 y análisis con cobertura del mismo SHA. Configuración previa a conectar para evitar análisis automático no controlado; el primer análisis de main lo realiza el usuario. En PR 2, token solo en job aislado; espera de gate 300 s. Gate **Sonar way**, incluida su tolerancia nativa para cambios de menos de 20 líneas nuevas, aceptada por la constitución v1.4.0. Code smells antiguos no bloquean; los requisitos de código nuevo no se reducen. Protección final: seis checks, rama actualizada, cero reviews requeridas, sin bypass.
 
 **Rationale**: Mantiene las condiciones investigadas y distingue baseline de implantación permanente. Revisar capacidades de cuentas antes de activar; no contratar automáticamente. Historial local completo para SCM no supone autorización de envío de datos históricos; verificar contenido/metadatos y no analizar commits anteriores al saneamiento.
 

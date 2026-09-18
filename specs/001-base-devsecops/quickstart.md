@@ -152,7 +152,8 @@ Python 3.13.
 - Suite completa con cobertura en Linux: **16 aprobadas, 1 deseleccionada**, sin
   fallos; dos ejecuciones consecutivas y regeneración de fixtures sin cambios.
 - T018: medición `local_reference` ejecutada por el usuario el 2026-09-18 en su
-  máquina, con `EXPEDIENTES_REFERENCIA_DIR` fuera del repositorio, sobre `9777e52`:
+  máquina, con `EXPEDIENTES_REFERENCIA_DIR` fuera del repositorio, sobre el
+  código final de `extraer.py` (`745ee94`):
   **1 passed** (8 observaciones en el borrador, salida idéntica en 5 corridas,
   0 en la escritura correcta). Sin regresión por el cambio de `extraer.py`; el
   test no emite datos del expediente.
@@ -403,9 +404,10 @@ exclusión ni un `noqa` de Sonar.
 
 El proyecto usa el Quality Gate **Sonar way**: Security Rating A (0
 vulnerabilidades nuevas), Reliability Rating A (0 bugs nuevos), 100 % de
-Security Hotspots revisados y cobertura de al menos 80 % en código nuevo. El
-plan gratuito no permite gates personalizados y Sonar way no evalúa duplicación
-ni cobertura cuando el cambio contiene menos de 20 líneas nuevas. La
+Security Hotspots revisados, cobertura de al menos 80 %, Maintainability Rating
+A y duplicación máxima de 3 % en código nuevo. El plan gratuito no permite gates
+personalizados y Sonar way no evalúa duplicación ni cobertura cuando el cambio
+contiene menos de 20 líneas nuevas. La
 constitución v1.4.0 acepta expresamente esta limitación y exige revisar la
 decisión si cambia el plan. Los code smells previos no forman parte del gate.
 
@@ -433,3 +435,67 @@ El usuario conecta SonarQube Cloud privado y realiza el primer análisis de main
 6. Verificar protección de seis checks, PR obligatorio, cero reviews requeridas, sin bypass/force push. Si cambia código/configuración, nuevo commit/push y checks del SHA final.
 7. Mergear PR 2 con todos los checks verdes.
 8. Verificar ejecución completa en main después del merge; solo entonces declarar F1 terminada. Registrar evidencia posterior en el PR, sin commits directos a main.
+
+## Cierre de F1 · T043–T049
+
+T043 quedó validada sobre el árbol final: Python 3.13.9, generación de
+fixtures ficticios, Ruff check y formato, **21 passed, 1 deselected**, cobertura
+XML válida (677 líneas productivas, 378 cubiertas), `pip-audit` sin
+vulnerabilidades y los tres hooks de pre-commit en verde. La resolución de
+hallazgos y la deuda F3 están registradas arriba. La medición privada T018 fue
+ejecutada por el usuario sobre `745ee94`: **1 passed**, sin publicar datos ni
+rutas. El diff de cierre solo contiene documentación.
+
+T044–T045: los commits de etapa `a785149`, `3c003cc` y `745ee94` se publicaron
+sin reescribir historia. El [PR #14](https://github.com/Angello5/confrontador-notarial/pull/14),
+sobre `745ee94`, aprobó `lint`, `tests`, `dependencies`, `secrets`, `sonar`
+(Quality Gate OK) y `ci-required` en el
+[run 35360132624](https://github.com/Angello5/confrontador-notarial/actions/runs/35360132624).
+
+Casos negativos observados en remoto:
+
+- En el intento 1 del run de `main` `35360401832`, Sonar devolvió **Not
+  computed** porque el proyecto recreado no tenía definida la referencia de
+  código nuevo; `sonar` y `ci-required` fallaron de forma segura.
+- Al usar **Re-run failed jobs**, `sonar` no encontró la cobertura del mismo
+  `run_attempt` y volvió a fallar. En este workflow se debe usar siempre
+  **Re-run all jobs**.
+- El PR de Dependabot #11 hizo fallar `tests` por el cambio de modelos y hashes
+  de RapidOCR; `sonar` quedó omitido y `ci-required` falló, bloqueando el PR.
+
+No se ensayaron en remoto, de manera aislada, fallos de `lint`, `dependencies`
+o `secrets`; cancelación manual; ausencia del secreto; ni cada umbral del gate
+(bugs, vulnerabilidades, hotspots y cobertura). Tampoco se ensayaron
+separadamente cambios de menos de 20 líneas productivas o sin código productivo
+nuevo. El contrato no exige ensayos de forks ni de SHA obsoleto independiente,
+y no se realizaron.
+
+T046 se verificó en solo lectura con `gh pr view` y `gh pr checks`. Todos los PR
+están abiertos, sin auto-merge, y recibieron los mismos seis controles. El
+secreto de Dependabot existe y permitió ejecutar Sonar en los PR aprobados, sin
+inspeccionar su valor; en #11 `sonar` se omitió por el fallo previo de `tests`.
+
+| PR | Actualización | Estado |
+|---|---|---|
+| [#9](https://github.com/Angello5/confrontador-notarial/pull/9) | Streamlit 1.63.0 | Seis checks en verde; mergeable. |
+| [#10](https://github.com/Angello5/confrontador-notarial/pull/10) | onnxruntime 1.30.0 | Seis checks en verde; mergeable. |
+| [#11](https://github.com/Angello5/confrontador-notarial/pull/11) | RapidOCR 3.9.2 | Bloqueado: `tests` falla por modelos/hashes esperados, `sonar` se omite y `ci-required` falla. |
+| [#12](https://github.com/Angello5/confrontador-notarial/pull/12) | pytest-cov 7.1.0 | Seis checks en verde; mergeable. |
+| [#13](https://github.com/Angello5/confrontador-notarial/pull/13) | pandas 3.0.5 | Seis checks en verde; mergeable. |
+
+T047: el ruleset
+[`23667199`](https://github.com/Angello5/confrontador-notarial/rules/23667199)
+está activo sobre la rama por defecto. Exige PR con cero aprobaciones,
+`lint`, `tests`, `sonar`, `dependencies`, `secrets` y `ci-required` publicados
+por GitHub Actions, rama actualizada (`strict`), sin bypass, borrado ni force
+push.
+
+T048–T049: el PR #14 se integró en `main` como `45ce0b6`. El
+[run 35360401832](https://github.com/Angello5/confrontador-notarial/actions/runs/35360401832),
+intento 3, terminó con los seis jobs en `success` después de definir en
+SonarCloud el código nuevo como **Previous version**; el proyecto recreado no
+tenía esa definición y por eso el gate inicial aparecía como **Not computed**.
+F1 queda terminada.
+
+Nota operativa: al publicar una versión del ERP, incrementar
+`sonar.projectVersion` para reiniciar la línea base de código nuevo.
