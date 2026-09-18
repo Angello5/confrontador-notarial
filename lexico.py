@@ -10,6 +10,7 @@ sin varianza. Lo abierto —concordancia, sintaxis— sigue siendo del LLM.
 
   python3 lexico.py Resultado/ -d "Proyecto(borrador)/...docx"
 """
+
 import argparse
 import re
 import sys
@@ -54,8 +55,12 @@ def vocabulario(rutas: list[str]) -> Counter:
     def archivos():
         for r in rutas:
             p = Path(r)
-            yield from (sorted(x for x in p.rglob("*") if x.suffix.lower() in DOCS)
-                        if p.is_dir() else [p])
+            yield from (
+                sorted(x for x in p.rglob("*") if x.suffix.lower() in DOCS)
+                if p.is_dir()
+                else [p]
+            )
+
     return contar(leer(a) for a in archivos())
 
 
@@ -72,7 +77,9 @@ def _es_flexion(p: str, vocab: Counter) -> bool:
     return any(v in vocab for v in variantes)
 
 
-def erratas(texto: str, vocab: Counter, umbral: int = 82) -> list[tuple[str, str, float]]:
+def erratas(
+    texto: str, vocab: Counter, umbral: int = 82
+) -> list[tuple[str, str, float]]:
     """Palabras con acento imposible, y palabras ausentes del corpus que se
     parecen mucho a una presente."""
     conocidas = list(vocab)
@@ -93,19 +100,27 @@ def erratas(texto: str, vocab: Counter, umbral: int = 82) -> list[tuple[str, str
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("firmadas", nargs="+", help="escrituras ya firmadas (el diccionario)")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "firmadas", nargs="+", help="escrituras ya firmadas (el diccionario)"
+    )
     ap.add_argument("-d", "--destino", required=True, help="borrador a revisar")
     ap.add_argument("-u", "--umbral", type=int, default=82)
     a = ap.parse_args()
 
     vocab = vocabulario(a.firmadas)
-    print(f"corpus: {sum(vocab.values())} palabras, {len(vocab)} distintas", file=sys.stderr)
+    print(
+        f"corpus: {sum(vocab.values())} palabras, {len(vocab)} distintas",
+        file=sys.stderr,
+    )
     fuera = erratas(leer(Path(a.destino)), vocab, a.umbral)
     for palabra, cerca, score in fuera:
-        print(f"  «{palabra}» no aparece en ninguna escritura firmada"
-              f"   ¿querias decir «{cerca}»? ({score:.0f}%)")
+        print(
+            f"  «{palabra}» no aparece en ninguna escritura firmada"
+            f"   ¿querias decir «{cerca}»? ({score:.0f}%)"
+        )
     print(f"\n{len(fuera)} palabras sospechosas")
     return 1 if fuera else 0
 

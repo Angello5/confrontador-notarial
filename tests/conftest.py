@@ -1,4 +1,5 @@
 """Selección privada explícita y validación del informe de cobertura."""
+
 import os
 from pathlib import Path
 from xml.etree import ElementTree
@@ -40,17 +41,31 @@ def pytest_sessionfinish(session, exitstatus):
     try:
         if "xml" not in config.option.cov_report:
             raise ValueError("XML requerido")
-        raiz = ElementTree.parse(Path(ruta or "coverage.xml")).getroot()
+        raiz = ElementTree.parse(Path(ruta or "coverage.xml")).getroot()  # noqa: S314 artefacto local de confianza generado por coverage
         assert raiz.tag == "coverage" and int(raiz.attrib["lines-valid"]) > 0
         clases = raiz.findall(".//class")
-        assert clases and all(not Path(c.attrib["filename"]).is_absolute() for c in clases)
-        assert all(not c.attrib["filename"].startswith(("test_", "tests/", "scripts/")) for c in clases)
+        assert clases and all(
+            not Path(c.attrib["filename"]).is_absolute() for c in clases
+        )
+        assert all(
+            not c.attrib["filename"].startswith(("test_", "tests/", "scripts/"))
+            for c in clases
+        )
         assert {c.attrib["filename"] for c in clases} == {
-            "extraer.py", "verificar.py", "lexico.py", "ortografia.py",
-            "revisor_llm.py", "app.py", "app_ortografia.py", "bench_llm.py",
+            "extraer.py",
+            "verificar.py",
+            "lexico.py",
+            "ortografia.py",
+            "revisor_llm.py",
+            "app.py",
+            "app_ortografia.py",
+            "bench_llm.py",
         }
     except (OSError, ValueError, KeyError, AssertionError, ElementTree.ParseError):
         session.exitstatus = pytest.ExitCode.TESTS_FAILED
         terminal = config.pluginmanager.get_plugin("terminalreporter")
         if terminal:
-            terminal.write_line("Cobertura no válida: se requiere XML con líneas productivas y rutas relativas.", red=True)
+            terminal.write_line(
+                "Cobertura no válida: se requiere XML con líneas productivas y rutas relativas.",
+                red=True,
+            )

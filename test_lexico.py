@@ -1,7 +1,8 @@
 """Test de lexico.py con documentos ficticios generados localmente.
 
-  python -m pytest test_lexico.py
+python -m pytest test_lexico.py
 """
+
 from pathlib import Path
 
 from extraer import leer
@@ -12,14 +13,22 @@ FIRMADA = BASE / "resultado" / "correcto.docx"
 BORRADOR = BASE / "borrador" / "observado.docx"
 MINUTA = BASE / "cliente" / "minuta.docx"
 
+
 def test_lexico():
     vocab = vocabulario([str(FIRMADA)])
 
     hallado = {p: c for p, c, _ in erratas(leer(BORRADOR), vocab)}
-    for mal, bien in [("OCTAO", "OCTAVO"), ("DECIO", "DECIMO"), ("MEIO", "MEDIO"),
-                      ("UIRBANIZACION", "URBANIZACION"), ("OCUPACIÒN", "OCUPACIÓN"),
-                      ("TIENE", "TIENEN")]:
-        assert hallado.get(mal) == bien, f"{mal}: esperaba {bien}, dio {hallado.get(mal)}"
+    for mal, bien in [
+        ("OCTAO", "OCTAVO"),
+        ("DECIO", "DECIMO"),
+        ("MEIO", "MEDIO"),
+        ("UIRBANIZACION", "URBANIZACION"),
+        ("OCUPACIÒN", "OCUPACIÓN"),
+        ("TIENE", "TIENEN"),
+    ]:
+        assert hallado.get(mal) == bien, (
+            f"{mal}: esperaba {bien}, dio {hallado.get(mal)}"
+        )
 
     # la escritura firmada es el corpus: no puede acusarse a si misma
     assert erratas(leer(FIRMADA), vocab) == [], erratas(leer(FIRMADA), vocab)
@@ -34,10 +43,17 @@ def test_lexico():
 
     # flexion: plural y genero no son erratas, pero una letra faltante si
     from lexico import contar
+
     v2 = contar(["LA CLAUSULA SUSCRITA POR ZURBELIA Y LA IMPRESION DACTILAR"])
-    marcadas = {p for p, _, _ in erratas(
-        "LAS CLAUSULAS SUSCRITO IMPRESIONES DACTILARES DE ZURBELI", v2)}
+    marcadas = {
+        p
+        for p, _, _ in erratas(
+            "LAS CLAUSULAS SUSCRITO IMPRESIONES DACTILARES DE ZURBELI", v2
+        )
+    }
     assert marcadas == {"ZURBELI"}, marcadas
 
-    print(f"OK — {len(hallado)} erratas en el borrador, 0 en la firmada, "
-          f"{len(en_minuta)} erratas en la minuta ficticia")
+    print(
+        f"OK — {len(hallado)} erratas en el borrador, 0 en la firmada, "
+        f"{len(en_minuta)} erratas en la minuta ficticia"
+    )

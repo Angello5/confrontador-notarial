@@ -33,14 +33,19 @@ la minuta y los documentos del cliente.
 ```bash
 python -m pip install -r requirements.txt -r requirements-dev.txt
 python scripts/generar_fixtures.py
+python -m ruff check .
+python -m ruff format --check .
 python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
+python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
 ```
 
 Usar Python 3.13 y aprovisionar OCR/diccionario según
 `specs/001-base-devsecops/quickstart.md`. Los tests predeterminados usan solo
 fixtures ficticios. En Linux, `.doc`/`.rtf` requieren LibreOffice (`soffice`).
 La medición privada exige `-o addopts= -m local_reference --tb=no` y está
-prohibida en CI. Ruff y auditoría se configuran en etapa 4.
+prohibida en CI. La política y excepciones individuales de Ruff están documentadas
+en `specs/001-base-devsecops/quickstart.md`. La activación de pre-commit queda
+para la etapa 5.
 
 ## Antes de dar una tarea por terminada
 

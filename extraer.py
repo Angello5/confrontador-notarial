@@ -10,7 +10,14 @@ pesos que PaddleOCR sin arrastrar Paddle). ~4 s por pagina en este equipo.
 Los PDF se leen por su capa de texto; si no la traen (escaneo) se rasterizan
 pagina a pagina y se pasan por el mismo OCR.
 """
-import argparse, hashlib, json, re, subprocess, sys, tempfile
+
+import argparse
+import hashlib
+import json
+import re
+import subprocess
+import sys
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 
@@ -27,12 +34,14 @@ DPI = 200  # suficiente para DNI y sellos; a 300 tarda el doble sin ganar aciert
 @lru_cache(maxsize=1)
 def _ocr():
     from rapidocr import RapidOCR
+
     return RapidOCR()
 
 
 def _cacheado(clave: bytes, calcular):
     """OCR cuesta segundos por pagina y estos archivos no cambian entre corridas."""
-    f = CACHE / (hashlib.sha1(clave).hexdigest() + ".json")
+    # Identificador de caché, no firma ni decisión de seguridad.
+    f = CACHE / (hashlib.sha1(clave, usedforsecurity=False).hexdigest() + ".json")
     if f.exists():
         return json.loads(f.read_text())
     txt = calcular()
@@ -64,11 +73,14 @@ def ocr_lineas(fuente, tol: int = 9) -> str:
             actual = []
         actual.append((y, x, txt))
     filas.append(actual)
-    return "\n".join("  ".join(t for _, _, t in sorted(f, key=lambda c: c[1])) for f in filas if f)
+    return "\n".join(
+        "  ".join(t for _, _, t in sorted(f, key=lambda c: c[1])) for f in filas if f
+    )
 
 
 def _pdf(p: Path) -> str:
     import pymupdf
+
     with pymupdf.open(p) as doc:
         paginas = []
         for i, pg in enumerate(doc, 1):
@@ -82,10 +94,12 @@ def _pdf(p: Path) -> str:
 
 def _xlsx(p: Path) -> str:
     import openpyxl
+
     wb = openpyxl.load_workbook(p, data_only=True, read_only=True)
     return "\n".join(
         "  ".join("" if c is None else str(c) for c in fila).rstrip()
-        for h in wb.worksheets for fila in h.iter_rows(values_only=True)
+        for h in wb.worksheets
+        for fila in h.iter_rows(values_only=True)
     )
 
 
@@ -94,12 +108,24 @@ def _soffice(p: Path, formato: str, destino: Path) -> Path:
     chocar con otra instancia abierta; los errores no llevan stderr ni rutas."""
     with tempfile.TemporaryDirectory() as perfil:
         try:
-            r = subprocess.run([SOFFICE, f"-env:UserInstallation={Path(perfil).as_uri()}",
-                                "--headless", "--convert-to", formato,
-                                "--outdir", str(destino), str(p)],
-                               capture_output=True, timeout=120)
+            r = subprocess.run(  # noqa: S603 argv sin shell; conversor fijo y ruta como argumento
+                [
+                    SOFFICE,
+                    f"-env:UserInstallation={Path(perfil).as_uri()}",
+                    "--headless",
+                    "--convert-to",
+                    formato,
+                    "--outdir",
+                    str(destino),
+                    str(p),
+                ],
+                capture_output=True,
+                timeout=120,
+            )
         except (OSError, subprocess.TimeoutExpired):
-            raise ValueError(f"{p.name}: .doc necesita LibreOffice ({SOFFICE}) en PATH") from None
+            raise ValueError(
+                f"{p.name}: .doc necesita LibreOffice ({SOFFICE}) en PATH"
+            ) from None
     salida = destino / f"{p.stem}.{formato.split(':')[0]}"
     if r.returncode or not salida.is_file():
         raise ValueError(f"{p.name}: LibreOffice no pudo convertirlo")
@@ -110,14 +136,21 @@ def _legacy(p: Path) -> str:
     """Word 97-2003 y compañía, via textutil en macOS o LibreOffice en Linux. Un
     .doc no es un zip sino un contenedor OLE, asi que python-docx no puede con el."""
     if sys.platform == "darwin":
-        r = subprocess.run(["textutil", "-convert", "txt", "-stdout", str(p)],
-                           capture_output=True, text=True)
+        r = subprocess.run(  # noqa: S603 argv sin shell; conversor fijo y ruta como argumento
+            ["/usr/bin/textutil", "-convert", "txt", "-stdout", str(p)],
+            capture_output=True,
+            text=True,
+        )
         if r.returncode:
-            raise ValueError(f"{p.name}: textutil no pudo leerlo ({r.stderr.strip()[:80]})")
+            raise ValueError(
+                f"{p.name}: textutil no pudo leerlo ({r.stderr.strip()[:80]})"
+            )
         txt = r.stdout
     else:
         with tempfile.TemporaryDirectory() as tmp:
-            txt = _soffice(p, "txt:Text (encoded):UTF8", Path(tmp)).read_text(encoding="utf-8-sig")
+            txt = _soffice(p, "txt:Text (encoded):UTF8", Path(tmp)).read_text(
+                encoding="utf-8-sig"
+            )
     # separan las celdas con tabulador; el resto del codigo espera dos espacios
     return txt.replace("\t", "  ")
 
@@ -140,8 +173,10 @@ def _docx(p: Path) -> str:
 
     lineas = []
     with zipfile.ZipFile(p) as z:
-        nombres = sorted((n for n in z.namelist() if PARTES_DOCX.fullmatch(n)),
-                         key=lambda n: (n != "word/document.xml", n))
+        nombres = sorted(
+            (n for n in z.namelist() if PARTES_DOCX.fullmatch(n)),
+            key=lambda n: (n != "word/document.xml", n),
+        )
         for n in nombres:
             xml = z.read(n).decode("utf-8", "ignore")
             xml = RE_TAB.sub("<w:t>  </w:t>", RE_FALLBACK.sub("", xml))
@@ -177,7 +212,11 @@ def recolectar(rutas: list[str]) -> dict[str, str]:
     out = {}
     for r in rutas:
         p = Path(r)
-        archivos = sorted(x for x in p.rglob("*") if x.suffix.lower() in DOCS) if p.is_dir() else [p]
+        archivos = (
+            sorted(x for x in p.rglob("*") if x.suffix.lower() in DOCS)
+            if p.is_dir()
+            else [p]
+        )
         for a in archivos:
             print(f"  leyendo {a.name}", file=sys.stderr)
             out[a.name] = leer(a)
@@ -185,8 +224,9 @@ def recolectar(rutas: list[str]) -> dict[str, str]:
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("rutas", nargs="+", help="archivos o carpetas")
     ap.add_argument("--json", action="store_true", help="salida {archivo: texto}")
     a = ap.parse_args()

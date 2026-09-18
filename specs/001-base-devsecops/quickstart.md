@@ -1,7 +1,7 @@
 # Quickstart de validación · F1
 
 Esta guía distingue los checkpoints ejecutados de las etapas pendientes. Las
-etapas 1 y 2 tienen evidencia local abajo; no se afirma CI verde ni F1 completa.
+etapas 1–4 tienen evidencia local abajo; no se afirma CI verde ni F1 completa.
 
 ## Checkpoint ejecutado · Etapa 1 (T001–T006)
 
@@ -52,7 +52,7 @@ repositorio exige limpiarlo en una fase aparte. La etapa 2 no se inicia aquí.
 
 Para etapa 2 basta Python 3.13, los dos archivos de requisitos y los recursos
 OCR/diccionario indicados a continuación. LibreOffice se integra en etapa 3;
-gitleaks, Ruff configurado y controles remotos pertenecen a etapas posteriores.
+Ruff y pip-audit se validan en etapa 4; gitleaks y controles remotos pertenecen a etapas posteriores.
 
 - Clon limpio privado, Python 3.13, Git y LibreOffice (`soffice` en PATH) en Linux; gitleaks fijado y verificado según documentación de implementación.
 - Recursos OCR y diccionario es_PE aprovisionados con los orígenes/versiones documentados. Solo fixtures ficticios; ningún expediente privado en el clon.
@@ -79,43 +79,11 @@ RapidOCR 3.4.3 y onnxruntime 1.23.2 usan los modelos PP-OCRv4 de
 `cls/ch_ppocr_mobile_v2.0_cls_infer.onnx`. Sus SHA-256 coinciden con el manifiesto
 `default_models.yaml` del paquete. El diccionario es_PE se fija al commit
 `32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4` de LibreOffice/dictionaries.
-Antes de los tests, aprovisionar y verificar así (solo descarga recursos públicos):
+Antes de los tests, ejecutar el paso `Verify public test resources` de
+`.github/workflows/ci.yml`, que aprovisiona únicamente esos recursos públicos y
+comprueba sus cinco SHA-256. Después:
 
 ```bash
-python - <<'PY'
-from hashlib import sha256
-from pathlib import Path
-from urllib.request import urlopen
-import rapidocr
-from extraer import _ocr
-
-_ocr()  # Aprovisiona/carga modelos; no procesa documentos.
-modelos = {
-    "ch_PP-OCRv4_det_infer.onnx": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
-    "ch_PP-OCRv4_rec_infer.onnx": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b",
-    "ch_ppocr_mobile_v2.0_cls_infer.onnx": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
-}
-for nombre, esperado in modelos.items():
-    rutas = list(Path(rapidocr.__file__).parent.rglob(nombre))
-    assert len(rutas) == 1 and sha256(rutas[0].read_bytes()).hexdigest() == esperado
-
-base = "https://raw.githubusercontent.com/LibreOffice/dictionaries/32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4/es/es_PE"
-for extension, esperado in {
-    ".aff": "d966cb748e4a688ed75ec84b50c0835ac438e5325ee4fce703a093794f9cba7e",
-    ".dic": "1d810a0a319fee329000538cf4df76621bb71228172558b87490f8b9c19b9d75",
-}.items():
-    ruta = Path.home() / ".cache/notaria-ocr" / ("es_PE" + extension)
-    if ruta.exists():
-        contenido = ruta.read_bytes()
-    else:
-        with urlopen(base + extension, timeout=30) as respuesta:
-            contenido = respuesta.read()
-    assert sha256(contenido).hexdigest() == esperado, "Recurso distinto de la versión fijada"
-    if not ruta.exists():
-        ruta.parent.mkdir(parents=True, exist_ok=True)
-        ruta.write_bytes(contenido)
-print("Recursos de pruebas verificados.")
-PY
 python scripts/generar_fixtures.py
 python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 ```
@@ -167,7 +135,7 @@ Resultados T013:
 T013 aprobado con la única limitación legacy prevista. T014 registra el commit
 local `test: add synthetic fixtures and pytest`; no hay push ni avance a etapa 3.
 
-## Checkpoint ejecutado · Etapa 3 (T015–T019)
+## Etapa 3: T015–T017 y T019 ejecutadas; T018 pendiente de medición local
 
 LibreOffice en Linux: paquete de la distribución (`apt install libreoffice-writer`
 o equivalente), ejecutable `soffice` en PATH. Probado con LibreOffice 26.2,
@@ -183,9 +151,135 @@ Python 3.13.
   comprueba lectura `.doc`/`.rtf` y que no quedan temporales.
 - Suite completa con cobertura en Linux: **16 aprobadas, 1 deseleccionada**, sin
   fallos; dos ejecuciones consecutivas y regeneración de fixtures sin cambios.
-- Medición `local_reference`: [PENDIENTE] ejecutarla en la máquina que tiene
-  `EXPEDIENTES_REFERENCIA_DIR`; antes de este cambio los `.doc` fallaban en Linux,
-  así que solo puede mejorar la cobertura de lectura.
+- T018: medición `local_reference` pendiente con `EXPEDIENTES_REFERENCIA_DIR`;
+  la ejecuta el usuario en su máquina antes del merge de PR 1 porque cambió
+  `extraer.py`.
+
+## Checkpoint ejecutado · Etapa 4 (T020–T025)
+
+Entorno nuevo `.venv/t024`, Python 3.13.9, instalado únicamente desde ambos
+archivos de requisitos; recursos OCR/diccionario verificados con los hashes de
+T012. Herramientas fijadas: Ruff 0.16.8, pip-audit 2.10.1, pre-commit 4.6.2,
+pytest 9.0.3 y pytest-cov 7.0.0. Pre-commit queda instalado; su configuración y
+activación pertenecen a etapa 5.
+
+Cambios de versiones: Pillow 11.0.0 → 12.3.0 y pytest 8.4.2 → 9.0.3.
+La auditoría inicial emitió 35 filas (18 IDs únicos) en esos dos paquetes;
+la final no encuentra vulnerabilidades, sin IDs exceptuados. Se corrigieron
+los IDs de Pillow PYSEC-2026-{165,2249,2250,2252,2253,2254,2255,2256,2257,
+2874,3451,3453,3454,3493,3494,3495,3496} y de pytest PYSEC-2026-1845.
+Las restantes versiones directas no cambiaron; `pip check` confirma compatibilidad.
+Versiones consultadas en [PyPI](https://pypi.org/) y comprobadas por instalación
+real en Python 3.13 y auditoría estricta de las dependencias transitivas.
+
+Ruff: 13 hallazgos iniciales, 7 corregidos y 6 justificados. Se separaron dos
+imports E401 y renombraron tres variables E741; se aplicó formato a los 18
+archivos Python propios. S324: SHA-1 solo identifica la caché, se declara
+`usedforsecurity=False` y se conserva la clave anterior. S607: macOS usa
+`/usr/bin/textutil`, evitando buscar el binario en PATH; el nuevo test ficticio
+falló antes del cambio y pasó después, conservando argumentos y tabuladores.
+No se alteraron reglas de negocio ni se ejecutaron modelos o expedientes reales.
+
+Política para el PR: S101 permitido únicamente en `test_*.py` y `tests/**` por
+per-file-ignores, porque pytest usa asserts. Las demás excepciones S requieren
+`noqa` individual con código exacto y motivo, listadas en el PR. El coordinador
+aprobó esta precisión durante T021 y se sincronizó la frase en spec, plan y
+contrato CI; no hay exclusiones globales ni por archivo de otras reglas.
+Copiar al PR las seis excepciones revisadas:
+
+| Ubicación | Regla | Justificación individual |
+|---|---|---|
+| `extraer.py` · `_soffice` | S603 | LibreOffice: conversor configurado por código, argumentos en lista sin shell, perfil temporal propio; no se interpreta una cadena de comandos del documento. |
+| `extraer.py` · `_legacy` | S603 | textutil: ejecutable absoluto fijo, opciones fijas y ruta como argumento, sin shell. |
+| `ortografia.py` · `_descargar` | S310 | Descarga de diccionario desde URL HTTPS fija en código; solo concatena `.aff`/`.dic` internas, no una URL suministrada por documentos. |
+| `revisor_llm.py` · `consultar` | S310 | Request construido con esquema HTTPS y host fijos; modelo va en la ruta, no cambia el esquema; no se invocó la red de modelos durante las pruebas. |
+| `tests/conftest.py` · `pytest_sessionfinish` | S314 | XML local de confianza generado por coverage en la misma ejecución; no es XML de documentos subidos. |
+| `tests/test_seleccion_local.py` · `test_seleccion_privada` | S603 | Intérprete propio y argumentos de pytest fijados por el test, entorno controlado y sin shell. |
+
+No se añadieron dependencias para estas revisiones ni se cambiaron APIs para
+eludir el detector. Las excepciones deben revisarse si cambia la procedencia de
+argumentos, URLs o XML; no autorizan procesar entradas arbitrarias sin validación.
+
+Con el entorno nuevo activado, resultados del checkpoint T024:
+
+| Comando / comprobación | Resultado |
+|---|---|
+| `python -m pip install -r requirements.txt -r requirements-dev.txt` | PASS en entorno nuevo, sin dependencias previas. |
+| Aprovisionamiento T012 | PASS: SHA-256 de tres modelos OCR y dos archivos del diccionario. |
+| `python scripts/generar_fixtures.py` | PASS: fixtures exclusivamente ficticios. |
+| `ruff check .` | PASS: cero hallazgos pendientes. |
+| `ruff format --check .` | PASS: 56 archivos examinados, sin reformatear. |
+| `python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml` | PASS: 17 passed, 1 deselected; incluye los 16 casos previos y el test macOS. |
+| `coverage.xml` | XML válido, ocho módulos productivos, rutas relativas, 665 líneas válidas / 366 cubiertas (55,04 %); sin imponer umbral global. |
+| `pip-audit --strict -r requirements.txt -r requirements-dev.txt` | PASS: No known vulnerabilities found; cero excepciones. |
+| `python -m pip check` | PASS: No broken requirements found. |
+| Muestras ficticias por stdin de Ruff | S101 detectada fuera de tests; S301 detectada dentro de tests; assert permitido en tests. No se conservaron muestras. |
+| Revisión del diff y `git diff --check` | PASS: cambios de formato, correcciones descritas y documentación; sin nuevos datos reales ni secretos. |
+
+T024 aprobado. T025 registra el commit local `chore: pass lint and dependency audit`.
+No se inicia etapa 5, no hay push, PR, cambios de CI ni activación de Sonar.
+T019 está completada por `2be5a48`, «Finalizar etapa 3» (mensaje distinto al
+previsto); T018 sigue abierta. Pendiente: medición local_reference con EXPEDIENTES_REFERENCIA_DIR, la ejecuta el usuario en su máquina antes del merge de PR 1 (extraer.py cambió).
+
+Deuda fuera de alcance: revisor_llm.py envía la API key en la query (?key=); usar cabecera x-goog-api-key si la capa experimental se reactiva.
+
+## Checkpoint local · Etapa 5 (T026–T032)
+
+PR 1 queda preparado con un único workflow para `pull_request` y push a `main`,
+sin filtros de rutas: `lint`, `tests`, `dependencies` y `secrets`. Todos usan
+`ubuntu-24.04`, timeout de 30 minutos y permisos `contents: read`; checkout no
+persiste credenciales. No existen jobs `sonar`, `ci-required` ni evento
+`pull_request_target`. Solo `coverage.xml` se publica, por ejecución/intento y
+con retención de 7 días; los fixtures y el workspace no son artefactos.
+
+Acciones fijadas a SHA completo y verificadas contra sus tags remotos:
+
+| Acción | Versión | SHA |
+|---|---|---|
+| `actions/checkout` | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
+| `actions/setup-python` | v7.0.0 | `5fda3b95a4ea91299a34e894583c3862153e4b97` |
+| `actions/upload-artifact` | v7.0.1 | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` |
+
+Las tres acciones usan Node 24 y conservan las entradas empleadas. El escáner
+CI descarga el binario oficial Gitleaks 8.28.0 para Linux x64 y verifica el
+SHA-256 publicado `a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb`
+antes de extraerlo. Escanea con redacción el árbol y el rango exacto base..head;
+en el primer push limita el escaneo a HEAD. `sonar-project.properties` solo
+delimita fuentes, tests y `coverage.xml`: no contiene token, organización o
+proyecto ni activa análisis.
+
+Pre-commit se instala y activa así:
+
+```bash
+python -m pre_commit install
+python -m pre_commit run --all-files
+```
+
+La configuración fija Ruff 0.16.8 y Gitleaks 8.28.0 por SHA. El checkpoint
+local aprobó los tres hooks sobre todo el árbol. En una copia temporal externa,
+muestras exclusivamente ficticias confirmaron por separado el bloqueo S307,
+el formato no aplicado y un secreto de prueba; Gitleaks mostró únicamente el
+valor redactado. Tras retirar las muestras, los tres hooks volvieron a verde.
+
+Dependabot contiene exactamente dos revisiones semanales (`pip` y
+`github-actions`) desde la raíz, sin auto-merge. La validación local final dio:
+
+| Comprobación | Resultado |
+|---|---|
+| YAML y workflow | PASS: tres YAML parseables; Actionlint 1.7.12 sin hallazgos. |
+| Tags e inputs de acciones | PASS: SHA verificados con `git ls-remote --tags`; runtime Node 24 e inputs usados presentes en cada `action.yml`. |
+| Binario Gitleaks 8.28.0 | PASS: tar oficial Linux x64 coincide con el checksum publicado; un checksum ficticio incorrecto falla. |
+| `python -m ruff check .` | PASS. |
+| `python -m ruff format --check .` | PASS: 56 archivos ya formateados. |
+| Generador + pytest explícitamente sin `local_reference` | PASS: 17 aprobadas, 1 deseleccionada; el paso CI adicional confirma clases en `coverage.xml`, con rutas relativas, 665 líneas válidas / 366 cubiertas (55,04 %). |
+| `python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt` | PASS: sin vulnerabilidades conocidas. |
+| `python -m pre_commit run --all-files` | PASS: Ruff check, Ruff format y Gitleaks. |
+| Gitleaks sobre copia limpia y rango `9ca2cc9..HEAD` | PASS: árbol y commits de etapa sin hallazgos; salida redactada. |
+| Revisión de configuración/diff | PASS: sin datos reales, secretos, dependencias Python nuevas, jobs posteriores ni artefactos privados. |
+
+Este checkpoint es local: los cuatro checks remotos siguen pendientes de T034.
+T033 conserva pendientes el push privado y las tareas T034–T036; no se afirma
+PR 1 ni `main` en verde.
 
 ## Validación local sintética
 
@@ -200,7 +294,14 @@ python -m ruff check .
 python -m ruff format --check .
 python -m pytest -m 'not local_reference' --cov --cov-report=term --cov-report=xml:coverage.xml
 python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
+```
+
+En etapa 5, una vez configurados gitleaks y `.pre-commit-config.yaml`, añadir:
+
+```bash
+# En una copia limpia del árbol versionable, sin el entorno virtual local:
 gitleaks dir --redact .
+gitleaks git --redact --log-opts="$BASE..$HEAD"
 python -m pre_commit install
 python -m pre_commit run --all-files
 ```

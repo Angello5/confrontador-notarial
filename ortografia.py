@@ -15,6 +15,7 @@ Dos decisiones que hacen que funcione sobre escrituras:
 
   python3 ortografia.py documento.docx
 """
+
 import argparse
 import sys
 import unicodedata
@@ -37,13 +38,14 @@ def _descargar():
     for ext in (".aff", ".dic"):
         if not DIC.with_suffix(ext).exists():
             print(f"  descargando diccionario{ext}…", file=sys.stderr)
-            urllib.request.urlretrieve(URL + ext, DIC.with_suffix(ext))
+            urllib.request.urlretrieve(URL + ext, DIC.with_suffix(ext))  # noqa: S310 URL HTTPS fija; extensiones internas
 
 
 @lru_cache(maxsize=1)
 def diccionario():
     """(hunspell, lemas). Cacheado: cargarlo cuesta 0.3 s y 55 MB."""
     from spylls.hunspell import Dictionary
+
     _descargar()
     d = Dictionary.from_files(str(DIC))
     return d, [w.stem for w in d.dic.words]
@@ -62,8 +64,11 @@ def lista_casa() -> set[str]:
     """Terminos que el diccionario general no trae pero la notaria usa."""
     if not LISTA.exists():
         return set()
-    return {l.split("#")[0].strip().upper() for l in LISTA.read_text(encoding="utf-8").splitlines()
-            if l.split("#")[0].strip()}
+    return {
+        linea.split("#")[0].strip().upper()
+        for linea in LISTA.read_text(encoding="utf-8").splitlines()
+        if linea.split("#")[0].strip()
+    }
 
 
 def agregar_a_lista(palabras) -> int:
@@ -73,7 +78,9 @@ def agregar_a_lista(palabras) -> int:
     if nuevas:
         with LISTA.open("a", encoding="utf-8") as f:
             if not LISTA.stat().st_size:
-                f.write("# Terminos aceptados por la notaria: siglas, juridico, toponimos.\n")
+                f.write(
+                    "# Terminos aceptados por la notaria: siglas, juridico, toponimos.\n"
+                )
             f.write("\n".join(nuevas) + "\n")
     return len(nuevas)
 
@@ -87,6 +94,7 @@ def revisar(texto: str, extra: set[str] = frozenset()) -> list[tuple[str, str, s
     d, lemas = diccionario()
     aceptadas = lista_casa() | {e.upper() for e in extra}
     import re
+
     fuera = []
     for w in dict.fromkeys(re.findall(r"[^\W\d_]{3,}", texto)):
         # se consulta TAL CUAL antes que en minuscula: hunspell acepta el nombre
@@ -97,12 +105,15 @@ def revisar(texto: str, extra: set[str] = frozenset()) -> list[tuple[str, str, s
         base = plano(w)
         if not tildada(w):
             # sin tilde: si alguna forma tildada existe, es la convencion de mayusculas
-            if any(d.lookup(v) or d.lookup(v.upper())
-                   for i, c in enumerate(base) if c in VOCALES
-                   for v in [base[:i] + AGUDA[c] + base[i + 1:]]):
+            if any(
+                d.lookup(v) or d.lookup(v.upper())
+                for i, c in enumerate(base)
+                if c in VOCALES
+                for v in [base[:i] + AGUDA[c] + base[i + 1 :]]
+            ):
                 continue
         elif d.lookup(base) or d.lookup(base.upper()):
-            fuera.append((w, "tilde mal puesta", base))     # correccion exacta
+            fuera.append((w, "tilde mal puesta", base))  # correccion exacta
             continue
         m = process.extractOne(base, lemas, scorer=fuzz.ratio)
         fuera.append((w, "no existe en castellano", m[0] if m and m[1] >= 75 else "?"))
@@ -111,14 +122,18 @@ def revisar(texto: str, extra: set[str] = frozenset()) -> list[tuple[str, str, s
 
 def main():
     from extraer import leer
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("documento")
     a = ap.parse_args()
     hallazgos = revisar(leer(Path(a.documento)))
     for w, motivo, sug in hallazgos:
         print(f"  «{w}» {motivo}   ¿{sug}?")
-    print(f"\n{len(hallazgos)} palabras marcadas · lista de la casa: {len(lista_casa())} terminos")
+    print(
+        f"\n{len(hallazgos)} palabras marcadas · lista de la casa: {len(lista_casa())} terminos"
+    )
     return 1 if hallazgos else 0
 
 

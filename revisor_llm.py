@@ -6,6 +6,7 @@ identicas al error, y valores "correctos" que no estan en ninguna fuente.
 
 La key se lee de GEMINI_API_KEY o del .env local. Nunca se imprime.
 """
+
 import json
 import os
 import re
@@ -64,36 +65,49 @@ def _solo_agrega_tilde(enc: str, cor: str) -> bool:
     """Poner tildes a MAYUSCULAS es estilo, no error: la escritura final las deja
     sin tilde. En cambio una tilde MAL PUESTA (OCUPACION con acento grave) si lo
     es, y ahi el texto encontrado ya trae tilde, asi que no cae en esta regla."""
-    return (_sin_tildes(enc) == _sin_tildes(cor) and not _tildar(enc)
-            and _tildar(cor) and enc == enc.upper())
+    return (
+        _sin_tildes(enc) == _sin_tildes(cor)
+        and not _tildar(enc)
+        and _tildar(cor)
+        and enc == enc.upper()
+    )
 
 
 def consultar(texto: str, modelo: str = None) -> list[dict]:
     """Crudo, sin filtrar. Temperatura 0 aunque no garantice determinismo."""
-    cuerpo = json.dumps({
-        "system_instruction": {"parts": [{"text": INSTRUCCIONES}]},
-        "contents": [{"parts": [{"text": texto}]}],
-        "generationConfig": {"temperature": 0, "responseMimeType": "application/json"},
-    }).encode()
-    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
-           f"{modelo or MODELO}:generateContent?key={_key()}")
+    cuerpo = json.dumps(
+        {
+            "system_instruction": {"parts": [{"text": INSTRUCCIONES}]},
+            "contents": [{"parts": [{"text": texto}]}],
+            "generationConfig": {
+                "temperature": 0,
+                "responseMimeType": "application/json",
+            },
+        }
+    ).encode()
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{modelo or MODELO}:generateContent?key={_key()}"
+    )
     req = urllib.request.Request(url, cuerpo, {"Content-Type": "application/json"})
     # 503 "high demand" es rutinario y transitorio; sin reintento se pierde la corrida
     # entera, que es justo lo que le pasa a la rama en produccion.
     for intento in range(4):
         try:
-            with urllib.request.urlopen(req, timeout=180) as r:
+            with urllib.request.urlopen(req, timeout=180) as r:  # noqa: S310 Request construido con host y esquema HTTPS fijos
                 datos = json.load(r)
             break
         except urllib.error.HTTPError as e:
             if e.code not in (429, 500, 502, 503, 504) or intento == 3:
                 raise
-            time.sleep(2 ** intento * 5)
+            time.sleep(2**intento * 5)
     partes = datos["candidates"][0]["content"]["parts"]
     return json.loads("".join(p.get("text", "") for p in partes)).get("hallazgos", [])
 
 
-def filtrar(crudos: list[dict], documento: str, fuentes: str) -> tuple[list[dict], list[dict]]:
+def filtrar(
+    crudos: list[dict], documento: str, fuentes: str
+) -> tuple[list[dict], list[dict]]:
     """Devuelve (aceptados, descartados con su motivo). Los tres filtros del diseño:
 
     1. lo señalado tiene que existir literalmente en el documento
@@ -106,31 +120,46 @@ def filtrar(crudos: list[dict], documento: str, fuentes: str) -> tuple[list[dict
         fuera.append(h | {"descartado_por": motivo})
 
     for h in crudos:
-        enc, cor = _norm(str(h.get("encontrado", ""))), _norm(str(h.get("correccion", "")))
+        enc, cor = (
+            _norm(str(h.get("encontrado", ""))),
+            _norm(str(h.get("correccion", ""))),
+        )
         if not enc or not cor:
             tirar(h, "campo vacio")
         elif enc not in doc:
-            tirar(h, "no existe en el documento")            # alucinacion
+            tirar(h, "no existe en el documento")  # alucinacion
         elif enc == cor:
-            tirar(h, "correccion identica al error")         # payload inservible
+            tirar(h, "correccion identica al error")  # payload inservible
         elif re.search(r"\d", enc + cor):
-            tirar(h, "dato numerico, lo decide la regla")    # el 248
+            tirar(h, "dato numerico, lo decide la regla")  # el 248
         elif _solo_agrega_tilde(enc, cor):
             tirar(h, "tilde sobre mayusculas, estilo notarial")
         elif cor.upper() in fuentes and enc.upper() not in fuentes and len(cor) > 3:
-            ok.append(h | {"encontrado": enc, "correccion": cor, "respaldo": "en las fuentes"})
+            ok.append(
+                h | {"encontrado": enc, "correccion": cor, "respaldo": "en las fuentes"}
+            )
         else:
-            ok.append(h | {"encontrado": enc, "correccion": cor, "respaldo": "solo prosa"})
+            ok.append(
+                h | {"encontrado": enc, "correccion": cor, "respaldo": "solo prosa"}
+            )
     return ok, fuera
 
 
-def revisar_prosa(documento: str, fuentes: str = "", modelo: str = None,
-                  cache: bool = True) -> tuple[list, list]:
+def revisar_prosa(
+    documento: str, fuentes: str = "", modelo: str = None, cache: bool = True
+) -> tuple[list, list]:
     """El modelo no es determinista ni a temperatura 0: dos corridas sobre el mismo
     borrador dan listas distintas. Cachear por (modelo, documento) no arregla la
     causa, pero hace que el mismo expediente devuelva siempre lo mismo, que es lo
     que un notario necesita para sostener un criterio."""
     m = modelo or MODELO
-    pedir = (lambda: consultar(documento, m)) if not cache else \
-        (lambda: _cacheado(f"{m}\n{documento}".encode(), lambda: consultar(documento, m)))
+    pedir = (
+        (lambda: consultar(documento, m))
+        if not cache
+        else (
+            lambda: _cacheado(
+                f"{m}\n{documento}".encode(), lambda: consultar(documento, m)
+            )
+        )
+    )
     return filtrar(pedir(), documento, _sin_tildes(fuentes))

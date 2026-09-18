@@ -1,4 +1,5 @@
 """Medición privada opcional; no lee rutas ni expedientes al recolectar."""
+
 import contextlib
 import io
 import os
@@ -28,8 +29,11 @@ def test_referencia_local(monkeypatch, capfd):
         import extraer
         from verificar import catalogo, revisar
 
-        with TemporaryDirectory(prefix="notarial-reference-") as cache, \
-                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        with (
+            TemporaryDirectory(prefix="notarial-reference-") as cache,
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
             monkeypatch.setattr(extraer, "CACHE", Path(cache))
             fuentes = extraer.recolectar([str(raiz / "cliente")])
             cat = catalogo(fuentes)

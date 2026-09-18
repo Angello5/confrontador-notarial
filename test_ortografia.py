@@ -1,20 +1,38 @@
 """Test de ortografia.py con errores y nombres ficticios.
 
-  python -m pytest test_ortografia.py
+python -m pytest test_ortografia.py
 """
+
 from ortografia import lista_casa, revisar
 
 ERRORES = {
-    "DEUDORR": "no existe en castellano", "OCTAO": "no existe en castellano",
-    "MEIO": "no existe en castellano", "CONSTACIA": "no existe en castellano",
+    "DEUDORR": "no existe en castellano",
+    "OCTAO": "no existe en castellano",
+    "MEIO": "no existe en castellano",
+    "CONSTACIA": "no existe en castellano",
     "UIRBANIZACION": "no existe en castellano",
-    "CLAÚSULA": "tilde mal puesta", "CÍVIL": "tilde mal puesta",
-    "DÍARIA": "tilde mal puesta", "SÉXTA": "tilde mal puesta",
-    "INVALIDÉZ": "tilde mal puesta", "OCUPACIÒN": "no existe en castellano",
+    "CLAÚSULA": "tilde mal puesta",
+    "CÍVIL": "tilde mal puesta",
+    "DÍARIA": "tilde mal puesta",
+    "SÉXTA": "tilde mal puesta",
+    "INVALIDÉZ": "tilde mal puesta",
+    "OCUPACIÒN": "no existe en castellano",
 }
 # lo que NO puede marcarse: convencion de mayusculas, nombres propios, la lista
-CORRECTAS = ["OBLIGACION", "CLAUSULA", "OCUPACION", "TAMBIEN", "DECIMO", "PERÚ",
-             "ISIDRO", "OCUPACIÓN", "CLÁUSULA", "SUNARP", "EVICCIÓN"]
+CORRECTAS = [
+    "OBLIGACION",
+    "CLAUSULA",
+    "OCUPACION",
+    "TAMBIEN",
+    "DECIMO",
+    "PERÚ",
+    "ISIDRO",
+    "OCUPACIÓN",
+    "CLÁUSULA",
+    "SUNARP",
+    "EVICCIÓN",
+]
+
 
 def test_ortografia():
     # ZURBELIA es inventado; LAMPARA prueba la aceptación de una tilde ausente.
@@ -38,5 +56,7 @@ def test_ortografia():
     sug = {w: s for w, _, s in revisar("CLAÚSULA CÍVIL SÉXTA")}
     assert sug == {"CLAÚSULA": "clausula", "CÍVIL": "civil", "SÉXTA": "sexta"}, sug
 
-    print(f"OK — {len(ERRORES)} errores detectados, {len(CORRECTAS)} correctas respetadas, "
-          f"lista de la casa: {len(lista_casa())} términos")
+    print(
+        f"OK — {len(ERRORES)} errores detectados, {len(CORRECTAS)} correctas respetadas, "
+        f"lista de la casa: {len(lista_casa())} términos"
+    )

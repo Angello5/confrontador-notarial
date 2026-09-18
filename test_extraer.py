@@ -1,4 +1,5 @@
 """Pruebas de extracción sobre documentos enteramente sintéticos."""
+
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -32,7 +33,9 @@ def test_legacy(tmp_path, monkeypatch):
     assert "DONACION DE ACCIONES Y DERECHOS" in texto_doc, texto_doc
     assert "70001" in texto_doc, texto_doc
     assert extraer.leer(rtf).strip().startswith("DONACION"), extraer.leer(rtf)
-    assert sorted(x.name for x in tmp_path.iterdir()) == ["minuta.doc"]  # sin temporales
+    assert sorted(x.name for x in tmp_path.iterdir()) == [
+        "minuta.doc"
+    ]  # sin temporales
 
 
 def test_legacy_sin_libreoffice(tmp_path, monkeypatch):
@@ -52,7 +55,9 @@ def test_legacy_sin_libreoffice(tmp_path, monkeypatch):
 
 def test_xlsx():
     assert extraer.leer(BASE / "formatos" / "datos.xlsx").splitlines() == [
-        "DNI  90000004", "Partida  80000001"]
+        "DNI  90000004",
+        "Partida  80000001",
+    ]
 
 
 def test_cuadro_texto_docx():
@@ -73,3 +78,22 @@ def test_pdf_texto_y_tabla_docx():
     tabla = extraer.leer(BASE / "formatos" / "tabla.docx")
     assert tabla.splitlines()[:4] == ["DNI", "90000004", "Partida", "80000001"]
     assert "CAMPO  VALOR" in tabla
+
+
+def test_legacy_macos_ejecutable_absoluto(monkeypatch):
+    from types import SimpleNamespace
+
+    def ejecutar(argv, **kwargs):
+        assert argv == [
+            "/usr/bin/textutil",
+            "-convert",
+            "txt",
+            "-stdout",
+            "ficticio.rtf",
+        ]
+        assert kwargs == {"capture_output": True, "text": True}
+        return SimpleNamespace(returncode=0, stdout="CAMPO\tVALOR")
+
+    monkeypatch.setattr(extraer.sys, "platform", "darwin")
+    monkeypatch.setattr(extraer.subprocess, "run", ejecutar)
+    assert extraer.leer(Path("ficticio.rtf")) == "CAMPO  VALOR"
