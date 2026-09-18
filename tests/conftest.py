@@ -56,16 +56,41 @@ def pytest_sessionfinish(session, exitstatus):
             for c in clases
         ):
             raise _CoberturaInvalida
-        if {c.attrib["filename"] for c in clases} != {
-            "extraer.py",
-            "verificar.py",
-            "lexico.py",
-            "ortografia.py",
-            "revisor_llm.py",
-            "app.py",
-            "app_ortografia.py",
-            "bench_llm.py",
-        }:
+        archivos = {c.attrib["filename"] for c in clases}
+        if not {"config/settings.py", "accounts/models.py", "manage.py"} <= archivos:
+            raise _CoberturaInvalida
+        if any(
+            not (
+                nombre
+                in {
+                    "extraer.py",
+                    "verificar.py",
+                    "lexico.py",
+                    "ortografia.py",
+                    "revisor_llm.py",
+                    "app.py",
+                    "app_ortografia.py",
+                    "bench_llm.py",
+                    "manage.py",
+                }
+                or nombre.startswith(("config/", "accounts/", "core/"))
+            )
+            for nombre in archivos
+        ):
+            raise _CoberturaInvalida
+        if (
+            not {
+                "extraer.py",
+                "verificar.py",
+                "lexico.py",
+                "ortografia.py",
+                "revisor_llm.py",
+                "app.py",
+                "app_ortografia.py",
+                "bench_llm.py",
+            }
+            <= archivos
+        ):
             raise _CoberturaInvalida
     except (OSError, ValueError, KeyError, _CoberturaInvalida, ElementTree.ParseError):
         session.exitstatus = pytest.ExitCode.TESTS_FAILED

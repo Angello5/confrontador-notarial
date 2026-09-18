@@ -82,6 +82,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **SEC-001**: Toda pantalla y acción interna MUST requerir autenticación; cada acción protegida MUST exigir autorización explícita acorde con el rol. Ocultar una opción del menú no sustituye la autorización del servidor.
 - **SEC-002**: Solo Administradores autorizados MUST poder crear cuentas, desactivarlas, reactivarlas o asignar roles desde `/admin`. Las solicitudes manipuladas o directas también se deniegan.
 - **SEC-003**: Las cuentas desactivadas MUST quedar impedidas de iniciar sesión y todas sus sesiones MUST revocarse al instante; Administradores pueden reactivarlas. Nadie puede desactivarse a sí mismo ni dejar cero Administradores activos.
+- **SEC-007**: Las cookies de sesión y CSRF MUST usar el atributo Secure cuando DEBUG está desactivado. El despliegue HTTPS interno se confirmará en F8.
 - **SEC-004**: La interfaz, errores y registros MUST evitar contraseñas, secretos, tokens y datos personales innecesarios; no se incluirán datos reales en pruebas, fixtures, ejemplos ni mensajes.
 - **SEC-005**: El sistema MUST usar autenticación de Django y permisos asociados a los grupos Administrador y Usuario. La gestión se realiza en Django admin (`/admin`); el primer Administrador se crea con un comando de gestión en el servidor.
 - **SEC-006**: El acceso al ERP MUST operar sin llamadas a modelos de lenguaje ni servicios de IA.

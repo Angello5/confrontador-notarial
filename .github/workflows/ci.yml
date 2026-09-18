@@ -101,6 +101,7 @@ jobs:
                   path.write_bytes(content)
           PY
       - run: python scripts/generar_fixtures.py
+      - run: python manage.py makemigrations --check --dry-run
       - run: python -m pytest -m 'not local_reference' --cov --cov-report=term --cov-report=xml:coverage.xml
       - run: python -c "import xml.etree.ElementTree as E; assert E.parse('coverage.xml').getroot().findall('.//class')"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

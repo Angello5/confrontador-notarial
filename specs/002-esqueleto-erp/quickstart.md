@@ -3,8 +3,16 @@
 ## Prerrequisitos
 
 - Python 3.13 y dependencias instaladas desde los locks con hashes del repositorio.
+- Para ejecutar Django fuera de pytest, configurar `DJANGO_SECRET_KEY` mediante
+  el entorno del servidor; sin ella la aplicación no inicia. pytest usa una
+  clave fija solo en el proceso de pruebas.
 - PostgreSQL para validación del backend de producción; CI levanta PostgreSQL como service container en el job `tests`. Su imagen está fijada por digest y se actualiza manualmente: Dependabot no gestiona `services.image`.
+- La conexión PostgreSQL usa `POSTGRES_DB`, `POSTGRES_USER`,
+  `POSTGRES_PASSWORD`, `POSTGRES_HOST` y `POSTGRES_PORT`; los valores por
+  defecto sirven para desarrollo local. En CI se configuran desde el service
+  container.
 - Assets de AdminLTE 4, Bootstrap 5 y Alpine.js versionados en `static/vendor/`; sin conexión CDN.
+- En F8 se confirmará el despliegue con HTTPS interno en la LAN; `SESSION_COOKIE_SECURE` y `CSRF_COOKIE_SECURE` siguen `DEBUG` y se habilitan fuera del modo debug.
 
 ## Validación automática en CI
 
