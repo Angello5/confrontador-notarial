@@ -1,6 +1,6 @@
 """Test del filtro con casos de prosa inventados, sin documentos de clientes.
 
-No llama a la API. python3 test_revisor_llm.py
+No llama a la API. python -m pytest test_revisor_llm.py
 """
 from revisor_llm import filtrar
 
@@ -23,7 +23,7 @@ CASOS = [
     ("MARIA", "MARÍA", False, "tilde sobre mayusculas"),
 ]
 
-if __name__ == "__main__":
+def test_filtro():
     ok, fuera = filtrar([{"encontrado": e, "correccion": c} for e, c, _, _ in CASOS],
                         DOC, FUENTES)
     aceptados = {h["encontrado"] for h in ok}

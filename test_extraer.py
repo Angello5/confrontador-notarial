@@ -1,65 +1,61 @@
-"""Check minimo de extraer.py: las rutas nuevas (PDF escaneado y xlsx) y el cache.
-
-  Datos ficticios; los documentos se generarán en la etapa 2.
-
-  python3 test_extraer.py
-"""
+"""Pruebas de extracción sobre documentos enteramente sintéticos."""
 import subprocess
-import tempfile
 from pathlib import Path
+from zipfile import ZipFile
 
-import openpyxl
 import pymupdf
 
 import extraer
 
-BASE = Path(__file__).parent
-DNI = BASE / "tests" / "fixtures" / "cliente" / "dni.png"
+BASE = Path(__file__).parent / "tests" / "fixtures"
+DNI = BASE / "cliente" / "dni.png"
 
-if __name__ == "__main__":
-    # imagen: el dato clave del RENIEC sobrevive al filtro de sellos de agua
+
+def test_imagen_y_pdf_escaneado(tmp_path, monkeypatch):
+    monkeypatch.setattr(extraer, "CACHE", tmp_path / "cache")
     img = extraer.leer(DNI)
     assert "90000004-1" in img, img[:300]
     assert "NUBELIA" in img, img[:300]
-    assert extraer.leer(DNI) == img          # segunda pasada sale del cache
+    assert extraer.leer(DNI) == img
+    pdf = BASE / "formatos" / "escaneado.pdf"
+    with pymupdf.open(pdf) as doc:
+        assert not doc[0].get_text().strip()
+    assert "90000004-1" in extraer.leer(pdf)
 
-    with tempfile.TemporaryDirectory() as tmp:
-        # PDF sin capa de texto: la misma imagen incrustada, que es el caso de escaneo
-        pdf = Path(tmp) / "escaneado.pdf"
-        doc = pymupdf.open()
-        pagina = doc.new_page(width=595, height=842)
-        pagina.insert_image(pagina.rect, filename=str(DNI))
-        doc.save(pdf)
-        doc.close()
-        assert not pymupdf.open(pdf)[0].get_text().strip()   # de verdad no trae texto
-        assert "90000004-1" in extraer.leer(pdf), "el OCR de PDF escaneado no encontro el CUI"
 
-        # .doc (Word 97-2003): contenedor OLE, no zip. Se hace uno de verdad
-        # convirtiendo con textutil, que es lo mismo que usa leer() al revés.
-        doc = Path(tmp) / "minuta.doc"
-        rtf = Path(tmp) / "minuta.rtf"
-        rtf.write_text(r"{\rtf1\ansi DONACION DE ACCIONES Y DERECHOS\par KARDEX 70001\par}")
-        subprocess.run(["textutil", "-convert", "doc", "-output", str(doc), str(rtf)],
-                       check=True, capture_output=True)
-        assert doc.read_bytes()[:4] == b"\xd0\xcf\x11\xe0", "no quedo un OLE de verdad"
-        texto_doc = extraer.leer(doc)
-        assert "DONACION DE ACCIONES Y DERECHOS" in texto_doc, texto_doc
-        assert "70001" in texto_doc, texto_doc
-        assert extraer.leer(rtf).strip().startswith("DONACION"), extraer.leer(rtf)
+def test_legacy(tmp_path):
+    # Fallo conocido en Linux: conversión y lector se resuelven en etapa 3.
+    doc = tmp_path / "minuta.doc"
+    rtf = BASE / "formatos" / "minuta.rtf"
+    subprocess.run(["textutil", "-convert", "doc", "-output", str(doc), str(rtf)],
+                   check=True, capture_output=True)
+    assert doc.read_bytes()[:4] == b"\xd0\xcf\x11\xe0"
+    texto_doc = extraer.leer(doc)
+    assert "DONACION DE ACCIONES Y DERECHOS" in texto_doc, texto_doc
+    assert "70001" in texto_doc, texto_doc
+    assert extraer.leer(rtf).strip().startswith("DONACION"), extraer.leer(rtf)
 
-        xlsx = Path(tmp) / "datos.xlsx"
-        wb = openpyxl.Workbook()
-        wb.active.append(["DNI", "90000004"])
-        wb.active.append(["Partida", 80000001])
-        wb.save(xlsx)
-        assert extraer.leer(xlsx).splitlines() == ["DNI  90000004", "Partida  80000001"], \
-            extraer.leer(xlsx)
 
-    # el cuerpo del .docx no basta: esta nota vive en un cuadro de texto y
-    # mc:Fallback la guarda una segunda vez, asi que hay que leerla exactamente 1 vez
-    cuerpo = extraer.leer(BASE / "tests" / "fixtures" / "borrador" / "observado.docx")
-    assert "<w:" not in cuerpo, "se filtro XML crudo al texto"
+def test_xlsx():
+    assert extraer.leer(BASE / "formatos" / "datos.xlsx").splitlines() == [
+        "DNI  90000004", "Partida  80000001"]
+
+
+def test_cuadro_texto_docx():
+    ruta = BASE / "borrador" / "observado.docx"
     nota = "NOTA DE PRUEBA: CONSTACIA DEL DOCUMENTO (3)"
-    assert cuerpo.count(nota) == 1, f"la nota del cuadro de texto sale {cuerpo.count(nota)} veces"
+    with ZipFile(ruta) as z:
+        xml = z.read("word/document.xml").decode()
+    assert "<w:txbxContent>" in xml and "<mc:Fallback>" in xml
+    assert xml.count(nota) == 2  # Choice moderno y Fallback VML.
+    cuerpo = extraer.leer(ruta)
+    assert "<w:" not in cuerpo
+    assert cuerpo.count(nota) == 1
 
-    print("OK — imagen, PDF escaneado, .doc, .rtf, xlsx, cuadros de texto y cache")
+
+def test_pdf_texto_y_tabla_docx():
+    texto = extraer.leer(BASE / "formatos" / "texto.pdf")
+    assert "DOCUMENTO FICTICIO" in texto and "90000004" in texto
+    tabla = extraer.leer(BASE / "formatos" / "tabla.docx")
+    assert tabla.splitlines()[:4] == ["DNI", "90000004", "Partida", "80000001"]
+    assert "CAMPO  VALOR" in tabla

@@ -1,6 +1,6 @@
-"""Test de lexico.py con documentos ficticios generados en la etapa 2.
+"""Test de lexico.py con documentos ficticios generados localmente.
 
-  python3 test_lexico.py
+  python -m pytest test_lexico.py
 """
 from pathlib import Path
 
@@ -12,7 +12,7 @@ FIRMADA = BASE / "resultado" / "correcto.docx"
 BORRADOR = BASE / "borrador" / "observado.docx"
 MINUTA = BASE / "cliente" / "minuta.docx"
 
-if __name__ == "__main__":
+def test_lexico():
     vocab = vocabulario([str(FIRMADA)])
 
     hallado = {p: c for p, c, _ in erratas(leer(BORRADOR), vocab)}

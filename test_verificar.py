@@ -1,8 +1,8 @@
 """Check minimo: el borrador malo debe salir observado y el resultado limpio.
 
-  Datos ficticios; los documentos se generarán en la etapa 2.
+  Datos ficticios generados por scripts/generar_fixtures.py.
 
-  python3 test_verificar.py
+  python -m pytest test_verificar.py
 """
 from pathlib import Path
 
@@ -11,7 +11,7 @@ from verificar import catalogo, revisar
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
 
-if __name__ == "__main__":
+def test_verificacion():
     fuentes = recolectar([str(BASE / "cliente")])
     cat = catalogo(fuentes)
     assert cat["DNI"] == {"90000001", "90000002", "90000003", "90000004"}, cat["DNI"]
@@ -30,9 +30,9 @@ if __name__ == "__main__":
     from extraer import leer
     borrador = next(iter(recolectar([str(BASE / "borrador")]).values()))
     assert diagnostico(fuentes, borrador) is None, diagnostico(fuentes, borrador)
-    ajeno = leer(BASE / "ajeno" / "plantilla.doc")
+    ajeno = leer(BASE / "ajeno" / "plantilla.docx")
     assert "no corresponde" in (diagnostico(fuentes, ajeno) or ""), diagnostico(fuentes, ajeno)
     # una plantilla ajena MEZCLADA entre las fuentes no debe hundir a la minuta
-    assert diagnostico(fuentes | {"plantilla.doc": ajeno}, borrador) is None
+    assert diagnostico(fuentes | {"plantilla.docx": ajeno}, borrador) is None
 
     print(f"OK — borrador: {len(malo)} observaciones, resultado: 0, plantilla ajena bloqueada")

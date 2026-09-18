@@ -86,14 +86,16 @@ entrada idéntica devolvieron **19, 22 y 27** discrepancias.
 ## Pruebas
 
 ```bash
-python3 test_extraer.py && python3 test_verificar.py && python3 test_lexico.py \
-  && python3 test_ortografia.py && python3 test_revisor_llm.py
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python scripts/generar_fixtures.py
+python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 ```
 
-> **Necesitan los fixtures sintéticos de la etapa 2**, que no están en este repositorio
-> (todavía no generados). En un clon limpio fallan por archivo no encontrado: es
-> esperado. `test_ortografia.py` y `test_revisor_llm.py` sí corren solos —
-> el segundo no llama a la API, solo ejercita los filtros.
+Usar Python 3.13. El generador crea los fixtures ficticios localmente, sin
+expedientes ni dependencias adicionales. El aprovisionamiento de OCR y
+diccionario está en [la guía F1](specs/001-base-devsecops/quickstart.md).
+El test del filtro no llama a la API. Al cerrar etapa 2 queda el fallo
+conocido de `test_legacy` en Linux por `textutil`, pendiente de etapa 3.
 
 ## Datos personales
 
@@ -116,7 +118,7 @@ Todo eso queda ignorado por git automáticamente. La copia de seguridad de los
 expedientes es responsabilidad de la notaría, fuera de este repositorio.
 
 > **Saneamiento F1:** los tests usan datos ficticios y rutas bajo
-> `tests/fixtures/`; su generador se implementará en la etapa 2. El historial
+> `tests/fixtures/`; se regeneran con el script anterior. El historial
 > anterior permanece privado: publicar el repositorio exige limpiarlo en otra fase.
 
 ## Estado

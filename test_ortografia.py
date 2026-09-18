@@ -1,6 +1,6 @@
 """Test de ortografia.py con errores y nombres ficticios.
 
-  python3 test_ortografia.py
+  python -m pytest test_ortografia.py
 """
 from ortografia import lista_casa, revisar
 
@@ -16,7 +16,7 @@ ERRORES = {
 CORRECTAS = ["OBLIGACION", "CLAUSULA", "OCUPACION", "TAMBIEN", "DECIMO", "PERÚ",
              "ISIDRO", "OCUPACIÓN", "CLÁUSULA", "SUNARP", "EVICCIÓN"]
 
-if __name__ == "__main__":
+def test_ortografia():
     # ZURBELIA es inventado; LAMPARA prueba la aceptación de una tilde ausente.
     # Ambos se pasan como apellidos ficticios mediante extra.
     texto = " ".join(list(ERRORES) + CORRECTAS + ["ZURBELIA", "LAMPARA"])
