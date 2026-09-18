@@ -1,13 +1,13 @@
 <!--
 Sync Impact Report
-- Version: 1.2.0 → 1.3.0 (MINOR: se resuelve TODO(SONAR) y se autoriza el
-  arranque excepcional de F1)
-- Principios modificados: VII. DevSecOps (herramienta decidida: SonarQube
-  Cloud; cláusula de arranque para el PR que sanea el repositorio)
-- Motivo: el Quality Gate no puede existir antes de que `main` esté saneada;
-  sin esta enmienda previa, el PR de arranque contradiría la constitución
-  vigente (hallazgo C1 de `$speckit-analyze` en F1)
-- Historial: 1.2.0 añadió VIII Usabilidad; 1.1.0 añadió VII DevSecOps; 1.0.0
+- Version: 1.3.0 → 1.4.0 (MINOR: se adopta el gate disponible en el plan
+  gratuito y se documenta su límite de cobertura)
+- Principios modificados: VII. DevSecOps (Quality Gate "Sonar way" y
+  excepción nativa para cambios de menos de 20 líneas nuevas)
+- Motivo: el plan gratuito de SonarQube Cloud no permite gates personalizados;
+  se acepta su tolerancia de cambios pequeños y se revisará si cambia el plan
+- Historial: 1.3.0 resolvió TODO(SONAR) y autorizó el arranque excepcional de
+  F1; 1.2.0 añadió VIII Usabilidad; 1.1.0 añadió VII DevSecOps; 1.0.0
   ratificación inicial
 - Plantillas: plan-template.md lee la constitución en "Constitution Check" (sin cambios necesarios)
 - TODO pendientes:
@@ -105,9 +105,10 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   `main`: lint, tests, análisis estático y de seguridad (SAST), dependencias
   vulnerables (SCA) y búsqueda de secretos.
 - **SonarQube es la puerta de calidad**: un PR NO se mergea si el Quality Gate
-  falla. Como mínimo, en código nuevo: 0 vulnerabilidades, 0 bugs nuevos
-  críticos o bloqueantes, 100 % de Security Hotspots revisados y cobertura
-  mínima de 80 %.
+  falla. Se usa **Sonar way**: en código nuevo exige 0 vulnerabilidades, 0 bugs,
+  100 % de Security Hotspots revisados y cobertura mínima de 80 %. Sonar way no
+  evalúa duplicación ni cobertura en cambios de menos de 20 líneas nuevas; se
+  acepta esta limitación del plan gratuito y se revisará si cambia el plan.
 - **Secretos:** nunca en el repositorio. `gitleaks` corre en pre-commit y en el
   CI; los tokens (p. ej. `SONAR_TOKEN`) viven en GitHub Secrets o en el `.env`
   del servidor.
@@ -225,4 +226,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.3.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-17
+**Version**: 1.4.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-18

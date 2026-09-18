@@ -1,0 +1,14 @@
+# Extracción y OCR local
+rapidocr==3.4.3
+onnxruntime==1.23.2
+pymupdf==1.28.2
+openpyxl==3.1.5
+pillow==12.3.0
+
+# Comparación
+rapidfuzz==3.14.5
+spylls==0.1.7
+
+# Interfaz
+streamlit==1.58.0
+pandas==2.2.3

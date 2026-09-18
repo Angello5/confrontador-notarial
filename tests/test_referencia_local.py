@@ -9,6 +9,10 @@ from tempfile import TemporaryDirectory
 import pytest
 
 
+class _MedicionInvalida(Exception):
+    pass
+
+
 @pytest.mark.local_reference
 def test_referencia_local(monkeypatch, capfd):
     # Ningún dato del expediente debe salir en capturas, trazas o caché persistente.
@@ -40,9 +44,12 @@ def test_referencia_local(monkeypatch, capfd):
             observado = extraer.leer(raiz / "observado.docx")
             correcto = extraer.leer(raiz / "correcto.docx")
             resultados = [revisar(cat, observado, 88) for _ in range(5)]
-            assert len(resultados[0]) == 8
-            assert all(r == resultados[0] for r in resultados)
-            assert revisar(cat, correcto, 88) == []
+            if len(resultados[0]) != 8:
+                raise _MedicionInvalida
+            if any(r != resultados[0] for r in resultados):
+                raise _MedicionInvalida
+            if revisar(cat, correcto, 88):
+                raise _MedicionInvalida
     except FileNotFoundError:
         pytest.fail("Expediente local ausente o incompleto.", pytrace=False)
     except Exception:

@@ -31,7 +31,9 @@ la minuta y los documentos del cliente.
 ## Comandos
 
 ```bash
-python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pip install --require-hashes --only-binary :all: --no-binary antlr4-python3-runtime -r requirements.txt -r requirements-dev.txt
+python -m piptools compile --generate-hashes --output-file=requirements.txt requirements.in
+python -m piptools compile --generate-hashes --allow-unsafe --output-file=requirements-dev.txt requirements-dev.in
 python scripts/generar_fixtures.py
 python -m ruff check .
 python -m ruff format --check .

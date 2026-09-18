@@ -135,10 +135,10 @@ Resultados T013:
 T013 aprobado con la única limitación legacy prevista. T014 registra el commit
 local `test: add synthetic fixtures and pytest`; no hay push ni avance a etapa 3.
 
-## Etapa 3: T015–T017 y T019 ejecutadas; T018 pendiente de medición local
+## Etapa 3: T015–T019 ejecutadas (T018 con medición local del usuario)
 
 LibreOffice en Linux: paquete de la distribución (`apt install libreoffice-writer`
-o equivalente), ejecutable `soffice` en PATH. Probado con LibreOffice 26.2,
+o el paquete correspondiente), ejecutable `soffice` en PATH. Probado con LibreOffice 26.2,
 Python 3.13.
 
 - Tests primero: `test_legacy` y `test_legacy_sin_libreoffice` fallaron antes del
@@ -151,9 +151,11 @@ Python 3.13.
   comprueba lectura `.doc`/`.rtf` y que no quedan temporales.
 - Suite completa con cobertura en Linux: **16 aprobadas, 1 deseleccionada**, sin
   fallos; dos ejecuciones consecutivas y regeneración de fixtures sin cambios.
-- T018: medición `local_reference` pendiente con `EXPEDIENTES_REFERENCIA_DIR`;
-  la ejecuta el usuario en su máquina antes del merge de PR 1 porque cambió
-  `extraer.py`.
+- T018: medición `local_reference` ejecutada por el usuario el 2026-09-18 en su
+  máquina, con `EXPEDIENTES_REFERENCIA_DIR` fuera del repositorio, sobre `9777e52`:
+  **1 passed** (8 observaciones en el borrador, salida idéntica en 5 corridas,
+  0 en la escritura correcta). Sin regresión por el cambio de `extraer.py`; el
+  test no emite datos del expediente.
 
 ## Checkpoint ejecutado · Etapa 4 (T020–T025)
 
@@ -219,7 +221,7 @@ Con el entorno nuevo activado, resultados del checkpoint T024:
 T024 aprobado. T025 registra el commit local `chore: pass lint and dependency audit`.
 No se inicia etapa 5, no hay push, PR, cambios de CI ni activación de Sonar.
 T019 está completada por `2be5a48`, «Finalizar etapa 3» (mensaje distinto al
-previsto); T018 sigue abierta. Pendiente: medición local_reference con EXPEDIENTES_REFERENCIA_DIR, la ejecuta el usuario en su máquina antes del merge de PR 1 (extraer.py cambió).
+previsto); T018 completada después con la medición local del usuario (ver etapa 3).
 
 Deuda fuera de alcance: revisor_llm.py envía la API key en la query (?key=); usar cabecera x-goog-api-key si la capa experimental se reactiva.
 
@@ -277,9 +279,42 @@ Dependabot contiene exactamente dos revisiones semanales (`pip` y
 | Gitleaks sobre copia limpia y rango `9ca2cc9..HEAD` | PASS: árbol y commits de etapa sin hallazgos; salida redactada. |
 | Revisión de configuración/diff | PASS: sin datos reales, secretos, dependencias Python nuevas, jobs posteriores ni artefactos privados. |
 
-Este checkpoint es local: los cuatro checks remotos siguen pendientes de T034.
-T033 conserva pendientes el push privado y las tareas T034–T036; no se afirma
-PR 1 ni `main` en verde.
+En ese checkpoint local, los cuatro checks remotos, el push y T033–T036 todavía
+estaban pendientes; su cierre posterior queda registrado a continuación.
+
+## Cierre remoto de PR 1 · T033–T036
+
+El commit de cierre T033 `9378343` se publicó mediante el
+[PR #8](https://github.com/Angello5/confrontador-notarial/pull/8). Su revisión
+final `9777e52` se integró en `main` como `4cb625e`, sin reescritura de historia.
+La [ejecución 35315252141](https://github.com/Angello5/confrontador-notarial/actions/runs/35315252141)
+de `main` terminó con `lint`, `tests`, `dependencies` y `secrets` en `success`.
+El commit `875a57b`, que registra la medición T018, es posterior a esa revisión y
+se incorpora con PR 2.
+
+Incidente registrado: Automatic Analysis permaneció activo en SonarQube Cloud
+desde el 2026-09-17 mientras `main` todavía contenía datos personales reales en
+tests. El 2026-09-18 se desactivó, se eliminó el proyecto y se recreó privado con
+Automatic Analysis desactivado. Este registro no reproduce datos afectados ni
+valores de credenciales.
+
+## Implementación local · T039–T041
+
+La constitución v1.4.0 cubre el uso de SonarQube Cloud privado, el análisis desde
+CI, Sonar way y la excepción única de arranque ya consumida por PR 1. El roadmap
+conserva F1 en curso.
+
+El job `sonar` descarga `coverage.xml` del mismo `run_id` y `run_attempt`, usa
+checkout completo sin credenciales persistentes y ejecuta únicamente la acción
+oficial de análisis. `SONAR_TOKEN` solo se expone al paso del escáner y su
+ausencia falla antes del análisis. La acción
+`SonarSource/sonarqube-scan-action` v8.2.2 quedó fijada a
+`ba9859eae8dd6bd29e412f25ddbbef3d032000f4`, verificado con
+`git ls-remote --tags`; el gate espera hasta 300 segundos. `ci-required` agrega
+exactamente los cinco controles y solo acepta cinco resultados `success`.
+El responsable confirmó que el secreto está aprovisionado en GitHub Actions y
+lo añadirá al almacén de Dependabot; su valor no se inspeccionó ni se registró.
+Actionlint 1.7.12 y `pre-commit run --all-files` aprobaron esta configuración.
 
 ## Validación local sintética
 
@@ -288,13 +323,30 @@ Desde la raíz del repositorio, después de implementar:
 ```bash
 python3.13 -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pip install --require-hashes --only-binary :all: --no-binary antlr4-python3-runtime -r requirements.txt -r requirements-dev.txt
 python scripts/generar_fixtures.py
 python -m ruff check .
 python -m ruff format --check .
 python -m pytest -m 'not local_reference' --cov --cov-report=term --cov-report=xml:coverage.xml
 python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
 ```
+
+Los archivos `requirements.in` y `requirements-dev.in` son las fuentes que
+actualiza Dependabot; los `.txt` bloquean también las dependencias transitivas.
+Para regenerarlos con Python 3.13 y `pip-tools==7.6.1`:
+
+```bash
+python -m piptools compile --generate-hashes --output-file=requirements.txt requirements.in
+python -m piptools compile --generate-hashes --allow-unsafe --output-file=requirements-dev.txt requirements-dev.in
+```
+
+La instalación conserva `--only-binary :all:` y una excepción individual:
+`antlr4-python3-runtime==4.9.3`, dependencia transitiva fijada de `omegaconf`,
+solo publica un sdist para esa versión. El hash del lock protege el sdist, pero
+su aislamiento de compilación instala `setuptools>=40.8.0` sin versión fija ni
+hash y ejecuta con él el código de construcción. Es un riesgo residual aceptado
+y registrado en `docs/deuda-f3.md`; se revisará una instalación en dos pasos con
+`setuptools` bloqueado y `--no-build-isolation`. El CI no cambia en F1.
 
 En etapa 5, una vez configurados gitleaks y `.pre-commit-config.yaml`, añadir:
 
@@ -323,6 +375,40 @@ obtener verde.
 python -m pytest -o addopts= -m local_reference --tb=no -q
 ```
 
+## Análisis inicial y resolución T038
+
+El usuario ejecutó el análisis inicial de SonarCloud el 2026-09-18 sobre
+`main` `4cb625e` (`master` en SonarCloud), con cobertura del mismo análisis. El
+inventario resultó en 13 vulnerabilidades, 7 bugs, 10 code smells y 0 Security
+Hotspots.
+
+| Hallazgos | Resolución en PR 2 |
+|---|---|
+| githubactions:S8541, 3 casos de instalación | Corregidos: CI instala ambos locks con `--require-hashes --only-binary :all:`. |
+| githubactions:S8544, 3 casos de resolución | Corregidos: fuentes `.in` y locks `.txt` generados por pip-compile con hashes y transitivas. |
+| githubactions:S6506, descarga de Gitleaks | Corregido: curl exige HTTPS y TLS 1.2. |
+| pythonsecurity:S8707, 4 rutas en `extraer.py` | Corregidos en el adaptador compartido: ruta absoluta existente, archivo regular y sufijo legacy antes del subprocess. |
+| pythonsecurity:S8705, `_soffice` y `_legacy` | Mitigados y justificados: CLI local, argv sin shell, ejecutable/opciones internos y ruta validada; revisar si esas opciones pasan a ser entrada no confiable. |
+| python:S5779, 4 casos en `tests/conftest.py` | Corregidos con comprobaciones explícitas y `_CoberturaInvalida`. |
+| python:S5779, 3 casos en `tests/test_referencia_local.py` | Corregidos con comprobaciones explícitas y `_MedicionInvalida`; la salida sigue saneada. |
+| 10 code smells | Registrados individualmente en `docs/deuda-f3.md`; quedan para F3 sin bloquear F1. |
+
+La prueba ficticia con un archivo `-ficticio.rtf` falló antes del cambio y
+comprueba ahora que el subprocess recibe una ruta absoluta. Otra prueba impide
+invocar el conversor para directorios o sufijos fuera de `LEGACY`. El diseño de
+CLI local restante se justifica también en `docs/deuda-f3.md`; no se añadió una
+exclusión ni un `noqa` de Sonar.
+
+## Quality Gate T042
+
+El proyecto usa el Quality Gate **Sonar way**: Security Rating A (0
+vulnerabilidades nuevas), Reliability Rating A (0 bugs nuevos), 100 % de
+Security Hotspots revisados y cobertura de al menos 80 % en código nuevo. El
+plan gratuito no permite gates personalizados y Sonar way no evalúa duplicación
+ni cobertura cuando el cambio contiene menos de 20 líneas nuevas. La
+constitución v1.4.0 acepta expresamente esta limitación y exige revisar la
+decisión si cambia el plan. Los code smells previos no forman parte del gate.
+
 Esperado: ejecución únicamente tras selección expresa, resumen sin datos personales y fallo saneado si falta el directorio o los archivos requeridos. Ejecutar el mismo comando con indicador CI debe ser rechazado. Si se modificó el núcleo, comparar con baseline local sin regresión antes del merge; no subir reportes de contenido.
 
 ## PR 1 · Etapas 1–5
@@ -340,7 +426,7 @@ El usuario conecta SonarQube Cloud privado y realiza el primer análisis de main
 ## PR 2 · Etapa 6
 
 1. Inventariar vulnerabilidades, bugs y Security Hotspots existentes; corregirlos o justificarlos individualmente por escrito. Registrar code smells existentes como deuda F3 en `docs/deuda-f3.md`, sin bloquear ni excluir código del análisis.
-2. Añadir sonar y ci-required de cinco dependencias y el gate de código nuevo del contrato; la constitución v1.3.0 ya resolvió TODO(SONAR) y la cláusula de arranque.
+2. Añadir sonar y ci-required de cinco dependencias y Sonar way; la constitución v1.4.0 documenta la limitación del plan gratuito y conserva la cláusula de arranque.
 3. Validación previa local y evidencias de hallazgos; commit/push; abrir PR 2.
 4. Verificar cinco controles y agregado. Probar fallos individuales, omisión/cancelación, ausencia de cobertura/credenciales, umbrales, cambios pequeños y sin código productivo nuevo. Solo material ficticio; retirar pruebas antes de merge.
 5. Verificar PR de Dependabot y documentación, sin auto-merge. No ensayo de forks ni escenario independiente de SHA obsoleto; mantener protección de rama actualizada y prohibición de pull_request_target.

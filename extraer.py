@@ -103,9 +103,21 @@ def _xlsx(p: Path) -> str:
     )
 
 
+def _ruta_legacy(p: Path) -> Path:
+    try:
+        p = p.resolve(strict=True)
+    except OSError:
+        raise ValueError(f"{p.name}: formato legacy inválido") from None
+    if not p.is_file() or p.suffix.lower() not in LEGACY:
+        raise ValueError(f"{p.name}: formato legacy inválido")
+    return p
+
+
 def _soffice(p: Path, formato: str, destino: Path) -> Path:
     """Convierte con LibreOffice headless. Perfil propio en un temporal para no
     chocar con otra instancia abierta; los errores no llevan stderr ni rutas."""
+    p = _ruta_legacy(p)
+    destino = destino.resolve(strict=True)
     with tempfile.TemporaryDirectory() as perfil:
         try:
             r = subprocess.run(  # noqa: S603 argv sin shell; conversor fijo y ruta como argumento
@@ -136,6 +148,7 @@ def _legacy(p: Path) -> str:
     """Word 97-2003 y compañía, via textutil en macOS o LibreOffice en Linux. Un
     .doc no es un zip sino un contenedor OLE, asi que python-docx no puede con el."""
     if sys.platform == "darwin":
+        p = _ruta_legacy(p)
         r = subprocess.run(  # noqa: S603 argv sin shell; conversor fijo y ruta como argumento
             ["/usr/bin/textutil", "-convert", "txt", "-stdout", str(p)],
             capture_output=True,
@@ -192,6 +205,7 @@ def _docx(p: Path) -> str:
 def leer(p: Path) -> str:
     """Texto plano de cualquier formato soportado. Cachea lo que pasa por OCR."""
     s = p.suffix.lower()
+    p = p.resolve(strict=True)
     if s == ".docx":
         return _docx(p)
     if s in LEGACY:
