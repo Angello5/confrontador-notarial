@@ -22,6 +22,7 @@ Usar `Group` y `Permission` de Django, sin entidad propia. Solo existen los grup
 - Primer cambio de clave válido: la clave pasa por el validador nativo de Django; limpiar `force_password_change` y renovar el hash de sesión de acuerdo con el flujo de cambio de contraseña.
 - Desactivación: atómicamente establecer `is_active=false` e incrementar `session_version`; bloquear las filas activas del grupo Administrador en la transacción y rechazar si el operador se apunta a sí mismo o si la operación deja cero cuentas activas.
 - Reactivación: `is_active=true`; las sesiones anteriores siguen invalidadas. El restablecimiento de una clave no se incluye en F2 porque no hay correo.
+- Borrado: las cuentas se conservan y se desactivan; el Django admin no ofrece borrado de cuentas ni grupos de rol.
 - Alta inicial: el comando de gestión crea una sola cuenta Administrador con clave temporal y cambio obligatorio; falla si ya existe un Administrador activo.
 
 ## Persistencia
