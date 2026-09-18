@@ -12,10 +12,11 @@
 
 ### Session 2026-09-18
 
-- Q: ¿Qué roles existen y cómo se administran las cuentas iniciales? → A: Existen exactamente dos roles: Administrador y Usuario. El primer administrador se crea mediante un comando de gestión en el servidor; la gestión posterior de cuentas y roles se realiza en Django admin (`/admin`), sin pantallas propias ni asistente de primer uso.
+- Q: ¿Qué roles existen? → A: Existen exactamente dos roles: Administrador y Usuario.
 - Q: ¿Qué credenciales recibe una cuenta nueva y cuándo debe cambiarlas? → A: El administrador crea la cuenta con un nombre de usuario y una clave temporal; el cambio de clave es obligatorio en el primer ingreso. No se usa correo.
 - Q: ¿Qué ocurre con las sesiones y la reactivación al desactivar una cuenta? → A: Se revocan todas sus sesiones al instante y el administrador puede reactivar la cuenta.
-- Q: ¿Qué límites se aplican al desactivar administradores? → A: Nadie puede desactivarse a sí mismo ni dejar el sistema sin ningún administrador activo.
+- Q: ¿Dónde se administran las cuentas y cómo se crea el primer administrador? → A: La gestión de usuarios y roles se realiza en Django admin (`/admin`), sin pantallas propias ni asistente de primer uso. El primer administrador se crea con un comando de gestión en el servidor.
+- Q: ¿Qué límites se aplican al desactivar cuentas de administradores? → A: Nadie puede desactivarse a sí mismo ni dejar el sistema sin ningún administrador activo.
 
 ## User Scenarios & Testing *(mandatory)*
 
