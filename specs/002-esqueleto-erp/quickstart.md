@@ -3,7 +3,7 @@
 ## Prerrequisitos
 
 - Python 3.13 y dependencias instaladas desde los locks con hashes del repositorio.
-- PostgreSQL para validación del backend de producción; CI levanta PostgreSQL como service container en el job `tests`.
+- PostgreSQL para validación del backend de producción; CI levanta PostgreSQL como service container en el job `tests`. Su imagen está fijada por digest y se actualiza manualmente: Dependabot no gestiona `services.image`.
 - Assets de AdminLTE 4, Bootstrap 5 y Alpine.js versionados en `static/vendor/`; sin conexión CDN.
 
 ## Validación automática en CI

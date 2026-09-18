@@ -28,8 +28,13 @@
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
 
+## Feature Readiness
+
+- [ ] No implementation details leak into specification
+
 ## Notes
 
 - Los roles, credenciales temporales, administración de cuentas y efectos de desactivación quedaron definidos en Clarifications y en la constitución vigente.
 - Los requisitos constitucionales VI y VIII se incluyen; el diseño concreto se desarrolla en el plan.
+- Excepción documentada: Django admin y la ruta `/admin` se mantienen en la especificación porque fueron elegidos explícitamente por el usuario en Clarifications.
 - Los detalles técnicos del C4 se mencionan solo como contexto en Assumptions y deben concretarse en plan, no ampliarse aquí.

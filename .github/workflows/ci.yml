@@ -31,7 +31,8 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:17
+        # Update this digest manually; Dependabot does not manage services.image.
+        image: postgres:17@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675
         env:
           POSTGRES_DB: confrontador
           POSTGRES_USER: confrontador

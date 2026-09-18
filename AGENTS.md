@@ -41,6 +41,8 @@ python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
 ```
 
+La imagen PostgreSQL del service container en `.github/workflows/ci.yml` está fijada por digest; actualizar ese digest manualmente porque Dependabot no gestiona `services.image`.
+
 Usar Python 3.13 y aprovisionar OCR/diccionario según
 `specs/001-base-devsecops/quickstart.md`. Los tests predeterminados usan solo
 fixtures ficticios. En Linux, `.doc`/`.rtf` requieren LibreOffice (`soffice`).
