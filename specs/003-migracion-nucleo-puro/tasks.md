@@ -8,9 +8,9 @@
 
 **Propósito**: demostrar el comportamiento actual con datos ficticios y detectar E/S indebida desde el núcleo antes de refactorizar.
 
-- [ ] T001 [P] Añadir pruebas ficticias de frontera para la extracción de campos desde texto, verificación, léxico y ortografía en `tests/test_nucleo_puro.py`; comprobar que importar reglas del núcleo no importa el adaptador de extracción de texto desde archivos, OCR, red ni accede a rutas, y usar las rutas finales `nucleo/`.
-- [ ] T002 [P] Añadir casos sintéticos de líneas, acentos y Ñ que caractericen la extracción de texto desde archivos/OCR actual en `test_extraer.py`.
-- [ ] T003 Registrar en `specs/003-migracion-nucleo-puro/quickstart.md` los resultados agregados de caracterización sintética y los comandos reproducibles, sin copiar salidas que contengan documentos.
+- [X] T001 [P] Añadir pruebas ficticias de frontera para la extracción de campos desde texto, verificación, léxico y ortografía en `tests/test_nucleo_puro.py`; comprobar que importar reglas del núcleo no importa el adaptador de extracción de texto desde archivos, OCR, red ni accede a rutas, y usar las rutas finales `nucleo/`.
+- [X] T002 [P] Añadir casos sintéticos de líneas, acentos y Ñ que caractericen la extracción de texto desde archivos/OCR actual en `test_extraer.py`.
+- [X] T003 Registrar en `specs/003-migracion-nucleo-puro/quickstart.md` los resultados agregados de caracterización sintética y los comandos reproducibles, sin copiar salidas que contengan documentos.
 
 **Criterio independiente**: las pruebas de pureza fallan primero ante las importaciones/accesos actuales; las pruebas de caracterización de funciones documentan resultados ficticios reproducibles.
 

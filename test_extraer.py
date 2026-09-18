@@ -24,6 +24,22 @@ def test_imagen_y_pdf_escaneado(tmp_path, monkeypatch):
     assert "90000004-1" in extraer.leer(pdf)
 
 
+def test_ocr_lineas_conserva_orden_acentos_y_eñe(monkeypatch):
+    from types import SimpleNamespace
+
+    cajas = [
+        ([[30, 10], [70, 10], [70, 20], [30, 20]], "ÑANDÚ"),
+        ([[0, 10], [25, 10], [25, 20], [0, 20]], "LÍNEA"),
+        ([[0, 35], [45, 35], [45, 45], [0, 45]], "ACCIÓN"),
+    ]
+    ocr = SimpleNamespace(
+        txts=[texto for _, texto in cajas], boxes=[caja for caja, _ in cajas]
+    )
+    monkeypatch.setattr(extraer, "_ocr", lambda: lambda _fuente: ocr)
+
+    assert extraer.ocr_lineas(b"imagen sintetica") == "LÍNEA  ÑANDÚ\nACCIÓN"
+
+
 def test_legacy(tmp_path, monkeypatch):
     monkeypatch.setattr(extraer.sys, "platform", "linux")
     monkeypatch.setattr(extraer.tempfile, "tempdir", str(tmp_path))

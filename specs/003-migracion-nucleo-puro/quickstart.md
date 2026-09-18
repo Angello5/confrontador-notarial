@@ -36,6 +36,16 @@ python -m pytest -o addopts= -m revisor_llm test_revisor_llm.py -q
 
 Resultado: caracterización focalizada `13 passed, 1 deselected, 1 xfailed`; el caso xfail deja constancia de que las rutas heredadas todavía importan límites de archivo, pendiente de T004–T010. Prueba opt-in de prosa: `1 passed`; únicamente filtra valores ficticios y no llama a red ni modelos. Se generaron fixtures exclusivamente ficticios.
 
+Checkpoint de Etapa 1 (Python 3.13.9; entorno existente del proyecto):
+
+| Comando | Resultado |
+|---|---|
+| `python -m ruff check .` | PASS |
+| `python -m ruff format --check .` | PASS: 65 archivos ya formateados |
+| `python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml` | PASS: 22 aprobadas, 2 deseleccionadas, 1 xfail esperado; cobertura total 52 % |
+| `python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt` | PASS: no se encontraron vulnerabilidades conocidas |
+| `pre-commit run --all-files` | PASS: Ruff check, Ruff format y detección de secretos |
+
 ## Recursos OCR/diccionario verificados en CI
 
 Estos hashes identifican los archivos de modelos/diccionario que usa la verificación de recursos del workflow. No son hashes de distribuciones Python; esos pertenecen a los locks `requirements*.txt`.
