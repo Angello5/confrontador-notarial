@@ -32,6 +32,30 @@ def test_administrator_sees_admin_link(client, administrador_ficticio):
     assert response.status_code == 200
     assert b'href="/admin/"' in response.content
     assert ("Administraci" + "\u00f3n").encode() in response.content
+    assert client.get(reverse("admin:index")).status_code == 200
+
+
+def test_admin_link_and_access_require_both_staff_and_administrator_group(client, db):
+    from django.contrib.auth.models import Group
+
+    admin_group = Group.objects.get(name="Administrador")
+    admin_without_staff = get_user_model().objects.create_user(
+        username="grupo_sin_staff"
+    )
+    admin_without_staff.groups.add(admin_group)
+    client.force_login(admin_without_staff)
+    response = client.get(reverse("home"))
+    assert b'href="/admin/"' not in response.content
+    assert client.get(reverse("admin:index")).status_code == 403
+
+    staff_without_admin_group = get_user_model().objects.create_user(
+        username="staff_sin_grupo", is_staff=True
+    )
+    staff_without_admin_group.groups.add(Group.objects.get(name="Usuario"))
+    client.force_login(staff_without_admin_group)
+    response = client.get(reverse("home"))
+    assert b'href="/admin/"' not in response.content
+    assert client.get(reverse("admin:index")).status_code == 403
 
 
 def test_user_cannot_access_django_admin(client, usuario_ficticio):
