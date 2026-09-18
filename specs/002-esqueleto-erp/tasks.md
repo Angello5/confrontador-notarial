@@ -17,10 +17,10 @@
 
 ## Phase 2: Foundational
 
-- [ ] T005 Create the Django project settings, URL configuration and WSGI/ASGI entry points in `config/settings.py`, `config/urls.py`, `config/wsgi.py` and `config/asgi.py`; use environment variables with stdlib parsing for PostgreSQL and PostgreSQL-backed tests.
-- [ ] T006 Define the project user model based on `AbstractUser`, its initial migration, role group seed migration and database-session configuration in `accounts/models.py`, `accounts/migrations/0001_initial.py`, `accounts/migrations/0002_seed_roles.py` and `config/settings.py`.
-- [ ] T007 Add shared test settings and fictional-account fixtures in `tests/conftest.py`; verify Django checks, migration application and that exactly Administrador and Usuario groups are available against PostgreSQL.
-- [ ] T008 **Checkpoint**: run `python manage.py check`, migrations, pytest, lint and format checks; review `config/`, `accounts/models.py`, `accounts/migrations/`, and `tests/conftest.py`; commit this stage locally as `feat(f2): add auth foundation`.
+- [X] T005 Create the Django project settings, URL configuration and WSGI/ASGI entry points in `config/settings.py`, `config/urls.py`, `config/wsgi.py` and `config/asgi.py`; use environment variables with stdlib parsing for PostgreSQL and PostgreSQL-backed tests.
+- [X] T006 Define the project user model based on `AbstractUser`, its initial migration, role group seed migration and database-session configuration in `accounts/models.py`, `accounts/migrations/0001_initial.py`, `accounts/migrations/0002_seed_roles.py` and `config/settings.py`.
+- [X] T007 Add shared test settings and fictional-account fixtures in `tests/conftest.py`; verify Django checks, migration application and that exactly Administrador and Usuario groups are available against PostgreSQL.
+- [X] T008 **Checkpoint**: run `python manage.py check`, migrations, pytest, lint and format checks; review `config/`, `accounts/models.py`, `accounts/migrations/`, and `tests/conftest.py`; commit this stage locally as `feat(f2): add auth foundation`.
 
 ## Phase 3: User Story 1 - Ingresar al ERP (Priority: P1) 🎯 MVP
 
