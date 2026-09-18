@@ -1,6 +1,6 @@
-"""Check de ortografia.py con los errores reales de los dos expedientes.
+"""Test de ortografia.py con errores y nombres ficticios.
 
-  python3 test_ortografia.py
+  python -m pytest test_ortografia.py
 """
 from ortografia import lista_casa, revisar
 
@@ -16,11 +16,11 @@ ERRORES = {
 CORRECTAS = ["OBLIGACION", "CLAUSULA", "OCUPACION", "TAMBIEN", "DECIMO", "PERÚ",
              "ISIDRO", "OCUPACIÓN", "CLÁUSULA", "SUNARP", "EVICCIÓN"]
 
-if __name__ == "__main__":
-    # TEVEZ y CARDENAS no son palabras castellanas; AVELLANEDA y MENDOZA si lo son
-    # (avellaneda = bosque de avellanos), asi que no sirven para probar el apartado
-    texto = " ".join(list(ERRORES) + CORRECTAS + ["TEVEZ", "CARDENAS"])
-    hallado = {w: m for w, m, _ in revisar(texto, extra={"TEVEZ", "CARDENAS"})}
+def test_ortografia():
+    # ZURBELIA es inventado; LAMPARA prueba la aceptación de una tilde ausente.
+    # Ambos se pasan como apellidos ficticios mediante extra.
+    texto = " ".join(list(ERRORES) + CORRECTAS + ["ZURBELIA", "LAMPARA"])
+    hallado = {w: m for w, m, _ in revisar(texto, extra={"ZURBELIA", "LAMPARA"})}
 
     for w, motivo in ERRORES.items():
         assert w in hallado, f"{w} deberia marcarse y no se marco"
@@ -29,10 +29,10 @@ if __name__ == "__main__":
         assert w not in hallado, f"{w} se marco y es correcta ({hallado.get(w)})"
 
     # los apellidos se pasan en `extra`, no a la lista de la casa: cambian por caso
-    assert "TEVEZ" not in hallado and "CARDENAS" not in hallado
-    # CARDENAS no se marca: existe "cárdenas" y la regla de tilde ausente lo acepta
-    sin_extra = {w for w, _, _ in revisar("TEVEZ CARDENAS")}
-    assert "TEVEZ" in sin_extra, sin_extra
+    assert "ZURBELIA" not in hallado and "LAMPARA" not in hallado
+    # LAMPARA no se marca: existe "lámpara" y se acepta la tilde ausente.
+    sin_extra = {w for w, _, _ in revisar("ZURBELIA LAMPARA")}
+    assert "ZURBELIA" in sin_extra, sin_extra
 
     # la correccion de tilde mal puesta es exacta, no adivinada
     sug = {w: s for w, _, s in revisar("CLAÚSULA CÍVIL SÉXTA")}

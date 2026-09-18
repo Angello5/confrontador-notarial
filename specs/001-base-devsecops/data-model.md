@@ -18,4 +18,4 @@ Transición de integración: bloqueado hasta que todos los controles del SHA act
 
 Ciclo de fixtures: generar → ejecutar casos → regenerar o eliminar salidas temporales. Los datos reales nunca entran en este ciclo. Los expedientes externos no se versionan ni se cargan en CI.
 
-Excepción única de arranque: PR 1 admite integración con sus cuatro controles aprobados, sin sonar/ci-required. La enmienda de PR 2 formaliza esta decisión del usuario. Code smells existentes se registran como deuda F3; los demás hallazgos existentes requieren corrección o justificación escrita.
+Excepción única de arranque: PR 1 admite integración con sus cuatro controles aprobados, sin sonar/ci-required. La cláusula de arranque de la constitución v1.3.0 ya la autoriza. Code smells existentes se registran como deuda F3; los demás hallazgos existentes requieren corrección o justificación escrita.

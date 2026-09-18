@@ -4,7 +4,7 @@ Todo hallazgo pasa tres filtros mecanicos antes de salir. Sin ellos el modelo
 emite valores que no existen en el documento (alucinaciones), correcciones
 identicas al error, y valores "correctos" que no estan en ninguna fuente.
 
-La key se lee de GEMINI_API_KEY o del .env de NotarIA. Nunca se imprime.
+La key se lee de GEMINI_API_KEY o del .env local. Nunca se imprime.
 """
 import json
 import os
@@ -17,7 +17,7 @@ from pathlib import Path
 from extraer import _cacheado
 
 MODELO = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
-ENV_NOTARIA = Path.home() / "Documents/GitHub/NotarIA/supabase/functions/.env"
+ENV_NOTARIA = Path(__file__).parent / ".env"
 
 INSTRUCCIONES = """Eres corrector de estilo de escrituras publicas peruanas.
 

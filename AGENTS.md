@@ -31,15 +31,16 @@ la minuta y los documentos del cliente.
 ## Comandos
 
 ```bash
-python3 -m pip install -r requirements.txt
-python3 test_extraer.py && python3 test_verificar.py && python3 test_lexico.py \
-  && python3 test_ortografia.py
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python scripts/generar_fixtures.py
+python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 ```
 
-`test_extraer.py`, `test_verificar.py` y `test_lexico.py` necesitan expedientes
-locales que no están en el repo; en un clon limpio fallan por archivo no
-encontrado. Desde la fase F1 los tests corren con `pytest` y el lint con `ruff`;
-actualiza esta sección cuando cambien.
+Usar Python 3.13 y aprovisionar OCR/diccionario según
+`specs/001-base-devsecops/quickstart.md`. Los tests predeterminados usan solo
+fixtures ficticios. En Linux, `.doc`/`.rtf` requieren LibreOffice (`soffice`).
+La medición privada exige `-o addopts= -m local_reference --tb=no` y está
+prohibida en CI. Ruff y auditoría se configuran en etapa 4.
 
 ## Antes de dar una tarea por terminada
 

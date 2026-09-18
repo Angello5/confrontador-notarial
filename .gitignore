@@ -5,7 +5,8 @@ Proyecto*/
 Resultado/
 Plantilla/
 expedientes/
-*-[0-9][0-9][0-9][0-9][0-9]/   # un expediente por carpeta: mutuo-71213/, etc.
+# Un expediente por carpeta con sufijo numérico de cinco dígitos.
+*-[0-9][0-9][0-9][0-9][0-9]/
 *.docx
 *.doc
 *.pdf
@@ -14,6 +15,13 @@ expedientes/
 *.png
 *.xlsx
 *.xls
+*.rtf
+*.odt
+*.tif
+*.tiff
+*.bmp
+*.webp
+tests/fixtures/
 !docs/*.png
 
 # ---- Secretos ----
@@ -26,6 +34,14 @@ expedientes/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.scannerwork/
+dist/
+*.egg-info/
 capturas*/
 .streamlit/secrets.toml
 

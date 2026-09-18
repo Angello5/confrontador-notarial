@@ -62,7 +62,7 @@ def vocabulario(rutas: list[str]) -> Counter:
 def _es_flexion(p: str, vocab: Counter) -> bool:
     """CLAUSULAS frente a CLAUSULA, o SUSCRITO frente a SUSCRITA, son la misma
     palabra en otro numero o genero: se parecen mucho pero no son erratas. Solo
-    se aceptan sufijos de plural y el cambio de vocal final, asi que MENDOZ
+    se aceptan sufijos de plural y el cambio de vocal final, asi que ZURBELI
     (que necesitaria agregar una A) sigue saliendo marcado."""
     variantes = {p + "S", p + "ES"}
     if p.endswith("S"):

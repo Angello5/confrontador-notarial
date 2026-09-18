@@ -64,9 +64,9 @@ Notas de implementación que cuestan caro descubrir:
   no entra a los cuadros de texto ni a los encabezados, y en un caso real ahí
   vivían dos notas al notario con una errata. También se descarta `mc:Fallback`,
   que guarda cada cuadro de texto por duplicado.
-- El `.doc` binario va por `textutil`, que viene con macOS. **En Linux hay que
-  sustituirlo** por LibreOffice headless; el código lo detecta y falla con un
-  mensaje claro en vez de devolver texto corrupto.
+- El `.doc` binario va por `textutil` en macOS y por LibreOffice headless
+  (`soffice` en PATH) en Linux, con perfil temporal propio y timeout; si falta
+  o falla, el error es claro y no incluye contenido ni rutas.
 - El OCR se cachea por SHA-1 del contenido del archivo, no por ruta.
 
 ## Resultados medidos
@@ -86,14 +86,16 @@ entrada idéntica devolvieron **19, 22 y 27** discrepancias.
 ## Pruebas
 
 ```bash
-python3 test_extraer.py && python3 test_verificar.py && python3 test_lexico.py \
-  && python3 test_ortografia.py && python3 test_revisor_llm.py
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python scripts/generar_fixtures.py
+python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 ```
 
-> **Necesitan los archivos del expediente**, que no están en este repositorio
-> (ver más abajo). En un clon limpio fallan por archivo no encontrado: es
-> esperado. `test_ortografia.py` y `test_revisor_llm.py` sí corren solos —
-> el segundo no llama a la API, solo ejercita los filtros.
+Usar Python 3.13. El generador crea los fixtures ficticios localmente, sin
+expedientes ni dependencias adicionales. El aprovisionamiento de OCR y
+diccionario está en [la guía F1](specs/001-base-devsecops/quickstart.md).
+El test del filtro no llama a la API. En Linux, los tests legacy requieren
+LibreOffice (`soffice`).
 
 ## Datos personales
 
@@ -108,16 +110,16 @@ comprobaciones dejan de tener sentido.
 ```
 confrontador-notarial/
    Cliente/  Proyecto(borrador)/  Resultado/   ← expediente de referencia
-   mutuo-71213/
+   expediente-00001/
       Cliente/  Proyecto(borrador)/  Plantilla/
 ```
 
 Todo eso queda ignorado por git automáticamente. La copia de seguridad de los
 expedientes es responsabilidad de la notaría, fuera de este repositorio.
 
-> **Pendiente de limpieza:** los tests conservan DNI y apellidos reales en sus
-> aserciones, heredados del expediente con el que se midió. Deben sustituirse
-> por datos ficticios antes de que este repositorio deje de ser privado.
+> **Saneamiento F1:** los tests usan datos ficticios y rutas bajo
+> `tests/fixtures/`; se regeneran con el script anterior. El historial
+> anterior permanece privado: publicar el repositorio exige limpiarlo en otra fase.
 
 ## Estado
 
