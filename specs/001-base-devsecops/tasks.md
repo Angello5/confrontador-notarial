@@ -46,10 +46,10 @@ Los commits indicados son tareas de implementación, no commits realizados por g
 - [X] T015 [US1] Añadir primero en `test_extraer.py` casos ficticios fallidos de lectura/conversión legacy en Linux, ausencia o fallo del ejecutable y limpieza temporal; identificar todos los callers de `_legacy` en `extraer.py` antes de cambiarlo.
 - [X] T016 [US1] Adaptar `_legacy` en `extraer.py` a LibreOffice headless en Linux con argumentos sin shell, timeout, directorio temporal y perfil aislado; preservar comportamiento macOS cuando corresponda, validar resultados y no emitir contenido sensible en errores.
 - [X] T017 [US1] Ajustar generación/conversión legacy en `scripts/generar_fixtures.py` y `test_extraer.py` para que deje de requerir textutil en Linux; documentar el ejecutable y aprovisionamiento en `specs/001-base-devsecops/quickstart.md` sin introducir nuevas abstracciones.
-- [ ] T018 [US1] Ejecutar checkpoint de toda la suite sintética en Linux y repetibilidad con `test_extraer.py` y `test_*.py`; comprobar errores/limpieza y medir no regresión local si se alteró el núcleo, registrando únicamente resultados saneados en `specs/001-base-devsecops/quickstart.md`. **Pendiente: medición local_reference con EXPEDIENTES_REFERENCIA_DIR, la ejecuta el usuario en su máquina antes del merge de PR 1 (extraer.py cambió)**.
+- [X] T018 [US1] Ejecutar checkpoint de toda la suite sintética en Linux y repetibilidad con `test_extraer.py` y `test_*.py`; comprobar errores/limpieza y medir no regresión local si se alteró el núcleo, registrando únicamente resultados saneados en `specs/001-base-devsecops/quickstart.md`. **Medición local_reference ejecutada por el usuario el 2026-09-18 sobre 9777e52: 1 passed (8 observaciones, salida idéntica en 5 corridas, 0 en la escritura correcta).**
 - [X] T019 [US1] Commit local creado: `2be5a48` — `Finalizar etapa 3` (mensaje distinto al previsto `fix: support legacy documents on Linux`); T018 permanece pendiente de medición local.
 
-**Checkpoint**: suite sintética completa en verde en Linux y T019 creado; T018 pendiente de medición local antes del merge de PR 1. MVP US1: etapas 1–3, sin activar Cloud aún.
+**Checkpoint**: suite sintética completa en verde en Linux y T019 creado; T018 aprobada con la medición local del usuario. MVP US1: etapas 1–3, sin activar Cloud aún.
 
 ## Etapa 4 · Ruff y pip-audit en verde — US2 (P1)
 

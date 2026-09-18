@@ -135,7 +135,7 @@ Resultados T013:
 T013 aprobado con la única limitación legacy prevista. T014 registra el commit
 local `test: add synthetic fixtures and pytest`; no hay push ni avance a etapa 3.
 
-## Etapa 3: T015–T017 y T019 ejecutadas; T018 pendiente de medición local
+## Etapa 3: T015–T019 ejecutadas (T018 con medición local del usuario)
 
 LibreOffice en Linux: paquete de la distribución (`apt install libreoffice-writer`
 o equivalente), ejecutable `soffice` en PATH. Probado con LibreOffice 26.2,
@@ -151,9 +151,11 @@ Python 3.13.
   comprueba lectura `.doc`/`.rtf` y que no quedan temporales.
 - Suite completa con cobertura en Linux: **16 aprobadas, 1 deseleccionada**, sin
   fallos; dos ejecuciones consecutivas y regeneración de fixtures sin cambios.
-- T018: medición `local_reference` pendiente con `EXPEDIENTES_REFERENCIA_DIR`;
-  la ejecuta el usuario en su máquina antes del merge de PR 1 porque cambió
-  `extraer.py`.
+- T018: medición `local_reference` ejecutada por el usuario el 2026-09-18 en su
+  máquina, con `EXPEDIENTES_REFERENCIA_DIR` fuera del repositorio, sobre `9777e52`:
+  **1 passed** (8 observaciones en el borrador, salida idéntica en 5 corridas,
+  0 en la escritura correcta). Sin regresión por el cambio de `extraer.py`; el
+  test no emite datos del expediente.
 
 ## Checkpoint ejecutado · Etapa 4 (T020–T025)
 
@@ -219,7 +221,7 @@ Con el entorno nuevo activado, resultados del checkpoint T024:
 T024 aprobado. T025 registra el commit local `chore: pass lint and dependency audit`.
 No se inicia etapa 5, no hay push, PR, cambios de CI ni activación de Sonar.
 T019 está completada por `2be5a48`, «Finalizar etapa 3» (mensaje distinto al
-previsto); T018 sigue abierta. Pendiente: medición local_reference con EXPEDIENTES_REFERENCIA_DIR, la ejecuta el usuario en su máquina antes del merge de PR 1 (extraer.py cambió).
+previsto); T018 completada después con la medición local del usuario (ver etapa 3).
 
 Deuda fuera de alcance: revisor_llm.py envía la API key en la query (?key=); usar cabecera x-goog-api-key si la capa experimental se reactiva.
 
