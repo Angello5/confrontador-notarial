@@ -1,10 +1,10 @@
-"""Compatibilidad temporal de CLI; las reglas viven en `nucleo.verificar`."""
+"""Verifica un documento notarial contra sus archivos fuente (minuta + documentos).
 
-import argparse
-import sys
-from pathlib import Path
+  python3 verificar.py tests/fixtures/cliente/ -d tests/fixtures/borrador/observado.docx
 
-from adaptadores.extraccion import IMGS, recolectar
+Construye un CATALOGO de datos validos desde las fuentes, luego revisa CADA
+aparicion en el destino. Un dato repetido dos veces se valida dos veces.
+"""
 
 __all__ = [
     "catalogo",
@@ -19,6 +19,11 @@ __all__ = [
     "main",
 ]
 
+import argparse
+import sys
+from pathlib import Path
+
+from adaptadores.extraccion import IMGS, recolectar
 from nucleo.verificar import (
     catalogo,
     correspondencia,
@@ -33,7 +38,9 @@ from nucleo.verificar import (
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("fuentes", nargs="+", help="archivos o carpetas con la verdad")
     ap.add_argument(
         "-d", "--destino", nargs="+", required=True, help="documento(s) a revisar"

@@ -14,9 +14,9 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from extraer import IMGS, leer
+from adaptadores.extraccion import IMGS, leer
 from revisor_llm import revisar_prosa
-from verificar import catalogo, diagnostico, revisar, revisar_parrafos
+from nucleo.verificar import catalogo, diagnostico, revisar, revisar_parrafos
 
 # Calibracion, no opcion de usuario: por debajo aparecen parrafos alterados que no
 # lo estan, y a 100 se marca todo lo que no sea identico caracter a caracter. 88 es

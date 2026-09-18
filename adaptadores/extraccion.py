@@ -21,7 +21,8 @@ import tempfile
 from functools import lru_cache
 from pathlib import Path
 
-IMGS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
+from nucleo.verificar import IMGS
+
 # formatos que abre textutil (macOS) o LibreOffice (Linux)
 LEGACY = {".doc", ".rtf", ".odt", ".wordml"}
 DOCS = {".docx", ".pdf", ".xlsx", ".txt", ".md", ".csv"} | IMGS | LEGACY

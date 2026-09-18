@@ -42,3 +42,19 @@ def test_verificacion():
     print(
         f"OK — borrador: {len(malo)} observaciones, resultado: 0, plantilla ajena bloqueada"
     )
+
+
+def test_catalogo_clasifica_imagenes_por_suffix_path_y_compartida_imags():
+    def reniec(nombre):
+        return (
+            f"NOMBRES  {nombre}\nAPELLIDO PATERNO  ZURBELIA\nAPELLIDO MATERNO  LUMARIA"
+        )
+
+    cat = catalogo(
+        {
+            "foto.PNG": reniec("ALBA"),
+            "foto.png": reniec("BRISA"),
+            ".png": reniec("CARLA"),
+        }
+    )
+    assert cat["NOMBRE"] == {"ALBA ZURBELIA LUMARIA", "BRISA ZURBELIA LUMARIA"}

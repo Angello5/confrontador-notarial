@@ -1,7 +1,21 @@
-"""Reglas ortográficas puras; recursos de diccionario se inyectan."""
+"""Corrector ortografico determinista para texto notarial peruano.
 
-import unicodedata
+Usa hunspell (es_PE de LibreOffice) via spylls, en Python puro. El diccionario
+se carga en el adaptador y se inyecta junto con la lista de la casa.
+
+Dos decisiones que hacen que funcione sobre escrituras:
+
+1. Las MAYUSCULAS SIN TILDE se aceptan. La notaria escribe OBLIGACION y
+   OBLIGACIÓN en el mismo documento; no hay regla que hacer cumplir. Pero una
+   tilde MAL PUESTA (CLAÚSULA) si es un error, y ahi la palabra ya trae tilde.
+
+2. Las sugerencias NO las da hunspell. Su busqueda tarda hasta 11 s en una sola
+   palabra larga y deformada. Para la tilde mal puesta la correccion es exacta
+   y para el resto va rapidfuzz.
+"""
+
 import re
+import unicodedata
 
 from rapidfuzz import fuzz, process
 

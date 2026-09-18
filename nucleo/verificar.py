@@ -5,6 +5,8 @@ import unicodedata
 
 from rapidfuzz import fuzz, process
 
+IMGS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
+
 RELLENO = re.compile(r"[=_.]{3,}|(?:-?/@/\s*)+")
 
 
@@ -16,10 +18,13 @@ def norm(t: str) -> str:
 
 
 RE_CUI = re.compile(r"\b(\d{8})\s*-\s*\d\b")
+# CUI del RENIEC: 8 digitos + guion + verificador. El watermark (sello) no lo trae.
 
 RE_DNI_DOC = re.compile(r"(?:DNI|IDENTIDAD)\s*(?:N[O°]?|NUMERO)?\s*[:.]?\s*(\d{6,9})")
+# En documentos el DNI viene rotulado; aceptamos 6-9 digitos para cazar los mal escritos.
 
 RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
+# La forma corta PARTIDA N° también es valida en algunos actos.
 
 RE_MONTO = re.compile(r"S/\s*(\d[\d,]*\.\d{2})")
 
@@ -27,6 +32,7 @@ RE_NOMBRE = re.compile(
     r"([A-Z][A-Z ]{8,60}?)\s*[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
     r"|CASAD[AO]\s+CON\s+([A-Z][A-Z ]{8,60}?)\s*[,.]"
 )
+# Nombre en mayusculas antes de NACIONALIDAD o despues de CASAD@ CON.
 
 RE_RENIEC = {"nom": "NOMBRES", "pat": "APELLIDO PATERNO", "mat": "APELLIDO MATERNO"}
 
@@ -88,9 +94,9 @@ def catalogo(fuentes: dict[str, str]) -> dict[str, set[str]]:
     cat = {"NOMBRE": set(), "DNI": set(), "PARTIDA": set(), "MONTO": set()}
     for nom, raw in fuentes.items():
         t = norm(raw)
-        es_img = nom.lower().endswith(
-            (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp")
-        )
+        nombre = nom.rsplit("/", 1)[-1]
+        sufijo = re.search(r"(?<!^)(\.[^.]*)$", nombre)
+        es_img = bool(sufijo and sufijo.group(1).lower() in IMGS)
         cat["DNI"] |= set(RE_CUI.findall(t)) if es_img else set(RE_DNI_DOC.findall(t))
         cat["PARTIDA"] |= set(RE_PARTIDA.findall(t))
         cat["MONTO"] |= set(RE_MONTO.findall(t))

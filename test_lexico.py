@@ -5,7 +5,8 @@ python -m pytest test_lexico.py
 
 from pathlib import Path
 
-from adaptadores.extraccion import leer, recolectar
+from adaptadores.extraccion import leer
+from lexico import vocabulario
 from nucleo.lexico import contar, erratas
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
@@ -15,7 +16,7 @@ MINUTA = BASE / "cliente" / "minuta.docx"
 
 
 def test_lexico():
-    vocab = contar(recolectar([str(FIRMADA)]).values())
+    vocab = vocabulario([str(FIRMADA)])
 
     hallado = {p: c for p, c, _ in erratas(leer(BORRADOR), vocab)}
     for mal, bien in [
@@ -55,3 +56,16 @@ def test_lexico():
         f"OK — {len(hallado)} erratas en el borrador, 0 en la firmada, "
         f"{len(en_minuta)} erratas en la minuta ficticia"
     )
+
+
+def test_vocabulario_incluye_archivos_homonimos_en_subcarpetas(tmp_path):
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    (tmp_path / "a" / "firmada.txt").write_text("CLAUSULA OCTAVO FERROVIARIO")
+    (tmp_path / "b" / "firmada.txt").write_text("CLAUSULA NOVENO")
+
+    hallazgos = erratas("FERROVIARIA FERROVIARIX", vocabulario([str(tmp_path)]))
+
+    assert [(p, c, round(s, 1)) for p, c, s in hallazgos] == [
+        ("FERROVIARIX", "FERROVIARIO", 90.9)
+    ]

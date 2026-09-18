@@ -15,8 +15,8 @@ import pandas as pd
 import streamlit as st
 
 import ortografia
-from extraer import IMGS, leer
-from verificar import catalogo, diagnostico, revisar, revisar_parrafos
+from adaptadores.extraccion import IMGS, leer
+from nucleo.verificar import catalogo, diagnostico, revisar, revisar_parrafos
 
 st.set_page_config(page_title="Vía determinista", page_icon="📐", layout="wide")
 st.title("Confrontamiento determinista")

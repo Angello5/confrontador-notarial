@@ -8,10 +8,14 @@ from rapidfuzz import fuzz, process
 
 PALABRA = re.compile(r"[^\W\d_]{3,}")
 
+# El castellano solo lleva acento agudo, dieresis en u y la eñe. Un acento grave
+# o circunflejo sobre una vocal no es estilo de la casa: es una tecla equivocada.
 TILDE_IMPOSIBLE = re.compile(r"[àèìòùÀÈÌÒÙâêîôûÂÊÎÔÛãõÃÕ]")
 
 ACENTO_CORRECTO = str.maketrans("àèìòùÀÈÌÒÙâêîôûÂÊÎÔÛãõÃÕ", "áéíóúÁÉÍÓÚáéíóúÁÉÍÓÚaoAO")
 
+# Ordinales de clausula: conjunto cerrado; se aceptan ambas grafias porque las
+# escrituras firmadas usan las dos.
 ORDINALES = """PRIMERO SEGUNDO TERCERO CUARTO QUINTO SEXTO SEPTIMO SÉPTIMO SETIMO
 OCTAVO NOVENO DECIMO DÉCIMO UNDECIMO UNDÉCIMO DUODECIMO DUODÉCIMO DECIMOPRIMERO
 DECIMOSEGUNDO DECIMOTERCERO VIGESIMO VIGÉSIMO""".split()
