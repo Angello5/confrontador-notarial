@@ -20,7 +20,7 @@
 
 ### User Story 1 - Ejecutar las capas deterministas (Priority: P1)
 
-El equipo de desarrollo puede invocar extracción de campos, verificación, léxico y ortografía como lógica independiente de la interfaz y de los servicios externos. La entrada de texto o estructuras produce resultados reproducibles.
+El equipo de desarrollo puede invocar extracción de campos desde texto, verificación, léxico y ortografía como lógica independiente de la interfaz y de los servicios externos. La entrada de texto o estructuras produce resultados reproducibles. La extracción de texto desde archivos pertenece al adaptador.
 
 **Why this priority**: El núcleo puro es el resultado central de F3 y habilita su prueba y reutilización desde las fases posteriores.
 
@@ -69,23 +69,23 @@ El equipo puede conservar la capa de prosa existente en el área experimental si
 
 ### Functional Requirements
 
-- **FR-001**: El sistema MUST ofrecer extracción de campos, verificación, léxico y ortografía como operaciones deterministas que reciben texto o estructuras y devuelven resultados.
-- **FR-002**: La lógica del núcleo MUST permanecer independiente de Django, base de datos, OCR y sistema de archivos; la lectura de archivos y OCR son adaptadores externos al núcleo.
+- **FR-001**: El sistema MUST ofrecer extracción de campos desde texto, verificación, léxico y ortografía como operaciones deterministas del núcleo que reciben texto o estructuras y devuelven resultados.
+- **FR-002**: La lógica del núcleo MUST permanecer independiente de Django, base de datos, OCR y sistema de archivos; la extracción de texto desde archivos y el OCR son operaciones del adaptador externo al núcleo.
 - **FR-003**: Las pruebas predeterminadas MUST usar exclusivamente fixtures y datos ficticios.
 - **FR-004**: La migración MUST conservar la medición del expediente de referencia: 8 de 8 errores, 0 falsos positivos, cero observaciones en la escritura correcta y salidas idénticas en ejecuciones repetidas. La medición privada se ejecuta fuera del repositorio y no se ejecuta en CI.
 - **FR-005**: El código de prosa `revisor_llm.py` y `bench_llm.py` MUST ubicarse en `experimental/`; el ERP y el núcleo MUST no importarlos, desplegarlos ni depender de sus dependencias.
 - **FR-006**: La deuda de los diez code smells registrados en `docs/deuda-f3.md` MUST revisarse durante F3 y su resolución o justificación debe quedar verificable sin cambiar reglas de negocio no acordadas.
 - **FR-007**: La estrategia de instalación de `antlr4-python3-runtime==4.9.3` MUST revisarse para reducir el riesgo de su aislamiento de compilación descrito en `docs/deuda-f3.md`, preservando instalación verificable por hash.
 - **FR-008**: La capa de prosa MUST evitar enviar la API key en la query URL. Las pruebas de esa capa no deben llamar a modelos ni registrar credenciales.
-- **FR-009**: La configuración OCR actual (RapidOCR 3.4.3 con PP-OCRv4 ch) MUST permanecer hasta medirla frente a PP-OCRv5 latin con `use_cls=False`; los modelos se fijan por hash y RapidOCR se actualiza solo si es necesario para esa comparación.
-- **FR-010**: El núcleo MUST organizar `verificar`, léxico y ortografía en un paquete común (por ejemplo, `nucleo/`) manteniendo su lógica casi como está; extracción de OCR y archivos MUST quedar en un adaptador separado. El núcleo no importa ni usa sistema de archivos, red u OCR; la descarga del diccionario `es_PE` pertenece a un adaptador.
+- **FR-009**: La configuración OCR actual (RapidOCR 3.4.3 con PP-OCRv4 ch) MUST permanecer hasta medirla frente a PP-OCRv5 latin con `use_cls=False`; los modelos se fijan por SHA-256 en el manifiesto/paso de verificación de recursos del CI y en `quickstart.md`, separados de los hashes de paquetes Python en `requirements*.txt`. RapidOCR se actualiza solo si es necesario para esa comparación.
+- **FR-010**: El núcleo MUST organizar extracción de campos desde texto, `verificar`, léxico y ortografía en un paquete común (por ejemplo, `nucleo/`) manteniendo su lógica casi como está; extracción de texto desde archivos y OCR MUST quedar en un adaptador separado. El núcleo no importa ni usa sistema de archivos, red u OCR; la descarga del diccionario `es_PE` pertenece a un adaptador.
 - **FR-011**: `app.py` y `app_ortografia.py` MUST seguir funcionando hasta que el ERP alcance paridad en F4/F5 y durante F3 solo se adaptan a los nuevos imports. `revisor_llm.py` y `bench_llm.py` MUST moverse a `experimental/`; el ERP no los importa.
 - **FR-012**: La configuración OCR MUST cambiar a PP-OCRv5 latin solo si la medición local `local_reference` produce 8 observaciones, salidas idénticas en 5 corridas y 0 observaciones en la escritura correcta, y el test sintético no pierde líneas ni acentos/Ñ. Si cualquier condición falla, se conserva la configuración actual y se documenta el resultado. El destino del PR #11 de Dependabot se decide según el resultado.
 
 ### Key Entities
 
 - **Entrada de confrontación**: Texto o estructura ficticia que una operación del núcleo procesa.
-- **Resultado de capa**: Salida determinista de una operación de extracción, verificación, léxico u ortografía.
+- **Resultado de capa**: Salida determinista de la extracción de campos desde texto, verificación, léxico u ortografía. La extracción de texto desde archivos produce la entrada de texto del núcleo.
 - **Medición de referencia**: Comparación local y privada de resultados, conteo de errores y falsos positivos; sus documentos no se versionan.
 - **Configuración OCR**: Versiones de RapidOCR y de modelos fijados por origen y SHA-256.
 

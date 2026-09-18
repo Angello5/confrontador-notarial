@@ -1,9 +1,13 @@
 """Test del filtro con casos de prosa inventados, sin documentos de clientes.
 
-No llama a la API. python -m pytest test_revisor_llm.py
+No llama a la API ni a modelos. Ejecución opt-in: python -m pytest -o addopts= -m revisor_llm test_revisor_llm.py
 """
 
+import pytest
+
 from revisor_llm import filtrar
+
+pytestmark = pytest.mark.revisor_llm
 
 DOC = (
     "LOS COMPARECIENTES DECLARAN QUÉ SON DE ESTADO CIVIL. OCTAO: SAN MARTIN "

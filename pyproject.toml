@@ -3,8 +3,11 @@ testpaths = ["test_*.py", "tests"]
 python_files = ["test_*.py"]
 pythonpath = ["."]
 norecursedirs = [".git", ".venv", "tests/fixtures", "Cliente", "Proyecto*", "Resultado", "Plantilla", "expedientes", "*-[0-9][0-9][0-9][0-9][0-9]"]
-addopts = "--strict-markers -m 'not local_reference'"
-markers = ["local_reference: medición privada solo por selección explícita local"]
+addopts = "--strict-markers -m 'not local_reference and not revisor_llm'"
+markers = [
+    "local_reference: medición privada solo por selección explícita local",
+    "revisor_llm: pruebas opt-in de la capa experimental, sin red ni modelos",
+]
 
 [tool.coverage.run]
 relative_files = true

@@ -6,7 +6,7 @@
 
 ## Summary
 
-Migrar verificación, léxico y ortografía a un paquete común de lógica pura, conservando sus reglas y resultados medidos. Mantener extracción de archivos/OCR y acceso a diccionarios en adaptadores; actualizar los imports de Streamlit durante la transición; mover los módulos de prosa a `experimental/`. La configuración OCR solo cambia a PP-OCRv5 latin si pasa todos los criterios locales de FR-012. Resolver los diez hallazgos de SonarCloud y el riesgo de instalación de antlr4, o dejar justificaciones verificables.
+Migrar extracción de campos desde texto, verificación, léxico y ortografía a un paquete común de lógica pura, conservando sus reglas y resultados medidos. Mantener extracción de texto desde archivos/OCR y acceso a diccionarios en adaptadores; actualizar los imports de Streamlit durante la transición; mover los módulos de prosa a `experimental/`. La configuración OCR solo cambia a PP-OCRv5 latin si pasa todos los criterios locales de FR-012. Resolver los diez hallazgos de SonarCloud y el riesgo de instalación de antlr4, o dejar justificaciones verificables.
 
 ## Technical Context
 
@@ -24,7 +24,7 @@ Migrar verificación, léxico y ortografía a un paquete común de lógica pura,
 
 **Performance Goals**: No degradar materialmente los tiempos de lectura existentes; no se fija una meta numérica nueva sin una línea base medida.
 
-**Constraints**: Comportamiento privado preservado: 8 observaciones, 0 falsos positivos, 0 observaciones en la escritura correcta y cinco corridas idénticas. Para el cambio de OCR, además, el test sintético debe conservar todas las líneas y acentos/Ñ. Solo datos ficticios en repo/logs; sin IA en el ERP; los modelos y recursos públicos se fijan por hash.
+**Constraints**: Comportamiento privado preservado: 8 observaciones, 0 falsos positivos, 0 observaciones en la escritura correcta y cinco corridas idénticas. Para el cambio de OCR, además, el test sintético debe conservar todas las líneas y acentos/Ñ. Solo datos ficticios en repo/logs; sin IA en el ERP; hashes de paquetes Python se guardan en `requirements*.txt` y hashes de modelos OCR en el paso/manifiesto de verificación de recursos del CI y en `quickstart.md`.
 
 **Scale/Scope**: Migrar los módulos actuales y sus pruebas; no construir todavía flujo Django/ERP ni retirar Streamlit antes de paridad F4/F5.
 
@@ -68,7 +68,7 @@ nucleo/
 └── ortografia.py      # reglas puras sobre texto/entradas recibidas
 
 adaptadores/
-├── extraccion.py      # lectura de archivos, OCR y conversión
+├── extraccion.py      # extracción de texto desde archivos, OCR y conversión
 └── diccionario.py     # aprovisionamiento/carga del diccionario es_PE
 
 experimental/
@@ -81,7 +81,7 @@ test_*.py              # tests ficticios del núcleo/adaptadores ya existentes
 tests/                 # medición local y comprobaciones de fixtures
 ```
 
-**Structure Decision**: Un paquete de dominio `nucleo/` concentra las reglas existentes con el menor traslado posible. `adaptadores/` contiene únicamente capacidades de E/S/OCR/red exigidas por el principio II. Las rutas definitivas y ajustes mínimos de imports se confirman al ejecutar tareas; no se crearán capas extra.
+**Structure Decision**: Un paquete de dominio `nucleo/` concentra la extracción de campos desde texto y las demás reglas existentes con el menor traslado posible. `adaptadores/` contiene únicamente capacidades de extracción de texto desde archivos, E/S/OCR/red exigidas por el principio II. Las rutas definitivas y ajustes mínimos de imports se confirman al ejecutar tareas; no se crearán capas extra.
 
 ## Phase 0: Research
 

@@ -8,8 +8,8 @@
 
 **Propósito**: demostrar el comportamiento actual con datos ficticios y detectar E/S indebida desde el núcleo antes de refactorizar.
 
-- [ ] T001 [P] Añadir pruebas ficticias de frontera para `verificar.py`, `lexico.py` y `ortografia.py` en `tests/test_nucleo_puro.py`; comprobar que importar reglas no importa `extraer.py`, OCR, red ni accede a rutas, y conservar pruebas para las rutas finales `nucleo/`.
-- [ ] T002 [P] Añadir casos sintéticos de líneas, acentos y Ñ que caractericen la extracción OCR actual en `test_extraer.py`.
+- [ ] T001 [P] Añadir pruebas ficticias de frontera para la extracción de campos desde texto, verificación, léxico y ortografía en `tests/test_nucleo_puro.py`; comprobar que importar reglas del núcleo no importa el adaptador de extracción de texto desde archivos, OCR, red ni accede a rutas, y usar las rutas finales `nucleo/`.
+- [ ] T002 [P] Añadir casos sintéticos de líneas, acentos y Ñ que caractericen la extracción de texto desde archivos/OCR actual en `test_extraer.py`.
 - [ ] T003 Registrar en `specs/003-migracion-nucleo-puro/quickstart.md` los resultados agregados de caracterización sintética y los comandos reproducibles, sin copiar salidas que contengan documentos.
 
 **Criterio independiente**: las pruebas de pureza fallan primero ante las importaciones/accesos actuales; las pruebas de caracterización de funciones documentan resultados ficticios reproducibles.
@@ -38,7 +38,7 @@
 
 **Prueba independiente**: evidencia agregada acredita 8 observaciones, 0 en la escritura correcta, cinco corridas idénticas y test sintético sin pérdida de líneas ni acentos/Ñ.
 
-- [ ] T011 [US2] Fijar candidatos de OCR en `requirements.in`, `requirements.txt` y `specs/003-migracion-nucleo-puro/quickstart.md`: versión compatible exacta de RapidOCR, onnxruntime y SHA-256 de todos los modelos/diccionarios usados; validar los recursos antes de correr la comparación.
+- [ ] T011 [US2] Fijar versiones de RapidOCR/onnxruntime como paquetes Python en `requirements.in` y su lock `requirements.txt`. Registrar por separado los SHA-256 de modelos/diccionarios OCR en el paso o manifiesto de verificación de recursos del CI y en `specs/003-migracion-nucleo-puro/quickstart.md`; validar esos recursos antes de correr la comparación.
 - [ ] T012 [US2] Añadir primero en `test_extraer.py` la prueba sintética comparativa v4/v5 para conservar líneas, acentos y Ñ; ejecutarla con modelos fijados antes de cambiar la configuración predeterminada.
 - [ ] T013 [US2] Implementar en `adaptadores/extraccion.py` la configuración candidata PP-OCRv5 latin con `use_cls=False`, manteniendo disponible la configuración PP-OCRv4 ch para comparación y fallback.
 - [ ] T014 [US2] [REQUIERE MEDICIÓN LOCAL DE LA PERSONA USUARIA] Ejecutar `tests/test_referencia_local.py` con cada configuración desde el entorno autorizado, fuera de CI/repositorio; comunicar solo conteos y booleanos, nunca texto, imágenes, rutas ni logs del expediente.
@@ -55,7 +55,7 @@
 
 - [ ] T017 [US3] Actualizar `app.py` para importar extracción/verificación de `adaptadores/` y `nucleo/`, preservando su ejecución Streamlit hasta paridad ERP.
 - [ ] T018 [US3] Actualizar `app_ortografia.py` para importar ortografía/extracción de `nucleo/` y `adaptadores/`, preservando el flujo Streamlit hasta paridad ERP.
-- [ ] T019 [US3] Mover `revisor_llm.py` y `bench_llm.py` a `experimental/`, adaptar sus imports del adaptador en `experimental/revisor_llm.py` y `app.py`, y actualizar `test_revisor_llm.py`; confirmar que ningún módulo del ERP/núcleo importa esos módulos.
+- [ ] T019 [US3] Mover `revisor_llm.py` y `bench_llm.py` a `experimental/`, adaptar sus imports del adaptador en `experimental/revisor_llm.py` y `app.py`, y mantener `test_revisor_llm.py` opt-in, fuera de la suite ordinaria, con ejecución explícita documentada sin red ni modelos; confirmar que ningún módulo del ERP/núcleo importa esos módulos.
 - [ ] T020 [US3] Añadir primero en `test_revisor_llm.py` un test que demuestre que la API key no forma parte de la query URL; después cambiar `experimental/revisor_llm.py` para enviarla en el mecanismo de autenticación soportado y no imprimirla.
 - [ ] T021 [US3] Resolver o justificar por ID los olores AaCzSzcyMhSFhiPLM0QS y AaCzSzcyMhSFhiPLM0QR en `app_ortografia.py`, con cambios mínimos y sin alterar comportamiento.
 - [ ] T022 [US3] Resolver o justificar por ID los olores AaCzSzcYMhSFhiPLM0QI, AaCzSzcYMhSFhiPLM0QJ, AaCzSzcYMhSFhiPLM0QK y AaCzSzdRMhSFhiPLM0Qh en `test_extraer.py` y `test_ortografia.py`, manteniendo aserciones y datos ficticios.

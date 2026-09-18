@@ -31,5 +31,4 @@
 
 ## Notes
 
-- Open questions are intentionally retained for `$speckit-clarify`; no decisions have been supplied.
-- Items marked incomplete require spec updates before `$speckit-plan`.
+- Los tres criterios sin marcar sobre detalles de implementación y audiencia no técnica se conservan como excepción: F3 es una migración técnica interna y el usuario ya decidió la estructura de paquetes y el modelo OCR que se medirá.
