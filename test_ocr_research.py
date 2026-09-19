@@ -25,8 +25,8 @@ MODELOS = {
     "PP-OCRv4 actual": {
         "rec": "ch_PP-OCRv4_rec_infer.onnx",
         "rec_sha": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b",
-        "keys": "ppocr_keys_v1.txt",
-        "keys_sha": "28b2362ad4ab2dc38769aa72feb535e3a9ddb3fd2a7585a05920e6393b1dc7f7",
+        "diccionario": "ppocr_keys_v1.txt",
+        "diccionario_sha256": "28b2362ad4ab2dc38769aa72feb535e3a9ddb3fd2a7585a05920e6393b1dc7f7",
         "use_cls": True,
     },
     "PP-OCRv5 latin (use_cls=False)": {
@@ -104,8 +104,8 @@ def test_modelos_sinteticos_por_fuente_y_dpi():
             (cls_name, cls_sha),
             (MODELOS["PP-OCRv4 actual"]["rec"], MODELOS["PP-OCRv4 actual"]["rec_sha"]),
             (
-                MODELOS["PP-OCRv4 actual"]["keys"],
-                MODELOS["PP-OCRv4 actual"]["keys_sha"],
+                MODELOS["PP-OCRv4 actual"]["diccionario"],
+                MODELOS["PP-OCRv4 actual"]["diccionario_sha256"],
             ),
         ]
     )
@@ -138,8 +138,8 @@ def test_modelos_sinteticos_por_fuente_y_dpi():
                 / model["rec"]
             ),
         }
-        if "keys" in model:
-            params["Rec.rec_keys_path"] = str(package_models / model["keys"])
+        if "diccionario" in model:
+            params["Rec.rec_keys_path"] = str(package_models / model["diccionario"])
         ocr = RapidOCR(params=params)
         if model_name.startswith("PP-OCRv5"):
             characters = (
@@ -154,7 +154,7 @@ def test_modelos_sinteticos_por_fuente_y_dpi():
             assert {"ñ", "Ñ", "Ú", "Á", "Í"} <= set(characters)
         else:
             characters = (
-                (package_models / model["keys"])
+                (package_models / model["diccionario"])
                 .read_text(encoding="utf-8")
                 .splitlines()
             )

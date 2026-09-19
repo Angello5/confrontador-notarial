@@ -54,6 +54,11 @@ def textos(archivos) -> dict[str, str]:
     return out
 
 
+def revisar_ortografia(texto: str, propios: set[str]):
+    d, lemas = diccionario()
+    return ortografia.revisar(texto, d, lemas, lista_casa(), propios)
+
+
 n_lemas, seg_carga = diccionario_residente()
 st.sidebar.metric("Lemas en el diccionario", f"{n_lemas:,}".replace(",", " "))
 st.sidebar.caption(
@@ -97,7 +102,7 @@ if st.button("Comparar", type="primary", disabled=not (fuentes_up and borrador_u
         t_reglas = time.perf_counter() - t1
 
         t2 = time.perf_counter()
-        faltas = ortografia.revisar(txt, propios)
+        faltas = revisar_ortografia(txt, propios)
         t_orto = time.perf_counter() - t2
 
         a, b, c, d = st.columns(4)

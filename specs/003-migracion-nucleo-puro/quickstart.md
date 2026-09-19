@@ -60,6 +60,20 @@ Checkpoint de Etapa 2 (Python 3.13.9, `.venv` instalado con los locks):
 
 Estos hashes identifican los modelos OCR y el diccionario `es_PE` que usa la verificación de recursos del workflow. No son hashes de distribuciones Python; esos pertenecen a los locks `requirements*.txt`.
 
+La revisión de secretos conserva en `.gitleaksignore` únicamente tres huellas
+históricas del commit `32c9142` (`generic-api-key`, líneas 28, 29 y 36) para
+recursos OCR públicos. El código actual usa nombres descriptivos y no requiere
+excepciones adicionales. Verificar localmente con Gitleaks 8.28.0 (SHA-256
+`a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb`), sin
+escanear `.venv/` ni datos locales:
+
+```bash
+gitleaks dir --redact .
+gitleaks git --redact --log-opts="2893539..HEAD"
+```
+
+Ambos comandos deben terminar sin hallazgos.
+
 | Detector compartido y modelos de comparación PP-OCRv4 | SHA-256 |
 |---|---|
 | `ch_PP-OCRv4_det_infer.onnx` | `d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9` |
