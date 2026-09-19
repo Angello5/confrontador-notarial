@@ -1,5 +1,5 @@
 from builtins import input
-from getpass import getpass
+import getpass
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -16,8 +16,8 @@ class Command(BaseCommand):
         username = input("Nombre de usuario: ").strip()
         if not username:
             raise CommandError("Debe indicar un nombre de usuario.")
-        password = getpass("Clave temporal: ")
-        confirmation = getpass("Repita la clave temporal: ")
+        password = getpass.getpass("Clave temporal: ")
+        confirmation = getpass.getpass("Repita la clave temporal: ")
         if password != confirmation:
             raise CommandError("Las claves no coinciden.")
 

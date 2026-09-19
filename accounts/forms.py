@@ -80,22 +80,46 @@ class AccountChangeForm(UserChangeForm):
         fields = (
             "username",
             "is_active",
-            "failed_login_attempts",
-            "login_locked_until",
         )
         labels = {
             "username": "Nombre de usuario",
             "is_active": "Cuenta activa",
-            "failed_login_attempts": "Intentos fallidos de ingreso",
-            "login_locked_until": "Bloqueo hasta",
         }
 
     def __init__(self, *args, **kwargs):
+        self.operator = kwargs.pop("operator", getattr(self, "operator", None))
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             self.fields["role"].initial = self.instance.groups.filter(
                 name__in=ROLES
             ).first()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        role = cleaned_data.get("role")
+        if not role:
+            return cleaned_data
+        if (
+            self.operator
+            and self.operator.pk == self.instance.pk
+            and self.instance.is_active
+            and not cleaned_data.get("is_active")
+        ):
+            raise forms.ValidationError("No puede desactivar su propia cuenta.")
+        was_admin = self.instance.groups.filter(name="Administrador").exists()
+        will_be_admin = role.name == "Administrador"
+        if (
+            self.instance.is_active
+            and was_admin
+            and (not cleaned_data.get("is_active") or not will_be_admin)
+            and not User.objects.filter(is_active=True, groups__name="Administrador")
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "No se puede retirar el último Administrador activo."
+            )
+        return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)

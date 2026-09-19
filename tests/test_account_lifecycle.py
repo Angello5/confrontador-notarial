@@ -43,7 +43,12 @@ def test_deactivation_and_reactivation_invalidate_old_session(
 
     admin_client.post(
         reverse("admin:accounts_user_changelist"),
-        {"action": "deactivate_accounts", "_selected_action": [user.pk], "index": 0},
+        {
+            "action": "deactivate_accounts",
+            "_selected_action": [user.pk],
+            "index": 0,
+            "post": "yes",
+        },
     )
     user.refresh_from_db()
     assert not user.is_active
@@ -53,7 +58,12 @@ def test_deactivation_and_reactivation_invalidate_old_session(
 
     admin_client.post(
         reverse("admin:accounts_user_changelist"),
-        {"action": "activate_accounts", "_selected_action": [user.pk], "index": 0},
+        {
+            "action": "activate_accounts",
+            "_selected_action": [user.pk],
+            "index": 0,
+            "post": "yes",
+        },
     )
     user.refresh_from_db()
     assert user.is_active
@@ -72,13 +82,19 @@ def test_admin_cannot_disable_self_or_last_active_administrator(
 
     self_response = admin_client.post(
         reverse("admin:accounts_user_changelist"),
-        {"action": "deactivate_accounts", "_selected_action": [admin.pk], "index": 0},
+        {
+            "action": "deactivate_accounts",
+            "_selected_action": [admin.pk],
+            "index": 0,
+            "post": "yes",
+        },
     )
     other_response = admin_client.post(
         reverse("admin:accounts_user_changelist"),
         {
             "action": "deactivate_accounts",
             "_selected_action": [other_admin.pk],
+            "post": "yes",
             "index": 0,
         },
     )
@@ -113,6 +129,7 @@ def test_concurrent_admin_deactivations_leave_an_active_administrator():
                     "action": "deactivate_accounts",
                     "_selected_action": [objetivo.pk],
                     "index": 0,
+                    "post": "yes",
                 },
             )
         finally:

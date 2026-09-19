@@ -105,7 +105,7 @@ def test_admin_can_unlock_account_from_changelist(cliente_administrador):
     blocked.refresh_from_db()
     action_messages = list(get_messages(response.wsgi_request))
     assert response.status_code == 302
-    assert str(action_messages[0]) == "Se desbloquearon las cuentas seleccionadas."
+    assert str(action_messages[0]) == "Se desbloquearon 1 cuenta."
     assert blocked.failed_login_attempts == 0
     assert blocked.login_locked_until is None
 
@@ -123,7 +123,11 @@ def test_admin_password_change_forces_new_password_and_revokes_sessions(
 
     response = cliente_administrador.post(
         reverse("admin:accounts_user_password_change", args=[target.pk]),
-        {"password1": "Clave-nueva-73!", "password2": "Clave-nueva-73!", "usable_password": "true"},
+        {
+            "password1": "Clave-nueva-73!",
+            "password2": "Clave-nueva-73!",
+            "usable_password": "true",
+        },
     )
 
     target.refresh_from_db()
@@ -137,7 +141,10 @@ def test_account_change_rejects_self_disable_in_validation(cliente_administrador
     admin = get_user_model().objects.get(username="administrador_prueba")
     response = cliente_administrador.post(
         reverse("admin:accounts_user_change", args=[admin.pk]),
-        {"username": admin.username, "role": Group.objects.get(name="Administrador").pk},
+        {
+            "username": admin.username,
+            "role": Group.objects.get(name="Administrador").pk,
+        },
     )
     assert response.status_code == 200
     assert "No puede desactivar su propia cuenta" in response.content.decode()
@@ -171,7 +178,9 @@ def test_action_message_uses_changed_count_and_singular(cliente_administrador):
         },
     )
     assert response.status_code == 302
-    assert str(list(get_messages(response.wsgi_request))[-1]) == "Se desactivó 1 cuenta."
+    assert (
+        str(list(get_messages(response.wsgi_request))[-1]) == "Se desactivó 1 cuenta."
+    )
 
 
 def test_administrator_role_has_minimum_user_admin_permissions(db):

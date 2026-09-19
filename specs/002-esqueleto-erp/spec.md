@@ -18,6 +18,7 @@
 - Q: ¿Dónde se administran las cuentas y cómo se crea el primer administrador? → A: La gestión de usuarios y roles se realiza en Django admin (`/admin`), sin pantallas propias ni asistente de primer uso. El primer administrador se crea con un comando de gestión en el servidor.
 - Q: ¿Qué límites se aplican al desactivar cuentas de administradores? → A: Nadie puede desactivarse a sí mismo ni dejar el sistema sin ningún administrador activo.
 - Q: ¿Qué ocurre tras varios intentos de ingreso fallidos? → A: Tras cinco intentos consecutivos para una misma cuenta, se rechaza el ingreso durante 15 minutos con el mismo mensaje genérico; el estado queda en la base de datos, se reinicia al ingresar correctamente y un Administrador puede desbloquear la cuenta desde `/admin`.
+- Q: ¿Puede un Administrador asignar una clave temporal desde el cambio de clave del admin? → A: Sí. El cambio fija `force_password_change=true` e incrementa `session_version` para revocar las sesiones abiertas de la cuenta.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -79,6 +80,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **FR-012**: El primer Administrador MUST aprovisionarse mediante un comando de gestión ejecutado en el servidor.
 - **FR-013**: Tras cinco intentos fallidos consecutivos para una cuenta existente, el backend de autenticación MUST rechazar su ingreso durante 15 minutos con el mismo mensaje genérico usado para credenciales inválidas; el bloqueo MUST persistir en la base de datos, cubrir toda autenticación incluida `/admin`, reiniciarse al ingresar correctamente y poder ser retirado por un Administrador desde `/admin`. El intento de una cuenta inexistente MUST conservar una respuesta genérica sin revelar existencia o bloqueo.
 - **FR-014**: El bloqueo MUST aplicar al usuario identificado por las credenciales, contar intentos concurrentes sin perder incrementos y permitir al Administrador desbloquear la cuenta desde su formulario en `/admin`.
+- **FR-015**: El cambio de clave de una cuenta realizado por un Administrador desde `/admin` MUST marcar la cuenta para cambio obligatorio e invalidar sus sesiones abiertas inmediatamente.
 - **FR-010**: F2 MUST limitarse a autenticación, layout y navegación, y administración de cuentas y roles; no incluye expedientes, carga o procesamiento de archivos, confrontación, observaciones, informes ni otras funciones de negocio.
 - **FR-011**: El sistema MUST funcionar dentro de la LAN sin depender de servicios externos disponibles en tiempo de ejecución.
 
@@ -122,6 +124,7 @@ Como administrador, quiero crear, desactivar y reactivar cuentas y asignarles un
 - **SC-004**: El 100 % de las acciones de administración de cuentas en `/admin` requiere permiso de Administrador; el 100 % de las desactivaciones revoca sesiones y ninguna permite desactivar al propio operador ni al último Administrador activo.
 - **SC-008**: El 100 % de las cuentas nuevas exige cambio de clave temporal en su primer ingreso, sin requerir correo.
 - **SC-009**: La quinta falla consecutiva bloquea la cuenta por 15 minutos en el backend compartido (incluido `/admin`), sin perder incrementos concurrentes y con la misma respuesta genérica que para una cuenta inexistente.
+- **SC-010**: El 100 % de las claves asignadas por un Administrador desde `/admin` obliga a un nuevo cambio y revoca las sesiones existentes de la cuenta.
 - **SC-005**: El 100 % de los campos visibles tiene etiqueta y se puede recorrer usando teclado con foco visible.
 - **SC-006**: La revisión de las pantallas de F2 cubre explícitamente las diez heurísticas de Nielsen y los mínimos de accesibilidad definidos en los requisitos UX y A11Y.
 - **SC-007**: La revisión de F2 encuentra cero datos personales reales, secretos o llamadas a servicios de IA en el material de la funcionalidad.

@@ -7,7 +7,7 @@ Modelo de proyecto basado en `django.contrib.auth.models.AbstractUser`; conserva
 | Campo | Tipo | Regla |
 |---|---|---|
 | `force_password_change` | boolean, requerido, default false | Para una cuenta creada por Administración con clave temporal vale true hasta que la persona cambie la clave en su primer ingreso. |
-| `session_version` | entero positivo, requerido, default 0 | Aumenta al desactivar la cuenta; participa en el hash de autenticación de sesión y vuelve irrecuperables las sesiones anteriores incluso si se reactiva. |
+| `session_version` | entero positivo, requerido, default 0 | Aumenta al desactivar la cuenta o asignar una clave temporal desde `/admin`; participa en el hash de autenticación y vuelve irrecuperables las sesiones anteriores. |
 | `failed_login_attempts` | entero positivo, requerido, default 0 | Cuenta fallos consecutivos de autenticación con bloqueo transaccional por fila. |
 | `login_locked_until` | fecha/hora nullable | Rechaza autenticación hasta cumplir 15 minutos; NULL cuando la cuenta no está bloqueada. Un ingreso correcto o desbloqueo administrativo restablece ambos campos. |
 
@@ -27,6 +27,7 @@ Usar `Group` y `Permission` de Django, sin entidad propia. Solo existen los grup
 - Bloqueo de ingreso: el backend de autenticación bloquea la fila de usuario en PostgreSQL, incrementa `failed_login_attempts` por fallo y tras el quinto fija `login_locked_until` a 15 minutos; una autenticación correcta o desbloqueo administrativo limpia ambos valores. Cuentas inexistentes reciben respuesta genérica sin persistir contador.
 - Borrado: las cuentas se conservan y se desactivan; el Django admin no ofrece borrado de cuentas ni grupos de rol.
 - Alta inicial: el comando de gestión crea una sola cuenta Administrador con clave temporal y cambio obligatorio; falla si ya existe un Administrador activo.
+- Cambio administrativo de clave: `/admin/<id>/password/` fija `force_password_change=true` e incrementa `session_version`, revocando sesiones abiertas.
 
 ## Persistencia
 
