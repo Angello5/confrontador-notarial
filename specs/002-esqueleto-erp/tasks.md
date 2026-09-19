@@ -61,9 +61,9 @@
 
 ## Phase 5: Polish and cross-cutting validation
 
-- [ ] T025 [P] Document PostgreSQL configuration, bootstrap command and manual login/password/admin scenarios in `specs/002-esqueleto-erp/quickstart.md`.
-- [ ] T026 [P] Generate the Nielsen and accessibility review checklist for login, password change, ERP shell and native Django admin in `specs/002-esqueleto-erp/checklists/ux.md`.
-- [ ] T027 Verify no external runtime/CDN calls, real personal data, secrets, or F3 behavior; audit dependency locks and asset licenses in `requirements.txt`, `requirements-dev.txt`, `static/vendor/README.md`, and the F2 source tree.
+- [X] T025 [P] Document PostgreSQL configuration, bootstrap command and manual login/password/admin scenarios in `specs/002-esqueleto-erp/quickstart.md`.
+- [X] T026 [P] Generate the Nielsen and accessibility review checklist for login, password change, ERP shell and native Django admin in `specs/002-esqueleto-erp/checklists/ux.md`.
+- [X] T027 Verify no external runtime/CDN calls, real personal data, secrets, or F3 behavior; audit dependency locks and asset licenses in `requirements.txt`, `requirements-dev.txt`, `static/vendor/README.md`, and the F2 source tree.
 - [ ] T028 **Final checkpoint**: execute all commands from `AGENTS.md`, confirm Sonar Quality Gate and existing CI controls for the eventual PR, review `specs/002-esqueleto-erp/` and the F2 source tree; commit this stage locally as `docs(f2): finish validation checklist`.
 
 ## Dependencies
