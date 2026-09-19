@@ -56,12 +56,7 @@ class UserAdmin(DjangoUserAdmin):
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         if obj is not None:
-
-            class FormWithOperator(form):
-                pass
-
-            FormWithOperator.operator = request.user
-            return FormWithOperator
+            form.operator = request.user
         return form
 
     def has_delete_permission(self, request, obj=None):

@@ -144,11 +144,11 @@ def test_admin_password_change_forces_new_password_and_revokes_sessions(
 
 
 def test_account_change_rejects_self_disable_in_validation(cliente_administrador):
-    admin = get_user_model().objects.get(username="administrador_prueba")
+    administrador = get_user_model().objects.get(username="administrador_prueba")
     response = cliente_administrador.post(
-        reverse("admin:accounts_user_change", args=[admin.pk]),
+        reverse("admin:accounts_user_change", args=[administrador.pk]),
         {
-            "username": admin.username,
+            "username": administrador.username,
             "role": Group.objects.get(name="Administrador").pk,
         },
     )
@@ -177,15 +177,15 @@ def test_account_change_rejects_removing_last_administrator_in_validation(
 
 def test_save_model_rejects_last_administrator_under_race(cliente_administrador):
     user_admin = get_user_model().objects.get(username="administrador_prueba")
-    user_admin.is_active = False
+    user_admin.is_active = True
     form = SimpleNamespace(
         cleaned_data={"role": Group.objects.get(name="Usuario")},
     )
     model_admin = admin.site._registry[get_user_model()]
 
-    with pytest.raises(PermissionDenied):
+    with pytest.raises(PermissionDenied, match="último Administrador"):
         model_admin.save_model(
-            SimpleNamespace(user=get_user_model().objects.get(pk=user_admin.pk)),
+            SimpleNamespace(user=SimpleNamespace(pk=None)),
             user_admin,
             form,
             True,
@@ -199,7 +199,11 @@ def test_lifecycle_actions_require_confirmation(cliente_administrador):
         {"action": "deactivate_accounts", "_selected_action": [user.pk], "index": 0},
     )
     assert response.status_code == 200
-    assert "Confirme la desactivación" in response.content.decode()
+    content = response.content.decode()
+    assert "Confirme la desactivación" in content
+    assert f"<li>{user.username}</li>" in content
+    assert content.count("<h1") == 1
+    assert reverse("admin:accounts_user_changelist") in content
     user.refresh_from_db()
     assert user.is_active
 

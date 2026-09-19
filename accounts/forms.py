@@ -59,6 +59,7 @@ class AccountCreationForm(UserCreationForm):
         self.fields["password2"].label = "Confirmar clave temporal"
 
     def save(self, commit=True):
+        # ponytail: commit=True is ignored because only the admin uses this form.
         user = super().save(commit=False)
         role = self.cleaned_data["role"]
         user.force_password_change = True
@@ -119,6 +120,7 @@ class AccountChangeForm(UserChangeForm):
         return cleaned_data
 
     def save(self, commit=True):
+        # ponytail: commit=True is ignored because only the admin uses this form.
         user = super().save(commit=False)
         user.is_staff = self.cleaned_data["role"].name == ROLES[0]
         return user
