@@ -58,6 +58,17 @@ def _visible_error(content):
     return match.group()
 
 
+def test_login_error_is_alert_and_required_hint_precedes_fields(client):
+    response = client.post(
+        reverse("login"),
+        {"username": "cuenta_inexistente", "password": CLAVE_PRUEBA},
+    )
+    content = response.content.decode()
+    assert 'role="alert"' in content
+    assert "Revise los datos e inténtelo nuevamente" in content
+    assert content.index("Los campos marcados") < content.index('id="id_username"')
+
+
 def test_logout_confirms_success(client, usuario_ficticio):
     client.force_login(usuario_ficticio)
 

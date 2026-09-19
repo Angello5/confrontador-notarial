@@ -63,6 +63,8 @@ def test_admin_account_form_uses_spanish_labels_and_minimum_fields(
     assert "Confirmar clave temporal" in content
     assert "Rol" in content
     assert 'id="id_email"' not in content
+    assert 'id="id_failed_login_attempts"' not in content
+    assert 'id="id_login_locked_until"' not in content
 
 
 def test_admin_rejects_role_tampering_and_superuser_escalation(
@@ -106,6 +108,70 @@ def test_admin_can_unlock_account_from_changelist(cliente_administrador):
     assert str(action_messages[0]) == "Se desbloquearon las cuentas seleccionadas."
     assert blocked.failed_login_attempts == 0
     assert blocked.login_locked_until is None
+
+
+def test_admin_password_change_forces_new_password_and_revokes_sessions(
+    cliente_administrador,
+):
+    target = get_user_model().objects.create_user(
+        username="cuenta_clave", password=CLAVE_TEMPORAL
+    )
+    target.groups.add(Group.objects.get(name="Usuario"))
+    target_client = __import__("django.test", fromlist=["Client"]).Client()
+    target_client.force_login(target)
+    old_version = target.session_version
+
+    response = cliente_administrador.post(
+        reverse("admin:accounts_user_password_change", args=[target.pk]),
+        {"password1": "Clave-nueva-73!", "password2": "Clave-nueva-73!", "usable_password": "true"},
+    )
+
+    target.refresh_from_db()
+    assert response.status_code == 302
+    assert target.force_password_change
+    assert target.session_version == old_version + 1
+    assert target_client.get(reverse("home")).status_code == 302
+
+
+def test_account_change_rejects_self_disable_in_validation(cliente_administrador):
+    admin = get_user_model().objects.get(username="administrador_prueba")
+    response = cliente_administrador.post(
+        reverse("admin:accounts_user_change", args=[admin.pk]),
+        {"username": admin.username, "role": Group.objects.get(name="Administrador").pk},
+    )
+    assert response.status_code == 200
+    assert "No puede desactivar su propia cuenta" in response.content.decode()
+
+
+def test_lifecycle_actions_require_confirmation(cliente_administrador):
+    user = get_user_model().objects.create_user(username="cuenta_confirmacion")
+    response = cliente_administrador.post(
+        reverse("admin:accounts_user_changelist"),
+        {"action": "deactivate_accounts", "_selected_action": [user.pk], "index": 0},
+    )
+    assert response.status_code == 200
+    assert "Confirme la desactivación" in response.content.decode()
+    user.refresh_from_db()
+    assert user.is_active
+
+
+def test_action_message_uses_changed_count_and_singular(cliente_administrador):
+    user = get_user_model().objects.create_user(username="cuenta_singular")
+    response = cliente_administrador.post(
+        reverse("admin:accounts_user_changelist"),
+        {"action": "deactivate_accounts", "_selected_action": [user.pk], "index": 0},
+    )
+    response = cliente_administrador.post(
+        reverse("admin:accounts_user_changelist"),
+        {
+            "action": "deactivate_accounts",
+            "_selected_action": [user.pk],
+            "index": 0,
+            "post": "yes",
+        },
+    )
+    assert response.status_code == 302
+    assert str(list(get_messages(response.wsgi_request))[-1]) == "Se desactivó 1 cuenta."
 
 
 def test_administrator_role_has_minimum_user_admin_permissions(db):
