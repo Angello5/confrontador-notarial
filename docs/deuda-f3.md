@@ -21,7 +21,7 @@ se registran para la migración del núcleo en F3; no se corrigen en F1.
 | AaCzSzcYMhSFhiPLM0QJ | python:S9073 | `test_extraer.py` | `test_cuadro_texto_docx` | Aserción compuesta sobre XML sintético. |
 | AaCzSzcYMhSFhiPLM0QK | python:S9073 | `test_extraer.py` | `test_pdf_texto_y_tabla_docx` | Aserción compuesta sobre PDF sintético. |
 | AaCzSzdRMhSFhiPLM0Qh | python:S9073 | `test_ortografia.py` | `test_ortografia` | Aserción compuesta de exclusión léxica. |
-| AaCzSzZyMhSFhiPLM0QE | python:S8786 | `nucleo/verificar.py` | `RE_DNI_DOC` | Patrón lineal, sin cuantificadores anidados ambiguos; test de entrada patológica acotado a 0,5 s. |
+| AaCzSzZyMhSFhiPLM0QE | python:S8786 | `nucleo/verificar.py` | `RE_DNI_DOC`, `RE_NOMBRE` | Patrones lineales, sin cuantificadores anidados ambiguos; tests de entradas patológicas acotados a 0,5 s. La QE ampliada registra equivalencia con la regex previa y la decisión explícita de aceptar `D.N.I.`/`D.N.I`; `RE_NOMBRE` conserva el cuantificador lazy para no perder nombres sin coma. |
 | AaCzSzZyMhSFhiPLM0QF | python:S7500 | `nucleo/verificar.py` | `correspondencia` | `set(RE_DNI_DOC.findall(d))` expresa directamente la conversión requerida. |
 | AaCzSzZyMhSFhiPLM0QH | python:S3776 | `nucleo/verificar.py` | `revisar` | Se conserva la función como unidad de regla hasta F4: dividirla cambiaría el flujo medido; revisión prevista al introducir el servicio de confrontación. |
 | AaCzSzZyMhSFhiPLM0QG | python:S1172 | `nucleo/verificar.py` | `revisar` | `umbral` se conserva en la firma transitoria para compatibilidad con el shim CLI y ambas apps; se eliminará al migrar esos llamadores en F4. |

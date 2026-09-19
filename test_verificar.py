@@ -119,9 +119,11 @@ def test_correspondencia_y_diagnostico_sinteticos():
     fuentes = {"cliente.txt": "NOMBRE ANA LUZ QUISPE MAMANI DNI 90000001"}
     cat = catalogo(fuentes)
     assert correspondencia(cat, "ANA LUZ QUISPE MAMANI DNI 90000001") == (1.0, 0)
-    assert correspondencia(cat, "OTRA PERSONA DNI 90000002") == (0.0, 1)
+    assert correspondencia(cat, "OTRA PERSONA DNI 90000002 DNI 90000003") == (0.0, 2)
     assert diagnostico(fuentes, "ANA LUZ QUISPE MAMANI DNI 90000001") is None
-    assert "no corresponde" in (diagnostico(fuentes, "OTRA PERSONA DNI 90000002") or "")
+    assert "no corresponde" in (
+        diagnostico(fuentes, "OTRA PERSONA DNI 90000002 DNI 90000003") or ""
+    )
 
 
 def test_verificacion(monkeypatch, tmp_path):

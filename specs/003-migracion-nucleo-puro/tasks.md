@@ -56,10 +56,10 @@
 - [X] T017 [US3] Actualizar `app.py` para importar extracción/verificación de `adaptadores/` y `nucleo/`, preservando su ejecución Streamlit hasta paridad ERP.
 - [X] T018 [US3] Actualizar `app_ortografia.py` para importar ortografía/extracción de `nucleo/` y `adaptadores/`, preservando el flujo Streamlit hasta paridad ERP.
 - [X] T019 [US3] Mover `revisor_llm.py` y `bench_llm.py` a `experimental/`, adaptar sus imports del adaptador en `experimental/revisor_llm.py` y `app.py`, y mantener `test_revisor_llm.py` opt-in, fuera de la suite ordinaria, con ejecución explícita documentada sin red ni modelos.
-- [X] T020 [US3] Añadir test de que la API key no forma parte de la query URL y enviarla en la cabecera `x-goog-api-key` sin imprimirla.
+- [X] T020 [US3] Añadir test de que la API key no forma parte de la query URL y enviarla en la cabecera `x-goog-api-key` sin imprimirla. El test de cabecera no consta como fallido antes de su incorporación.
 - [X] T021 [US3] Resolver o justificar por ID los olores AaCzSzcyMhSFhiPLM0QS y AaCzSzcyMhSFhiPLM0QR en `app_ortografia.py`.
 - [X] T022 [US3] Resolver por aserciones separadas o justificar por ID los olores de tests AaCzSzcYMhSFhiPLM0QI, AaCzSzcYMhSFhiPLM0QJ, AaCzSzcYMhSFhiPLM0QK y AaCzSzdRMhSFhiPLM0Qh.
-- [X] T023 [US3] Añadir primero en `test_verificar.py` cobertura sintética para regex/correspondencia/resultados; después resolver o justificar por ID AaCzSzZyMhSFhiPLM0QE, AaCzSzZyMhSFhiPLM0QF, AaCzSzZyMhSFhiPLM0QH y AaCzSzZyMhSFhiPLM0QG en `verificar.py`. El test de cobertura no consta como fallido antes de su incorporación.
+- [X] T023 [US3] Añadir primero en `test_verificar.py` cobertura sintética para regex/correspondencia/resultados; después resolver o justificar por ID AaCzSzZyMhSFhiPLM0QE, AaCzSzZyMhSFhiPLM0QF, AaCzSzZyMhSFhiPLM0QH y AaCzSzZyMhSFhiPLM0QG en `verificar.py`.
 - [X] T024 [US3] Validar antlr4 en entorno limpio con `setuptools` fijado por hash y `--no-build-isolation`; registrar el riesgo residual en `docs/deuda-f3.md`.
 - [X] T025 [US3] Verificar que la suite ordinaria excluye `experimental/` y no importa sus módulos; `test_revisor_llm.py` queda opt-in mediante el marker `revisor_llm` excluido en `addopts` e imports diferidos dentro de los tests.
 

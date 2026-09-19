@@ -21,7 +21,7 @@ RE_CUI = re.compile(r"\b(\d{8})\s*-\s*\d\b")
 # CUI del RENIEC: 8 digitos + guion + verificador. El watermark (sello) no lo trae.
 
 RE_DNI_DOC = re.compile(
-    r"(?:D[.]?\s*N[.]?\s*I[.]?|IDENTIDAD)"
+    r"(?<![A-Z])(?:DNI|IDENTIDAD|D[.]N[.]I[.]?)"
     r"\s*(?:(?:N[O°]?|NUMERO)\s*)?(?:[:.]\s*)?(\d{6,9})"
 )
 # En documentos el DNI viene rotulado; aceptamos 6-9 digitos para cazar los mal escritos.
@@ -32,8 +32,8 @@ RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
 RE_MONTO = re.compile(r"S/\s*(\d[\d,]*\.\d{2})")
 
 RE_NOMBRE = re.compile(
-    r"([A-Z][A-Z ]{8,60}+)[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
-    r"|CASAD[AO]\s+CON\s+([A-Z][A-Z ]{8,60}+)[,.]"
+    r"([A-Z][A-Z ]{8,60}?)[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
+    r"|CASAD[AO]\s+CON\s+([A-Z][A-Z ]{8,60}?)[,.]"
 )
 # Nombre en mayusculas antes de NACIONALIDAD o despues de CASAD@ CON.
 
