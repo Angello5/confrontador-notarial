@@ -68,6 +68,7 @@ def pytest_sessionfinish(session, exitstatus):
             "adaptadores/__init__.py",
             "adaptadores/extraccion.py",
             "adaptadores/diccionario.py",
+            "experimental/__init__.py",
             "experimental/revisor_llm.py",
             "app.py",
             "app_ortografia.py",
