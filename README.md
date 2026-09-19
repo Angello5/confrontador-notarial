@@ -50,7 +50,7 @@ python3 verificar.py <fuentes...> -d <borrador>   # datos duros
 python3 extraer.py <archivo|carpeta>              # solo el texto extraído
 python3 ortografia.py <documento>                 # solo ortografía
 python3 lexico.py <escrituras firmadas> -d <borrador>
-python3 bench_llm.py [modelo...]                  # compara modelos de prosa
+python -m experimental.bench_llm [modelo...]      # compara modelos de prosa
 ```
 
 ## Formatos que lee

@@ -20,7 +20,10 @@ def norm(t: str) -> str:
 RE_CUI = re.compile(r"\b(\d{8})\s*-\s*\d\b")
 # CUI del RENIEC: 8 digitos + guion + verificador. El watermark (sello) no lo trae.
 
-RE_DNI_DOC = re.compile(r"(?:DNI|IDENTIDAD)\s*(?:N[O°]?|NUMERO)?\s*[:.]?\s*(\d{6,9})")
+RE_DNI_DOC = re.compile(
+    r"(?:D[.]?\s*N[.]?\s*I[.]?|IDENTIDAD)"
+    r"\s*(?:(?:N[O°]?|NUMERO)\s*)?(?:[:.]\s*)?(\d{6,9})"
+)
 # En documentos el DNI viene rotulado; aceptamos 6-9 digitos para cazar los mal escritos.
 
 RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
@@ -29,8 +32,8 @@ RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
 RE_MONTO = re.compile(r"S/\s*(\d[\d,]*\.\d{2})")
 
 RE_NOMBRE = re.compile(
-    r"([A-Z][A-Z ]{8,60}?)\s*[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
-    r"|CASAD[AO]\s+CON\s+([A-Z][A-Z ]{8,60}?)\s*[,.]"
+    r"([A-Z][A-Z ]{8,60}+)[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
+    r"|CASAD[AO]\s+CON\s+([A-Z][A-Z ]{8,60}+)[,.]"
 )
 # Nombre en mayusculas antes de NACIONALIDAD o despues de CASAD@ CON.
 
@@ -127,7 +130,7 @@ def correspondencia(cat: dict[str, set[str]], destino: str) -> tuple[float, int]
         total += 1
         m = process.extractOne(v, candidatos, scorer=fuzz.ratio) if candidatos else None
         aciertos += bool(m and m[1] >= 80)
-    ajenos = {x for x in RE_DNI_DOC.findall(d)} - cat["DNI"]
+    ajenos = set(RE_DNI_DOC.findall(d)) - cat["DNI"]
     return (aciertos / total if total else 1.0), len(ajenos)
 
 

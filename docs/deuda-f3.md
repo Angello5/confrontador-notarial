@@ -15,16 +15,16 @@ se registran para la migración del núcleo en F3; no se corrigen en F1.
 
 | ID Sonar | Regla | Archivo | Función o alcance | Motivo breve |
 |---|---|---|---|---|
-| AaCzSzcyMhSFhiPLM0QS | python:S1481 | `app_ortografia.py` | `diccionario_residente` | Variable devuelta por una API existente que no se usa. |
-| AaCzSzcyMhSFhiPLM0QR | python:S1192 | `app_ortografia.py` | bloque de curación | Literal de interfaz repetido tres veces. |
+| AaCzSzcyMhSFhiPLM0QS | python:S1481 | `app_ortografia.py` | `diccionario_residente` | Se descarta explícitamente el diccionario (`_`); la caché de `diccionario` conserva la residencia en RAM. |
+| AaCzSzcyMhSFhiPLM0QR | python:S1192 | `app_ortografia.py` | bloque de curación | Constante `CASA` para la etiqueta repetida del control de interfaz. |
 | AaCzSzcYMhSFhiPLM0QI | python:S9073 | `test_extraer.py` | `test_legacy_sin_libreoffice` | Aserción compuesta de privacidad del error. |
 | AaCzSzcYMhSFhiPLM0QJ | python:S9073 | `test_extraer.py` | `test_cuadro_texto_docx` | Aserción compuesta sobre XML sintético. |
 | AaCzSzcYMhSFhiPLM0QK | python:S9073 | `test_extraer.py` | `test_pdf_texto_y_tabla_docx` | Aserción compuesta sobre PDF sintético. |
 | AaCzSzdRMhSFhiPLM0Qh | python:S9073 | `test_ortografia.py` | `test_ortografia` | Aserción compuesta de exclusión léxica. |
-| AaCzSzZyMhSFhiPLM0QE | python:S8786 | `verificar.py` | `RE_DNI_DOC` | Expresión regular existente con posible backtracking. |
-| AaCzSzZyMhSFhiPLM0QF | python:S7500 | `verificar.py` | `correspondencia` | Comprensión redundante al construir un conjunto. |
-| AaCzSzZyMhSFhiPLM0QH | python:S3776 | `verificar.py` | `revisar` | Complejidad cognitiva 22 frente al máximo 15. |
-| AaCzSzZyMhSFhiPLM0QG | python:S1172 | `verificar.py` | `revisar` | Parámetro `umbral` no utilizado. |
+| AaCzSzZyMhSFhiPLM0QE | python:S8786 | `nucleo/verificar.py` | `RE_DNI_DOC` | Patrón lineal, sin cuantificadores anidados ambiguos; test de entrada patológica acotado a 0,5 s. |
+| AaCzSzZyMhSFhiPLM0QF | python:S7500 | `nucleo/verificar.py` | `correspondencia` | `set(RE_DNI_DOC.findall(d))` expresa directamente la conversión requerida. |
+| AaCzSzZyMhSFhiPLM0QH | python:S3776 | `nucleo/verificar.py` | `revisar` | Se conserva la función como unidad de regla hasta F4: dividirla cambiaría el flujo medido; revisión prevista al introducir el servicio de confrontación. |
+| AaCzSzZyMhSFhiPLM0QG | python:S1172 | `nucleo/verificar.py` | `revisar` | `umbral` se conserva en la firma transitoria para compatibilidad con el shim CLI y ambas apps; se eliminará al migrar esos llamadores en F4. |
 
 ## Riesgo residual de instalación
 
@@ -62,16 +62,14 @@ EOF
 Los diez IDs fueron revisados en la rama F3. Los cuatro olores de aserciones
 compuestas (`AaCzSzcYMhSFhiPLM0QI`, `AaCzSzcYMhSFhiPLM0QJ`,
 `AaCzSzcYMhSFhiPLM0QK`, `AaCzSzdRMhSFhiPLM0Qh`) quedaron con aserciones
-separadas. `AaCzSzcyMhSFhiPLM0QS` corresponde al valor de la API de caché de
-Streamlit que se consume como métrica; `AaCzSzcyMhSFhiPLM0QR` queda
-justificado como literal deliberado de interfaz, sin exclusión global.
+separadas. `AaCzSzcyMhSFhiPLM0QS` se resolvió descartando el valor no usado y
+`AaCzSzcyMhSFhiPLM0QR` con la constante `CASA`.
 
 Los cuatro IDs del verificador (`AaCzSzZyMhSFhiPLM0QE`,
 `AaCzSzZyMhSFhiPLM0QF`, `AaCzSzZyMhSFhiPLM0QH`, `AaCzSzZyMhSFhiPLM0QG`)
-apuntaban al módulo legado `verificar.py`; la lógica fue trasladada a
-`nucleo/verificar.py` sin cambiar la regla, y el shim ya no contiene esas
-expresiones. Se conserva esta justificación por ID para evitar una exclusión
-global de reglas.
+se resolvieron o justificaron individualmente: la regex ahora es lineal y se
+probó contra una entrada patológica, la comprensión usa `set()` y QH/QG tienen
+justificación de compatibilidad y fase concreta.
 
 La instalación aislada de `antlr4-python3-runtime==4.9.3` fue validada en un
 entorno virtual temporal con `setuptools==84.0.0` fijado por hash y

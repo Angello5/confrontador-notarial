@@ -8,9 +8,7 @@ import pymupdf
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from adaptadores import extraccion
-
-extraer = extraccion
+from adaptadores import extraccion as extraer
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
 DNI = BASE / "cliente" / "dni.png"
@@ -137,7 +135,8 @@ def test_legacy_sin_libreoffice(tmp_path, monkeypatch):
         try:
             extraer.leer(rtf)
         except ValueError as e:
-            assert "DONACION" not in str(e) and str(tmp_path) not in str(e)
+            assert "DONACION" not in str(e)
+            assert str(tmp_path) not in str(e)
         else:
             raise AssertionError(exe)
     assert not list(tmp_path.iterdir())

@@ -59,9 +59,9 @@
 - [X] T020 [US3] Añadir test de que la API key no forma parte de la query URL y enviarla en la cabecera `x-goog-api-key` sin imprimirla.
 - [X] T021 [US3] Resolver o justificar por ID los olores AaCzSzcyMhSFhiPLM0QS y AaCzSzcyMhSFhiPLM0QR en `app_ortografia.py`.
 - [X] T022 [US3] Resolver por aserciones separadas o justificar por ID los olores de tests AaCzSzcYMhSFhiPLM0QI, AaCzSzcYMhSFhiPLM0QJ, AaCzSzcYMhSFhiPLM0QK y AaCzSzdRMhSFhiPLM0Qh.
-- [X] T023 [US3] Revisar y justificar por ID los cuatro olores del verificador migrado, sin cambiar reglas de negocio.
+- [X] T023 [US3] Añadir primero en `test_verificar.py` cobertura sintética para regex/correspondencia/resultados; después resolver o justificar por ID AaCzSzZyMhSFhiPLM0QE, AaCzSzZyMhSFhiPLM0QF, AaCzSzZyMhSFhiPLM0QH y AaCzSzZyMhSFhiPLM0QG en `verificar.py`. El test de cobertura no consta como fallido antes de su incorporación.
 - [X] T024 [US3] Validar antlr4 en entorno limpio con `setuptools` fijado por hash y `--no-build-isolation`; registrar el riesgo residual en `docs/deuda-f3.md`.
-- [X] T025 [US3] Verificar que la suite ordinaria excluye `experimental/` y no importa sus módulos; `test_revisor_llm.py` queda opt-in con `collect_ignore`.
+- [X] T025 [US3] Verificar que la suite ordinaria excluye `experimental/` y no importa sus módulos; `test_revisor_llm.py` queda opt-in mediante el marker `revisor_llm` excluido en `addopts` e imports diferidos dentro de los tests.
 
 **Checkpoint y commit local**: smoke tests de ambas apps, tests deterministas, revisión por ID de los diez smells, tests de prosa sin red y validación de instalación completados; crear un commit de la etapa.
 

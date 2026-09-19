@@ -55,7 +55,8 @@ def test_ortografia():
         assert w not in hallado, f"{w} se marco y es correcta ({hallado.get(w)})"
 
     # los apellidos se pasan en `extra`, no a la lista de la casa: cambian por caso
-    assert "ZURBELIA" not in hallado and "LAMPARA" not in hallado
+    assert "ZURBELIA" not in hallado
+    assert "LAMPARA" not in hallado
     # LAMPARA no se marca: existe "lámpara" y se acepta la tilde ausente.
     sin_extra = {w for w, _, _ in revisar("ZURBELIA LAMPARA", d, lemas, aceptadas)}
     assert "ZURBELIA" in sin_extra, sin_extra

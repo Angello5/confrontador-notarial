@@ -24,6 +24,8 @@ from adaptadores.extraccion import IMGS, leer
 from nucleo import ortografia
 from nucleo.verificar import catalogo, diagnostico, revisar, revisar_parrafos
 
+CASA = "Es término de la casa"
+
 st.set_page_config(page_title="Vía determinista", page_icon="📐", layout="wide")
 st.title("Confrontamiento determinista")
 st.caption(
@@ -36,7 +38,7 @@ st.caption(
 def diccionario_residente():
     """Se queda en RAM entre corridas: 0.3 s de carga y ~55 MB, una sola vez."""
     t = time.perf_counter()
-    d, lemas = diccionario()
+    _, lemas = diccionario()
     return len(lemas), time.perf_counter() - t
 
 
@@ -133,7 +135,7 @@ if faltas := st.session_state.get("resultado"):
         pd.DataFrame(
             [
                 {
-                    "Es término de la casa": False,
+                    CASA: False,
                     "Palabra": w,
                     "Motivo": m,
                     "Sugerencia": s,
@@ -144,12 +146,10 @@ if faltas := st.session_state.get("resultado"):
         width="stretch",
         hide_index=True,
         disabled=["Palabra", "Motivo", "Sugerencia"],
-        column_config={
-            "Es término de la casa": st.column_config.CheckboxColumn(width="small")
-        },
+        column_config={CASA: st.column_config.CheckboxColumn(width="small")},
     )
 
-    marcadas = editable[editable["Es término de la casa"]]["Palabra"].tolist()
+    marcadas = editable[editable[CASA]]["Palabra"].tolist()
     if st.button(
         f"Guardar {len(marcadas)} términos en la lista", disabled=not marcadas
     ):
