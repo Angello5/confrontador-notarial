@@ -14,7 +14,7 @@ streamlit==1.63.0
 pandas==3.0.5
 
 # ERP F2
-Django==5.2.17
+Django==6.1.1
 psycopg[binary]==3.3.6
 django-crispy-forms==2.7
 crispy-bootstrap5==2026.9
