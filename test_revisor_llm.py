@@ -1,9 +1,40 @@
 """Test del filtro con casos de prosa inventados, sin documentos de clientes.
 
-No llama a la API. python -m pytest test_revisor_llm.py
+No llama a la API ni a modelos. Ejecución opt-in: python -m pytest -o addopts= -m revisor_llm test_revisor_llm.py
 """
 
-from revisor_llm import filtrar
+import pytest
+from urllib.request import Request
+
+
+def test_consultar_envia_api_key_en_cabecera(monkeypatch):
+    import experimental.revisor_llm as modulo
+
+    llamadas = []
+
+    class Respuesta:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return b'{"candidates": [{"content": {"parts": [{"text": "{}"}]}}]}'
+
+    def abrir(request, timeout):
+        assert isinstance(request, Request)
+        llamadas.append((request.full_url, request.headers, timeout))
+        return Respuesta()
+
+    monkeypatch.setattr(modulo, "_key", lambda: "clave-ficticia")
+    monkeypatch.setattr(modulo.urllib.request, "urlopen", abrir)
+    modulo.consultar("texto ficticio", "modelo-ficticio")
+    assert "clave-ficticia" not in llamadas[0][0]
+    assert llamadas[0][1]["X-goog-api-key"] == "clave-ficticia"
+
+
+pytestmark = pytest.mark.revisor_llm
 
 DOC = (
     "LOS COMPARECIENTES DECLARAN QUÉ SON DE ESTADO CIVIL. OCTAO: SAN MARTIN "
@@ -28,6 +59,8 @@ CASOS = [
 
 
 def test_filtro():
+    from experimental.revisor_llm import filtrar
+
     ok, fuera = filtrar(
         [{"encontrado": e, "correccion": c} for e, c, _, _ in CASOS], DOC, FUENTES
     )

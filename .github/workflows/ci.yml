@@ -58,7 +58,7 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
-      - run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends libreoffice-writer
+      - run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends libreoffice-writer fonts-liberation
       - run: >-
           python -m pip install --require-hashes --only-binary :all:
           --no-binary antlr4-python3-runtime
@@ -69,20 +69,32 @@ jobs:
           from hashlib import sha256
           from pathlib import Path
           from urllib.request import urlopen
+          from shutil import copyfile
 
           import rapidocr
 
-          from extraer import _ocr
+          from adaptadores.extraccion import OCR_MODELS, _OCR_FILES
 
-          _ocr()
-          models = {
-              "ch_PP-OCRv4_det_infer.onnx": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
+          OCR_MODELS.mkdir(parents=True, exist_ok=True)
+          copyfile(
+              Path(rapidocr.__file__).parent / "models" / "ch_PP-OCRv4_det_infer.onnx",
+              OCR_MODELS / "ch_PP-OCRv4_det_infer.onnx",
+          )
+          bundled = Path(rapidocr.__file__).parent / "models"
+          for name, expected in {
               "ch_PP-OCRv4_rec_infer.onnx": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b",
               "ch_ppocr_mobile_v2.0_cls_infer.onnx": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
+          }.items():
+              assert sha256((bundled / name).read_bytes()).hexdigest() == expected
+          base = "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0"
+          downloads = {
+              "latin_PP-OCRv5_rec_mobile_infer.onnx": f"{base}/onnx/PP-OCRv5/rec/latin_PP-OCRv5_rec_mobile_infer.onnx",
           }
-          for name, expected in models.items():
-              paths = list(Path(rapidocr.__file__).parent.rglob(name))
-              assert len(paths) == 1 and sha256(paths[0].read_bytes()).hexdigest() == expected
+          for name, url in downloads.items():
+              with urlopen(url, timeout=60) as response:
+                  (OCR_MODELS / name).write_bytes(response.read())
+          for name, expected in _OCR_FILES.items():
+              assert sha256((OCR_MODELS / name).read_bytes()).hexdigest() == expected
 
           base = "https://raw.githubusercontent.com/LibreOffice/dictionaries/32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4/es/es_PE"
           for extension, expected in {
@@ -101,8 +113,9 @@ jobs:
                   path.write_bytes(content)
           PY
       - run: python scripts/generar_fixtures.py
+      - run: python manage.py check
       - run: python manage.py makemigrations --check --dry-run
-      - run: python -m pytest -m 'not local_reference' --cov --cov-report=term --cov-report=xml:coverage.xml
+      - run: python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
       - run: python -c "import xml.etree.ElementTree as E; assert E.parse('coverage.xml').getroot().findall('.//class')"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

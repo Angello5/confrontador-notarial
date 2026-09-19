@@ -56,40 +56,31 @@ def pytest_sessionfinish(session, exitstatus):
             for c in clases
         ):
             raise _CoberturaInvalida
+        esperados = {
+            "extraer.py",
+            "verificar.py",
+            "lexico.py",
+            "ortografia.py",
+            "nucleo/verificar.py",
+            "nucleo/lexico.py",
+            "nucleo/ortografia.py",
+            "nucleo/__init__.py",
+            "adaptadores/__init__.py",
+            "adaptadores/extraccion.py",
+            "adaptadores/diccionario.py",
+            "app.py",
+            "app_ortografia.py",
+            "manage.py",
+        }
         archivos = {c.attrib["filename"] for c in clases}
         if not {"config/settings.py", "accounts/models.py", "manage.py"} <= archivos:
             raise _CoberturaInvalida
-        if any(
+        if not esperados <= archivos or any(
             not (
-                nombre
-                in {
-                    "extraer.py",
-                    "verificar.py",
-                    "lexico.py",
-                    "ortografia.py",
-                    "revisor_llm.py",
-                    "app.py",
-                    "app_ortografia.py",
-                    "bench_llm.py",
-                    "manage.py",
-                }
+                nombre in esperados
                 or nombre.startswith(("config/", "accounts/", "core/"))
             )
             for nombre in archivos
-        ):
-            raise _CoberturaInvalida
-        if (
-            not {
-                "extraer.py",
-                "verificar.py",
-                "lexico.py",
-                "ortografia.py",
-                "revisor_llm.py",
-                "app.py",
-                "app_ortografia.py",
-                "bench_llm.py",
-            }
-            <= archivos
         ):
             raise _CoberturaInvalida
     except (OSError, ValueError, KeyError, _CoberturaInvalida, ElementTree.ParseError):

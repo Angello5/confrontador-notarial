@@ -14,9 +14,17 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-import ortografia
-from extraer import IMGS, leer
-from verificar import catalogo, diagnostico, revisar, revisar_parrafos
+from adaptadores.diccionario import (
+    LISTA,
+    agregar_a_lista,
+    diccionario,
+    lista_casa,
+)
+from adaptadores.extraccion import IMGS, leer
+from nucleo import ortografia
+from nucleo.verificar import catalogo, diagnostico, revisar, revisar_parrafos
+
+CASA = "Es término de la casa"
 
 st.set_page_config(page_title="Vía determinista", page_icon="📐", layout="wide")
 st.title("Confrontamiento determinista")
@@ -30,7 +38,7 @@ st.caption(
 def diccionario_residente():
     """Se queda en RAM entre corridas: 0.3 s de carga y ~55 MB, una sola vez."""
     t = time.perf_counter()
-    d, lemas = ortografia.diccionario()
+    _, lemas = diccionario()
     return len(lemas), time.perf_counter() - t
 
 
@@ -46,15 +54,20 @@ def textos(archivos) -> dict[str, str]:
     return out
 
 
+def revisar_ortografia(texto: str, propios: set[str]):
+    d, lemas = diccionario()
+    return ortografia.revisar(texto, d, lemas, lista_casa(), propios)
+
+
 n_lemas, seg_carga = diccionario_residente()
 st.sidebar.metric("Lemas en el diccionario", f"{n_lemas:,}".replace(",", " "))
 st.sidebar.caption(
     f"Cargado en {seg_carga:.2f} s · reside en RAM (~55 MB) mientras la app viva."
 )
 st.sidebar.divider()
-st.sidebar.metric("Términos de la casa", len(ortografia.lista_casa()))
+st.sidebar.metric("Términos de la casa", len(lista_casa()))
 st.sidebar.caption(
-    f"Se guardan en `{ortografia.LISTA.name}`. Siglas, jurídico y topónimos que "
+    f"Se guardan en `{LISTA.name}`. Siglas, jurídico y topónimos que "
     "el diccionario general no trae."
 )
 umbral = st.sidebar.slider("Umbral de similitud de párrafo (%)", 70, 100, 88)
@@ -89,7 +102,7 @@ if st.button("Comparar", type="primary", disabled=not (fuentes_up and borrador_u
         t_reglas = time.perf_counter() - t1
 
         t2 = time.perf_counter()
-        faltas = ortografia.revisar(txt, propios)
+        faltas = revisar_ortografia(txt, propios)
         t_orto = time.perf_counter() - t2
 
         a, b, c, d = st.columns(4)
@@ -127,7 +140,7 @@ if faltas := st.session_state.get("resultado"):
         pd.DataFrame(
             [
                 {
-                    "Es término de la casa": False,
+                    CASA: False,
                     "Palabra": w,
                     "Motivo": m,
                     "Sugerencia": s,
@@ -138,18 +151,14 @@ if faltas := st.session_state.get("resultado"):
         width="stretch",
         hide_index=True,
         disabled=["Palabra", "Motivo", "Sugerencia"],
-        column_config={
-            "Es término de la casa": st.column_config.CheckboxColumn(width="small")
-        },
+        column_config={CASA: st.column_config.CheckboxColumn(width="small")},
     )
 
-    marcadas = editable[editable["Es término de la casa"]]["Palabra"].tolist()
+    marcadas = editable[editable[CASA]]["Palabra"].tolist()
     if st.button(
         f"Guardar {len(marcadas)} términos en la lista", disabled=not marcadas
     ):
-        n = ortografia.agregar_a_lista(marcadas)
-        st.success(
-            f"{n} términos guardados en {ortografia.LISTA.name}. Vuelve a comparar."
-        )
+        n = agregar_a_lista(marcadas)
+        st.success(f"{n} términos guardados en {LISTA.name}. Vuelve a comparar.")
         st.session_state.resultado = [f for f in faltas if f[0] not in marcadas]
         st.rerun()

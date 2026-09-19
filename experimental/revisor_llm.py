@@ -15,10 +15,10 @@ import unicodedata
 import urllib.request
 from pathlib import Path
 
-from extraer import _cacheado
+from adaptadores.extraccion import _cacheado
 
 MODELO = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
-ENV_NOTARIA = Path(__file__).parent / ".env"
+ENV_NOTARIA = Path(__file__).resolve().parents[1] / ".env"
 
 INSTRUCCIONES = """Eres corrector de estilo de escrituras publicas peruanas.
 
@@ -87,9 +87,13 @@ def consultar(texto: str, modelo: str = None) -> list[dict]:
     ).encode()
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{modelo or MODELO}:generateContent?key={_key()}"
+        f"{modelo or MODELO}:generateContent"
     )
-    req = urllib.request.Request(url, cuerpo, {"Content-Type": "application/json"})
+    req = urllib.request.Request(
+        url,
+        cuerpo,
+        {"Content-Type": "application/json", "x-goog-api-key": _key()},
+    )
     # 503 "high demand" es rutinario y transitorio; sin reintento se pierde la corrida
     # entera, que es justo lo que le pasa a la rama en produccion.
     for intento in range(4):

@@ -9,8 +9,8 @@ import sys
 import time
 from pathlib import Path
 
-from extraer import leer
-from revisor_llm import filtrar, consultar
+from adaptadores.extraccion import leer
+from experimental.revisor_llm import consultar, filtrar
 
 BASE = Path(__file__).parent
 # tokens de prosa mal escritos en el borrador y corregidos en la escritura final
