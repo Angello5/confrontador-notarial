@@ -6,11 +6,31 @@ python -m pytest test_verificar.py
 """
 
 from pathlib import Path
+from time import perf_counter
 
 from adaptadores.extraccion import leer, recolectar
 from nucleo.verificar import catalogo, revisar
+from nucleo.verificar import RE_DNI_DOC
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
+
+
+def test_re_dni_doc_rechaza_entrada_patologica_en_tiempo_lineal():
+    inicio = perf_counter()
+    assert RE_DNI_DOC.search("DNI" + " " * 5000 + "X") is None
+    assert perf_counter() - inicio < 0.5
+
+
+def test_re_dni_doc_reconoce_rotulos_ficticios_equivalentes():
+    casos = {
+        "DNI 90000001": "90000001",
+        "DNI: 90000001": "90000001",
+        "D.N.I. 90000001": "90000001",
+        "IDENTIDAD N° 90000001": "90000001",
+        "IDENTIDAD NUMERO: 90000001": "90000001",
+        "IDENTIDAD90000001": "90000001",
+    }
+    assert {RE_DNI_DOC.search(texto).group(1) for texto in casos} == set(casos.values())
 
 
 def test_verificacion(monkeypatch, tmp_path):
