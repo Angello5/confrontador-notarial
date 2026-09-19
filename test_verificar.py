@@ -51,6 +51,8 @@ RE_DNI_DOC_ORIGINAL = re.compile(
         "IDENTIDAD N° 90000001",
         "IDENTIDAD NUMERO: 90000001",
         "IDENTIDAD90000001",
+        "CONDNI 90000004",
+        "XDNI90000004",
         "CIUDAD NI 12345678",
         "D N I 12345678",
     ],
