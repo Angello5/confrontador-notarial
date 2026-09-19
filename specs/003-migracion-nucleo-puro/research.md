@@ -19,7 +19,7 @@
 - **Decisión/evidencia**: se comparó localmente RapidOCR 3.4.3 con PP-OCRv4 ch y PP-OCRv5 latin (`use_cls=False`), usando modelos fijados por SHA-256. v5 toma su alfabeto de la metadata ONNX `character`; `rec_keys_path` no modifica esa metadata. La tabla, el detalle de caracteres y la recomendación están abajo en "Investigación sintética de candidatos OCR". La página de modelos enumera latin PP-OCRv5 como familia que cubre español; no enumera un reconocedor `es` dedicado.
 - **Alternativas consideradas**: actualizar RapidOCR directamente a una versión flotante; descartada porque no sería reproducible. Conservar v4 sin medir; no responde a la decisión solicitada. La medición no se ejecuta en CI ni con datos versionados.
 - **Fuentes primarias**: [RapidOCR model list](https://rapidai.github.io/RapidOCRDocs/main/model_list/), [RapidOCR default model manifest](https://github.com/RapidAI/RapidOCR/blob/main/python/rapidocr/default_models.yaml).
-- **Criterio de adopción**: PP-OCRv5 latin es la configuración predeterminada de esta rama con `use_cls=False`; su test sintético ordinario exige igualar el piso medido (8/8 líneas, ≥82/85 palabras y ≥31/32 diacríticos). T014 sigue siendo requisito local para completar la adopción: 8 observaciones, cinco corridas idénticas y cero observaciones en la escritura correcta.
+- **Decisión adoptada (T014–T016, 2026-09-18)**: la persona usuaria ejecutó T014 sobre `8a344fb` con su expediente de referencia y obtuvo 1 prueba aprobada en 10,23 s, OCR real con PP-OCRv5 latin y cero archivos `.json` residuales en la caché. Cumplió 8 observaciones, cinco corridas idénticas, cero en la escritura correcta y el piso sintético (8/8 líneas, ≥82/85 palabras y ≥31/32 diacríticos); se adopta PP-OCRv5 latin con `use_cls=False`. El PR #11 de Dependabot (RapidOCR 3.9.2) queda sustituido por esta decisión y el coordinador lo cerrará al publicar el PR de F3.
 
 ### Deuda técnica
 
@@ -30,7 +30,7 @@
 ## Límites pendientes de ejecución
 
 - El usuario ejecuta `local_reference` desde su entorno autorizado; nadie incorpora ni comunica contenido documental. La tarea debe devolver solo los agregados requeridos y el resultado de aprobación.
-- Esta comparación cubre OCR sintético y no sustituye la medición privada `local_reference` ni autoriza resolver el PR #11.
+- Esta comparación cubre OCR sintético; la medición privada T014 ya fue aprobada en el entorno autorizado y no se versionan sus expedientes, texto, rutas ni logs. El PR #11 no se modifica desde esta etapa.
 ## Investigación sintética de candidatos OCR
 
 Medición local ejecutada con `python -m pytest -o addopts= -m ocr_research -s

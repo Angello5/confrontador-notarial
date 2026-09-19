@@ -8,7 +8,9 @@ import pymupdf
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from adaptadores import extraccion as extraer
+from adaptadores import extraccion
+
+extraer = extraccion
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
 DNI = BASE / "cliente" / "dni.png"
@@ -160,7 +162,8 @@ def test_cuadro_texto_docx():
     assert cuerpo.count(nota) == 1
 
 
-def test_pdf_texto_y_tabla_docx():
+def test_pdf_texto_y_tabla_docx(monkeypatch, tmp_path):
+    monkeypatch.setattr(extraer, "CACHE", tmp_path / "cache")
     texto = extraer.leer(BASE / "formatos" / "texto.pdf")
     assert "DOCUMENTO FICTICIO" in texto and "90000004" in texto
     tabla = extraer.leer(BASE / "formatos" / "tabla.docx")

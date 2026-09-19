@@ -136,9 +136,15 @@ de medir:
 
 Comunicar solo si hubo 8 observaciones, cero en la escritura correcta y cinco
 salidas idénticas. No copiar texto, imágenes, rutas ni logs del expediente.
-RapidOCR usa 502 caracteres de metadata `character` del ONNX v5 (incluye ñ, Ñ, Ú, Á e Í) e ignora `rec_keys_path`; v4 sí carece de ñ/Ñ. Una Ñ aislada a veces se descarta (una vez se leyó como N y tres se descartó); en SEÑORA, NÚÑEZ, MUÑOZ, ESPAÑA y ÑANDÚ se lee bien. Si se descarta dentro de un nombre, se genera una observación.
+RapidOCR usa 502 caracteres de metadata `character` del ONNX v5 (incluye ñ, Ñ, Ú, Á e Í) e ignora `rec_keys_path`; v4 sí carece de ñ/Ñ. Una Ñ aislada a veces se descarta (una vez se leyó como N y tres fueron descartadas); en SEÑORA, NÚÑEZ, MUÑOZ, ESPAÑA y ÑANDÚ se lee bien. Si se descarta dentro de un nombre, se genera una observación.
 
-**Esperado al aprobar**: 8 observaciones, cero observaciones en escritura correcta, cinco salidas iguales, piso sintético de v5 y hashes validados. La metadata v5 incluye Ñ/ñ, aunque una Ñ aislada puede descartarse y causar una observación en un nombre. La decisión sobre el PR #11 queda para después de T014; no se modifica el PR durante estas pruebas.
+**Resultado T014–T016 (2026-09-18)**: la persona usuaria ejecutó T014 sobre `8a344fb` con su expediente de referencia: 1 prueba aprobada en 10,23 s, OCR real con PP-OCRv5 latin y cero archivos `.json` después en su caché. El gate se cumple (8 observaciones, cinco salidas idénticas, cero en la escritura correcta y piso sintético), por lo que se adopta PP-OCRv5 latin con `use_cls=False`. El PR #11 de Dependabot (RapidOCR 3.9.2) queda sustituido por esta decisión; no se cierra aquí y el coordinador lo cerrará al publicar el PR de F3.
+
+## Aprovisionamiento offline para F8
+
+La deuda de aprovisionamiento offline de modelos para F8 está descrita en
+`docs/deuda-f3.md` y debe resolverse allí al definir el despliegue; esta guía
+solo conserva la validación local de hashes y el procedimiento reproducible.
 
 ## Gates previos a completar F3
 

@@ -13,7 +13,10 @@ from nucleo.verificar import catalogo, revisar
 BASE = Path(__file__).parent / "tests" / "fixtures"
 
 
-def test_verificacion():
+def test_verificacion(monkeypatch, tmp_path):
+    from adaptadores import extraccion
+
+    monkeypatch.setattr(extraccion, "CACHE", tmp_path / "cache")
     fuentes = recolectar([str(BASE / "cliente")])
     cat = catalogo(fuentes)
     assert cat["DNI"] == {"90000001", "90000002", "90000003", "90000004"}, cat["DNI"]
