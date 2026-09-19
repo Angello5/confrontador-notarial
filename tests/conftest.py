@@ -76,6 +76,8 @@ def pytest_sessionfinish(session, exitstatus):
             "manage.py",
         }
         archivos = {c.attrib["filename"] for c in clases}
+        if not {"config/settings.py", "accounts/models.py", "manage.py"} <= archivos:
+            raise _CoberturaInvalida
         if not esperados <= archivos or any(
             not (
                 nombre in esperados

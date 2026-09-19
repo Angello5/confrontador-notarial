@@ -168,5 +168,6 @@ ficticios. La revisión del diff no encontró secretos, datos reales, recursos
 privados ni imports de IA en el flujo productivo del ERP; la UI Streamlit
 transitoria conserva su aislamiento documentado en `experimental/`.
 
-T028 queda pendiente: el Quality Gate de SonarQube y `gitleaks` requieren el
-CI del PR; no se declara evidencia remota antes de publicar dicho PR.
+F3 queda lista para PR solo tras aplicar este arreglo de CI. T028 queda
+pendiente: el Quality Gate de SonarQube y `gitleaks` requieren el CI del PR;
+no se declara evidencia remota antes de publicar dicho PR.
