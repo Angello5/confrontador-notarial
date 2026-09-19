@@ -1,13 +1,19 @@
 """Pruebas del Django admin de cuentas con datos ficticios."""
 
 from datetime import timedelta
+from types import SimpleNamespace
 
 import pytest
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.messages import get_messages
+from django.core.exceptions import PermissionDenied
+from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
+
+from accounts.forms import AccountChangeForm
 
 pytestmark = pytest.mark.django_db
 CLAVE_TEMPORAL = "Clave-temporal-72!"
@@ -117,12 +123,12 @@ def test_admin_password_change_forces_new_password_and_revokes_sessions(
         username="cuenta_clave", password=CLAVE_TEMPORAL
     )
     target.groups.add(Group.objects.get(name="Usuario"))
-    target_client = __import__("django.test", fromlist=["Client"]).Client()
+    target_client = Client()
     target_client.force_login(target)
     old_version = target.session_version
 
     response = cliente_administrador.post(
-        reverse("admin:accounts_user_password_change", args=[target.pk]),
+        reverse("admin:auth_user_password_change", args=[target.pk]),
         {
             "password1": "Clave-nueva-73!",
             "password2": "Clave-nueva-73!",
@@ -148,6 +154,42 @@ def test_account_change_rejects_self_disable_in_validation(cliente_administrador
     )
     assert response.status_code == 200
     assert "No puede desactivar su propia cuenta" in response.content.decode()
+
+
+def test_account_change_rejects_removing_last_administrator_in_validation(
+    cliente_administrador,
+):
+    admin = get_user_model().objects.get(username="administrador_prueba")
+    form = AccountChangeForm(
+        data={
+            "username": admin.username,
+            "is_active": "on",
+            "role": Group.objects.get(name="Usuario").pk,
+        },
+        instance=admin,
+    )
+
+    assert not form.is_valid()
+    assert (
+        "No se puede retirar el último Administrador activo." in form.errors["__all__"]
+    )
+
+
+def test_save_model_rejects_last_administrator_under_race(cliente_administrador):
+    user_admin = get_user_model().objects.get(username="administrador_prueba")
+    user_admin.is_active = False
+    form = SimpleNamespace(
+        cleaned_data={"role": Group.objects.get(name="Usuario")},
+    )
+    model_admin = admin.site._registry[get_user_model()]
+
+    with pytest.raises(PermissionDenied):
+        model_admin.save_model(
+            SimpleNamespace(user=get_user_model().objects.get(pk=user_admin.pk)),
+            user_admin,
+            form,
+            True,
+        )
 
 
 def test_lifecycle_actions_require_confirmation(cliente_administrador):

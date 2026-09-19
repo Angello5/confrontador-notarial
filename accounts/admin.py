@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.contrib.auth.models import Group
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.template.response import TemplateResponse
 from django.contrib.admin import helpers
@@ -43,7 +43,6 @@ class UserAdmin(DjangoUserAdmin):
     list_filter = ("is_active",)
     search_fields = ("username",)
     ordering = ("username",)
-    readonly_fields = ()
     actions = ("deactivate_accounts", "activate_accounts", "unlock_accounts")
 
     def role_name(self, obj):
@@ -80,7 +79,7 @@ class UserAdmin(DjangoUserAdmin):
                     and previous.is_active
                     and not obj.is_active
                 ):
-                    raise ValidationError("No puede desactivar su propia cuenta.")
+                    raise PermissionDenied("No puede desactivar su propia cuenta.")
                 if (
                     previous.is_active
                     and previous_is_admin
@@ -89,7 +88,7 @@ class UserAdmin(DjangoUserAdmin):
                     .exclude(pk=previous.pk)
                     .exists()
                 ):
-                    raise ValidationError(
+                    raise PermissionDenied(
                         "No se puede retirar el último Administrador activo."
                     )
                 if (

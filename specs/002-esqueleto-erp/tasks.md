@@ -53,7 +53,7 @@
 - [X] T019 [P] [US2] Add failing tests for instant session invalidation across deactivation/reactivation, `session_version` in `get_session_auth_hash`, and protection against self-disable/last-admin removal in `tests/test_account_lifecycle.py` (verified red before T020–T021).
 - [X] T019a [US2] Add failing tests for one-time bootstrap creation, mandatory first password change, no password output and duplicate active Administrator rejection in `tests/test_bootstrap_admin.py` (verified red before T022).
 - [X] T019b [US2] Add a failing test for role assignment updating staff status and invalidating existing sessions via `session_version` in `tests/test_account_role_change.py` (verified red before T021).
-- [X] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields; allow Administrators to clear the login lockout fields and disable account/role-group deletion in `accounts/forms.py` and `accounts/admin.py`.
+- [X] T020 [US2] Implement account creation/edit forms and native `UserAdmin` limited to the two role groups and minimum account fields; allow Administrators to clear the login lockout fields with the «Desbloquear intentos de ingreso» action from the account list and disable account/role-group deletion in `accounts/forms.py` and `accounts/admin.py`.
 - [X] T021 [US2] Implement transactional deactivation/reactivation and role changes, locking active Administrators, incrementing `session_version` (used by `get_session_auth_hash`) and rejecting self/last-administrator transitions in `accounts/admin.py` and `accounts/models.py`.
 - [X] T022 [US2] Implement `bootstrap_admin` command that creates the first staff Administrator with a one-time temporary password and mandatory first-login change, without a default or logged password in `accounts/management/commands/bootstrap_admin.py`.
 - [X] T023 [US2] Use Spanish locale for native Django admin confirmations and validation messages in `config/settings.py`; verify role-specific menu links and admin action feedback in `tests/test_account_admin.py` and `tests/test_shell.py`.
@@ -64,7 +64,9 @@
 - [X] T025 [P] Document PostgreSQL configuration, bootstrap command and manual login/password/admin scenarios in `specs/002-esqueleto-erp/quickstart.md`.
 - [X] T026 [P] Generate the Nielsen and accessibility review checklist for login, password change, ERP shell and native Django admin in `specs/002-esqueleto-erp/checklists/ux.md`.
 - [X] T027 Verify no external runtime/CDN calls, real personal data, secrets, or F3 behavior; audit dependency locks and asset licenses in `requirements.txt`, `requirements-dev.txt`, `static/vendor/README.md`, and the F2 source tree.
-- [ ] T028 **Final checkpoint**: execute all commands from `AGENTS.md`, confirm Sonar Quality Gate and existing CI controls for the eventual PR, review `specs/002-esqueleto-erp/` and the F2 source tree; commit this stage locally as `docs(f2): finish validation checklist`.
+- [X] T028 **Final checkpoint**: ejecutar el checkpoint local de `AGENTS.md` (Django check, migraciones, generación de fixtures, pytest con cobertura, Ruff, pip-audit estricto y pre-commit); los controles remotos y el Sonar Quality Gate quedan para el PR; revisar `specs/002-esqueleto-erp/` y el árbol F2; commit local de esta corrección como `fix(f2): address final review`.
+
+Nota TDD de la revisión final: `4ee8e36` entró con dos pruebas en rojo; la aserción del desbloqueo cambió en el commit de corrección.
 
 ## Dependencies
 

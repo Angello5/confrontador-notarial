@@ -62,14 +62,12 @@ class AccountCreationForm(UserCreationForm):
         user = super().save(commit=False)
         role = self.cleaned_data["role"]
         user.force_password_change = True
-        user.is_staff = role.name == "Administrador"
-        if commit:
-            user.save()
-            user.groups.set([role])
+        user.is_staff = role.name == ROLES[0]
         return user
 
 
 class AccountChangeForm(UserChangeForm):
+    operator = None
     role = forms.ModelChoiceField(
         label="Rol",
         queryset=Group.objects.filter(name__in=ROLES).order_by("name"),
@@ -87,7 +85,6 @@ class AccountChangeForm(UserChangeForm):
         }
 
     def __init__(self, *args, **kwargs):
-        self.operator = kwargs.pop("operator", getattr(self, "operator", None))
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             self.fields["role"].initial = self.instance.groups.filter(
@@ -106,13 +103,13 @@ class AccountChangeForm(UserChangeForm):
             and not cleaned_data.get("is_active")
         ):
             raise forms.ValidationError("No puede desactivar su propia cuenta.")
-        was_admin = self.instance.groups.filter(name="Administrador").exists()
-        will_be_admin = role.name == "Administrador"
+        was_admin = self.instance.groups.filter(name=ROLES[0]).exists()
+        will_be_admin = role.name == ROLES[0]
         if (
             self.instance.is_active
             and was_admin
             and (not cleaned_data.get("is_active") or not will_be_admin)
-            and not User.objects.filter(is_active=True, groups__name="Administrador")
+            and not User.objects.filter(is_active=True, groups__name=ROLES[0])
             .exclude(pk=self.instance.pk)
             .exists()
         ):
@@ -123,8 +120,5 @@ class AccountChangeForm(UserChangeForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.is_staff = self.cleaned_data["role"].name == "Administrador"
-        if commit:
-            user.save()
-            user.groups.set([self.cleaned_data["role"]])
+        user.is_staff = self.cleaned_data["role"].name == ROLES[0]
         return user

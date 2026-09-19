@@ -28,11 +28,11 @@ Resultado esperado: lint, formato y todas las pruebas pasan; cobertura XML no es
 
 ## Escenarios manuales y de integración
 
-1. Aplicar migraciones en PostgreSQL y crear el primer administrador desde el comando de gestión en el servidor. El comando solicita una clave sin imprimirla ni escribirla en logs.
+1. Ejecutar `python manage.py migrate` en PostgreSQL y crear el primer administrador con `python manage.py bootstrap_admin` desde el servidor. El comando solicita una clave sin imprimirla ni escribirla en logs.
 2. Iniciar sesión con Administrador; comprobar `/admin/`, dos roles permitidos y que no existan opciones de negocio F3/F4.
 3. Crear una cuenta ficticia Usuario con clave temporal; iniciar sesión y confirmar que primero solo permite cambio de clave. Después, verificar que `/` muestra el layout y que `/admin/` deniega acceso.
 4. Desactivar esa cuenta en `/admin/`; verificar que su sesión abierta no puede realizar otra solicitud autenticada. Reactivarla y verificar que requiere un nuevo inicio de sesión.
 5. Confirmar que una operación no puede desactivar al propio Administrador ni al último Administrador activo, incluso mediante petición directa o acción administrativa; ejecutar además dos desactivaciones concurrentes y comprobar que al menos un Administrador sigue activo.
 6. Ejecutar login y cambio de clave con teclado, verificar etiquetas y foco; probar estados de error, confirmación, ruta de regreso, idioma y ausencia de assets de CDN.
-7. Fallar cinco veces el ingreso de una cuenta ficticia; confirmar que `/` y `/admin/` rechazan la clave correcta durante 15 minutos con el mismo mensaje genérico. Confirmar que un ingreso correcto luego del vencimiento reinicia el estado, que Administrador puede desbloquearla desde `/admin` y que el contador concurrente no pierde incrementos.
+7. Fallar cinco veces el ingreso de una cuenta ficticia; confirmar que `/` y `/admin/` rechazan la clave correcta durante 15 minutos con el mismo mensaje genérico. Confirmar que un ingreso correcto luego del vencimiento reinicia el estado, que Administrador puede ejecutar «Desbloquear intentos de ingreso» en el listado de `/admin` y que el contador concurrente no pierde incrementos.
 8. Desde el formulario de cambio de clave de `/admin`, asignar una clave temporal ficticia y comprobar que la cuenta queda obligada a cambiarla y que su sesión anterior deja de ser válida.
