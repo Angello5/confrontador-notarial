@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
-from reference_cache import cache_temporal
+from tests.reference_cache import cache_temporal
 
 
 class _MedicionInvalida(Exception):

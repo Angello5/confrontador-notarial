@@ -138,7 +138,7 @@ Comunicar solo si hubo 8 observaciones, cero en la escritura correcta y cinco
 salidas idénticas. No copiar texto, imágenes, rutas ni logs del expediente.
 RapidOCR usa 502 caracteres de metadata `character` del ONNX v5 (incluye ñ, Ñ, Ú, Á e Í) e ignora `rec_keys_path`; v4 sí carece de ñ/Ñ. Una Ñ aislada a veces se descarta (una vez se leyó como N y tres fueron descartadas); en SEÑORA, NÚÑEZ, MUÑOZ, ESPAÑA y ÑANDÚ se lee bien. Si se descarta dentro de un nombre, se genera una observación.
 
-**Resultado T014–T016 (2026-09-18)**: la persona usuaria ejecutó T014 sobre `8a344fb` con su expediente de referencia: 1 prueba aprobada en 10,23 s, OCR real con PP-OCRv5 latin y cero archivos `.json` después en su caché. El gate se cumple (8 observaciones, cinco salidas idénticas, cero en la escritura correcta y piso sintético), por lo que se adopta PP-OCRv5 latin con `use_cls=False`. El PR #11 de Dependabot (RapidOCR 3.9.2) queda sustituido por esta decisión; no se cierra aquí y el coordinador lo cerrará al publicar el PR de F3.
+**Resultado T014–T016 (2026-09-19)**: la persona usuaria ejecutó T014 sobre `c0febe2`: 1 prueba aprobada en 10,00 s, OCR real con PP-OCRv5 latin y cero archivos `.json` después en su caché. El gate se cumple (8 observaciones, cinco salidas idénticas, cero en la escritura correcta y piso sintético), por lo que se adopta PP-OCRv5 latin con `use_cls=False`. El PR #11 de Dependabot (RapidOCR 3.9.2) queda sustituido por esta decisión; no se cierra aquí y el coordinador lo cerrará al publicar el PR de F3.
 
 ## Aprovisionamiento offline para F8
 
@@ -156,3 +156,17 @@ python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
 ```
 
 El Quality Gate de SonarQube y la revisión de secretos corresponden al CI del PR; la medición privada no se ejecuta en CI. Revisar los 10 IDs de `docs/deuda-f3.md` y documentar resolución o justificación por ID.
+
+## Checkpoint de Etapa 5
+
+Resultado local (2026-09-19, Python 3.13.9, PostgreSQL de prueba en
+`127.0.0.1:55432`): `manage.py check`, `migrate`, `makemigrations --check`,
+generación de fixtures, Ruff check, Ruff format, pytest con cobertura,
+`pip-audit --strict` y `pre-commit --all-files` pasaron. La suite reportó
+`109 passed, 4 deselected` y cobertura XML válida; solo se usaron fixtures
+ficticios. La revisión del diff no encontró secretos, datos reales, recursos
+privados ni imports de IA en el flujo productivo del ERP; la UI Streamlit
+transitoria conserva su aislamiento documentado en `experimental/`.
+
+T028 queda pendiente: el Quality Gate de SonarQube y `gitleaks` requieren el
+CI del PR; no se declara evidencia remota antes de publicar dicho PR.

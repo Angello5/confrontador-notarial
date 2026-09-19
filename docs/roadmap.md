@@ -9,7 +9,7 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 |---|---|---|---|---|
 | **F1 · terminada** | Base DevSecOps | Cada PR corre tests, SonarQube y escaneos de seguridad; `main` protegida | — | SonarQube Cloud privado, análisis desde CI |
 | **F2** | Esqueleto del ERP | Login, menú lateral según rol, AdminLTE 4 | F1 | Roles |
-| **F3** | Migración del código actual | extraer, verificar, léxico y ortografía como núcleo puro con pytest; mismo resultado medido | F1 | — |
+| **F3 · lista para PR** | Migración del código actual | extraer, verificar, léxico y ortografía como núcleo puro con pytest; mismo resultado medido; pendiente de merge del PR | F1 | — |
 | **F4** | Expedientes | Subir archivos desde la PC, extracción en segundo plano, borrado al terminar | F2, F3 | Retención del texto extraído |
 | **F5** | Confrontación | Observaciones en pantalla, agrupadas por capa | F4 | — |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |

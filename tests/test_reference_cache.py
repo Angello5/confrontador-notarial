@@ -1,6 +1,6 @@
 def test_cache_medicion_local_usa_directorio_temporal(monkeypatch, tmp_path):
     from adaptadores import extraccion
-    from reference_cache import cache_temporal
+    from tests.reference_cache import cache_temporal
 
     cache = tmp_path / "cache"
     cache_temporal(monkeypatch, cache)
@@ -14,7 +14,7 @@ def test_cache_medicion_local_usa_directorio_temporal(monkeypatch, tmp_path):
 
 def test_cache_ocr_recalcula_al_cambiar_use_cls(monkeypatch, tmp_path):
     from adaptadores import extraccion
-    from reference_cache import cache_temporal
+    from tests.reference_cache import cache_temporal
 
     cache_temporal(monkeypatch, tmp_path)
     llamadas = []
