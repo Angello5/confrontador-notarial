@@ -21,7 +21,7 @@ RE_CUI = re.compile(r"\b(\d{8})\s*-\s*\d\b")
 # CUI del RENIEC: 8 digitos + guion + verificador. El watermark (sello) no lo trae.
 
 RE_DNI_DOC = re.compile(
-    r"(?<![A-Z])(?:DNI|IDENTIDAD|D[.]N[.]I[.]?)"
+    r"(?:DNI|IDENTIDAD|D[.]N[.]I[.]?)"
     r"\s*(?:(?:N[O°]?|NUMERO)\s*)?(?:[:.]\s*)?(\d{6,9})"
 )
 # En documentos el DNI viene rotulado; aceptamos 6-9 digitos para cazar los mal escritos.
