@@ -18,6 +18,14 @@ python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 
 **Esperado**: pasan fixtures y pruebas ficticias de cada capa; `local_reference` y `ocr_research` no se seleccionan por defecto. La suite no accede a la referencia privada.
 
+### Cobertura de `experimental/`
+
+Por decisión de la revisión del PR #17 (2026-09-19), `experimental/` se
+excluye únicamente del denominador de cobertura: está fuera del ERP, no se
+despliega y sus pruebas son opt-in. Continúa incluido en el análisis de
+SonarQube para detectar vulnerabilidades, bugs y secretos; no se usa
+`sonar.exclusions`.
+
 Las pruebas opt-in de `test_revisor_llm.py` están excluidas de la suite ordinaria. Para ejecutar únicamente sus filtros sintéticos, sin red ni modelos:
 
 ```bash
@@ -177,8 +185,9 @@ Resultado local (2026-09-19, Python 3.13.9, PostgreSQL de prueba en
 `127.0.0.1:55432`): `manage.py check`, `migrate`, `makemigrations --check`,
 generación de fixtures, Ruff check, Ruff format, pytest con cobertura,
 `pip-audit --strict` y `pre-commit --all-files` pasaron. La suite reportó
-`113 passed, 4 deselected` y cobertura XML válida (80 % total; 89,8 % en
-líneas ejecutables nuevas contra `origin/main`); solo se usaron fixtures
+`113 passed, 4 deselected` y cobertura XML válida (86 % total; 90,4 % de
+368/407 líneas ejecutables nuevas cubiertas contra `origin/main`, excluyendo
+`experimental/`); solo se usaron fixtures
 ficticios. La revisión del diff no encontró secretos, datos reales, recursos
 privados ni imports de IA en el flujo productivo del ERP; la UI Streamlit
 transitoria conserva su aislamiento documentado en `experimental/`.

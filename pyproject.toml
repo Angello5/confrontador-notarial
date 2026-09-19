@@ -14,7 +14,7 @@ markers = [
 [tool.coverage.run]
 relative_files = true
 source = ["."]
-omit = ["test_*.py", "tests/*", "scripts/*", ".venv/*"]
+omit = ["test_*.py", "tests/*", "scripts/*", ".venv/*", "experimental/*"]
 
 [tool.coverage.report]
 show_missing = true

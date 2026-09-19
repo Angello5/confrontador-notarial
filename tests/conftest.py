@@ -68,11 +68,8 @@ def pytest_sessionfinish(session, exitstatus):
             "adaptadores/__init__.py",
             "adaptadores/extraccion.py",
             "adaptadores/diccionario.py",
-            "experimental/__init__.py",
-            "experimental/revisor_llm.py",
             "app.py",
             "app_ortografia.py",
-            "experimental/bench_llm.py",
             "manage.py",
         }
         archivos = {c.attrib["filename"] for c in clases}

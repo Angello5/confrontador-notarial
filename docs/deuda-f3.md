@@ -1,5 +1,14 @@
 # Deuda técnica para F3
 
+## Cobertura de `experimental/`
+
+La capa `experimental/` (`revisor_llm.py` y `bench_llm.py`) se mantiene bajo
+análisis de SonarQube, incluyendo seguridad, bugs y secretos, pero queda fuera
+del denominador de cobertura. La decisión del PR #17 (2026-09-19) responde a
+que está fuera del ERP, no se despliega y sus pruebas son opt-in; por ello se
+configura `sonar.coverage.exclusions=experimental/**` y la exclusión equivalente
+en Coverage.py, sin usar `sonar.exclusions`.
+
 ## Limitación conocida de OCR
 
 RapidOCR usa la metadata `character` incrustada en el ONNX latin v5 (502
