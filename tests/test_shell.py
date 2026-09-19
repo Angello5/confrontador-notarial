@@ -24,6 +24,22 @@ def test_user_home_has_accessible_spanish_navigation(client, usuario_ficticio):
     ).encode() in response.content
 
 
+@pytest.mark.parametrize("method", ["post", "put", "delete"])
+def test_home_rejects_unsafe_http_methods(client, usuario_ficticio, method):
+    client.force_login(usuario_ficticio)
+
+    response = getattr(client, method)(reverse("home"))
+
+    assert response.status_code == 405
+
+
+def test_home_accepts_safe_http_methods(client, usuario_ficticio):
+    client.force_login(usuario_ficticio)
+
+    assert client.get(reverse("home")).status_code == 200
+    assert client.head(reverse("home")).status_code == 200
+
+
 def test_administrator_sees_admin_link(client, administrador_ficticio):
     client.force_login(administrador_ficticio)
 
