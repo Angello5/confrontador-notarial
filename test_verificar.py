@@ -6,11 +6,22 @@ python -m pytest test_verificar.py
 """
 
 from pathlib import Path
+from itertools import product
+import re
 from time import perf_counter
 
+import pytest
+
 from adaptadores.extraccion import leer, recolectar
-from nucleo.verificar import catalogo, revisar
-from nucleo.verificar import RE_DNI_DOC
+from nucleo.verificar import (
+    RE_DNI_DOC,
+    RE_NOMBRE,
+    catalogo,
+    correspondencia,
+    diagnostico,
+    nombres,
+    revisar,
+)
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
 
@@ -21,16 +32,96 @@ def test_re_dni_doc_rechaza_entrada_patologica_en_tiempo_lineal():
     assert perf_counter() - inicio < 0.5
 
 
-def test_re_dni_doc_reconoce_rotulos_ficticios_equivalentes():
-    casos = {
-        "DNI 90000001": "90000001",
-        "DNI: 90000001": "90000001",
-        "D.N.I. 90000001": "90000001",
-        "IDENTIDAD N° 90000001": "90000001",
-        "IDENTIDAD NUMERO: 90000001": "90000001",
-        "IDENTIDAD90000001": "90000001",
-    }
-    assert {RE_DNI_DOC.search(texto).group(1) for texto in casos} == set(casos.values())
+def test_re_nombre_rechaza_entrada_patologica_en_tiempo_lineal():
+    inicio = perf_counter()
+    assert RE_NOMBRE.search("ABCDEFGHIJ" + " " * 5000 + "X") is None
+    assert perf_counter() - inicio < 0.5
+
+
+RE_DNI_DOC_ORIGINAL = re.compile(
+    r"(?:DNI|IDENTIDAD)\s*(?:N[O°]?|NUMERO)?\s*[:.]?\s*(\d{6,9})"
+)
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "DNI 90000001",
+        "DNI: 90000001",
+        "IDENTIDAD N° 90000001",
+        "IDENTIDAD NUMERO: 90000001",
+        "IDENTIDAD90000001",
+        "CIUDAD NI 12345678",
+        "D N I 12345678",
+    ],
+)
+def test_re_dni_doc_equivale_a_la_original_salvo_d_n_i(texto):
+    original = RE_DNI_DOC_ORIGINAL.search(texto)
+    actual = RE_DNI_DOC.search(texto)
+    assert (actual.group(1) if actual else None) == (
+        original.group(1) if original else None
+    )
+
+
+@pytest.mark.parametrize(
+    "texto",
+    ["D.N.I. 90000001", "D.N.I 90000001"],
+)
+def test_re_dni_doc_acepta_d_n_i_decidido(texto):
+    assert RE_DNI_DOC.search(texto).group(1) == "90000001"
+
+
+@pytest.mark.parametrize("texto", ["CIUDAD NI 12345678", "D N I 12345678"])
+def test_re_dni_doc_no_acepta_letras_separadas_ni_falso_positivo(texto):
+    assert RE_DNI_DOC.search(texto) is None
+
+
+RE_NOMBRE_ORIGINAL = re.compile(
+    r"([A-Z][A-Z ]{8,60}?)\s*[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
+    r"|CASAD[AO]\s+CON\s+([A-Z][A-Z ]{8,60}?)\s*[,.]"
+)
+
+
+def _nombres_con(regex, texto):
+    out = []
+    for a, b in regex.findall(texto):
+        palabras = [x for x in (a or b).split() if x not in {"DE", "PERUANA"}]
+        if 2 <= len(palabras) <= 5:
+            out.append(" ".join(palabras))
+    return out
+
+
+_NOMBRES_CORPUS = tuple(
+    " ".join(partes) + sufijo
+    for partes, sufijo in product(
+        [
+            ("ANA", "LUZ", "QUISPE", "MAMANI"),
+            ("BRUNO", "SOL", "PAREDES", "ROJAS"),
+            ("CIRA", "MAR", "SALAS", "TORRES"),
+        ],
+        [" DE NACIONALIDAD PERUANA", ", DE NACIONALIDAD PERUANA", " NACIONALIDAD"],
+    )
+)
+
+
+@pytest.mark.parametrize("texto", _NOMBRES_CORPUS)
+def test_re_nombre_equivale_a_la_original(texto):
+    assert nombres(texto) == _nombres_con(RE_NOMBRE_ORIGINAL, texto)
+
+
+def test_re_nombre_conserva_nombre_sin_coma():
+    assert nombres("ANA LUZ QUISPE MAMANI DE NACIONALIDAD PERUANA") == [
+        "ANA LUZ QUISPE MAMANI"
+    ]
+
+
+def test_correspondencia_y_diagnostico_sinteticos():
+    fuentes = {"cliente.txt": "NOMBRE ANA LUZ QUISPE MAMANI DNI 90000001"}
+    cat = catalogo(fuentes)
+    assert correspondencia(cat, "ANA LUZ QUISPE MAMANI DNI 90000001") == (1.0, 0)
+    assert correspondencia(cat, "OTRA PERSONA DNI 90000002") == (0.0, 1)
+    assert diagnostico(fuentes, "ANA LUZ QUISPE MAMANI DNI 90000001") is None
+    assert "no corresponde" in (diagnostico(fuentes, "OTRA PERSONA DNI 90000002") or "")
 
 
 def test_verificacion(monkeypatch, tmp_path):
