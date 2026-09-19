@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
 testpaths = ["test_*.py", "tests"]
 python_files = ["test_*.py"]
 pythonpath = ["."]
@@ -13,7 +14,7 @@ omit = ["test_*.py", "tests/*", "scripts/*", ".venv/*"]
 
 [tool.coverage.report]
 show_missing = true
-include = ["extraer.py", "verificar.py", "lexico.py", "ortografia.py", "revisor_llm.py", "app.py", "app_ortografia.py", "bench_llm.py"]
+include = ["extraer.py", "verificar.py", "lexico.py", "ortografia.py", "revisor_llm.py", "app.py", "app_ortografia.py", "bench_llm.py", "config/*.py", "accounts/*.py", "core/*.py", "manage.py"]
 
 [tool.coverage.xml]
 output = "coverage.xml"

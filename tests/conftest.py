@@ -56,16 +56,41 @@ def pytest_sessionfinish(session, exitstatus):
             for c in clases
         ):
             raise _CoberturaInvalida
-        if {c.attrib["filename"] for c in clases} != {
-            "extraer.py",
-            "verificar.py",
-            "lexico.py",
-            "ortografia.py",
-            "revisor_llm.py",
-            "app.py",
-            "app_ortografia.py",
-            "bench_llm.py",
-        }:
+        archivos = {c.attrib["filename"] for c in clases}
+        if not {"config/settings.py", "accounts/models.py", "manage.py"} <= archivos:
+            raise _CoberturaInvalida
+        if any(
+            not (
+                nombre
+                in {
+                    "extraer.py",
+                    "verificar.py",
+                    "lexico.py",
+                    "ortografia.py",
+                    "revisor_llm.py",
+                    "app.py",
+                    "app_ortografia.py",
+                    "bench_llm.py",
+                    "manage.py",
+                }
+                or nombre.startswith(("config/", "accounts/", "core/"))
+            )
+            for nombre in archivos
+        ):
+            raise _CoberturaInvalida
+        if (
+            not {
+                "extraer.py",
+                "verificar.py",
+                "lexico.py",
+                "ortografia.py",
+                "revisor_llm.py",
+                "app.py",
+                "app_ortografia.py",
+                "bench_llm.py",
+            }
+            <= archivos
+        ):
             raise _CoberturaInvalida
     except (OSError, ValueError, KeyError, _CoberturaInvalida, ElementTree.ParseError):
         session.exitstatus = pytest.ExitCode.TESTS_FAILED
@@ -75,3 +100,26 @@ def pytest_sessionfinish(session, exitstatus):
                 "Cobertura no válida: se requiere XML con líneas productivas y rutas relativas.",
                 red=True,
             )
+
+
+@pytest.fixture
+def usuario_ficticio(db):
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+
+    user = get_user_model().objects.create_user(username="usuario_ficticio")
+    user.groups.add(Group.objects.get(name="Usuario"))
+    return user
+
+
+@pytest.fixture
+def administrador_ficticio(db):
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+
+    user = get_user_model().objects.create_user(
+        username="administrador_ficticio",
+        is_staff=True,
+    )
+    user.groups.add(Group.objects.get(name="Administrador"))
+    return user
