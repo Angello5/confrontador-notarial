@@ -155,7 +155,8 @@ def test_cuadro_texto_docx():
     nota = "NOTA DE PRUEBA: CONSTACIA DEL DOCUMENTO (3)"
     with ZipFile(ruta) as z:
         xml = z.read("word/document.xml").decode()
-    assert "<w:txbxContent>" in xml and "<mc:Fallback>" in xml
+    assert "<w:txbxContent>" in xml
+    assert "<mc:Fallback>" in xml
     assert xml.count(nota) == 2  # Choice moderno y Fallback VML.
     cuerpo = extraer.leer(ruta)
     assert "<w:" not in cuerpo
@@ -165,7 +166,8 @@ def test_cuadro_texto_docx():
 def test_pdf_texto_y_tabla_docx(monkeypatch, tmp_path):
     monkeypatch.setattr(extraer, "CACHE", tmp_path / "cache")
     texto = extraer.leer(BASE / "formatos" / "texto.pdf")
-    assert "DOCUMENTO FICTICIO" in texto and "90000004" in texto
+    assert "DOCUMENTO FICTICIO" in texto
+    assert "90000004" in texto
     tabla = extraer.leer(BASE / "formatos" / "tabla.docx")
     assert tabla.splitlines()[:4] == ["DNI", "90000004", "Partida", "80000001"]
     assert "CAMPO  VALOR" in tabla

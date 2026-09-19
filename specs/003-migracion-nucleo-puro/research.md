@@ -27,6 +27,12 @@
 - **Rationale**: el inventario y la propuesta para antlr4 ya están documentados; no se debe diluir el requisito por tratarse de un plan de migración.
 - **Alternativas consideradas**: corregir olores de forma masiva o justificar todo sin revisar; ambas descartan evidencia por ID y dejan riesgos sin evaluación.
 
+La instalación de `antlr4-python3-runtime==4.9.3` se validó en un entorno
+virtual limpio con `setuptools==84.0.0` fijado por hash y
+`--no-build-isolation`; el módulo `antlr4` importó correctamente. El riesgo
+residual del sdist y del aislamiento de build queda documentado en
+`docs/deuda-f3.md`; no fue necesario cambiar los locks.
+
 ## Límites pendientes de ejecución
 
 - El usuario ejecuta `local_reference` desde su entorno autorizado; nadie incorpora ni comunica contenido documental. La tarea debe devolver solo los agregados requeridos y el resultado de aprobación.

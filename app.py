@@ -15,7 +15,7 @@ import pandas as pd
 import streamlit as st
 
 from adaptadores.extraccion import IMGS, leer
-from revisor_llm import revisar_prosa
+from experimental.revisor_llm import revisar_prosa
 from nucleo.verificar import catalogo, diagnostico, revisar, revisar_parrafos
 
 # Calibracion, no opcion de usuario: por debajo aparecen parrafos alterados que no

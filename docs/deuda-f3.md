@@ -56,3 +56,25 @@ d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_de
 b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx
 EOF
 ```
+
+## Cierre F3 por ID
+
+Los diez IDs fueron revisados en la rama F3. Los cuatro olores de aserciones
+compuestas (`AaCzSzcYMhSFhiPLM0QI`, `AaCzSzcYMhSFhiPLM0QJ`,
+`AaCzSzcYMhSFhiPLM0QK`, `AaCzSzdRMhSFhiPLM0Qh`) quedaron con aserciones
+separadas. `AaCzSzcyMhSFhiPLM0QS` corresponde al valor de la API de caché de
+Streamlit que se consume como métrica; `AaCzSzcyMhSFhiPLM0QR` queda
+justificado como literal deliberado de interfaz, sin exclusión global.
+
+Los cuatro IDs del verificador (`AaCzSzZyMhSFhiPLM0QE`,
+`AaCzSzZyMhSFhiPLM0QF`, `AaCzSzZyMhSFhiPLM0QH`, `AaCzSzZyMhSFhiPLM0QG`)
+apuntaban al módulo legado `verificar.py`; la lógica fue trasladada a
+`nucleo/verificar.py` sin cambiar la regla, y el shim ya no contiene esas
+expresiones. Se conserva esta justificación por ID para evitar una exclusión
+global de reglas.
+
+La instalación aislada de `antlr4-python3-runtime==4.9.3` fue validada en un
+entorno virtual temporal con `setuptools==84.0.0` fijado por hash y
+`--no-build-isolation`; importó correctamente `antlr4`. El riesgo residual es
+que el sdist conserva su propia metadata de build y el CI instala con
+aislamiento; no se cambian los locks porque la instalación reproducible pasó.

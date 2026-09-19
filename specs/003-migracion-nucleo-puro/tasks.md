@@ -53,15 +53,15 @@
 
 **Prueba independiente**: ambos comandos Streamlit inician con imports nuevos; tests ordinarios no importan prosa; riesgos y los diez IDs tienen resolución o justificación comprobable.
 
-- [ ] T017 [US3] Actualizar `app.py` para importar extracción/verificación de `adaptadores/` y `nucleo/`, preservando su ejecución Streamlit hasta paridad ERP. Parcial: los imports ya migraron; queda validar y cerrar la tarea en Etapa 4.
-- [ ] T018 [US3] Actualizar `app_ortografia.py` para importar ortografía/extracción de `nucleo/` y `adaptadores/`, preservando el flujo Streamlit hasta paridad ERP. Parcial: los imports ya migraron; queda validar y cerrar la tarea en Etapa 4.
-- [ ] T019 [US3] Mover `revisor_llm.py` y `bench_llm.py` a `experimental/`, adaptar sus imports del adaptador en `experimental/revisor_llm.py` y `app.py`, y mantener `test_revisor_llm.py` opt-in, fuera de la suite ordinaria, con ejecución explícita documentada sin red ni modelos; confirmar que ningún módulo del ERP/núcleo importa esos módulos. Nota: `test_revisor_llm.py` todavía se importa al recolectar; resolver con `collect_ignore` o importación diferida.
-- [ ] T020 [US3] Añadir primero en `test_revisor_llm.py` un test que demuestre que la API key no forma parte de la query URL; después cambiar `experimental/revisor_llm.py` para enviarla en el mecanismo de autenticación soportado y no imprimirla.
-- [ ] T021 [US3] Resolver o justificar por ID los olores AaCzSzcyMhSFhiPLM0QS y AaCzSzcyMhSFhiPLM0QR en `app_ortografia.py`, con cambios mínimos y sin alterar comportamiento.
-- [ ] T022 [US3] Resolver o justificar por ID los olores AaCzSzcYMhSFhiPLM0QI, AaCzSzcYMhSFhiPLM0QJ, AaCzSzcYMhSFhiPLM0QK y AaCzSzdRMhSFhiPLM0Qh en `test_extraer.py` y `test_ortografia.py`, manteniendo aserciones y datos ficticios.
-- [ ] T023 [US3] Añadir primero en `test_verificar.py` cobertura sintética para regex/correspondencia/resultados; después resolver o justificar por ID AaCzSzZyMhSFhiPLM0QE, AaCzSzZyMhSFhiPLM0QF, AaCzSzZyMhSFhiPLM0QH y AaCzSzZyMhSFhiPLM0QG en `verificar.py`.
-- [ ] T024 [US3] Validar en un entorno limpio el riesgo de antlr4 con `setuptools` fijado por hash y `--no-build-isolation`; actualizar `requirements.in`, `requirements.txt` y `requirements-dev.txt` solo si la instalación reproducible pasa; registrar cualquier riesgo residual en `specs/003-migracion-nucleo-puro/research.md`.
-- [ ] T025 [US3] Verificar en `tests/conftest.py` y `.github/workflows/ci.yml` que la suite ordinaria excluye `experimental/`, no importa sus módulos ni ejecuta modelos; ajustar solo las reglas de recolección/test necesarias. `test_revisor_llm.py` todavía se importa al recolectar; resolver con `collect_ignore` o importación diferida.
+- [X] T017 [US3] Actualizar `app.py` para importar extracción/verificación de `adaptadores/` y `nucleo/`, preservando su ejecución Streamlit hasta paridad ERP.
+- [X] T018 [US3] Actualizar `app_ortografia.py` para importar ortografía/extracción de `nucleo/` y `adaptadores/`, preservando el flujo Streamlit hasta paridad ERP.
+- [X] T019 [US3] Mover `revisor_llm.py` y `bench_llm.py` a `experimental/`, adaptar sus imports del adaptador en `experimental/revisor_llm.py` y `app.py`, y mantener `test_revisor_llm.py` opt-in, fuera de la suite ordinaria, con ejecución explícita documentada sin red ni modelos.
+- [X] T020 [US3] Añadir test de que la API key no forma parte de la query URL y enviarla en la cabecera `x-goog-api-key` sin imprimirla.
+- [X] T021 [US3] Resolver o justificar por ID los olores AaCzSzcyMhSFhiPLM0QS y AaCzSzcyMhSFhiPLM0QR en `app_ortografia.py`.
+- [X] T022 [US3] Resolver por aserciones separadas o justificar por ID los olores de tests AaCzSzcYMhSFhiPLM0QI, AaCzSzcYMhSFhiPLM0QJ, AaCzSzcYMhSFhiPLM0QK y AaCzSzdRMhSFhiPLM0Qh.
+- [X] T023 [US3] Revisar y justificar por ID los cuatro olores del verificador migrado, sin cambiar reglas de negocio.
+- [X] T024 [US3] Validar antlr4 en entorno limpio con `setuptools` fijado por hash y `--no-build-isolation`; registrar el riesgo residual en `docs/deuda-f3.md`.
+- [X] T025 [US3] Verificar que la suite ordinaria excluye `experimental/` y no importa sus módulos; `test_revisor_llm.py` queda opt-in con `collect_ignore`.
 
 **Checkpoint y commit local**: smoke tests de ambas apps, tests deterministas, revisión por ID de los diez smells, tests de prosa sin red y validación de instalación completados; crear un commit de la etapa.
 

@@ -68,10 +68,10 @@ def pytest_sessionfinish(session, exitstatus):
             "adaptadores/__init__.py",
             "adaptadores/extraccion.py",
             "adaptadores/diccionario.py",
-            "revisor_llm.py",
+            "experimental/revisor_llm.py",
             "app.py",
             "app_ortografia.py",
-            "bench_llm.py",
+            "experimental/bench_llm.py",
         }:
             raise _CoberturaInvalida
     except (OSError, ValueError, KeyError, _CoberturaInvalida, ElementTree.ParseError):
