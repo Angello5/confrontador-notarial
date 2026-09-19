@@ -177,7 +177,8 @@ Resultado local (2026-09-19, Python 3.13.9, PostgreSQL de prueba en
 `127.0.0.1:55432`): `manage.py check`, `migrate`, `makemigrations --check`,
 generación de fixtures, Ruff check, Ruff format, pytest con cobertura,
 `pip-audit --strict` y `pre-commit --all-files` pasaron. La suite reportó
-`109 passed, 4 deselected` y cobertura XML válida; solo se usaron fixtures
+`113 passed, 4 deselected` y cobertura XML válida (80 % total; 89,8 % en
+líneas ejecutables nuevas contra `origin/main`); solo se usaron fixtures
 ficticios. La revisión del diff no encontró secretos, datos reales, recursos
 privados ni imports de IA en el flujo productivo del ERP; la UI Streamlit
 transitoria conserva su aislamiento documentado en `experimental/`.
