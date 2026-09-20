@@ -101,7 +101,7 @@ Como administrador del servidor, quiero poder borrar el texto extraído de un ex
 ### Edge Cases
 
 - Dos usuarios suben el mismo archivo a la vez: la llave `(hash, versión)` es única y la segunda escritura reutiliza la primera sin fallar.
-- El worker muere a mitad de un documento: el documento no queda atrapado en `PROCESANDO` para siempre; se recupera para reintento.
+- El worker muere a mitad de un documento: como el proceso murió, su archivo temporal sigue en disco, así que el documento vuelve a `PENDIENTE` y se extrae de nuevo. No queda atrapado en `PROCESANDO` para siempre. Esto es distinto de un fallo de extracción, donde el archivo sí se borró y no hay reintento.
 - Archivo vacío, corrupto o sin capa de texto ni contenido legible: estado `ERROR` con motivo, no una excepción sin manejar.
 - Archivo temporal huérfano porque el proceso se interrumpió: la tarea diaria lo elimina pasadas 24 h.
 - El mismo archivo subido dos veces al mismo expediente: se avisa al usuario en lugar de duplicar en silencio.
