@@ -49,10 +49,15 @@ def _navegacion_contexto(request):
 
 
 def _render_detalle(request, expediente, upload_form=None, status=200):
-    documentos = expediente.documentos.order_by("subido_el", "pk")
+    documentos = list(expediente.documentos.order_by("subido_el", "pk"))
+    fuentes = [
+        documento for documento in documentos if documento.rol == Documento.FUENTE
+    ]
     for documento in documentos:
         if documento.rol == Documento.BORRADOR:
-            documento.confrontacion_estado = estado_confrontacion(expediente, documento)
+            documento.confrontacion_estado = estado_confrontacion(
+                expediente, documento, fuentes
+            )
     contexto = {
         "expediente": expediente,
         "documentos": documentos,

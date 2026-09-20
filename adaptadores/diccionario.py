@@ -12,6 +12,10 @@ URL = "https://raw.githubusercontent.com/LibreOffice/dictionaries/master/es/es_P
 LISTA = Path(__file__).resolve().parents[1] / "lista_notarial.txt"
 
 
+class DiccionarioNoAprovisionado(RuntimeError):
+    """El diccionario es_PE debe existir antes de iniciar el servicio."""
+
+
 def _descargar():
     DIC.parent.mkdir(parents=True, exist_ok=True)
     for ext in (".aff", ".dic"):
@@ -25,7 +29,10 @@ def diccionario():
     """(hunspell, lemas). Cacheado: cargarlo cuesta 0.3 s y 55 MB."""
     from spylls.hunspell import Dictionary
 
-    _descargar()
+    if not all(DIC.with_suffix(ext).is_file() for ext in (".aff", ".dic")):
+        raise DiccionarioNoAprovisionado(
+            "Falta aprovisionar el diccionario es_PE antes de iniciar el servicio."
+        )
     d = Dictionary.from_files(str(DIC))
     return d, [w.stem for w in d.dic.words]
 

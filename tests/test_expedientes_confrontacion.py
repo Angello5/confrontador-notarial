@@ -219,3 +219,122 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
     assert resultado["estado"] == "ADVERTENCIA_CORRESPONDENCIA"
     assert resultado["mensaje"] == "aviso ficticio"
     assert llamadas == []
+
+
+def test_confrontacion_real_detecta_dni_nombre_y_monto_alterados(
+    expediente_confrontacion, crear_documento_listo
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    fuente = (
+        "OPERACION FICTICIA DE PRUEBA.\n"
+        "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.\n"
+        "PARTIDA ELECTRONICA N° 80000001. MONTO S/ 12,345.67.\n"
+        "Esta clausula adicional describe una operacion completamente inventada "
+        "para que el texto tenga el contexto habitual de un documento."
+    )
+    borrador = fuente.replace("LUMARIA", "LUNARIA")
+    borrador = borrador.replace("90000001", "90000002")
+    borrador = borrador.replace("12,345.67", "12,346.67")
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.FUENTE,
+        "fuente-ficticia.txt",
+        fuente,
+    )
+    documento_borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-ficticio.txt",
+        borrador,
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, documento_borrador)
+
+    assert resultado["estado"] == "RESULTADO"
+    assert any(
+        "[DNI] «90000002» debe decir «90000001»" in observacion
+        for observacion in resultado["regla"]
+    )
+    assert any(
+        "[NOMBRE] «ALBA ZURBELIA LUNARIA» debe decir «ALBA ZURBELIA LUMARIA»"
+        in observacion
+        for observacion in resultado["regla"]
+    )
+    assert any(
+        "[MONTO] «12,346.67» debe decir «12,345.67»" in observacion
+        for observacion in resultado["regla"]
+    )
+    assert not any(
+        observacion.startswith("[PARTIDA]") for observacion in resultado["regla"]
+    )
+
+
+def test_confrontacion_real_identica_no_produce_observaciones_de_regla(
+    expediente_confrontacion, crear_documento_listo
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    texto = (
+        "OPERACION FICTICIA.\n"
+        "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.\n"
+        "PARTIDA ELECTRONICA N° 80000001. MONTO S/ 12,345.67."
+    )
+    crear_documento_listo(
+        expediente_confrontacion, Documento.FUENTE, "fuente-ficticia.txt", texto
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion, Documento.BORRADOR, "borrador-ficticio.txt", texto
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "RESULTADO"
+    assert resultado["regla"] == []
+
+
+def test_diccionario_no_aprovisionado_devuelve_mensaje_controlado(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    from adaptadores.diccionario import DiccionarioNoAprovisionado
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    texto = "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001."
+    crear_documento_listo(
+        expediente_confrontacion, Documento.FUENTE, "fuente-ficticia.txt", texto
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion, Documento.BORRADOR, "borrador-ficticio.txt", texto
+    )
+
+    def sin_diccionario():
+        raise DiccionarioNoAprovisionado("recurso ausente")
+
+    monkeypatch.setattr("expedientes.services.diccionario.diccionario", sin_diccionario)
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "NO_DISPONIBLE"
+    assert "Falta aprovisionar el diccionario es_PE" in resultado["mensaje"]
+    assert "recurso ausente" not in resultado["mensaje"]
+
+
+def test_diccionario_no_aprovisionado_no_intenta_descargar(tmp_path, monkeypatch):
+    import adaptadores.diccionario as recursos
+
+    monkeypatch.setattr(recursos, "DIC", tmp_path / "es_PE")
+    monkeypatch.setattr(
+        recursos.urllib.request,
+        "urlretrieve",
+        lambda *_: pytest.fail("la carga no debe descargar recursos"),
+    )
+    recursos.diccionario.cache_clear()
+
+    try:
+        with pytest.raises(recursos.DiccionarioNoAprovisionado, match="aprovisionar"):
+            recursos.diccionario()
+    finally:
+        recursos.diccionario.cache_clear()

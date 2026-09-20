@@ -369,9 +369,12 @@ def _resultado_no_disponible(mensaje):
     }
 
 
-def estado_confrontacion(expediente, borrador):
+def estado_confrontacion(expediente, borrador, fuentes=None):
     """Indica si el borrador tiene los textos necesarios para confrontar."""
-    fuentes = list(expediente.documentos.filter(rol=Documento.FUENTE).order_by("pk"))
+    if fuentes is None:
+        fuentes = list(
+            expediente.documentos.filter(rol=Documento.FUENTE).order_by("pk")
+        )
     if borrador.rol != Documento.BORRADOR or not fuentes:
         return {
             "disponible": False,
@@ -392,12 +395,15 @@ def estado_confrontacion(expediente, borrador):
             "disponible": False,
             "mensaje": "No se pudo procesar un documento. Elimínelo y vuelva a subirlo.",
         }
-    if _texto_listo(borrador) is None or any(
-        _texto_listo(fuente) is None for fuente in fuentes
-    ):
+    if _texto_listo(borrador) is None:
         return {
             "disponible": False,
-            "mensaje": "El texto de este documento ya no está disponible. Vuelva a subirlo para confrontar.",
+            "mensaje": "El texto del borrador ya no está disponible. Vuelva a subirlo para confrontar.",
+        }
+    if any(_texto_listo(fuente) is None for fuente in fuentes):
+        return {
+            "disponible": False,
+            "mensaje": "El texto de una fuente ya no está disponible. Vuelva a subirla para confrontar.",
         }
     return {"disponible": True, "mensaje": ""}
 
@@ -407,15 +413,16 @@ def confrontar_borrador(expediente, borrador):
     if borrador.expediente_id != expediente.pk or borrador.rol != Documento.BORRADOR:
         raise ValueError("El documento no es un borrador de este expediente.")
 
-    disponibilidad = estado_confrontacion(expediente, borrador)
+    fuentes_documentos = list(
+        expediente.documentos.filter(rol=Documento.FUENTE).order_by("pk")
+    )
+    disponibilidad = estado_confrontacion(expediente, borrador, fuentes_documentos)
     if not disponibilidad["disponible"]:
         return _resultado_no_disponible(disponibilidad["mensaje"])
 
     fuentes = {
         documento.nombre_original: documento.texto_extraido.texto
-        for documento in expediente.documentos.filter(rol=Documento.FUENTE).order_by(
-            "pk"
-        )
+        for documento in fuentes_documentos
     }
     texto_borrador = borrador.texto_extraido.texto
     aviso = verificar.diagnostico(fuentes, texto_borrador)
@@ -435,7 +442,12 @@ def confrontar_borrador(expediente, borrador):
         if Path(nombre).suffix.lower() not in verificar.IMGS
     ]
     reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
-    dic, lemas = diccionario.diccionario()
+    try:
+        dic, lemas = diccionario.diccionario()
+    except diccionario.DiccionarioNoAprovisionado:
+        return _resultado_no_disponible(
+            "Falta aprovisionar el diccionario es_PE antes de iniciar el servicio."
+        )
     propios = {palabra for nombre in catalogo["NOMBRE"] for palabra in nombre.split()}
     faltas = ortografia.revisar(
         texto_borrador,
