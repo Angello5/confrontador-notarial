@@ -13,10 +13,14 @@ Un trámite de la notaría sobre el que se confrontan documentos.
 | Campo | Tipo | Regla |
 |---|---|---|
 | `codigo` | texto corto, requerido, único | Lo digita el usuario al crear el expediente. El sistema no lo genera ni lo autocompleta. Se normaliza quitando espacios de los extremos. |
-| `estado` | texto de opciones, requerido | `BORRADOR` al crear, `PROCESANDO` mientras algún documento no termina, `LISTO` cuando todos están en `LISTO`, `CERRADO` cuando el usuario lo cierra. Un expediente `CERRADO` no admite documentos nuevos. |
 | `creado_por` | FK a la cuenta de usuario, requerido, PROTECT | Quien lo creó. Es quien puede verlo, además de cualquier Administrador. |
 | `creado_el` | fecha/hora, automática | — |
 | `actualizado_el` | fecha/hora, automática | — |
+
+El expediente NO almacena un estado propio: se deriva del estado de sus
+documentos al mostrarlo. Un campo derivado y almacenado a la vez se desincroniza;
+derivarlo elimina esa clase de error. No existe un estado `CERRADO`: la notaría
+no sabe cuándo termina un trámite.
 
 ## Documento
 
@@ -50,7 +54,7 @@ la constitución 1.6.0 autoriza a conservar indefinidamente.
 |---|---|---|
 | `hash_archivo` | texto de 64, requerido | SHA-256 del archivo del que proviene el texto. |
 | `version_extractor` | texto, requerido | Identidad de lo que produjo el texto: modelos de OCR y sus hashes, más la versión de la extracción. Un cambio en cualquiera de ellos cambia este valor. |
-| `texto` | texto largo, requerido, puede quedar vacío | El texto extraído. Queda vacío tras una supresión a solicitud. |
+| `texto` | texto largo, requerido, puede quedar vacío | El texto extraído. Queda vacío tras una supresión a solicitud, incluso si otros expedientes compartían esa entrada: el objetivo de la supresión es que el dato personal desaparezca. Esos expedientes conservan hash y fechas, y vuelven a extraer si se les sube el archivo otra vez. |
 | `creado_el` | fecha/hora, automática | — |
 | `ultimo_uso_el` | fecha/hora, requerida | Se actualiza cada vez que un documento reutiliza esta entrada. |
 
@@ -69,8 +73,14 @@ puede volver a `PENDIENTE` con un reintento. Un `PROCESANDO` sin avance más all
 del tiempo límite vuelve a `PENDIENTE`, para que la caída del worker no deje
 documentos atrapados.
 
-Expediente: `BORRADOR` → `PROCESANDO` → `LISTO` → `CERRADO`. El estado se deriva
-del estado de sus documentos, salvo `CERRADO`, que lo decide el usuario.
+Expediente: no tiene transiciones propias. Al mostrarlo se deriva: sin
+documentos está vacío, con alguno en `PENDIENTE` o `PROCESANDO` está procesando,
+con todos en `LISTO` está listo para confrontar, y si alguno quedó en `ERROR` se
+señala para que el usuario reintente.
+
+Eliminar un documento borra su fila y su archivo temporal si lo tuviera, pero
+NUNCA borra el `TextoExtraido`: esa entrada puede estar en uso por documentos de
+otros expedientes. Solo el comando de supresión toca el texto.
 
 ## Persistencia
 

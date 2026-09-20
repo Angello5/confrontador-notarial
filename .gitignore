@@ -49,3 +49,4 @@ capturas*/
 .DS_Store
 .venv/
 venv/
+.codebase-memory/

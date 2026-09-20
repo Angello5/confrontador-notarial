@@ -17,7 +17,7 @@ erDiagram
     Expediente {
         int id PK
         string codigo UK "lo digita el usuario"
-        string estado "BORRADOR|PROCESANDO|LISTO|CERRADO"
+        %% sin estado: se deriva de sus documentos
         int creado_por FK
         datetime creado_el
         datetime actualizado_el

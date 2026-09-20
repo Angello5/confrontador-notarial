@@ -16,6 +16,11 @@
 - Q: ¿Cómo se evita repetir el OCR del mismo archivo? → A: El texto se guarda indexado por `(hash SHA-256 del archivo, versión del extractor)`. Si ya existe una entrada con esa llave, se reutiliza y no se ejecuta el OCR.
 - Q: ¿De dónde sale el código del expediente? → A: Lo digita el usuario al crear el expediente. Es único en todo el sistema; el sistema no lo genera ni lo autocompleta.
 - Q: ¿Qué roles de documento existen? → A: Dos, `FUENTE` y `BORRADOR`. La minuta y los documentos del cliente son ambos `FUENTE`, porque el núcleo (`nucleo.verificar.catalogo`) ya los trata como un único conjunto de fuentes frente a un destino.
+- Q: ¿Qué pasa al suprimir el texto de un expediente si ese texto es compartido con otro? → A: Se vacía para todos. El dato personal desaparece de verdad; los demás expedientes conservan hash y fechas, y si vuelven a necesitar el texto el archivo se reprocesa.
+- Q: ¿F4 incluye cerrar el expediente? → A: No, y el estado `CERRADO` se retira del modelo. La notaría no sabe cuándo se cierra un expediente: puede pasar un mes o un año. El expediente no tiene estado propio almacenado; se deriva del estado de sus documentos.
+- Q: ¿F4 incluye eliminar un documento del expediente? → A: Sí. El usuario puede quitar, con confirmación, un archivo que subió por error.
+- Q: ¿Cuál es el tamaño máximo de archivo? → A: 25 MB, configurable en `settings`. Es un límite técnico, no una regla de la notaría.
+- Q: ¿Cuándo se considera caído un documento en `PROCESANDO`? → A: A los 15 minutos sin terminar vuelve a `PENDIENTE`. Configurable.
 - Q: ¿Cómo se ejecuta la extracción en segundo plano? → A: La cola es la propia base de datos (`Documento.estado = PENDIENTE`) y la consume un comando de administración ejecutado como tarea programada. No se añaden Celery, Redis ni ningún servicio nuevo.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -30,7 +35,7 @@ Como usuario de la notaría, quiero crear un expediente con su código y subir d
 
 **Acceptance Scenarios**:
 
-1. **Given** un usuario autenticado, **When** crea un expediente con un código no usado, **Then** el expediente queda registrado a su nombre en estado `BORRADOR`.
+1. **Given** un usuario autenticado, **When** crea un expediente con un código no usado, **Then** el expediente queda registrado a su nombre y sin documentos.
 2. **Given** un usuario autenticado, **When** intenta crear un expediente con un código ya existente, **Then** se rechaza con un mensaje claro y no se crea nada.
 3. **Given** un expediente abierto, **When** el usuario sube un archivo de un formato admitido indicando su rol (`FUENTE` o `BORRADOR`), **Then** el documento queda registrado con su nombre original, su hash y estado `PENDIENTE`.
 4. **Given** un expediente abierto, **When** el usuario sube un archivo de formato no admitido o que excede el tamaño máximo, **Then** se rechaza antes de guardarlo y se explica el motivo.
@@ -65,7 +70,21 @@ Como usuario, quiero que un archivo que ya pasó por el sistema no vuelva a pasa
 2. **Given** un archivo ya procesado, **When** cambia la versión del extractor, **Then** la entrada anterior deja de coincidir y el archivo se vuelve a extraer.
 3. **Given** un texto reutilizado, **When** se registra el uso, **Then** queda constancia de la última vez que se usó.
 
-### User Story 4 - Borrar a solicitud el texto de un expediente (Priority: P2)
+### User Story 4 - Quitar un documento subido por error (Priority: P2)
+
+Como usuario, quiero eliminar de un expediente un archivo que subí por equivocación, para que no se confronte contra él.
+
+**Why this priority**: Subir el archivo equivocado es un error común y sin marcha atrás el expediente queda inservible.
+
+**Independent Test**: Subir dos documentos ficticios, eliminar uno y comprobar que el otro y el expediente siguen intactos.
+
+**Acceptance Scenarios**:
+
+1. **Given** un documento de un expediente propio, **When** el usuario pide eliminarlo, **Then** se le pide confirmación antes de hacer nada.
+2. **Given** la confirmación dada, **When** se elimina el documento, **Then** desaparece del expediente junto con su archivo temporal si lo tuviera, y el texto compartido en `TextoExtraido` permanece para otros documentos que lo usen.
+3. **Given** un documento de un expediente ajeno, **When** alguien que no es su creador ni Administrador intenta eliminarlo, **Then** se deniega.
+
+### User Story 5 - Borrar a solicitud el texto de un expediente (Priority: P2)
 
 Como administrador del servidor, quiero poder borrar el texto extraído de un expediente concreto, para atender una solicitud de supresión.
 
@@ -76,7 +95,7 @@ Como administrador del servidor, quiero poder borrar el texto extraído de un ex
 **Acceptance Scenarios**:
 
 1. **Given** un expediente con documentos procesados, **When** se ejecuta el comando de supresión sobre él, **Then** el texto queda borrado y el hash, las fechas y el autor permanecen intactos.
-2. **Given** un texto compartido con otro expediente, **When** se ejecuta la supresión, **Then** el comando avisa y no deja huérfano ni rompe al otro expediente.
+2. **Given** un texto compartido con otro expediente, **When** se ejecuta la supresión, **Then** el texto se vacía también para ese otro expediente y el comando informa cuántos expedientes quedaron afectados, sin nombrar su contenido. Los hashes, fechas y autores de todos ellos permanecen intactos.
 
 ### Edge Cases
 
@@ -85,7 +104,6 @@ Como administrador del servidor, quiero poder borrar el texto extraído de un ex
 - Archivo vacío, corrupto o sin capa de texto ni contenido legible: estado `ERROR` con motivo, no una excepción sin manejar.
 - Archivo temporal huérfano porque el proceso se interrumpió: la tarea diaria lo elimina pasadas 24 h.
 - El mismo archivo subido dos veces al mismo expediente: se avisa al usuario en lugar de duplicar en silencio.
-- Un expediente cerrado no admite nuevos documentos.
 
 ## Requirements *(mandatory)*
 
@@ -101,8 +119,11 @@ Como administrador del servidor, quiero poder borrar el texto extraído de un ex
 - **FR-008**: El sistema DEBE permitir reintentar la extracción de un documento en `ERROR`.
 - **FR-009**: El sistema DEBE ofrecer un comando de administración que borre el texto extraído asociado a un expediente.
 - **FR-010**: El sistema DEBE ofrecer una tarea que elimine los archivos temporales huérfanos con más de 24 horas.
-- **FR-011**: El sistema DEBE rechazar formatos no admitidos y archivos que superen el tamaño máximo configurado, antes de almacenarlos.
+- **FR-011**: El sistema DEBE rechazar formatos no admitidos y archivos que superen el tamaño máximo configurado, antes de almacenarlos. El máximo por defecto es 25 MB.
 - **FR-012**: El sistema NO DEBE guardar el archivo original ni su contenido binario más allá del procesamiento.
+- **FR-013**: El sistema DEBE permitir eliminar un documento de un expediente, previa confirmación, sin afectar al texto que otros documentos compartan.
+- **FR-014**: El sistema DEBE devolver a `PENDIENTE` un documento que lleve más de 15 minutos en `PROCESANDO`, para que la caída del worker no lo deje atrapado. El umbral es configurable.
+- **FR-015**: La supresión del texto de un expediente DEBE vaciar también las entradas compartidas con otros expedientes, e informar cuántos quedaron afectados.
 
 ### Requisitos de seguridad y privacidad (Constitución IV y VI)
 
@@ -146,3 +167,4 @@ El detalle de campos y restricciones está en `data-model.md`.
 - F4 no ejecuta las capas de regla, léxico ni ortografía: eso es F5. Aquí solo se obtiene y conserva el texto.
 - El worker corre en el mismo servidor que la aplicación, en la LAN de la notaría.
 - El tipo de acto del expediente se define en F9; en F4 no existe.
+- El expediente no se cierra: la notaría no sabe cuándo termina un trámite, puede pasar un mes o un año. No existe el estado `CERRADO`.
