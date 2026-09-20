@@ -1,8 +1,9 @@
 import hashlib
 import io
+import logging
+import os
 import secrets
 import shutil
-import threading
 import zipfile
 from datetime import timedelta
 from pathlib import Path
@@ -15,7 +16,7 @@ from adaptadores import extraccion
 
 from .models import Documento, TextoExtraido
 
-_CACHE_LOCK = threading.RLock()
+logger = logging.getLogger(__name__)
 
 
 def calcular_hash(ruta):
@@ -40,6 +41,32 @@ def crear_temporal(origen, nombre_original="", destino=None):
     return ruta
 
 
+def _archivo_tamano(archivo):
+    tamano = getattr(archivo, "size", None)
+    if isinstance(tamano, int):
+        return tamano
+    try:
+        return Path(archivo).stat().st_size
+    except (OSError, TypeError):
+        pass
+    try:
+        return os.fstat(archivo.fileno()).st_size
+    except (AttributeError, OSError, ValueError):
+        return None
+
+
+def _archivo_prefijo(archivo, limite=16):
+    if hasattr(archivo, "read"):
+        posicion = archivo.tell() if hasattr(archivo, "tell") else None
+        prefijo = archivo.read(limite)
+        if posicion is not None and hasattr(archivo, "seek"):
+            archivo.seek(posicion)
+        return prefijo
+    if hasattr(archivo, "chunks"):
+        return next(archivo.chunks(), b"")[:limite]
+    return Path(archivo).read_bytes()[:limite]
+
+
 def _archivo_bytes(archivo):
     if hasattr(archivo, "chunks"):
         return b"".join(archivo.chunks())
@@ -58,16 +85,22 @@ def validar_archivo(archivo):
     extension = Path(nombre).suffix.lower()
     if extension not in extraccion.DOCS:
         raise ValueError("Formato de archivo no admitido.")
-    contenido = _archivo_bytes(archivo)
-    if not contenido:
+    tamano = _archivo_tamano(archivo)
+    if tamano is not None and tamano > settings.EXPEDIENTES_MAX_FILE_SIZE:
+        raise ValueError("El archivo supera el tamaño máximo permitido.")
+    extensiones_zip = {".docx", ".xlsx", ".odt", ".wordml"}
+    contenido = (
+        _archivo_bytes(archivo)
+        if extension in extensiones_zip
+        else _archivo_prefijo(archivo)
+    )
+    if not contenido or (tamano is not None and tamano == 0):
         raise ValueError("El archivo está vacío.")
     if len(contenido) > settings.EXPEDIENTES_MAX_FILE_SIZE:
         raise ValueError("El archivo supera el tamaño máximo permitido.")
     if extension == ".pdf" and not contenido.startswith(b"%PDF-"):
         raise ValueError("El contenido del archivo no coincide con su formato.")
-    if extension in {".docx", ".xlsx", ".odt", ".wordml"} and not zipfile.is_zipfile(
-        io.BytesIO(contenido)
-    ):
+    if extension in extensiones_zip and not zipfile.is_zipfile(io.BytesIO(contenido)):
         raise ValueError("El contenido del archivo no coincide con su formato.")
     firmas = {
         ".jpg": (b"\xff\xd8\xff",),
@@ -89,39 +122,36 @@ def validar_archivo(archivo):
 
 
 def extraer_o_reutilizar(hash_archivo, version_extractor, extractor):
-    with _CACHE_LOCK, transaction.atomic():
-        texto = (
-            TextoExtraido.objects.select_for_update()
-            .filter(
-                hash_archivo=hash_archivo,
-                version_extractor=version_extractor,
-            )
-            .first()
-        )
-        if texto is None or texto.texto == "":
-            salida = extractor()
-            if texto is None:
-                try:
-                    with transaction.atomic():
-                        texto = TextoExtraido.objects.create(
-                            hash_archivo=hash_archivo,
-                            version_extractor=version_extractor,
-                            texto=salida,
-                            ultimo_uso_el=timezone.now(),
-                        )
-                except IntegrityError:
-                    texto = TextoExtraido.objects.select_for_update().get(
-                        hash_archivo=hash_archivo,
-                        version_extractor=version_extractor,
-                    )
-            else:
-                texto.texto = salida
-                texto.ultimo_uso_el = timezone.now()
-                texto.save(update_fields=("texto", "ultimo_uso_el"))
-        else:
+    with transaction.atomic():
+        texto = TextoExtraido.objects.filter(
+            hash_archivo=hash_archivo, version_extractor=version_extractor
+        ).first()
+        if texto is not None and texto.texto != "":
             texto.ultimo_uso_el = timezone.now()
             texto.save(update_fields=("ultimo_uso_el",))
-        return texto
+            return texto
+
+    salida = extractor()
+    with transaction.atomic():
+        if texto is not None:
+            texto = TextoExtraido.objects.select_for_update().get(pk=texto.pk)
+            if texto.texto == "":
+                texto.texto = salida
+            texto.ultimo_uso_el = timezone.now()
+            texto.save(update_fields=("texto", "ultimo_uso_el"))
+            return texto
+        try:
+            with transaction.atomic():
+                return TextoExtraido.objects.create(
+                    hash_archivo=hash_archivo,
+                    version_extractor=version_extractor,
+                    texto=salida,
+                    ultimo_uso_el=timezone.now(),
+                )
+        except IntegrityError:
+            return TextoExtraido.objects.select_for_update().get(
+                hash_archivo=hash_archivo, version_extractor=version_extractor
+            )
 
 
 def _borrar_temporal(ruta):
@@ -148,7 +178,12 @@ def _procesar_fila(documento):
         )
         if not texto.texto:
             raise ValueError
-    except Exception:
+    except Exception as exc:
+        logger.error(
+            "Falló el procesamiento del documento id=%s tipo=%s",
+            documento.pk,
+            type(exc).__name__,
+        )
         documento.estado = Documento.ERROR
         documento.error = "No se pudo procesar el archivo."
         documento.procesado_el = timezone.now()
@@ -185,18 +220,11 @@ def _procesar_fila(documento):
     return documento
 
 
-def procesar_documento(documento_o_ruta, resultado_esperado=None):
-    if isinstance(documento_o_ruta, (str, Path)):
-        try:
-            if resultado_esperado == "ERROR":
-                return None
-            return None
-        finally:
-            _borrar_temporal(documento_o_ruta)
+def procesar_documento(documento_o_id):
     documento = (
-        documento_o_ruta
-        if isinstance(documento_o_ruta, Documento)
-        else Documento.objects.get(pk=documento_o_ruta)
+        documento_o_id
+        if isinstance(documento_o_id, Documento)
+        else Documento.objects.get(pk=documento_o_id)
     )
     return _procesar_fila(documento)
 

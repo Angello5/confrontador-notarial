@@ -74,6 +74,11 @@ mantiene sus decisiones y concreta cómo se probarán.
 - **Límite de seguridad**: el nombre original nunca construye rutas. La ruta
   la genera el servicio con un nombre aleatorio/seguro y el directorio se
   configura fuera del árbol web.
+- **Convención local**: la carpeta `expedientes/` contiene código Django
+  versionado; los datos reales de la notaría deben guardarse en
+  `expedientes_locales/`, que está excluida por `.gitignore`. Las reglas por
+  extensión siguen bloqueando archivos documentales aunque se creen fuera de
+  esa carpeta.
 
 ### Validación de subida
 

@@ -40,6 +40,7 @@ que permanece.
 | `texto_extraido` | FK a TextoExtraido, nullable, PROTECT | NULL hasta que la extracción termina. |
 | `subido_por` | FK a la cuenta de usuario, requerido, PROTECT | — |
 | `subido_el` | fecha/hora, automática | — |
+| `procesando_el` | fecha/hora, nullable | Se fija al tomar el documento para procesarlo y se vacía al pasar a `LISTO`, `ERROR` o al recuperarlo por vencimiento. Permite detectar workers caídos. |
 | `procesado_el` | fecha/hora, nullable | Se fija al pasar a `LISTO` o a `ERROR`. |
 
 Restricción: un mismo `hash_archivo` no se repite dentro del mismo expediente
