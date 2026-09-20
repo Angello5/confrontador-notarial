@@ -168,4 +168,8 @@ El detalle de campos y restricciones está en `data-model.md`.
 - F4 no ejecuta las capas de regla, léxico ni ortografía: eso es F5. Aquí solo se obtiene y conserva el texto.
 - El worker corre en el mismo servidor que la aplicación, en la LAN de la notaría.
 - El tipo de acto del expediente se define en F9; en F4 no existe.
+- Consecuencia para F5: un documento puede quedar en `LISTO` con el texto
+  vacío si alguien ejecutó la supresión. F5 DEBE tratar ese caso como "sin
+  texto disponible" y pedir que se vuelva a subir el archivo, en lugar de
+  confrontar contra una cadena vacía y reportar que falta todo.
 - El expediente no se cierra: la notaría no sabe cuándo termina un trámite, puede pasar un mes o un año. No existe el estado `CERRADO`.
