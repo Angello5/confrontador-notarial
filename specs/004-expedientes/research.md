@@ -1,8 +1,8 @@
 # Research: F4 · Expedientes
 
 **Alcance de esta etapa**: decisiones técnicas para la implementación posterior.
-No se modifica `spec.md` ni `data-model.md`; ambos son documentos aprobados y
-las observaciones sobre ellos se registran al final.
+`spec.md` y `data-model.md` son la fuente de verdad aprobada; esta investigación
+mantiene sus decisiones y concreta cómo se probarán.
 
 ## Decisiones
 
@@ -56,8 +56,9 @@ las observaciones sobre ellos se registran al final.
   reiniciar, y están expresamente prohibidos.
 - **Recuperación**: el diseño debe devolver a `PENDIENTE` una fila
   `PROCESANDO` que exceda el umbral de recuperación y registrar un error
-  seguro si corresponde. El valor del umbral queda pendiente de aclaración;
-  no se inventa en este plan.
+  seguro si corresponde. El umbral por defecto es 15 minutos y se configura en
+  `settings`; una ejecución programada aplica la misma regla a todos los
+  documentos recuperables.
 
 ### Archivos temporales y huérfanos
 
@@ -99,6 +100,16 @@ las observaciones sobre ellos se registran al final.
   de roles nueva; para dos roles y una regla de creador basta el ORM y los
   grupos existentes.
 
+### Eliminación de documentos
+
+- **Decisión**: F4 incluye eliminar un documento mediante una acción explícita
+  con confirmación. Tras confirmar, se elimina la fila y el temporal que aún
+  exista, pero nunca `TextoExtraido`: esa entrada puede estar referenciada por
+  documentos de otros expedientes.
+- **Alternativa descartada**: reutilizar la supresión de texto para eliminar
+  documentos; son operaciones distintas y la supresión debe vaciar el texto
+  compartido sin borrar metadatos documentales.
+
 ### Interfaz y estados
 
 - **Decisión**: plantillas Django con los assets locales ya vendorizados y
@@ -113,16 +124,14 @@ las observaciones sobre ellos se registran al final.
 ### Supresión del texto
 
 - **Decisión**: ofrecer un comando de gestión para localizar el expediente,
-  borrar el texto extraído según las reglas aprobadas y conservar hashes,
-  fechas y filas documentales que deban permanecer. El comando será explícito,
-  auditable por su resultado agregado y no imprimirá contenido.
+  borrar el texto extraído de las entradas asociadas y conservar hashes,
+  fechas, autores y filas documentales. Si una entrada está compartida, se
+  vacía para todos los expedientes que la referencian y el comando informa el
+  número de expedientes afectados. El comando será explícito, auditable por su
+  resultado agregado y no imprimirá contenido.
 - **Alternativa descartada**: borrar el expediente o el documento completo;
   no satisface el derecho de supresión descrito en la constitución y destruye
   metadatos requeridos.
-- **Dependencia**: la semántica cuando un `TextoExtraido` está compartido por
-  varios expedientes no queda determinada de manera compatible entre
-  `spec.md` y `data-model.md`; se mantiene como `[NEEDS CLARIFICATION]`.
-
 ### Dependencias y calidad
 
 - **Decisión**: no se cambia `requirements.in` ni los locks. Las pruebas se
@@ -134,39 +143,16 @@ las observaciones sobre ellos se registran al final.
   las mismas garantías de bloqueo que PostgreSQL. Añadir un worker externo o
   una dependencia de MIME también queda fuera.
 
-## `[NEEDS CLARIFICATION]` pendiente
+## Coherencia de las decisiones aprobadas
 
-Estas preguntas deben resolverse antes de implementar las tareas afectadas:
-
-1. **FR-011**: ¿cuál es el tamaño máximo en bytes, o dónde se configura su
-   valor operativo? La spec exige un máximo configurable, pero no da número ni
-   valor por entorno.
-2. **Recuperación del worker**: ¿qué antigüedad convierte un documento
-   `PROCESANDO` en recuperable? `data-model.md` menciona un tiempo límite, sin
-   valor ni regla para distinguir una tarea lenta de una caída.
-3. **Supresión compartida**: si varios expedientes apuntan al mismo
-   `TextoExtraido`, ¿la supresión debe vaciar el texto compartido para todos,
-   desvincular solo el expediente objetivo conservando la caché, o impedir la
-   operación hasta una decisión del responsable? La spec pide avisar y no
-   romper el otro expediente; el modelo permite que el texto se vacíe en la
-   entidad compartida.
-4. **Borrado de documentos**: la sección UX exige confirmación antes de
-   eliminar un documento, pero no existe FR, escenario ni transición que
-   defina una acción de eliminación. ¿F4 incluye eliminar documentos, o esa
-   frase debe retirarse/trasladarse a otra fase?
-5. **Cierre de expediente**: el modelo define `CERRADO` y la spec dice que un
-   expediente cerrado no admite documentos, pero no define pantalla, permiso,
-   transición ni mensaje para cerrarlo. ¿El cierre es F4 o queda para otra
-   fase?
-
-## Contradicciones u observaciones sobre documentos aprobados
-
-- `spec.md` exige que la supresión de un texto compartido avise y no rompa al
-  otro expediente, mientras `data-model.md` modela una única fila compartida
-  cuyo campo `texto` queda vacío al suprimir. Se reporta sin modificar ninguno.
-- `spec.md` exige confirmación al eliminar un documento sin definir la acción
-  funcional correspondiente. Se reporta sin inventar una ruta ni un estado.
-- El modelo define estados y recuperación de `PROCESANDO`, pero no define el
-  umbral temporal. Se deja pendiente, no se fija en el plan.
-- No se encontró otra contradicción bloqueante entre la constitución 1.6.0,
-  el roadmap, los diagramas y los documentos F4 revisados.
+- El límite por defecto es 25 MB y se puede ajustar en `settings`; la
+  validación ocurre antes de crear la fila o escribir el temporal.
+- Un `PROCESANDO` con más de 15 minutos se devuelve a `PENDIENTE`; el umbral
+  es configurable y no se almacena como estado del expediente.
+- La supresión vacía una entrada `TextoExtraido` compartida para todos sus
+  expedientes y comunica solo el conteo afectado; hashes, fechas, autores y
+  filas permanecen.
+- Eliminar un documento requiere confirmación, borra su fila y temporal, y no
+  borra `TextoExtraido`.
+- `Expediente` no tiene estado almacenado ni acción de cierre; su resumen se
+  deriva de los estados de sus documentos.

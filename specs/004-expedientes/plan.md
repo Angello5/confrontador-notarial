@@ -11,8 +11,9 @@ Crear la aplicación Django `expedientes` para registrar expedientes y
 documentos, conservar texto extraído con caché por hash y versión del
 extractor, y procesar la cola `PENDIENTE` mediante comandos programados. Las
 vistas serán delgadas; `services.py` y los comandos coordinarán validación,
-extracción, persistencia y borrado temporal. No se ejecutan las capas de
-confrontación de F5 ni se importa `experimental/`.
+extracción, persistencia, eliminación confirmada y borrado temporal. El estado
+del expediente se deriva de sus documentos; no se persiste ni se cierra en F4.
+No se ejecutan las capas de confrontación de F5 ni se importa `experimental/`.
 
 ## Technical Context
 
@@ -40,8 +41,8 @@ de gestión programables por el sistema operativo.
 
 **Performance Goals**: el procesamiento pesado no ocurre en la petición; no se
 define una latencia de OCR nueva. El sondeo de estado usa el intervalo indicado
-en `contracts/ui.md`. El umbral de recuperación de un worker queda
-`[NEEDS CLARIFICATION]`.
+en `contracts/ui.md`. Un documento en `PROCESANDO` durante más de 15 minutos se
+recupera a `PENDIENTE`; el umbral se configura en `settings`.
 
 **Constraints**: sin IA, `experimental/`, Celery, Redis, RabbitMQ, HTMX,
 React, API pública, CDN o dependencias nuevas. `accounts/`, `core/`, `nucleo/`
@@ -50,8 +51,9 @@ borran en `finally`; los mensajes y logs excluyen datos personales y contenido.
 
 **Scale/Scope**: hasta 10 usuarios del ERP y expedientes con documentos de los
 formatos ya admitidos por el adaptador. F4 cubre alta, subida, extracción,
-reutilización, estados, reintento, supresión por comando y huérfanos; la
-confrontación es F5 y la auditoría completa es F6.
+reutilización, estados documentales, reintento, eliminación confirmada,
+supresión por comando y huérfanos; la confrontación es F5 y la auditoría
+completa es F6.
 
 ## Constitution Check
 
@@ -60,15 +62,15 @@ confrontación es F5 y la auditoría completa es F6.
 | I. Determinismo y sin IA | `expedientes` no importa `experimental/` ni llama modelos. La identidad del extractor se deriva de `_OCR_FILES` y `_OCR_USE_CLS` de forma ordenada; la misma entrada y versión produce la misma clave de caché. | PASS |
 | II. Núcleo puro | No se modifica el comportamiento de `nucleo/` ni de `adaptadores/extraccion.py`. La aplicación usa el adaptador como borde; vistas delgadas, servicios para coordinación y comando para la cola. | PASS |
 | III. Pruebas primero | Cada regla funcional y de seguridad tiene una prueba sintética que se escribe y se comprueba en rojo antes de la implementación correspondiente. PostgreSQL valida concurrencia. | PASS, sujeto al orden TDD de `tasks.md` |
-| IV. Privacidad | No se versionan expedientes ni archivos. El temporal queda fuera del árbol servido y se borra en `finally`; texto, hash y supresión siguen la constitución. Los logs/mensajes son agregados y seguros. | PASS, con semántica compartida pendiente |
+| IV. Privacidad | No se versionan expedientes ni archivos. El temporal queda fuera del árbol servido y se borra en `finally`; texto, hash y supresión compartida siguen la constitución. Los logs/mensajes son agregados y seguros. | PASS |
 | V. Simplicidad | Una app nueva, ORM Django, servicios mínimos y dos comandos. No se agregan repositorios genéricos, colas externas, SPA, API ni dependencias. | PASS |
 | VI. Seguridad y control de acceso | Login y grupos existentes, autorización por creador/Administrador en cada operación, validación server-side de rol/tamaño/contenido y nombres no confiables sin uso en rutas. | PASS |
 | VII. DevSecOps | Se conserva el job y los gates existentes: Ruff, pytest/cobertura, SAST/Sonar, SCA y secretos. Locks y assets no cambian. | PASS |
-| VIII. Usabilidad | Contrato de UI en español con estados `PENDIENTE`/`PROCESANDO`/`LISTO`/`ERROR`, mensajes de recuperación, polling Alpine, teclado, foco, etiquetas y contraste; checklist separado para revisión. | PASS, con eliminación/cierre pendientes |
+| VIII. Usabilidad | Contrato de UI en español con estados `PENDIENTE`/`PROCESANDO`/`LISTO`/`ERROR`, confirmación de eliminación, mensajes de recuperación, polling Alpine, teclado, foco, etiquetas y contraste; checklist separado para revisión. | PASS |
 
 **Resultado previo a investigación**: compatible. Las cinco decisiones
-pendientes no autorizan inventar reglas de negocio; las tareas afectadas deben
-detenerse hasta resolverlas.
+aprobadas se incorporan a las tareas y a los contratos sin añadir reglas de
+negocio.
 
 ## Project Structure
 
@@ -78,7 +80,7 @@ detenerse hasta resolverlas.
 specs/004-expedientes/
 ├── spec.md                         # aprobado; no se modifica
 ├── data-model.md                   # aprobado; no se modifica
-├── research.md                     # decisiones y pendientes
+├── research.md                     # decisiones técnicas resueltas
 ├── plan.md                         # este plan
 ├── contracts/ui.md                 # pantallas, estados y mensajes
 ├── tasks.md                        # orden ejecutable de implementación
@@ -125,8 +127,8 @@ repositorio ni una abstracción con una sola implementación.
 ## Phase 0: Research
 
 `research.md` resuelve decisiones de estructura, cola, caché, identidad OCR,
-validación, temporales, autorización, UI y calidad. Las decisiones de negocio
-que faltan se conservan literalmente como `[NEEDS CLARIFICATION]`.
+validación, temporales, autorización, UI, eliminación, supresión compartida y
+calidad.
 
 ## Phase 1: Design and Validation
 
@@ -142,8 +144,8 @@ que faltan se conservan literalmente como `[NEEDS CLARIFICATION]`.
 I–VIII siguen en PASS bajo las mismas condiciones del chequeo previo. El único
 cambio previsto fuera de la app es el helper mínimo de identidad del extractor;
 su prueba debe demostrar que no altera OCR, lectura, caché de disco ni el
-núcleo. Los puntos ambiguos se mantienen bloqueados y se reportan al
-coordinador; no hay excepción constitucional solicitada.
+núcleo. Las cinco decisiones aprobadas quedan reflejadas en las pruebas de
+contrato; no hay excepción constitucional solicitada.
 
 ## Complexity Tracking
 

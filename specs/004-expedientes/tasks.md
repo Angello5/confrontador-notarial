@@ -21,7 +21,8 @@ ficticios y no se incluyen expedientes, textos ni archivos reales.
   `(hash_archivo, version_extractor)` en `tests/test_expedientes_models.py`;
   criterio: cada regla del `data-model.md` tiene una aserción distinguible.
 - [ ] T003 [P] Añadir pruebas rojas de visibilidad por creador y Administrador,
-  incluyendo denegación de expediente ajeno en HTML, JSON y reintento, en
+  incluyendo denegación de expediente ajeno en HTML, JSON, reintento y
+  eliminación de documento (FR-013), en
   `tests/test_expedientes_permissions.py`; criterio: las rutas inexistentes o
   sin autorización fallan antes de cualquier implementación.
 - [ ] T004 [P] Añadir pruebas rojas de creación y subida en una sola pantalla,
@@ -38,17 +39,17 @@ ficticios y no se incluyen expedientes, textos ni archivos reales.
   uso no llama al extractor y una versión distinta sí crea una entrada nueva.
 - [ ] T007 [P] Añadir pruebas rojas del consumidor: `PENDIENTE` a
   `PROCESANDO` a `LISTO`/`ERROR`, limpieza en `finally`, no doble toma y
-  recuperación de `PROCESANDO` vencido en `tests/test_expedientes_worker.py`;
-  criterio: el caso de umbral queda parametrizado como
-  `[NEEDS CLARIFICATION]`, no se inventa su valor.
+  recuperación de `PROCESANDO` con más de 15 minutos (FR-014) en
+  `tests/test_expedientes_worker.py`; criterio: el umbral se lee de settings y
+  una fila vencida vuelve a `PENDIENTE`.
 - [ ] T008 [P] Añadir pruebas rojas de reintento, estado JSON/polling, estado
   vacío, todos listos, error recuperable y accesibilidad textual en
   `tests/test_expedientes_ui.py`; criterio: se cubren los estados y mensajes
   de `contracts/ui.md` sin afirmar contenido documental.
 - [ ] T009 [P] Añadir pruebas rojas de los comandos de huérfanos y supresión en
   `tests/test_expedientes_commands.py`; criterio: se conserva hash/metadatos,
-  se eliminan solo temporales con más de 24 h y el caso compartido queda
-  explícitamente bloqueado por `[NEEDS CLARIFICATION]`.
+  se eliminan solo temporales con más de 24 h y una supresión vacía las
+  entradas compartidas e informa el conteo afectado (FR-015).
 - [ ] T010 [P] Añadir prueba roja de identidad del extractor en
   `tests/test_extractor_identity.py`; criterio: cambiar un hash de
   `_OCR_FILES` o `_OCR_USE_CLS` cambia la identidad y no se ejecuta OCR real.
@@ -68,10 +69,11 @@ reales/secretos y crear el commit local de tests rojos antes de implementar.
 - [ ] T013 Crear la migración inicial en
   `expedientes/migrations/0001_initial.py`; criterio: migraciones aplican y
   revierten en una base ficticia, y `makemigrations --check` queda limpio.
-- [ ] T014 Añadir la configuración del directorio temporal y del tamaño máximo
-  en `config/settings.py` solo después de resolver el valor
-  `[NEEDS CLARIFICATION]`; criterio: el directorio no está bajo rutas
-  estáticas/servidas y una configuración inválida falla de forma segura.
+- [ ] T014 Añadir la configuración del directorio temporal, el máximo por
+  defecto de 25 MB y el umbral de recuperación por defecto de 15 minutos en
+  `config/settings.py`; criterio: ambos límites son configurables, el
+  directorio no está bajo rutas estáticas/servidas y una configuración
+  inválida falla de forma segura.
 - [ ] T015 Ampliar `tests/conftest.py` y la configuración de cobertura para
   incluir `expedientes/`, usando fixtures ficticios reutilizables; criterio: la
   cobertura XML sigue teniendo rutas relativas y no incorpora `tests/` como
@@ -99,8 +101,8 @@ verdes; revisar solo la app nueva y los cambios mínimos de configuración.
   sin texto, rutas ni trazas en la respuesta.
 - [ ] T020 Implementar la toma transaccional de documentos en
   `expedientes/management/commands/procesar_documentos.py`; criterio: T007
-  evita doble consumidor, recupera estados solo según el umbral resuelto y no
-  ejecuta lógica de negocio en la vista.
+  evita doble consumidor, recupera estados tras 15 minutos según settings
+  (FR-014) y no ejecuta lógica de negocio en la vista.
 
 **Checkpoint**: pruebas de servicios/worker y extracción sintética verdes,
 Ruff sobre los archivos afectados y revisión de que el núcleo no cambió.
@@ -111,9 +113,10 @@ Ruff sobre los archivos afectados y revisión de que el núcleo no cambió.
   `expedientes/forms.py`; criterio: T004 pasa con validación server-side,
   errores españoles y sin duplicar reglas en plantillas.
 - [ ] T022 Implementar vistas delgadas en `expedientes/views.py` y URLs en
-  `expedientes/urls.py` para listado, alta, detalle, subida, estado JSON y
-  reintento; criterio: T003/T004/T008 pasan y cada vista solo autoriza,
-  valida, llama servicios y renderiza/responde.
+  `expedientes/urls.py` para listado, alta, detalle, subida, estado JSON,
+  reintento y eliminación confirmada del documento (FR-013); criterio:
+  T003/T004/T008 pasan y cada vista solo autoriza, valida, llama servicios y
+  renderiza/responde.
 - [ ] T023 Crear las plantillas en `templates/expedientes/` usando el layout
   AdminLTE 4 de F2 y Alpine.js local; criterio: T008 encuentra estados,
   mensajes, etiquetas, foco, navegación y polling sin CDN, React ni HTMX.
@@ -131,11 +134,11 @@ de interfaz y de las 10 heurísticas mediante `checklists/ux.md` sin marcar
   `expedientes/management/commands/limpiar_temporales.py`; criterio: T009
   elimina únicamente huérfanos mayores de 24 horas, vacía `ruta_temporal` y
   no toca filas recientes ni datos extraídos.
-- [ ] T026 Resolver la aclaración de supresión compartida y, solo entonces,
-  implementar `suprimir_texto_expediente` en
+- [ ] T026 Implementar `suprimir_texto_expediente` en
   `expedientes/management/commands/suprimir_texto_expediente.py`; criterio:
-  T009 demuestra la regla decidida, conserva metadatos exigidos y no rompe
-  expedientes relacionados.
+  T009 vacía la entrada `TextoExtraido` compartida para todos sus expedientes,
+  informa el conteo afectado (FR-015), conserva metadatos exigidos y no borra
+  filas.
 - [ ] T027 Añadir `expedientes/admin.py` solo para consultas operativas mínimas
   permitidas por la decisión de seguridad; criterio: no crea una pantalla de
   gestión de cuentas ni bypass de permisos y no expone texto por defecto.
@@ -145,10 +148,9 @@ documentada la evidencia agregada sin rutas/contenido.
 
 ## Etapa 6: gates y cierre de implementación
 
-- [ ] T028 Resolver antes del cierre las aclaraciones de tamaño máximo,
-  recuperación, borrado de documentos y cierre de expediente; actualizar solo
-  los documentos que el usuario autorice y bloquear cualquier tarea que las
-  invente.
+- [ ] T028 Verificar antes del cierre que tamaño máximo, recuperación,
+  eliminación de documentos y supresión compartida respetan las decisiones
+  aprobadas; el expediente no almacena estado ni tiene cierre.
 - [ ] T029 Ejecutar `python manage.py check`, `makemigrations --check`,
   migraciones PostgreSQL, `pytest --cov --cov-report=xml:coverage.xml`, Ruff,
   `pip-audit --strict` y la suite existente; criterio: todos los gates locales
@@ -172,7 +174,8 @@ antes de T011 y no crea código.
 - T011–T015 preceden servicios y vistas.
 - T016 debe preceder T018–T020 porque forma parte de la llave de caché.
 - T017–T020 preceden T021–T024.
-- T025–T027 dependen de la resolución de las aclaraciones correspondientes.
+- T025–T027 cubren limpieza, supresión compartida y consultas operativas ya
+  decididas.
 - T028–T031 son gates finales; no sustituyen pruebas ni evidencia remota.
 
 ## Oportunidades paralelas
@@ -188,4 +191,5 @@ antes de T011 y no crea código.
 
 T001–T024 cubren crear/subir/ver estados y procesar documentos. La
 reutilización y la limpieza de temporales son obligatorias dentro de ese MVP;
-la supresión y los huérfanos se cierran en T025–T027. No se implementa F5.
+la supresión compartida y los huérfanos se cierran en T025–T027. No se
+implementa F5.

@@ -19,10 +19,10 @@ ya exista.
 ## Control, libertad y prevención de errores
 
 - [ ] CHK006 ¿Cada operación iniciada por el usuario tiene una salida clara, cancelación o regreso, incluyendo validación fallida y reintento? [Heurística 3, Spec §Requisitos UX]
-- [ ] CHK007 ¿El requisito de cerrar un expediente está definido antes de presentar una acción de cierre? [Heurística 3, Gap, data-model §Expediente]
+- [ ] CHK007 ¿La interfaz omite una acción de cierre y explica el resumen derivado de los documentos? [Heurística 3, Consistencia, data-model §Expediente]
 - [ ] CHK008 ¿La prevención de duplicados, formato, tamaño y contenido se explica antes de enviar y se valida también en servidor? [Heurística 5, Spec §FR-011]
-- [ ] CHK009 ¿La confirmación antes de eliminar un documento está vinculada a una función real o se mantiene como aclaración pendiente? [Heurística 5, Spec §Requisitos UX]
-- [ ] CHK010 ¿La interfaz diferencia un expediente cerrado de un fallo técnico y explica qué acción queda disponible? [Heurística 5, contracts §Detalle]
+- [ ] CHK009 ¿La confirmación antes de eliminar un documento está vinculada a FR-013 y cancelar deja intactos fila, temporal y texto? [Heurística 5, Spec §FR-013]
+- [ ] CHK010 ¿La interfaz distingue el estado derivado de los documentos de un fallo técnico y explica la acción disponible? [Heurística 5, contracts §Avance]
 
 ## Consistencia, reconocimiento y eficiencia
 

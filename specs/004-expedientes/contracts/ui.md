@@ -10,12 +10,13 @@ escrituras.
 
 | Ruta y método | Acceso | Resultado |
 |---|---|---|
-| `/expedientes/` GET | Usuario o Administrador | Listado de expedientes visibles; el Usuario ve los propios y el Administrador todos. Incluye estado y cantidad agregada de documentos pendientes. |
-| `/expedientes/` POST | Usuario o Administrador | Valida el código digitado, crea el expediente en `BORRADOR` y vuelve a la pantalla de detalle/listado con confirmación. Código vacío o repetido permanece en pantalla con explicación. |
+| `/expedientes/` GET | Usuario o Administrador | Listado de expedientes visibles; el Usuario ve los propios y el Administrador todos. Incluye resumen derivado y cantidad agregada de documentos pendientes. |
+| `/expedientes/` POST | Usuario o Administrador | Valida el código digitado, crea el expediente y vuelve a la pantalla de detalle/listado con confirmación. Código vacío o repetido permanece en pantalla con explicación. |
 | `/expedientes/<id>/` GET | Creador o Administrador | Detalle del expediente, formulario de subida, formatos admitidos, tamaño máximo configurado, estados y resumen. No muestra texto extraído. |
 | `/expedientes/<id>/documentos/` POST | Creador o Administrador | Valida rol, formato, contenido y tamaño en servidor; registra hash y metadatos y encola `PENDIENTE`. Un duplicado del mismo hash y rol se rechaza sin duplicar. |
-| `/expedientes/<id>/estado/` GET | Creador o Administrador | JSON mínimo para Alpine: estado del expediente, documentos visibles con identificador interno, rol, estado, error seguro y fechas/contadores necesarios para pintar avance. Nunca incluye texto extraído, ruta temporal ni contenido. |
+| `/expedientes/<id>/estado/` GET | Creador o Administrador | JSON mínimo para Alpine: resumen derivado, documentos visibles con identificador interno, rol, estado, error seguro y fechas/contadores necesarios para pintar avance. Nunca incluye texto extraído, ruta temporal ni contenido. |
 | `/expedientes/<id>/documentos/<doc_id>/reintentar/` POST | Creador o Administrador | Solo para `ERROR`; limpia el motivo, devuelve el documento a `PENDIENTE` y confirma que se reintentará. En otro estado responde con error claro. |
+| `/expedientes/<id>/documentos/<doc_id>/eliminar/` POST | Creador o Administrador | Exige confirmación explícita; elimina el documento y su temporal si existe, pero conserva `TextoExtraido` para otros documentos. |
 
 La forma exacta del `<id>` es un identificador técnico sin mostrarlo como dato
 personal. Un usuario sin permiso recibe la denegación estándar sin revelar si
@@ -44,8 +45,8 @@ el expediente de otra persona existe.
 - Formato/tamaño/contenido inválido: mensaje en lenguaje claro que indica qué
   revisar, sin nombre original, ruta, hash, traceback ni fragmento documental.
 - Duplicado: «Ese archivo ya está registrado con este rol en el expediente.»
-- Expediente cerrado: «El expediente está cerrado y no admite documentos.»
-  La acción de cierre no se incluye hasta resolver la aclaración correspondiente.
+- Eliminación: antes de enviar se muestra «¿Confirma eliminar este documento?»;
+  tras confirmar: «Documento eliminado.» La cancelación no cambia nada.
 
 ### Avance
 
@@ -68,6 +69,11 @@ Si falla una consulta de estado, se muestra «No se pudo actualizar el estado.
 Intente recargar la página.» sin borrar el último estado conocido ni exponer
 la excepción.
 
+El expediente no tiene un estado persistido ni una acción de cierre. El
+resumen visible se deriva de los estados de sus documentos: vacío si no tiene
+documentos, procesando si alguno está pendiente o procesándose, listo si todos
+están listos y con error si alguno falló.
+
 ## Mensajes transversales y accesibilidad
 
 - Mensajes de éxito y error usan `role="status"`/`role="alert"` apropiado y
@@ -88,5 +94,5 @@ No son rutas HTTP ni se ofrecen como pantallas administrativas propias:
 - `python manage.py limpiar_temporales`: elimina temporales huérfanos de más
   de 24 horas según la política aprobada.
 - `python manage.py suprimir_texto_expediente <codigo>`: solicita la supresión
-  del texto asociado y conserva los metadatos definidos. Su comportamiento
-  para texto compartido queda `[NEEDS CLARIFICATION]`.
+  del texto asociado, vacía también las entradas compartidas y comunica el
+  número de expedientes afectados; conserva hashes, fechas, autores y filas.
