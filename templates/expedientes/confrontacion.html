@@ -38,9 +38,32 @@
       <div class="card-header"><h2 id="regla-titulo" class="h5 mb-0">Regla <span class="badge text-bg-secondary">{{ resultado.regla|length }}</span></h2></div>
       <div class="card-body">
         {% if resultado.regla %}
-          <ul>
-            {% for observacion in resultado.regla %}<li>{{ observacion }}</li>{% endfor %}
-          </ul>
+          <div class="table-responsive">
+            <table class="table table-striped" aria-describedby="regla-titulo">
+              <thead><tr>
+                <th scope="col">Campo</th><th scope="col">Valor hallado</th>
+                <th scope="col">Valor esperado</th><th scope="col">Motivo</th>
+                <th scope="col">Porcentaje</th>
+                <th scope="col">Ubicación</th>
+              </tr></thead>
+              <tbody>
+                {% for observacion in resultado.regla %}
+                  <tr>
+                    <td>{{ observacion.campo }}</td>
+                    <td>{{ observacion.hallado }}</td>
+                    <td>{{ observacion.esperado }}</td>
+                    <td>{{ observacion.motivo|default:"—" }}</td>
+                    <td>{{ observacion.porcentaje|default:"—" }}{% if observacion.porcentaje %}%{% endif %}</td>
+                    <td>
+                      {% if observacion.ubicacion.linea %}
+                        Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}
+                      {% else %}No ubicada{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         {% else %}<p class="mb-0">No se encontraron observaciones de regla.</p>{% endif %}
       </div>
     </section>
@@ -49,9 +72,28 @@
       <div class="card-header"><h2 id="ortografia-titulo" class="h5 mb-0">Ortografía <span class="badge text-bg-secondary">{{ resultado.ortografia|length }}</span></h2></div>
       <div class="card-body">
         {% if resultado.ortografia %}
-          <ul>
-            {% for palabra, motivo, sugerencia in resultado.ortografia %}<li>{{ palabra }}: {{ motivo }}{% if sugerencia != "?" %}; sugerencia: {{ sugerencia }}{% endif %}</li>{% endfor %}
-          </ul>
+          <div class="table-responsive">
+            <table class="table table-striped" aria-describedby="ortografia-titulo">
+              <thead><tr>
+                <th scope="col">Palabra</th><th scope="col">Motivo</th>
+                <th scope="col">Sugerencia</th><th scope="col">Ubicación</th>
+              </tr></thead>
+              <tbody>
+                {% for observacion in resultado.ortografia %}
+                  <tr>
+                    <td>{{ observacion.palabra }}</td>
+                    <td>{{ observacion.motivo }}</td>
+                    <td>{{ observacion.sugerencia }}</td>
+                    <td>
+                      {% if observacion.ubicacion.linea %}
+                        Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}
+                      {% else %}No ubicada{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         {% else %}<p class="mb-0">No se encontraron observaciones de ortografía.</p>{% endif %}
       </div>
     </section>

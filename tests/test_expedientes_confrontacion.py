@@ -102,12 +102,16 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar",
-        lambda cat, texto, umbral: llamadas["revisar"].append(umbral) or ["regla"],
+        lambda cat, texto, umbral: (
+            llamadas["revisar"].append(umbral)
+            or ["[DNI] «90000002» no coincide con ninguna fuente"]
+        ),
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar_parrafos",
         lambda minutas, texto, umbral: (
-            llamadas["parrafos"].append((minutas, umbral)) or ["parrafo"]
+            llamadas["parrafos"].append((minutas, umbral))
+            or ["[PARRAFO] falta: fragmento ficticio…"]
         ),
     )
     monkeypatch.setattr(
@@ -127,7 +131,7 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     assert set(llamadas["diagnostico"][0][0]) == set(llamadas["catalogo"][0])
     assert llamadas["parrafos"] == [(["fuente de texto ficticia"], 88)] * 2
     assert llamadas["revisar"] == [88] * 2
-    assert resultado["regla"] == ["regla", "parrafo"]
+    assert [item["campo"] for item in resultado["regla"]] == ["DNI", "PARRAFO"]
     assert resultado["ortografia"] == []
     assert repetido == resultado
     assert Documento.objects.count() == documentos_antes
@@ -173,7 +177,14 @@ def test_orquestacion_pasa_nombres_del_catalogo_a_ortografia(
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
     assert propios == [{"LUCAS", "PEREZ"}]
-    assert resultado["ortografia"] == [("palabraficticia", "motivo ficticio", "?")]
+    assert resultado["ortografia"] == [
+        {
+            "palabra": "palabraficticia",
+            "motivo": "motivo ficticio",
+            "sugerencia": "Sin sugerencia",
+            "ubicacion": {"linea": None, "fragmento": "No ubicada"},
+        }
+    ]
 
 
 def test_diagnostico_bloqueante_detiene_toda_ejecucion(
@@ -254,20 +265,25 @@ def test_confrontacion_real_detecta_dni_nombre_y_monto_alterados(
 
     assert resultado["estado"] == "RESULTADO"
     assert any(
-        "[DNI] «90000002» debe decir «90000001»" in observacion
+        observacion["campo"] == "DNI"
+        and observacion["hallado"] == "90000002"
+        and observacion["esperado"] == "90000001"
         for observacion in resultado["regla"]
     )
     assert any(
-        "[NOMBRE] «ALBA ZURBELIA LUNARIA» debe decir «ALBA ZURBELIA LUMARIA»"
-        in observacion
+        observacion["campo"] == "NOMBRE"
+        and observacion["hallado"] == "ALBA ZURBELIA LUNARIA"
+        and observacion["esperado"] == "ALBA ZURBELIA LUMARIA"
         for observacion in resultado["regla"]
     )
     assert any(
-        "[MONTO] «12,346.67» debe decir «12,345.67»" in observacion
+        observacion["campo"] == "MONTO"
+        and observacion["hallado"] == "12,346.67"
+        and observacion["esperado"] == "12,345.67"
         for observacion in resultado["regla"]
     )
     assert not any(
-        observacion.startswith("[PARTIDA]") for observacion in resultado["regla"]
+        observacion["campo"] == "PARTIDA" for observacion in resultado["regla"]
     )
 
 
@@ -293,6 +309,151 @@ def test_confrontacion_real_identica_no_produce_observaciones_de_regla(
 
     assert resultado["estado"] == "RESULTADO"
     assert resultado["regla"] == []
+
+
+@pytest.mark.parametrize(
+    ("salida", "campo", "hallado", "esperado"),
+    [
+        (
+            "[DNI] «90000002» debe decir «90000001»",
+            "DNI",
+            "90000002",
+            "90000001",
+        ),
+        (
+            "[MONTO] «12,346.67» no coincide con ninguna fuente",
+            "MONTO",
+            "12,346.67",
+            "No coincide con ninguna fuente",
+        ),
+        (
+            "[PARTIDA] FALTA: «80000001» esta en las fuentes y no aparece en el destino",
+            "PARTIDA",
+            "No aparece en el borrador",
+            "80000001",
+        ),
+        (
+            "[PARRAFO] falta o alterado (87.50%): texto de fuente ficticia…",
+            "PARRAFO",
+            "No aparece o fue alterado",
+            "texto de fuente ficticia…",
+        ),
+    ],
+)
+def test_parser_de_regla_devuelve_observacion_comun(salida, campo, hallado, esperado):
+    from expedientes.services import parsear_observacion_regla
+
+    observacion = parsear_observacion_regla(salida, "Línea sin el valor.")
+
+    assert observacion["formato"] == "regla"
+    assert observacion["campo"] == campo
+    assert observacion["hallado"] == hallado
+    assert observacion["esperado"] == esperado
+    assert "ubicacion" in observacion
+
+
+def test_ubicacion_normaliza_mayusculas_tildes_y_usa_la_primera_linea():
+    from expedientes.services import ubicar_valor
+
+    ubicacion = ubicar_valor(
+        "Primera línea ficticia.\nLa Clausula útil aparece aquí.\nClausula repetida.",
+        "cláusula",
+    )
+
+    assert ubicacion["linea"] == 2
+    assert "Clausula útil" in ubicacion["fragmento"]
+    assert len(ubicacion["fragmento"]) <= 160
+
+
+def test_ubicacion_ausente_es_explicita_y_no_expone_texto_completo():
+    from expedientes.services import ubicar_valor
+
+    ubicacion = ubicar_valor("Texto ficticio breve.", "valor ausente ficticio")
+
+    assert ubicacion == {"linea": None, "fragmento": "No ubicada"}
+
+
+def test_ubicacion_de_valor_repetido_se_queda_en_una_sola_observacion():
+    from expedientes.services import adaptar_observaciones_regla
+
+    observaciones = adaptar_observaciones_regla(
+        ["[DNI] «90000002» no coincide con ninguna fuente"],
+        "DNI 90000002.\nOtra línea con DNI 90000002.",
+    )
+
+    assert len(observaciones) == 1
+    assert observaciones[0]["ubicacion"]["linea"] == 1
+
+
+def test_adaptador_de_ortografia_mapea_tupla_y_sugerencia_desconocida():
+    from expedientes.services import adaptar_observaciones_ortografia
+
+    observaciones = adaptar_observaciones_ortografia(
+        [
+            ("palabraficticia", "motivo ficticio", "?"),
+            ("otrapalabra", "tilde mal puesta", "otra"),
+        ],
+        "Palabraficticia y otra palabra en una línea ficticia.",
+    )
+
+    assert observaciones[0]["palabra"] == "palabraficticia"
+    assert observaciones[0]["motivo"] == "motivo ficticio"
+    assert observaciones[0]["sugerencia"] == "Sin sugerencia"
+    assert observaciones[0]["ubicacion"]["linea"] == 1
+    assert observaciones[1]["sugerencia"] == "otra"
+
+
+def test_contrato_parser_usa_salida_real_del_nucleo():
+    from expedientes.services import adaptar_observaciones_regla
+    from nucleo import verificar
+
+    fuente = (
+        "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.\n"
+        "PARTIDA ELECTRONICA N° 80000001. MONTO S/ 12,345.67.\n"
+        "Esta cláusula larga y completamente ficticia describe una obligación "
+        "notarial adicional para probar la comparación de párrafos con contexto "
+        "suficiente."
+    )
+    borrador = (
+        "ALBA ZURBELIA LUNARIA, DE NACIONALIDAD PERUANA. DNI 90000002.\n"
+        "MONTO S/ 12,346.67.\n"
+        "Esta cláusula larga y completamente ficticia describe un contenido "
+        "notarial diferente para probar la comparación de párrafos con contexto "
+        "alternativo."
+    )
+    catalogo = verificar.catalogo({"fuente-ficticia.txt": fuente})
+    salidas = verificar.revisar(catalogo, borrador, 88)
+    salidas += verificar.revisar_parrafos([fuente], borrador, 88)
+
+    observaciones = adaptar_observaciones_regla(salidas, borrador)
+
+    assert salidas
+    assert len(observaciones) == len(salidas)
+    assert all(item["formato"] == "regla" for item in observaciones)
+    assert {item["campo"] for item in observaciones} >= {"DNI", "NOMBRE", "MONTO"}
+    assert any(item["campo"] == "PARRAFO" for item in observaciones)
+
+
+def test_contrato_parser_usa_salida_real_de_revisar_parrafos():
+    from expedientes.services import adaptar_observaciones_regla
+    from nucleo import verificar
+
+    minuta = (
+        "Este párrafo de minuta ficticia es suficientemente extenso y contiene "
+        "texto notarial inventado para forzar una observación de comparación."
+    )
+    borrador = (
+        "Este párrafo de borrador ficticio es suficientemente extenso y contiene "
+        "contenido notarial alternativo para forzar una diferencia visible."
+    )
+    salidas = verificar.revisar_parrafos([minuta], borrador, 88)
+
+    observaciones = adaptar_observaciones_regla(salidas, borrador)
+
+    assert salidas
+    assert len(observaciones) == len(salidas)
+    assert all(item["formato"] == "regla" for item in observaciones)
+    assert all(item["campo"] == "PARRAFO" for item in observaciones)
 
 
 def test_diccionario_no_aprovisionado_devuelve_mensaje_controlado(
@@ -324,10 +485,11 @@ def test_diccionario_no_aprovisionado_devuelve_mensaje_controlado(
 
 def test_diccionario_no_aprovisionado_no_intenta_descargar(tmp_path, monkeypatch):
     import adaptadores.diccionario as recursos
+    import urllib.request
 
     monkeypatch.setattr(recursos, "DIC", tmp_path / "es_PE")
     monkeypatch.setattr(
-        recursos.urllib.request,
+        urllib.request,
         "urlretrieve",
         lambda *_: pytest.fail("la carga no debe descargar recursos"),
     )

@@ -2,8 +2,10 @@ import hashlib
 import io
 import logging
 import os
+import re
 import secrets
 import shutil
+import unicodedata
 import zipfile
 from datetime import timedelta
 from pathlib import Path
@@ -28,6 +30,20 @@ ESTADOS_VISIBLES = {
 }
 
 _UMBRAL_PARRAFO = 88
+
+_RE_OBSERVACION_CAMPO = re.compile(
+    r"^\[(?P<campo>[^]]+)\]\s+«(?P<hallado>[^»]*)»\s+(?P<resto>.*)$"
+)
+_RE_OBSERVACION_PARRAFO = re.compile(
+    r"^\[PARRAFO\]\s+(?P<tipo>falta o alterado|falta)"
+    r"(?:\s+\((?P<porcentaje>[\d.]+)%\))?:\s*(?P<fragmento>.*)$",
+    re.IGNORECASE,
+)
+_RE_OBSERVACION_FALTA = re.compile(
+    r"^\[(?P<campo>[^]]+)\]\s+FALTA:\s+«(?P<esperado>[^»]*)»",
+    re.IGNORECASE,
+)
+_RE_DEBE_DECIR = re.compile(r"^debe decir\s+«(?P<esperado>[^»]*)»", re.IGNORECASE)
 
 
 class DocumentoDuplicado(ValueError):
@@ -369,6 +385,126 @@ def _resultado_no_disponible(mensaje):
     }
 
 
+def _normalizar_ubicacion(texto):
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(c for c in texto if not unicodedata.combining(c)).upper()
+    return re.sub(r"\s+", " ", texto).strip()
+
+
+def ubicar_valor(texto, valor):
+    """Ubica un valor sin alterar el fragmento original que verá el usuario."""
+    buscado = _normalizar_ubicacion(valor) if valor else ""
+    if not buscado:
+        return {"linea": None, "fragmento": "No ubicada"}
+    for numero, linea in enumerate(texto.splitlines(), start=1):
+        if buscado in _normalizar_ubicacion(linea):
+            fragmento = linea.strip()
+            return {"linea": numero, "fragmento": fragmento[:160]}
+    return {"linea": None, "fragmento": "No ubicada"}
+
+
+def _observacion_regla(campo, hallado, esperado, motivo, texto_borrador):
+    return {
+        "formato": "regla",
+        "campo": campo,
+        "hallado": hallado,
+        "esperado": esperado,
+        "motivo": motivo,
+        "porcentaje": "",
+        "ubicacion": ubicar_valor(texto_borrador, hallado),
+    }
+
+
+def parsear_observacion_regla(salida, texto_borrador):
+    """Convierte una salida textual del núcleo en una fila segura para la UI."""
+    if not isinstance(salida, str):
+        return {
+            "formato": "desconocido",
+            "campo": "FORMATO_DESCONOCIDO",
+            "hallado": "No se pudo interpretar la observación",
+            "esperado": "Revise el formato de la observación",
+            "motivo": "La observación no usa un formato reconocido.",
+            "porcentaje": "",
+            "ubicacion": {"linea": None, "fragmento": "No ubicada"},
+        }
+
+    parrafo = _RE_OBSERVACION_PARRAFO.match(salida)
+    if parrafo:
+        porcentaje = parrafo.group("porcentaje")
+        return {
+            "formato": "regla",
+            "campo": "PARRAFO",
+            "hallado": "No aparece o fue alterado",
+            "esperado": parrafo.group("fragmento"),
+            "motivo": (
+                f"Coincidencia: {porcentaje}%"
+                if porcentaje
+                else "No coincide con el borrador"
+            ),
+            "porcentaje": porcentaje or "",
+            "ubicacion": {"linea": None, "fragmento": "No ubicada"},
+        }
+
+    falta = _RE_OBSERVACION_FALTA.match(salida)
+    if falta:
+        return _observacion_regla(
+            falta.group("campo"),
+            "No aparece en el borrador",
+            falta.group("esperado"),
+            "",
+            texto_borrador,
+        )
+
+    coincidencia = _RE_OBSERVACION_CAMPO.match(salida)
+    if coincidencia:
+        campo = coincidencia.group("campo")
+        hallado = coincidencia.group("hallado")
+        resto = coincidencia.group("resto")
+        debe_decir = _RE_DEBE_DECIR.match(resto)
+        if debe_decir:
+            return _observacion_regla(
+                campo,
+                hallado,
+                debe_decir.group("esperado"),
+                "",
+                texto_borrador,
+            )
+        if resto.lower().startswith("no coincide con ninguna fuente"):
+            return _observacion_regla(
+                campo,
+                hallado,
+                "No coincide con ninguna fuente",
+                "",
+                texto_borrador,
+            )
+
+    return {
+        "formato": "desconocido",
+        "campo": "FORMATO_DESCONOCIDO",
+        "hallado": "No se pudo interpretar la observación",
+        "esperado": "Revise el formato de la observación",
+        "motivo": "La observación no usa un formato reconocido.",
+        "porcentaje": "",
+        "ubicacion": {"linea": None, "fragmento": "No ubicada"},
+    }
+
+
+def adaptar_observaciones_regla(salidas, texto_borrador):
+    return [parsear_observacion_regla(salida, texto_borrador) for salida in salidas]
+
+
+def adaptar_observaciones_ortografia(salidas, texto_borrador):
+    return [
+        {
+            "palabra": palabra,
+            "motivo": motivo,
+            "sugerencia": "Sin sugerencia" if sugerencia == "?" else sugerencia,
+            "ubicacion": ubicar_valor(texto_borrador, palabra),
+        }
+        for palabra, motivo, sugerencia in salidas
+    ]
+
+
 def estado_confrontacion(expediente, borrador, fuentes=None):
     """Indica si el borrador tiene los textos necesarios para confrontar."""
     if fuentes is None:
@@ -459,8 +595,8 @@ def confrontar_borrador(expediente, borrador):
     return {
         "estado": "RESULTADO",
         "mensaje": "",
-        "regla": reglas,
-        "ortografia": faltas,
+        "regla": adaptar_observaciones_regla(reglas, texto_borrador),
+        "ortografia": adaptar_observaciones_ortografia(faltas, texto_borrador),
     }
 
 

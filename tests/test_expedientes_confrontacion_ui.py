@@ -111,3 +111,52 @@ def test_accion_no_revela_documento_ajeno_ni_documento_fuente(
     assert client.post(ruta_ajena).status_code in {403, 404}
     client.force_login(administrador_ficticio)
     assert client.post(ruta_fuente).status_code in {403, 404}
+
+
+def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-TABLA", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda *_: {
+            "estado": "RESULTADO",
+            "mensaje": "",
+            "regla": [
+                {
+                    "formato": "regla",
+                    "campo": "DNI",
+                    "hallado": "90000002",
+                    "esperado": "90000001",
+                    "motivo": "",
+                    "ubicacion": {"linea": 1, "fragmento": "DNI 90000002."},
+                }
+            ],
+            "ortografia": [
+                {
+                    "palabra": "palabraficticia",
+                    "motivo": "motivo ficticio",
+                    "sugerencia": "Sin sugerencia",
+                    "ubicacion": {"linea": 2, "fragmento": "palabraficticia."},
+                }
+            ],
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    )
+    contenido = respuesta.content.decode()
+
+    assert respuesta.status_code == 200
+    assert "<table" in contenido
+    assert '<th scope="col">Campo</th>' in contenido
+    assert "Línea 1" in contenido
+    assert "palabraficticia" in contenido
+    assert "[DNI]" not in contenido

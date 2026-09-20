@@ -70,18 +70,18 @@ sugerencia, sin cambiar la salida del núcleo.
 
 ### Tests for User Story 2 (write first)
 
-- [ ] T012 [P] [US2] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas del parser de strings de regla `[CAMPO] «valor» debe decir «X»`, `no coincide`, `FALTA` y `[PARRAFO]` con porcentaje; criterio: cada forma produce campo, hallado, esperado y ubicación esperados sin depender del orden de la lista.
-- [ ] T013 [P] [US2] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas de ubicación sobre texto ficticio: línea 1/múltiples líneas, mayúsculas o tildes normalizadas, valor repetido una sola vez y valor ausente como `No ubicada`; criterio: la búsqueda vive en aplicación y conserva el fragmento original acotado.
-- [ ] T014 [P] [US2] Escribir en `tests/test_expedientes_confrontacion.py` prueba roja del mapeo de tuplas de ortografía `(palabra, motivo, sugerencia)` incluyendo `?`; criterio: devuelve palabra, motivo, sugerencia o `Sin sugerencia` y ubicación, sin parsear una string inventada.
-- [ ] T015 [P] [US2] Escribir en `tests/test_expedientes_confrontacion_ui.py` pruebas rojas de agrupación, recuentos, columnas accesibles y estado vacío; criterio: Regla y Ortografía se distinguen, los grupos muestran recuento y una confrontación limpia no se pinta como error.
-- [ ] T015a [P] [US2] Escribir pruebas de contrato con salida real de `nucleo.verificar.revisar()` y `revisar_parrafos()` sobre catálogo, minuta y borrador ficticios sembrados; criterio: el parser reconoce todas las observaciones producidas (DNI, nombre, monto, faltante y párrafo alterado) y ninguna cae en formato desconocido.
+- [X] T012 [P] [US2] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas del parser de strings de regla `[CAMPO] «valor» debe decir «X»`, `no coincide`, `FALTA` y `[PARRAFO]` con porcentaje; criterio: cada forma produce campo, hallado, esperado y ubicación esperados sin depender del orden de la lista.
+- [X] T013 [P] [US2] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas de ubicación sobre texto ficticio: línea 1/múltiples líneas, mayúsculas o tildes normalizadas, valor repetido una sola vez y valor ausente como `No ubicada`; criterio: la búsqueda vive en aplicación y conserva el fragmento original acotado.
+- [X] T014 [P] [US2] Escribir en `tests/test_expedientes_confrontacion.py` prueba roja del mapeo de tuplas de ortografía `(palabra, motivo, sugerencia)` incluyendo `?`; criterio: devuelve palabra, motivo, sugerencia o `Sin sugerencia` y ubicación, sin parsear una string inventada.
+- [X] T015 [P] [US2] Escribir en `tests/test_expedientes_confrontacion_ui.py` pruebas rojas de agrupación, recuentos, columnas accesibles y estado vacío; criterio: Regla y Ortografía se distinguen, los grupos muestran recuento y una confrontación limpia no se pinta como error.
+- [X] T015a [P] [US2] Escribir pruebas de contrato con salida real de `nucleo.verificar.revisar()` y `revisar_parrafos()` sobre catálogo, minuta y borrador ficticios sembrados; criterio: el parser reconoce todas las observaciones producidas (DNI, nombre, monto, faltante y párrafo alterado) y ninguna cae en formato desconocido.
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Implementar en `expedientes/services.py` el parser de observaciones de regla y la búsqueda de línea/fragmento en el texto original del borrador; criterio: T012 y T013 pasan, los formatos desconocidos se manejan de forma segura y el núcleo no cambia.
-- [ ] T017 [US2] Implementar en `expedientes/services.py` el adaptador de las tuplas de ortografía y la forma común de observación; criterio: T014 pasa y los nombres propios validados no generan falsos avisos de ortografía.
-- [ ] T018 [US2] Completar `templates/expedientes/confrontacion.html` con tablas agrupadas por capa, recuentos, campo/palabra, hallado, esperado, motivo, porcentaje y ubicación; criterio: T015 pasa, la pantalla no expone la lista cruda del núcleo ni texto completo.
-- [ ] T019 [US2] Completar `tests/test_expedientes_confrontacion_ui.py` y `expedientes/views.py` para mensajes de espera, falta de datos, resultado sin hallazgos y errores seguros; criterio: los mensajes indican la acción siguiente, usan `role`/`aria-live`, foco/teclado y no incluyen trazas, rutas o datos personales.
+- [X] T016 [US2] Implementar en `expedientes/services.py` el parser de observaciones de regla y la búsqueda de línea/fragmento en el texto original del borrador; criterio: T012 y T013 pasan, los formatos desconocidos se manejan de forma segura y el núcleo no cambia.
+- [X] T017 [US2] Implementar en `expedientes/services.py` el adaptador de las tuplas de ortografía y la forma común de observación; criterio: T014 pasa y los nombres propios validados no generan falsos avisos de ortografía.
+- [X] T018 [US2] Completar `templates/expedientes/confrontacion.html` con tablas agrupadas por capa, recuentos, campo/palabra, hallado, esperado, motivo, porcentaje y ubicación; criterio: T015 pasa, la pantalla no expone la lista cruda del núcleo ni texto completo.
+- [X] T019 [US2] Completar `tests/test_expedientes_confrontacion_ui.py` y `expedientes/views.py` para mensajes de espera, falta de datos, resultado sin hallazgos y errores seguros; criterio: los mensajes indican la acción siguiente, usan `role`/`aria-live`, foco/teclado y no incluyen trazas, rutas o datos personales.
 
 **Checkpoint**: T012–T019 verdes; una persona autorizada puede corregir cada
 hallazgo sin buscar a ciegas y la salida sigue siendo determinista.

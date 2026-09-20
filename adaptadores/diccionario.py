@@ -1,27 +1,18 @@
 """Carga del diccionario y lista local de términos de la casa."""
 
-import sys
-import urllib.request
 from functools import lru_cache
 from pathlib import Path
 
 DIC = Path.home() / ".cache" / "notaria-ocr" / "es_PE"
 
-URL = "https://raw.githubusercontent.com/LibreOffice/dictionaries/master/es/es_PE"
+# Conservado para el shim histórico; el adaptador no descarga recursos.
+URL = "https://raw.githubusercontent.com/LibreOffice/dictionaries/32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4/es/es_PE"
 
 LISTA = Path(__file__).resolve().parents[1] / "lista_notarial.txt"
 
 
 class DiccionarioNoAprovisionado(RuntimeError):
     """El diccionario es_PE debe existir antes de iniciar el servicio."""
-
-
-def _descargar():
-    DIC.parent.mkdir(parents=True, exist_ok=True)
-    for ext in (".aff", ".dic"):
-        if not DIC.with_suffix(ext).exists():
-            print(f"  descargando diccionario{ext}…", file=sys.stderr)
-            urllib.request.urlretrieve(URL + ext, DIC.with_suffix(ext))  # noqa: S310 URL HTTPS fija; extensiones internas
 
 
 @lru_cache(maxsize=1)
