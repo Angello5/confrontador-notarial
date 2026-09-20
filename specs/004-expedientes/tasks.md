@@ -3,8 +3,9 @@
 **Input**: `spec.md`, `data-model.md`, `research.md`, `contracts/ui.md` y
 `plan.md` de `specs/004-expedientes/`.
 
-**Regla de esta etapa**: este archivo solo planifica. No se crea código de
-aplicación ni migraciones hasta una etapa posterior.
+**Estado**: implementación y cierre local completados el 2026-09-20. Este
+archivo conserva la trazabilidad del plan y su evidencia; no sustituye el
+Quality Gate remoto del PR.
 
 **TDD**: cada prueba marcada como roja debe ejecutarse y comprobarse fallida
 antes de implementar su comportamiento. Todos los datos de pruebas son
@@ -12,45 +13,45 @@ ficticios y no se incluyen expedientes, textos ni archivos reales.
 
 ## Etapa 1: pruebas de contrato y modelo (tests primero)
 
-- [ ] T001 [P] Añadir pruebas rojas de `Expediente`, estados iniciales,
+- [X] T001 [P] Añadir pruebas rojas de `Expediente`, estados iniciales,
   normalización de `codigo`, unicidad y relaciones protegidas en
   `tests/test_expedientes_models.py`; criterio: la suite falla porque la app y
   los modelos aún no existen, y no contiene datos personales.
-- [ ] T002 [P] Añadir pruebas rojas de `Documento` y `TextoExtraido` para roles,
+- [X] T002 [P] Añadir pruebas rojas de `Documento` y `TextoExtraido` para roles,
   estados, tamaños positivos, unicidades `(expediente, rol, hash_archivo)` y
   `(hash_archivo, version_extractor)` en `tests/test_expedientes_models.py`;
   criterio: cada regla del `data-model.md` tiene una aserción distinguible.
-- [ ] T003 [P] Añadir pruebas rojas de visibilidad por creador y Administrador,
+- [X] T003 [P] Añadir pruebas rojas de visibilidad por creador y Administrador,
   incluyendo denegación de expediente ajeno en HTML, JSON y eliminación de
   documento (FR-013), en
   `tests/test_expedientes_permissions.py`; criterio: las rutas inexistentes o
   sin autorización fallan antes de cualquier implementación.
-- [ ] T004 [P] Añadir pruebas rojas de creación y subida en una sola pantalla,
+- [X] T004 [P] Añadir pruebas rojas de creación y subida en una sola pantalla,
   validación de código/rol/extensión/tamaño/contenido y rechazo de duplicados
   en `tests/test_expedientes_upload.py`; criterio: se verifican mensajes sin
   datos personales y no se escribe temporal cuando la validación previa falla.
-- [ ] T005 [P] Añadir pruebas rojas del servicio de hash, nombres temporales
+- [X] T005 [P] Añadir pruebas rojas del servicio de hash, nombres temporales
   controlados, transición y bloque `finally` en éxito/error en
   `tests/test_expedientes_services.py`; criterio: un archivo ficticio nunca
   permanece tras ambas rutas y el hash SHA-256 coincide con la entrada.
-- [ ] T006 [P] Añadir pruebas rojas de caché por `(hash, version_extractor)`,
+- [X] T006 [P] Añadir pruebas rojas de caché por `(hash, version_extractor)`,
   reutilización y actualización de `ultimo_uso_el`, incluida la concurrencia
   de dos altas, en `tests/test_expedientes_services.py`; criterio: el segundo
   uso no llama al extractor y una versión distinta sí crea una entrada nueva.
-- [ ] T007 [P] Añadir pruebas rojas del consumidor: `PENDIENTE` a
+- [X] T007 [P] Añadir pruebas rojas del consumidor: `PENDIENTE` a
   `PROCESANDO` a `LISTO`/`ERROR`, limpieza en `finally`, no doble toma y
   recuperación de `PROCESANDO` con más de 15 minutos (FR-014) en
   `tests/test_expedientes_worker.py`; criterio: el umbral se lee de settings y
   una fila vencida vuelve a `PENDIENTE`.
-- [ ] T008 [P] Añadir pruebas rojas de estado JSON/polling, estado vacío, todos
+- [X] T008 [P] Añadir pruebas rojas de estado JSON/polling, estado vacío, todos
   listos, error recuperable y accesibilidad textual en
   `tests/test_expedientes_ui.py`; criterio: se cubren los estados y mensajes
   de `contracts/ui.md` sin afirmar contenido documental.
-- [ ] T009 [P] Añadir pruebas rojas de los comandos de huérfanos y supresión en
+- [X] T009 [P] Añadir pruebas rojas de los comandos de huérfanos y supresión en
   `tests/test_expedientes_commands.py`; criterio: se conserva hash/metadatos,
   se eliminan solo temporales con más de 24 h y una supresión vacía las
   entradas compartidas e informa el conteo afectado (FR-015).
-- [ ] T010 [P] Añadir prueba roja de identidad del extractor en
+- [X] T010 [P] Añadir prueba roja de identidad del extractor en
   `tests/test_extractor_identity.py`; criterio: cambiar un hash de
   `_OCR_FILES` o `_OCR_USE_CLS` cambia la identidad y no se ejecuta OCR real.
 
@@ -140,34 +141,34 @@ de interfaz y de las 10 heurísticas mediante `checklists/ux.md` sin marcar
   T009 vacía la entrada `TextoExtraido` compartida para todos sus expedientes,
   informa el conteo afectado (FR-015), conserva metadatos exigidos y no borra
   filas.
-- [ ] T027 Añadir `expedientes/admin.py` solo para consultas operativas mínimas
-  permitidas por la decisión de seguridad; criterio: no crea una pantalla de
-  gestión de cuentas ni bypass de permisos y no expone texto por defecto.
+- [X] T027 Revisar la decisión de seguridad de administración: F4 no añade
+  `expedientes/admin.py` ni una pantalla operativa propia; los comandos de
+  gestión son la interfaz aprobada y no exponen texto por defecto.
 
 **Checkpoint**: ambos comandos se prueban con datos ficticios, y queda
 documentada la evidencia agregada sin rutas/contenido.
 
 ## Etapa 6: gates y cierre de implementación
 
-- [ ] T028 Verificar antes del cierre que tamaño máximo, recuperación,
+- [X] T028 Verificar antes del cierre que tamaño máximo, recuperación,
   eliminación de documentos y supresión compartida respetan las decisiones
   aprobadas; el expediente no almacena estado ni tiene cierre.
-- [ ] T029 Ejecutar `python manage.py check`, `makemigrations --check`,
+- [X] T029 Ejecutar `python manage.py check`, `makemigrations --check`,
   migraciones PostgreSQL, `pytest --cov --cov-report=xml:coverage.xml`, Ruff,
   `pip-audit --strict` y la suite existente; criterio: todos los gates locales
   en verde y sin medición privada en CI.
-- [ ] T030 Revisar diff y árbol completo por datos reales, secretos, imports de
+- [X] T030 Revisar diff y árbol completo por datos reales, secretos, imports de
   `experimental/`, dependencias nuevas, llamadas IA, rutas servidas para
   temporales y cambios accidentales en `accounts/`, `core/` o `nucleo/`;
   criterio: auditoría limpia y `git diff --check` verde.
-- [ ] T031 Registrar en `specs/004-expedientes/` únicamente resultados
+- [X] T031 Registrar en `specs/004-expedientes/` únicamente resultados
   agregados y pendientes, sin reescribir `spec.md`/`data-model.md` por cuenta
   propia; criterio: la revisión independiente puede trazar FR/SC a pruebas y
   no se declara Quality Gate remoto desde la evidencia local.
 
-**Checkpoint final**: revisión del agente no implementador, commit local de la
-implementación posterior y PR separado; esta etapa de planificación termina
-antes de T011 y no crea código.
+**Checkpoint final**: revisión del agente no implementador y commit local de la
+implementación completados. El PR y el Quality Gate remoto quedan fuera de
+esta validación local.
 
 ## Dependencias y orden
 
