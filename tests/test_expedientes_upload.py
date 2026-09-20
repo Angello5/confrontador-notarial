@@ -27,6 +27,21 @@ def test_usuario_crea_expediente_y_sube_fuente_sintetica(client, usuario_fictici
     assert respuesta.status_code in {200, 302}
 
 
+def test_codigo_de_expediente_duplicado_muestra_validacion(client, usuario_ficticio):
+    from expedientes.models import Expediente
+
+    Expediente.objects.create(
+        codigo="EXP-FICTICIO-DUP-CODIGO", creado_por=usuario_ficticio
+    )
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.post("/expedientes/", {"codigo": "EXP-FICTICIO-DUP-CODIGO"})
+
+    assert respuesta.status_code == 200
+    assert b"Ese c\xc3\xb3digo ya est\xc3\xa1 registrado" in respuesta.content
+    assert Expediente.objects.filter(codigo="EXP-FICTICIO-DUP-CODIGO").count() == 1
+
+
 @pytest.mark.parametrize(
     ("nombre", "contenido", "mensaje"),
     [
@@ -54,6 +69,21 @@ def test_subida_invalida_no_escribe_temporal(
     assert respuesta.status_code in {200, 400, 404}
     assert mensaje.encode() in respuesta.content.lower()
     assert b"/tmp/" not in respuesta.content
+
+
+def test_subida_con_formulario_invalido_no_crea_documento(client, usuario_ficticio):
+    from expedientes.models import Documento, Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-FORM", creado_por=usuario_ficticio
+    )
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.post(f"/expedientes/{expediente.pk}/documentos/", {})
+
+    assert respuesta.status_code == 400
+    assert b"Seleccione un archivo" in respuesta.content
+    assert not Documento.objects.filter(expediente=expediente).exists()
 
 
 def test_duplicado_por_rol_se_rechaza_sin_datos_no_confiables(client, usuario_ficticio):

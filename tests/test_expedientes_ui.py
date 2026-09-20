@@ -55,3 +55,34 @@ def test_pantalla_muestra_estado_y_accion_en_espanol(
         assert b"motivo" in contenido
         assert b"elimine el documento y vuelva a subirlo" in contenido
         assert b"reintentar" not in contenido
+
+
+def test_eliminar_sin_confirmacion_conserva_documento_y_temporal(
+    client, usuario_ficticio, tmp_path
+):
+    from expedientes.models import Documento, Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-042", creado_por=usuario_ficticio
+    )
+    ruta = tmp_path / "no-eliminar-ficticio.tmp"
+    ruta.write_bytes(b"contenido ficticio")
+    documento = Documento.objects.create(
+        expediente=expediente,
+        rol="FUENTE",
+        nombre_original="no-eliminar-ficticio.txt",
+        hash_archivo="8" * 64,
+        tamano_bytes=ruta.stat().st_size,
+        ruta_temporal=str(ruta),
+        subido_por=usuario_ficticio,
+    )
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{documento.pk}/eliminar/"
+    )
+
+    assert respuesta.status_code == 400
+    assert Documento.objects.filter(pk=documento.pk).exists()
+    assert ruta.exists()
+    assert b"Confirme la eliminaci\xc3\xb3n" in respuesta.content

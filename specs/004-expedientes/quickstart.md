@@ -18,6 +18,8 @@ variables en cada terminal que ejecute Django.
 El directorio indicado por `EXPEDIENTES_TEMP_DIR` nunca puede estar bajo una
 ruta servida por el servidor web ni incluirse en los respaldos. No uses para
 él `static/`, `media/` ni una carpeta de expedientes respaldada.
+Al crear el directorio, el sistema le asigna permisos `0700`, restringidos al
+usuario del servicio, tanto con la ruta por defecto como con una configurada.
 
 La carpeta local para archivos reales se llama `expedientes_locales/` y está
 excluida por `.gitignore`. `expedientes/` es código Django versionado; no

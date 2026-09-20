@@ -1,9 +1,12 @@
 """Contrato de servicios de hash, temporales y caché F4."""
 
 import hashlib
+import os
+import stat
 from pathlib import Path
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 pytestmark = pytest.mark.django_db
@@ -19,6 +22,23 @@ def test_hash_y_nombre_temporal_no_dependen_del_nombre_original(tmp_path):
     assert calcular_hash(archivo) == hashlib.sha256(b"contenido ficticio").hexdigest()
     assert Path(ruta).parent == tmp_path
     assert Path(ruta).name != "nombre-no-usado.txt"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="los permisos POSIX no aplican en Windows")
+@pytest.mark.parametrize("existe", [False, True])
+def test_crear_temporal_restringe_el_directorio_al_usuario(tmp_path, settings, existe):
+    from expedientes.services import crear_temporal
+
+    destino = tmp_path / ("temporal-existente" if existe else "temporal-nuevo")
+    if existe:
+        destino.mkdir(mode=0o755)
+    settings.EXPEDIENTES_TEMP_DIR = destino
+    origen = tmp_path / "entrada-ficticia.txt"
+    origen.write_bytes(b"contenido ficticio")
+
+    crear_temporal(origen)
+
+    assert stat.S_IMODE(destino.stat().st_mode) == 0o700
 
 
 @pytest.mark.parametrize(
@@ -83,6 +103,61 @@ def test_validar_archivo_rechaza_tamano_antes_de_leer(monkeypatch, settings):
 
     with pytest.raises(ValueError, match="tamaño máximo"):
         validar_archivo(ArchivoGrande())
+
+
+@pytest.mark.parametrize(
+    ("nombre", "contenido"),
+    [
+        ("documento-ficticio.pdf", b"\x89PNG\r\n\x1a\ncontenido"),
+        ("imagen-ficticia.png", b"%PDF-1.7 contenido"),
+        ("documento-ficticio.docx", b"no es un zip ficticio"),
+    ],
+)
+def test_validar_archivo_rechaza_firma_incompatible(nombre, contenido):
+    from expedientes.services import validar_archivo
+
+    with pytest.raises(ValueError, match="no coincide"):
+        validar_archivo(SimpleUploadedFile(nombre, contenido))
+
+
+def test_validar_archivo_rechaza_archivo_vacio():
+    from expedientes.services import validar_archivo
+
+    with pytest.raises(ValueError, match="vacío"):
+        validar_archivo(SimpleUploadedFile("vacio-ficticio.txt", b""))
+
+
+def test_registrar_documento_borra_temporal_si_la_fila_no_se_crea(
+    usuario_ficticio, settings, tmp_path
+):
+    from expedientes.models import Documento, Expediente
+    from expedientes.services import DocumentoDuplicado, registrar_documento
+
+    destino = tmp_path / "temporales-ficticios"
+    settings.EXPEDIENTES_TEMP_DIR = destino
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-022", creado_por=usuario_ficticio
+    )
+    contenido = b"contenido duplicado ficticio"
+    hash_archivo = hashlib.sha256(contenido).hexdigest()
+    Documento.objects.create(
+        expediente=expediente,
+        rol="FUENTE",
+        nombre_original="anterior-ficticio.txt",
+        hash_archivo=hash_archivo,
+        tamano_bytes=len(contenido),
+        subido_por=usuario_ficticio,
+    )
+
+    with pytest.raises(DocumentoDuplicado):
+        registrar_documento(
+            expediente,
+            SimpleUploadedFile("duplicado-ficticio.txt", contenido),
+            "FUENTE",
+            usuario_ficticio,
+        )
+
+    assert not list(destino.glob("*.tmp"))
 
 
 def test_reutilizacion_de_cache_no_ejecuta_extractor_y_actualiza_uso():
