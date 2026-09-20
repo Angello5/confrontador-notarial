@@ -8,6 +8,11 @@
 
 **Input**: User description: "Con el texto extraído, el sistema ejecuta las capas de regla, léxico y ortografía y muestra las observaciones agrupadas por capa, con la ubicación en el borrador y el valor esperado según la fuente."
 
+**Nota sobre el alcance**: el texto anterior es el prompt original del roadmap y
+se conserva tal cual. La capa de **léxico queda fuera de F5** y pasa a la fase
+F10, según la aclaración de más abajo y FR-012: necesita un corpus de escrituras
+firmadas y todavía no está decidido de dónde sale.
+
 ## Clarifications
 
 ### Session 2026-09-20
