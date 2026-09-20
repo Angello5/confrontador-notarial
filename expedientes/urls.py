@@ -12,4 +12,9 @@ urlpatterns = [
         views.documento_eliminar,
         name="documento_eliminar",
     ),
+    path(
+        "<int:pk>/documentos/<int:doc_id>/confrontar/",
+        views.documento_confrontar,
+        name="documento_confrontar",
+    ),
 ]
