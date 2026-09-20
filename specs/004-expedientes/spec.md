@@ -21,6 +21,7 @@
 - Q: ¿F4 incluye eliminar un documento del expediente? → A: Sí. El usuario puede quitar, con confirmación, un archivo que subió por error.
 - Q: ¿Cuál es el tamaño máximo de archivo? → A: 25 MB, configurable en `settings`. Es un límite técnico, no una regla de la notaría.
 - Q: ¿Cuándo se considera caído un documento en `PROCESANDO`? → A: A los 15 minutos sin terminar vuelve a `PENDIENTE`. Configurable.
+- Q: Si la extracción falla, ¿se puede reintentar? → A: No. El archivo ya se borró al fallar, así que no hay nada que reprocesar: un reintento volvería a fallar siempre. La recuperación es eliminar el documento y volver a subirlo. No se conserva el archivo para habilitar un reintento, porque dejar datos personales en disco por un botón de valor marginal contradice el principio de minimización.
 - Q: ¿Cómo se ejecuta la extracción en segundo plano? → A: La cola es la propia base de datos (`Documento.estado = PENDIENTE`) y la consume un comando de administración ejecutado como tarea programada. No se añaden Celery, Redis ni ningún servicio nuevo.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -53,7 +54,7 @@ Como usuario, quiero ver en pantalla en qué estado va la extracción de cada do
 
 1. **Given** un documento recién subido, **When** el usuario permanece en la pantalla del expediente, **Then** el estado se actualiza solo hasta llegar a `LISTO` o `ERROR`.
 2. **Given** todos los documentos de un expediente en `LISTO`, **When** el usuario mira el expediente, **Then** el expediente aparece como listo para confrontar.
-3. **Given** un documento que falló, **When** el usuario mira su estado, **Then** ve `ERROR` con un motivo entendible, sin datos personales ni trazas internas, y puede reintentar la extracción.
+3. **Given** un documento que falló, **When** el usuario mira su estado, **Then** ve `ERROR` con un motivo entendible, sin datos personales ni trazas internas, y la pantalla le indica que elimine el documento y vuelva a subirlo.
 4. **Given** una extracción en curso, **When** el usuario recarga o vuelve más tarde, **Then** el estado mostrado es el real, porque vive en la base de datos y no en la sesión.
 
 ### User Story 3 - Reutilizar el texto ya extraído (Priority: P2)
@@ -116,7 +117,7 @@ Como administrador del servidor, quiero poder borrar el texto extraído de un ex
 - **FR-005**: El sistema DEBE extraer el texto fuera del ciclo de la petición, tomando los documentos en estado `PENDIENTE` desde la base de datos.
 - **FR-006**: El sistema DEBE guardar el texto extraído indexado por `(hash del archivo, versión del extractor)` y reutilizarlo cuando esa llave ya exista.
 - **FR-007**: El sistema DEBE mostrar el estado de cada documento y actualizarlo en pantalla sin intervención del usuario.
-- **FR-008**: El sistema DEBE permitir reintentar la extracción de un documento en `ERROR`.
+- **FR-008**: El sistema DEBE indicar, ante un documento en `ERROR`, que la forma de recuperarse es eliminarlo y volver a subirlo. NO existe una acción de reintento: el archivo se borró al fallar y no hay nada que reprocesar.
 - **FR-009**: El sistema DEBE ofrecer un comando de administración que borre el texto extraído asociado a un expediente.
 - **FR-010**: El sistema DEBE ofrecer una tarea que elimine los archivos temporales huérfanos con más de 24 horas.
 - **FR-011**: El sistema DEBE rechazar formatos no admitidos y archivos que superen el tamaño máximo configurado, antes de almacenarlos. El máximo por defecto es 25 MB.
@@ -139,7 +140,7 @@ Como administrador del servidor, quiero poder borrar el texto extraído de un ex
 
 - Estado visible del sistema: cada documento muestra su estado y el expediente resume cuántos faltan.
 - Prevención de errores: los formatos admitidos y el tamaño máximo se indican antes de subir.
-- Recuperación: un error de extracción explica qué pasó y ofrece reintentar.
+- Recuperación: un error de extracción explica qué pasó y dice qué hacer: eliminar el documento y subirlo de nuevo.
 - Estado vacío comprensible en un expediente recién creado, sin aparentar un fallo.
 - Confirmación explícita antes de eliminar un documento de un expediente.
 
