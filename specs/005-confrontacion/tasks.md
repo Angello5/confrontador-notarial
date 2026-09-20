@@ -96,13 +96,13 @@ ficticias propias muestra solo una advertencia y cero filas de comparación.
 
 ### Tests for User Story 3 (write first)
 
-- [ ] T020 [P] [US3] Añadir en `tests/test_expedientes_confrontacion.py` prueba roja de diagnóstico bloqueante y no bloqueante; criterio: el caso ajeno devuelve advertencia sin ejecutar `revisar`, párrafos ni ortografía, y un anexo sin identidades no se bloquea por error.
-- [ ] T021 [P] [US3] Añadir en `tests/test_expedientes_confrontacion_ui.py` prueba roja del panel de advertencia separado, con mensaje para revisar que archivos pertenezcan al mismo expediente; criterio: no aparece tabla campo por campo ni se filtra el contenido del núcleo.
+- [X] T020 [P] [US3] Añadir en `tests/test_expedientes_confrontacion.py` prueba roja de diagnóstico bloqueante y no bloqueante; criterio: el caso ajeno devuelve advertencia sin ejecutar `revisar`, párrafos ni ortografía, y un anexo sin identidades no se bloquea por error.
+- [X] T021 [P] [US3] Añadir en `tests/test_expedientes_confrontacion_ui.py` prueba roja del panel de advertencia separado, con mensaje para revisar que archivos pertenezcan al mismo expediente; criterio: no aparece tabla campo por campo ni se filtra el contenido del núcleo.
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Ajustar `expedientes/services.py` para devolver el estado `ADVERTENCIA_CORRESPONDENCIA` y el texto seguro de `diagnostico` antes de construir observaciones; criterio: T020 pasa y no se calcula ortografía cuando el diagnóstico bloquea.
-- [ ] T023 [US3] Ajustar `templates/expedientes/confrontacion.html` y `expedientes/views.py` para renderizar el panel de advertencia como alerta distinta de una observación; criterio: T021 pasa y el usuario entiende que debe revisar las fuentes y el borrador.
+- [X] T022 [US3] Ajustar `expedientes/services.py` para devolver el estado `ADVERTENCIA_CORRESPONDENCIA` y el texto seguro de `diagnostico` antes de construir observaciones; criterio: T020 pasa y no se calcula ortografía cuando el diagnóstico bloquea.
+- [X] T023 [US3] Ajustar `templates/expedientes/confrontacion.html` y `expedientes/views.py` para renderizar el panel de advertencia como alerta distinta de una observación; criterio: T021 pasa y el usuario entiende que debe revisar las fuentes y el borrador.
 
 **Checkpoint**: el borrador ajeno se detiene antes del listado y los casos sin
 identidad siguen la decisión de `diagnostico()` del núcleo.
@@ -117,12 +117,12 @@ entra al núcleo, muestra estado no disponible y mantiene intacto el registro.
 
 ### Tests for User Story 4 (write first)
 
-- [ ] T024 [P] [US4] Añadir en `tests/test_expedientes_confrontacion.py` prueba roja para texto suprimido en fuente y borrador, y para estado nulo/pendiente; criterio: el servicio devuelve `NO_DISPONIBLE` sin llamar al núcleo y sin modificar `TextoExtraido`.
-- [ ] T025 [P] [US4] Añadir en `tests/test_expedientes_confrontacion_ui.py` prueba roja del botón deshabilitado/mensaje de volver a subir; criterio: la pantalla no presenta «faltan todos los campos» ni parece un fallo de servidor.
+- [X] T024 [P] [US4] Añadir en `tests/test_expedientes_confrontacion.py` prueba roja para texto suprimido en fuente y borrador, y para estado nulo/pendiente; criterio: el servicio devuelve `NO_DISPONIBLE` sin llamar al núcleo y sin modificar `TextoExtraido`.
+- [X] T025 [P] [US4] Añadir en `tests/test_expedientes_confrontacion_ui.py` prueba roja del botón deshabilitado/mensaje de volver a subir; criterio: la pantalla no presenta «faltan todos los campos» ni parece un fallo de servidor.
 
 ### Implementation for User Story 4
 
-- [ ] T026 [US4] Integrar en `expedientes/services.py`, `expedientes/views.py` y el detalle existente la respuesta `NO_DISPONIBLE` para texto nulo/vacío y estados no listos; criterio: T024 y T025 pasan, no se crean filas, archivos ni migraciones.
+- [X] T026 [US4] Integrar en `expedientes/services.py`, `expedientes/views.py` y el detalle existente la respuesta `NO_DISPONIBLE` para texto nulo/vacío y estados no listos; criterio: T024 y T025 pasan, no se crean filas, archivos ni migraciones.
 
 **Checkpoint**: supresión y procesamiento incompleto se distinguen de un
 resultado con diferencias.
@@ -132,11 +132,16 @@ resultado con diferencias.
 **Purpose**: comprobar trazabilidad, calidad local y límites de privacidad antes
 de entregar la implementación a revisión.
 
-- [ ] T027 [P] Ejecutar y revisar `python -m pytest tests/test_expedientes_confrontacion.py tests/test_expedientes_confrontacion_ui.py --cov --cov-report=term --cov-report=xml:coverage.xml`; criterio: pruebas nuevas verdes, cobertura XML válida y ningún marker privado ejecutado.
-- [ ] T028 [P] Ejecutar `python -m ruff check .`, `python -m ruff format --check .` y `git diff --check`; criterio: gates locales verdes y solo archivos previstos modificados.
-- [ ] T029 [P] Revisar `tests/conftest.py`, `.github/workflows/ci.yml`, locks y diff completo; criterio: no hay dependencia nueva, secreto, dato personal, import `experimental/`, llamada IA, ruta temporal o entidad/migración accidental.
-- [ ] T030 Verificar contra `specs/005-confrontacion/contracts/ui.md`, `checklists/requirements.md` y `checklists/ux.md`; criterio: cada FR/SC y cada estado tiene prueba o evidencia local, los ítems pendientes siguen claramente pendientes y no se afirma Quality Gate remoto.
-- [ ] T031 Ejecutar el checkpoint completo de `AGENTS.md` (Django check, migraciones sin cambios, pytest con cobertura, Ruff, `pip-audit --strict` y pre-commit si ya está habilitado); criterio: gates locales en verde, sin medición `local_reference` en CI y commit local preparado sin push.
+- [X] T027 [P] Ejecutar y revisar `python -m pytest tests/test_expedientes_confrontacion.py tests/test_expedientes_confrontacion_ui.py --cov --cov-report=term --cov-report=xml:coverage.xml`; criterio: pruebas nuevas verdes, cobertura XML válida y ningún marker privado ejecutado.
+- [X] T028 [P] Ejecutar `python -m ruff check .`, `python -m ruff format --check .` y `git diff --check`; criterio: gates locales verdes y solo archivos previstos modificados.
+- [X] T029 [P] Revisar `tests/conftest.py`, `.github/workflows/ci.yml`, locks y diff completo; criterio: no hay dependencia nueva, secreto, dato personal, import `experimental/`, llamada IA, ruta temporal o entidad/migración accidental.
+- [X] T030 Verificar contra `specs/005-confrontacion/contracts/ui.md`, `checklists/requirements.md` y `checklists/ux.md`; criterio: cada FR/SC y cada estado tiene prueba o evidencia local, los ítems pendientes siguen claramente pendientes y no se afirma Quality Gate remoto.
+- [X] T031 Ejecutar el checkpoint completo de `AGENTS.md` (Django check, migraciones sin cambios, pytest con cobertura, Ruff, `pip-audit --strict` y pre-commit si ya está habilitado); criterio: gates locales en verde, sin medición `local_reference` en CI y commit local preparado sin push.
+
+**Evidencia T027**: las 33 pruebas F5 pasan de forma aislada; el hook de
+cobertura exige el inventario productivo completo del repositorio, por lo que
+la validez de `coverage.xml` se comprobó con la suite completa (189 pasadas,
+4 privadas omitidas, 88% total).
 
 ## Dependencias y orden
 

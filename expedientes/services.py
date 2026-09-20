@@ -43,7 +43,10 @@ _RE_OBSERVACION_FALTA = re.compile(
     r"^\[(?P<campo>[^]]+)\]\s+FALTA:\s+«(?P<esperado>[^»]*)»",
     re.IGNORECASE,
 )
-_RE_DEBE_DECIR = re.compile(r"^debe decir\s+«(?P<esperado>[^»]*)»", re.IGNORECASE)
+_RE_DEBE_DECIR = re.compile(
+    r"^debe decir\s+«(?P<esperado>[^»]*)»(?P<resto>.*)$", re.IGNORECASE
+)
+_RE_MOTIVO_CARATULA = re.compile(r"\s+(?P<motivo>\(caratula\))\s*$", re.IGNORECASE)
 
 
 class DocumentoDuplicado(ValueError):
@@ -462,11 +465,12 @@ def parsear_observacion_regla(salida, texto_borrador):
         resto = coincidencia.group("resto")
         debe_decir = _RE_DEBE_DECIR.match(resto)
         if debe_decir:
+            motivo = _RE_MOTIVO_CARATULA.search(debe_decir.group("resto"))
             return _observacion_regla(
                 campo,
                 hallado,
                 debe_decir.group("esperado"),
-                "",
+                motivo.group("motivo") if motivo else "",
                 texto_borrador,
             )
         if resto.lower().startswith("no coincide con ninguna fuente"):

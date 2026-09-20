@@ -160,3 +160,83 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     assert "Línea 1" in contenido
     assert "palabraficticia" in contenido
     assert "[DNI]" not in contenido
+
+
+def test_advertencia_de_correspondencia_es_distinta_de_una_observacion(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-ADVERTENCIA", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda *_: {
+            "estado": "ADVERTENCIA_CORRESPONDENCIA",
+            "mensaje": "aviso seguro ficticio",
+            "regla": [],
+            "ortografia": [],
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    )
+    contenido = respuesta.content.decode()
+
+    assert respuesta.status_code == 200
+    assert 'role="alert"' in contenido
+    assert "aviso seguro ficticio" in contenido
+    assert "No se muestran diferencias campo por campo" in contenido
+    assert "<table" not in contenido
+
+
+def test_error_de_servicio_se_presenta_de_forma_segura(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-ERROR", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda *_: (_ for _ in ()).throw(RuntimeError("detalle privado ficticio")),
+    )
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    )
+    contenido = respuesta.content.decode()
+
+    assert respuesta.status_code == 200
+    assert 'role="alert"' in contenido
+    assert "No se pudo completar la confrontación. Intente nuevamente" in contenido
+    assert "detalle privado ficticio" not in contenido
+
+
+def test_detalle_distingue_texto_suprimido_de_fallo_de_procesamiento(
+    client, usuario_ficticio
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-SUPRIMIDO", creado_por=usuario_ficticio
+    )
+    fuente, borrador = _documentos(expediente, usuario_ficticio)
+    borrador.texto_extraido.texto = ""
+    borrador.texto_extraido.save(update_fields=("texto",))
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.get(f"/expedientes/{expediente.pk}/")
+    contenido = respuesta.content.decode()
+
+    assert respuesta.status_code == 200
+    assert "Confrontar borrador" not in contenido
+    assert "texto del borrador ya no está disponible" in contenido
+    assert fuente.pk != borrador.pk

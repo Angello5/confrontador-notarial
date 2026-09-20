@@ -189,7 +189,15 @@ def documento_confrontar(request, pk, doc_id):
     borrador = get_object_or_404(
         expediente.documentos, pk=doc_id, rol=Documento.BORRADOR
     )
-    resultado = confrontar_borrador(expediente, borrador)
+    try:
+        resultado = confrontar_borrador(expediente, borrador)
+    except Exception:
+        resultado = {
+            "estado": "ERROR_SEGURO",
+            "mensaje": "No se pudo completar la confrontación. Intente nuevamente.",
+            "regla": [],
+            "ortografia": [],
+        }
     contexto = {
         "expediente": expediente,
         "borrador": borrador,

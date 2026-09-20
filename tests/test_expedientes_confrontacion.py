@@ -232,6 +232,82 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
     assert llamadas == []
 
 
+def test_diagnostico_real_bloquea_borrador_ajeno_antes_de_comparar(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.FUENTE,
+        "fuente-identidad-ficticia.txt",
+        "ANA LUZ QUISPE MAMANI DNI 90000001",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-ajeno-ficticio.txt",
+        "BRUNO SOL PAREDES ROJAS DNI 90000002 DNI 90000003",
+    )
+    for nombre in ("revisar", "revisar_parrafos"):
+        monkeypatch.setattr(
+            f"expedientes.services.verificar.{nombre}",
+            lambda *_: pytest.fail("no se compara un borrador ajeno"),
+        )
+    monkeypatch.setattr(
+        "expedientes.services.ortografia.revisar",
+        lambda *_: pytest.fail("no se revisa ortografía de un borrador ajeno"),
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "ADVERTENCIA_CORRESPONDENCIA"
+    assert resultado["regla"] == []
+    assert resultado["ortografia"] == []
+
+
+def test_anexo_sin_identidades_no_bloquea_diagnostico(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.FUENTE,
+        "fuente-identidad-ficticia.txt",
+        "ANA LUZ QUISPE MAMANI DNI 90000001",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.FUENTE,
+        "anexo-ficticio.txt",
+        "ANEXO FICTICIO SIN IDENTIDADES NI NUMEROS PERSONALES",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-coincidente-ficticio.txt",
+        "ANA LUZ QUISPE MAMANI DNI 90000001",
+    )
+    monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
+    monkeypatch.setattr(
+        "expedientes.services.verificar.revisar_parrafos", lambda *_: []
+    )
+    monkeypatch.setattr(
+        "expedientes.services.diccionario.diccionario", lambda: (None, [])
+    )
+    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
+    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "RESULTADO"
+    assert resultado["regla"] == []
+    assert resultado["ortografia"] == []
+
+
 def test_confrontacion_real_detecta_dni_nombre_y_monto_alterados(
     expediente_confrontacion, crear_documento_listo
 ):
@@ -350,6 +426,37 @@ def test_parser_de_regla_devuelve_observacion_comun(salida, campo, hallado, espe
     assert observacion["hallado"] == hallado
     assert observacion["esperado"] == esperado
     assert "ubicacion" in observacion
+
+
+def test_parser_conserva_motivo_de_caratula():
+    from expedientes.services import parsear_observacion_regla
+
+    observacion = parsear_observacion_regla(
+        "[NOMBRE] «ANA LUZ QUISPA» debe decir «ANA LUZ QUISPE»   (caratula)",
+        "ANA LUZ QUISPA",
+    )
+
+    assert observacion["formato"] == "regla"
+    assert observacion["campo"] == "NOMBRE"
+    assert observacion["motivo"] == "(caratula)"
+    assert observacion["esperado"] == "ANA LUZ QUISPE"
+
+
+def test_parser_conserva_motivo_de_caratula_de_salida_real():
+    from expedientes.services import adaptar_observaciones_regla
+    from nucleo import verificar
+
+    fuente = "ANA LUZ QUISPE MAMANI, DE NACIONALIDAD PERUANA. DNI 90000001."
+    borrador = f"{fuente}\nANA LUZ QUISPA"
+    salidas = verificar.revisar(
+        verificar.catalogo({"fuente-ficticia.txt": fuente}), borrador, 88
+    )
+
+    observaciones = adaptar_observaciones_regla(salidas, borrador)
+
+    caratula = next(item for item in observaciones if item["motivo"])
+    assert caratula["campo"] == "NOMBRE"
+    assert caratula["motivo"] == "(caratula)"
 
 
 def test_ubicacion_normaliza_mayusculas_tildes_y_usa_la_primera_linea():
@@ -500,3 +607,73 @@ def test_diccionario_no_aprovisionado_no_intenta_descargar(tmp_path, monkeypatch
             recursos.diccionario()
     finally:
         recursos.diccionario.cache_clear()
+
+
+@pytest.mark.parametrize(
+    "rol_suprimido",
+    ["FUENTE", "BORRADOR"],
+)
+def test_texto_suprimido_no_entra_al_nucleo(
+    expediente_confrontacion,
+    crear_documento_listo,
+    monkeypatch,
+    rol_suprimido,
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    fuente = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.FUENTE,
+        "fuente-supresion-ficticia.txt",
+        "" if rol_suprimido == "FUENTE" else "texto ficticio disponible",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-supresion-ficticio.txt",
+        "" if rol_suprimido == "BORRADOR" else "texto ficticio disponible",
+    )
+    monkeypatch.setattr(
+        "expedientes.services.verificar.diagnostico",
+        lambda *_: pytest.fail("no se confronta texto suprimido"),
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "NO_DISPONIBLE"
+    assert resultado["regla"] == []
+    assert resultado["ortografia"] == []
+    assert fuente.texto_extraido.texto == (
+        "" if rol_suprimido == "FUENTE" else "texto ficticio disponible"
+    )
+
+
+def test_documento_pendiente_no_entra_al_nucleo(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.FUENTE,
+        "fuente-pendiente-ficticia.txt",
+        "texto ficticio disponible",
+        estado=Documento.PENDIENTE,
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-pendiente-ficticio.txt",
+        "texto ficticio disponible",
+    )
+    monkeypatch.setattr(
+        "expedientes.services.verificar.diagnostico",
+        lambda *_: pytest.fail("no se confronta mientras extrae texto"),
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "NO_DISPONIBLE"
+    assert "Espere" in resultado["mensaje"]

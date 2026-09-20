@@ -1,8 +1,9 @@
 # Checklist Nielsen y accesibilidad: F5 · Confrontación
 
-**Propósito**: revisar que el contrato de la pantalla describa las 10
-heurísticas y mínimos de accesibilidad. `[X]` significa definido en el diseño,
-no implementado ni validado visualmente.
+**Propósito**: revisar que la implementación cumpla el contrato Nielsen y los
+mínimos de accesibilidad. `[X]` significa comprobado por pruebas, revisión de
+plantillas o contrato; la validación visual y las mediciones privadas siguen
+siendo evidencia externa cuando corresponda.
 
 **Feature**: [contracts/ui.md](../contracts/ui.md) y [spec.md](../spec.md)
 
@@ -34,3 +35,9 @@ no implementado ni validado visualmente.
 - [X] CHK015 El significado de los estados no depende solo del color; cada estado tiene texto. [Accesibilidad, contracts §Estados]
 - [X] CHK016 El fragmento se limita al hallazgo necesario y nunca se muestra texto completo, rutas, hashes o datos personales en mensajes. [Privacidad, Constitución IV]
 - [X] CHK017 No se cargan recursos CDN ni se envía el contenido a servicios externos. [Seguridad/Dependencia, Constitución VI/VII]
+
+## Evidencia de implementación
+
+Validación local del 2026-09-20: pruebas UI F5, revisión de plantillas y
+`git diff --check` ejecutados en esta rama. No se declara validación visual de
+navegador ni Quality Gate remoto.

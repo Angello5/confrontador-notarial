@@ -1,8 +1,9 @@
 # Specification Quality Checklist: F5 · Confrontación
 
-**Propósito**: verificar que el diseño sea trazable a `spec.md` y no declarar
-implementación terminada. `[X]` significa que la definición está documentada;
-las pruebas y el código quedan pendientes para la etapa de implementación.
+**Propósito**: verificar que la implementación sea trazable a `spec.md` y a
+la evidencia local de F5. `[X]` significa que el criterio está implementado y
+comprobado por pruebas, revisión estática o contrato; `[NEEDS CLARIFICATION]`
+permanece pendiente del propietario.
 
 **Feature**: [spec.md](../spec.md)
 
@@ -39,3 +40,10 @@ las pruebas y el código quedan pendientes para la etapa de implementación.
 
 - [NEEDS CLARIFICATION] CHK021 La sección `Input` de `spec.md` todavía enumera léxico, aunque la aclaración y FR-012 lo excluyen; debe corregirse por el propietario antes de cerrar la documentación de la fase. [Spec §Input/Clarifications]
 - [NEEDS CLARIFICATION] CHK022 Si la notaría exige una ubicación concreta para un párrafo alterado sin coincidencia literal, debe definirla: el núcleo actual solo devuelve porcentaje y prefijo de fuente; el contrato usa «No ubicada». [Spec §US2/FR-007, research]
+
+## Evidencia de implementación
+
+Validación local del 2026-09-20: suite F5, `manage.py check`, migraciones sin
+cambios, Ruff y revisión de privacidad ejecutados en esta rama. El Quality Gate
+remoto, las mediciones privadas y las dos aclaraciones pendientes no se
+afirman como evidencia local.
