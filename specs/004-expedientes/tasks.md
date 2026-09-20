@@ -59,22 +59,22 @@ reales/secretos y crear el commit local de tests rojos antes de implementar.
 
 ## Etapa 2: base de la aplicación y persistencia
 
-- [ ] T011 Crear `expedientes/apps.py`, registrar la app en
+- [X] T011 Crear `expedientes/apps.py`, registrar la app en
   `config/settings.py` y añadir las rutas base en `config/urls.py`;
   criterio: `manage.py check` reconoce la app sin modificar `accounts/` ni
   `core/`.
-- [ ] T012 Implementar las entidades y restricciones de
+- [X] T012 Implementar las entidades y restricciones de
   `expedientes/models.py` según `data-model.md`, sin inventar campos ni reglas;
   criterio: T001–T002 pasan en PostgreSQL y el estado inicial es determinista.
-- [ ] T013 Crear la migración inicial en
+- [X] T013 Crear la migración inicial en
   `expedientes/migrations/0001_initial.py`; criterio: migraciones aplican y
   revierten en una base ficticia, y `makemigrations --check` queda limpio.
-- [ ] T014 Añadir la configuración del directorio temporal, el máximo por
+- [X] T014 Añadir la configuración del directorio temporal, el máximo por
   defecto de 25 MB y el umbral de recuperación por defecto de 15 minutos en
   `config/settings.py`; criterio: ambos límites son configurables, el
   directorio no está bajo rutas estáticas/servidas y una configuración
   inválida falla de forma segura.
-- [ ] T015 Ampliar `tests/conftest.py` y la configuración de cobertura para
+- [X] T015 Ampliar `tests/conftest.py` y la configuración de cobertura para
   incluir `expedientes/`, usando fixtures ficticios reutilizables; criterio: la
   cobertura XML sigue teniendo rutas relativas y no incorpora `tests/` como
   código productivo.
@@ -84,22 +84,22 @@ verdes; revisar solo la app nueva y los cambios mínimos de configuración.
 
 ## Etapa 3: servicios, identidad y extracción
 
-- [ ] T016 Implementar la función pública mínima de identidad en
+- [X] T016 Implementar la función pública mínima de identidad en
   `adaptadores/extraccion.py`, reutilizando `_OCR_FILES` y `_OCR_USE_CLS` sin
   cambiar `leer`, `_ocr` ni `_cacheado`; criterio: T010 pasa y las pruebas
   existentes de extracción permanecen verdes.
-- [ ] T017 Implementar validación de extensión, tamaño, firma/contenido, hash y
+- [X] T017 Implementar validación de extensión, tamaño, firma/contenido, hash y
   nombre temporal controlado en `expedientes/services.py` y, solo si hace
   falta, `expedientes/forms.py`; criterio: T004 rechaza entradas inválidas
   antes de persistir y nunca usa el nombre original como ruta.
-- [ ] T018 Implementar en `expedientes/services.py` la creación de
+- [X] T018 Implementar en `expedientes/services.py` la creación de
   `TextoExtraido`, reutilización atómica, `ultimo_uso_el` y enlace a
   `Documento`; criterio: T005–T006 pasan ante uso secuencial y concurrente.
-- [ ] T019 Implementar la orquestación de extracción en `services.py`, con
+- [X] T019 Implementar la orquestación de extracción en `services.py`, con
   estados, errores seguros, procesamiento de formatos mediante el adaptador y
   borrado en `finally`; criterio: T005 y los casos vacío/corrupto de T007 pasan
   sin texto, rutas ni trazas en la respuesta.
-- [ ] T020 Implementar la toma transaccional de documentos en
+- [X] T020 Implementar la toma transaccional de documentos en
   `expedientes/management/commands/procesar_documentos.py`; criterio: T007
   evita doble consumidor, recupera estados tras 15 minutos según settings
   (FR-014) y no ejecuta lógica de negocio en la vista.

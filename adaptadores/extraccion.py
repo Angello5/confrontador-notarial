@@ -38,6 +38,15 @@ _OCR_FILES = {
 _OCR_USE_CLS = False
 
 
+def version_extractor() -> str:
+    """Identidad estable de los recursos y opciones que producen el texto."""
+    identidad = json.dumps(
+        {"modelos": sorted(_OCR_FILES.items()), "use_cls": _OCR_USE_CLS},
+        separators=(",", ":"),
+    ).encode()
+    return hashlib.sha256(identidad).hexdigest()
+
+
 @lru_cache(maxsize=1)
 def _ocr():
     """Carga recursos locales fijados; el proceso no descarga modelos."""

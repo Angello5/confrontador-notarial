@@ -4,7 +4,21 @@ Cliente/
 Proyecto*/
 Resultado/
 Plantilla/
-expedientes/
+expedientes/*
+!expedientes/
+!expedientes/__init__.py
+!expedientes/apps.py
+!expedientes/models.py
+!expedientes/services.py
+!expedientes/urls.py
+!expedientes/management/
+!expedientes/management/__init__.py
+!expedientes/management/commands/
+!expedientes/management/commands/__init__.py
+!expedientes/management/commands/procesar_documentos.py
+!expedientes/migrations/
+!expedientes/migrations/__init__.py
+!expedientes/migrations/0001_initial.py
 # Un expediente por carpeta con sufijo numérico de cinco dígitos.
 *-[0-9][0-9][0-9][0-9][0-9]/
 *.docx
