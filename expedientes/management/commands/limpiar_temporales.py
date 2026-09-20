@@ -1,6 +1,7 @@
 from datetime import timedelta
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -8,7 +9,7 @@ from expedientes.models import Documento
 
 
 class Command(BaseCommand):
-    help = "Elimina temporales huérfanos con más de 24 horas."
+    help = "Elimina temporales referenciados antiguos y huérfanos."
 
     def handle(self, *args, **options):
         limite = timezone.now() - timedelta(hours=24)
@@ -24,4 +25,34 @@ class Command(BaseCommand):
             documento.ruta_temporal = ""
             documento.save(update_fields=("ruta_temporal",))
             eliminados += 1
-        self.stdout.write(f"Temporales eliminados: {eliminados}")
+
+        referenciados = {
+            Path(ruta).resolve()
+            for ruta in Documento.objects.filter(ruta_temporal__gt="").values_list(
+                "ruta_temporal", flat=True
+            )
+        }
+        huerfanos_eliminados = 0
+        try:
+            temporales = tuple(Path(settings.EXPEDIENTES_TEMP_DIR).iterdir())
+        except OSError:
+            temporales = ()
+        for temporal in temporales:
+            try:
+                if (
+                    not temporal.is_file()
+                    or temporal.resolve() in referenciados
+                    or temporal.stat().st_mtime >= limite.timestamp()
+                ):
+                    continue
+                temporal.unlink()
+            except OSError:
+                continue
+            huerfanos_eliminados += 1
+
+        total = eliminados + huerfanos_eliminados
+        self.stdout.write(
+            "Temporales referenciados eliminados: "
+            f"{eliminados}; Temporales huérfanos eliminados: "
+            f"{huerfanos_eliminados}; Total de temporales eliminados: {total}"
+        )

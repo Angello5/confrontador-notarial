@@ -27,4 +27,8 @@ class Command(BaseCommand):
                 .count()
             )
             textos.update(texto="")
-        self.stdout.write(f"Expedientes afectados: {afectados}")
+        solicitado = min(afectados, 1)
+        self.stdout.write(
+            f"Expediente solicitado incluido: {solicitado}; "
+            f"Otros expedientes que compartían el texto: {afectados - solicitado}"
+        )

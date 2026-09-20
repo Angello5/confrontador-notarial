@@ -132,8 +132,9 @@ de interfaz y de las 10 heurísticas mediante `checklists/ux.md` sin marcar
 
 - [X] T025 Implementar `limpiar_temporales` en
   `expedientes/management/commands/limpiar_temporales.py`; criterio: T009
-  elimina únicamente huérfanos mayores de 24 horas, vacía `ruta_temporal` y
-  no toca filas recientes ni datos extraídos.
+  elimina archivos referenciados cuya fila es elegible y archivos sin fila del
+  directorio temporal con más de 24 horas, vacía `ruta_temporal` y no toca
+  archivos recientes ni datos extraídos.
 - [X] T026 Implementar `suprimir_texto_expediente` en
   `expedientes/management/commands/suprimir_texto_expediente.py`; criterio:
   T009 vacía la entrada `TextoExtraido` compartida para todos sus expedientes,
