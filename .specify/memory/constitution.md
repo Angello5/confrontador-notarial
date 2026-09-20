@@ -17,8 +17,15 @@ Sync Impact Report
 - Motivo: F2 requiere definir dos roles y el uso del Django admin nativo para
   administrar cuentas, además de crear el primer Administrador en el servidor
 - Fecha: 2026-09-18
+- Version: 1.5.0 → 1.6.0 (MINOR: se resuelve TODO(RETENCION_TEXTO) conservando
+  el texto extraído de forma indefinida, con supresión a solicitud)
+- Principios modificados: IV. Privacidad de datos personales (persistencia del
+  texto extraído y comando de supresión)
+- Motivo: F4 necesita reutilizar el texto ya extraído para no repetir el OCR al
+  reabrir un expediente; el despliegue es on-premise, en la LAN de la notaría y
+  sin exposición a internet
+- Fecha: 2026-09-20
 - TODO pendientes:
-  - TODO(RETENCION_TEXTO): ¿se conserva el texto extraído (caché de OCR)? Decidir en F4.
   - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
 -->
 
@@ -75,8 +82,16 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   24 h. El directorio temporal no se respalda.
 - Persistencia mínima: resultados (observaciones), hash SHA-256 de cada archivo,
   quién, cuándo y estado. Nunca el archivo original.
-- Texto extraído: NO se persiste hasta que se decida lo contrario
-  (TODO(RETENCION_TEXTO), a resolver en F4 y enmendar aquí).
+- Texto extraído: SE PERSISTE de forma indefinida, indexado por el hash SHA-256
+  del archivo y la versión del extractor, para no repetir el OCR. Es una caché
+  de resultados, no un archivo documental: solo texto, nunca el archivo
+  original. Condiciones:
+  - La llave DEBE incluir la versión del extractor; un cambio de modelo de OCR
+    o de la extracción invalida las entradas anteriores por construcción.
+  - DEBE existir un comando de administración que borre el texto de un
+    expediente concreto (derecho de supresión, Ley 29733).
+  - El texto no sale del servidor ni aparece en logs, mensajes de error o
+    respaldos fuera de la base de datos.
 - Los logs y mensajes de error no incluyen DNI, nombres ni contenido de
   documentos.
 
@@ -238,4 +253,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.5.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-18
+**Version**: 1.6.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-20

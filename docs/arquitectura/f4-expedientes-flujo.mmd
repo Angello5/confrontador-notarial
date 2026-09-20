@@ -1,0 +1,19 @@
+---
+title: F4 · Flujo de subida, cache y borrado
+---
+flowchart TD
+    A["Usuario sube archivo<br>desde su PC"] --> B["Vista Django valida formato<br>y calcula sha256"]
+    B --> C["Guarda el archivo en carpeta temporal<br>+ fila Documento estado=PENDIENTE"]
+    C --> D["La pantalla consulta el estado<br>cada 2 s (Alpine)"]
+    C --> E["Worker: manage.py procesar_documentos<br>toma el primer PENDIENTE"]
+    E --> F{"Existe TextoExtraido con<br>ese hash Y esa version_extractor?"}
+    F -->|"Si (cache hit)"| G["Enlaza el texto existente<br>y actualiza ultimo_uso_el"]
+    F -->|"No (cache miss)"| H["adaptadores.extraccion<br>OCR o capa de texto del PDF"]
+    H --> I["Crea TextoExtraido<br>(hash + version + texto)"]
+    I --> G
+    G --> J["estado=LISTO, procesado_el=ahora"]
+    H -->|"falla"| L["estado=ERROR, motivo sin datos personales"]
+    J --> K["finally: borra el archivo temporal<br>y vacia ruta_temporal"]
+    L --> K
+    K --> M["Tarea diaria: elimina<br>temporales huerfanos > 24 h"]
+    D --> N["La pantalla muestra LISTO<br>y habilita F5 Confrontacion"]
