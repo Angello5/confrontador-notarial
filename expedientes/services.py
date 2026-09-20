@@ -363,4 +363,4 @@ def expedientes_visibles(usuario):
     queryset = Expediente.objects.all()
     if usuario.groups.filter(name="Administrador").exists():
         return queryset
-    return queryset.filter(creado_por=usuario, creado_por__groups__name="Usuario")
+    return queryset.filter(creado_por=usuario)

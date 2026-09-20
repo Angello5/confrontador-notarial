@@ -37,13 +37,13 @@ terminada.
 
 - [ ] CHK017 ¿Los requisitos distinguen con precisión nombre original visible, nombre no confiable y datos que nunca deben aparecer en logs o mensajes? [Seguridad, Spec §Requisitos de seguridad y privacidad]
 - [ ] CHK018 ¿La ubicación temporal, la ausencia de servicio estático y la eliminación en `finally` son requisitos independientes y verificables? [Completitud, Spec §FR-004/FR-012]
-- [ ] CHK019 ¿Cada ruta, endpoint y operación de reintento tiene una regla explícita para Usuario, Administrador, creador y expediente ajeno? [Cobertura, Spec §Requisitos de seguridad]
+- [ ] CHK019 ¿Cada ruta y endpoint tiene una regla explícita para Usuario, Administrador, creador y expediente ajeno? [Cobertura, Spec §Requisitos de seguridad]
 - [ ] CHK020 ¿La validación server-side define el resultado para archivos vacíos, corruptos, ilegibles y con extensión engañosa? [Edge Case, Spec §Edge Cases]
 - [ ] CHK021 ¿La tarea de huérfanos define cómo identifica un temporal huérfano sin borrar un archivo que un worker sigue usando? [Claridad, Spec §FR-010/Edge Cases]
 
 ## Dependencias, límites y ambigüedades
 
-- [ ] CHK022 ¿La ejecución programada del comando define responsable, frecuencia y reintento sin convertirlo en una dependencia de infraestructura nueva? [Gap, Spec §Clarifications]
+- [ ] CHK022 ¿La ejecución programada del comando define responsable y frecuencia sin convertirlo en una dependencia de infraestructura nueva? [Gap, Spec §Clarifications]
 - [ ] CHK023 ¿La confirmación de eliminación corresponde a la acción FR-013 y distingue cancelación de borrado? [Trazabilidad, Spec §US4/FR-013]
 - [ ] CHK024 ¿Está explícito que F4 no tiene cierre ni estado propio de `Expediente`, y que su resumen se deriva de documentos? [Consistencia, data-model §Expediente]
 - [ ] CHK025 ¿Los criterios de éxito pueden comprobarse con fixtures sintéticos y evidencia agregada sin usar expedientes reales? [Privacidad, Spec §SC-002–SC-004]

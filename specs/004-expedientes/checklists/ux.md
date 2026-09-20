@@ -18,7 +18,7 @@ ya exista.
 
 ## Control, libertad y prevención de errores
 
-- [ ] CHK006 ¿Cada operación iniciada por el usuario tiene una salida clara, cancelación o regreso, incluyendo validación fallida y reintento? [Heurística 3, Spec §Requisitos UX]
+- [ ] CHK006 ¿Cada operación iniciada por el usuario tiene una salida clara, cancelación o regreso, incluyendo validación fallida y eliminación confirmada? [Heurística 3, Spec §Requisitos UX]
 - [ ] CHK007 ¿La interfaz omite una acción de cierre y explica el resumen derivado de los documentos? [Heurística 3, Consistencia, data-model §Expediente]
 - [ ] CHK008 ¿La prevención de duplicados, formato, tamaño y contenido se explica antes de enviar y se valida también en servidor? [Heurística 5, Spec §FR-011]
 - [ ] CHK009 ¿La confirmación antes de eliminar un documento está vinculada a FR-013 y cancelar deja intactos fila, temporal y texto? [Heurística 5, Spec §FR-013]
@@ -29,13 +29,13 @@ ya exista.
 - [ ] CHK011 ¿Las pantallas F4 reutilizan la ubicación, estilo y navegación del layout AdminLTE de F2? [Heurística 4, contracts §Mensajes]
 - [ ] CHK012 ¿El usuario puede reconocer el expediente actual, sus documentos y sus estados sin memorizar códigos entre pantallas? [Heurística 6, Spec §UX]
 - [ ] CHK013 ¿El listado define búsqueda/filtros si el volumen de expedientes lo requiere, o declara por qué no son necesarios en F4? [Heurística 7, Gap]
-- [ ] CHK014 ¿El sondeo automático deja de ejecutarse en `LISTO` y ofrece una alternativa clara para actualizar tras un error? [Heurística 7, contracts §Avance]
+- [ ] CHK014 ¿El sondeo automático deja de ejecutarse en `LISTO` y la pantalla indica eliminar y volver a subir tras un error? [Heurística 7, contracts §Avance]
 - [ ] CHK015 ¿El estado vacío, la lista con errores y la lista completamente lista tienen jerarquía visual mínima y no muestran controles irrelevantes? [Heurística 8, Spec §UX]
 
 ## Errores, ayuda y accesibilidad
 
 - [ ] CHK016 ¿Cada error dice qué ocurrió y qué puede hacer la persona, sin traceback, rutas, hash, nombres ni texto? [Heurística 9, Spec §Requisitos de seguridad y privacidad]
-- [ ] CHK017 ¿La ayuda sobre formatos admitidos, tamaño máximo, roles y reintento está junto al campo o acción correspondiente? [Heurística 10, contracts §Detalle]
+- [ ] CHK017 ¿La ayuda sobre formatos admitidos, tamaño máximo, roles y recuperación del error está junto al campo o acción correspondiente? [Heurística 10, contracts §Detalle]
 - [ ] CHK018 ¿Todos los campos tienen `label` asociado, instrucciones y error accesible por tecnología asistiva? [Accesibilidad, Constitución VIII]
 - [ ] CHK019 ¿La navegación por teclado, el foco visible, el orden de tabulación y la operación del menú Alpine están definidos? [Accesibilidad, Constitución VIII]
 - [ ] CHK020 ¿El contraste de estados y mensajes no depende solo de color y existe una alternativa textual? [Accesibilidad, Constitución VIII]

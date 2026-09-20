@@ -50,7 +50,7 @@
         <strong x-show="estado === 'VACIO'">Este expediente aún no tiene documentos.</strong>
         <strong x-show="estado === 'PROCESANDO'">Procesando</strong>
         <strong x-show="estado === 'LISTO'">Todos los documentos están listos.</strong>
-        <strong x-show="estado === 'ERROR'">No se pudo procesar uno o más documentos. Puede reintentar la extracción.</strong>
+        <strong x-show="estado === 'ERROR'">No se pudo procesar uno o más documentos. Elimine el documento y vuelva a subirlo.</strong>
       </p>
       <p class="text-body-secondary mb-0"><span x-text="resumen.total">{{ resumen.total }}</span> documento(s): <span x-text="resumen.pendientes">{{ resumen.pendientes }}</span> pendiente(s), <span x-text="resumen.procesando">{{ resumen.procesando }}</span> procesando, <span x-text="resumen.listos">{{ resumen.listos }}</span> listo(s), <span x-text="resumen.errores">{{ resumen.errores }}</span> con error.</p>
       <p x-show="mensaje" x-text="mensaje" class="alert alert-warning mt-3 mb-0" role="alert"></p>
@@ -95,17 +95,16 @@
                   <td>{% if documento.rol == "FUENTE" %}Fuente{% else %}Borrador{% endif %}</td>
                   <td>
                     <span x-text="documentos.find(item => item.id === {{ documento.pk }})?.estado_texto">{% if documento.estado == "PENDIENTE" %}Pendiente{% elif documento.estado == "PROCESANDO" %}Procesando{% elif documento.estado == "LISTO" %}Listo{% else %}No se pudo procesar{% endif %}</span>
-                    <div class="small" x-show="documentos.find(item => item.id === {{ documento.pk }})?.estado === 'ERROR'">No se pudo procesar el archivo.</div>
+                    <div class="small" x-show="documentos.find(item => item.id === {{ documento.pk }})?.estado === 'ERROR'">
+                      Motivo: <span x-text="documentos.find(item => item.id === {{ documento.pk }})?.error">No se pudo procesar el archivo.</span>
+                      Elimine el documento y vuelva a subirlo.
+                    </div>
                   </td>
                   <td>
                     <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');" class="d-inline">
                       {% csrf_token %}
                       <input type="hidden" name="confirmado" value="1">
                       <button class="btn btn-outline-danger btn-sm" type="submit">Eliminar</button>
-                    </form>
-                    <form method="post" action="{% url 'documento_reintentar' expediente.pk documento.pk %}" class="d-inline" x-show="documentos.find(item => item.id === {{ documento.pk }})?.estado === 'ERROR'">
-                      {% csrf_token %}
-                      <button class="btn btn-outline-primary btn-sm" type="submit">Reintentar extracción</button>
                     </form>
                   </td>
                 </tr>

@@ -51,7 +51,7 @@ borran en `finally`; los mensajes y logs excluyen datos personales y contenido.
 
 **Scale/Scope**: hasta 10 usuarios del ERP y expedientes con documentos de los
 formatos ya admitidos por el adaptador. F4 cubre alta, subida, extracción,
-reutilización, estados documentales, reintento, eliminación confirmada,
+reutilización, estados documentales, recuperación mediante nueva subida y eliminación confirmada,
 supresión por comando y huérfanos; la confrontación es F5 y la auditoría
 completa es F6.
 

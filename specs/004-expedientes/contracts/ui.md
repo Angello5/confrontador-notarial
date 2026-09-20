@@ -15,7 +15,6 @@ escrituras.
 | `/expedientes/<id>/` GET | Creador o Administrador | Detalle del expediente, formulario de subida, formatos admitidos, tamaño máximo configurado, estados y resumen. No muestra texto extraído. |
 | `/expedientes/<id>/documentos/` POST | Creador o Administrador | Valida rol, formato, contenido y tamaño en servidor; registra hash y metadatos y encola `PENDIENTE`. Un duplicado del mismo hash y rol se rechaza sin duplicar. |
 | `/expedientes/<id>/estado/` GET | Creador o Administrador | JSON mínimo para Alpine: resumen derivado, documentos visibles con identificador interno, rol, estado, error seguro y fechas/contadores necesarios para pintar avance. Nunca incluye texto extraído, ruta temporal ni contenido. |
-| `/expedientes/<id>/documentos/<doc_id>/reintentar/` POST | Creador o Administrador | Solo para `ERROR`; limpia el motivo, devuelve el documento a `PENDIENTE` y confirma que se reintentará. En otro estado responde con error claro. |
 | `/expedientes/<id>/documentos/<doc_id>/eliminar/` POST | Creador o Administrador | Exige confirmación explícita; elimina el documento y su temporal si existe, pero conserva `TextoExtraido` para otros documentos. |
 
 La forma exacta del `<id>` es un identificador técnico sin mostrarlo como dato
@@ -57,7 +56,7 @@ Los estados visibles son exactamente:
 | `PENDIENTE` | «Pendiente» | En cola; se informa que será procesado. |
 | `PROCESANDO` | «Procesando» | Trabajo en curso; se muestra avance agregado sin simular porcentaje. |
 | `LISTO` | «Listo» | Texto disponible para F5; no se muestra su contenido en F4. |
-| `ERROR` | «No se pudo procesar» | Motivo seguro y botón «Reintentar extracción». |
+| `ERROR` | «No se pudo procesar» | Motivo seguro e indicación de eliminar el documento y volver a subirlo. |
 
 Mientras exista al menos un documento en `PENDIENTE` o `PROCESANDO`, Alpine
 consulta el endpoint cada 2 segundos. Al alcanzar todos `LISTO`, detiene el

@@ -69,15 +69,14 @@ ocurra sola.
 
 ## Transiciones
 
-Documento: `PENDIENTE` → `PROCESANDO` → `LISTO` | `ERROR`. Desde `ERROR` se
-puede volver a `PENDIENTE` con un reintento. Un `PROCESANDO` sin avance más allá
+Documento: `PENDIENTE` → `PROCESANDO` → `LISTO` | `ERROR`. Un `PROCESANDO` sin avance más allá
 del tiempo límite vuelve a `PENDIENTE`, para que la caída del worker no deje
 documentos atrapados.
 
 Expediente: no tiene transiciones propias. Al mostrarlo se deriva: sin
 documentos está vacío, con alguno en `PENDIENTE` o `PROCESANDO` está procesando,
 con todos en `LISTO` está listo para confrontar, y si alguno quedó en `ERROR` se
-señala para que el usuario reintente.
+señala para que el usuario lo elimine y vuelva a subirlo.
 
 Eliminar un documento borra su fila y su archivo temporal si lo tuviera, pero
 NUNCA borra el `TextoExtraido`: esa entrada puede estar en uso por documentos de

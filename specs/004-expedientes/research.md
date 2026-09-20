@@ -99,8 +99,8 @@ mantiene sus decisiones y concreta cómo se probarán.
 - **Decisión**: exigir autenticación y pertenencia a uno de los dos grupos ya
   definidos. `Usuario` solo puede consultar y modificar expedientes cuyo
   `creado_por` sea él; `Administrador` puede operar sobre todos. La regla se
-  aplica en cada vista, endpoint JSON, reintento y comando accesible desde la
-  aplicación, no solo en el menú.
+  aplica en cada vista, endpoint JSON y comando accesible desde la aplicación,
+  no solo en el menú.
 - **Alternativa descartada**: paquete de permisos por objeto o una jerarquía
   de roles nueva; para dos roles y una regla de creador basta el ORM y los
   grupos existentes.

@@ -50,4 +50,8 @@ def test_pantalla_muestra_estado_y_accion_en_espanol(
     respuesta = client.get(f"/expedientes/{expediente.pk}/")
 
     assert mensaje.encode() in respuesta.content
-    assert b"Reintentar" in respuesta.content if estado == "ERROR" else True
+    if estado == "ERROR":
+        contenido = respuesta.content.lower()
+        assert b"motivo" in contenido
+        assert b"elimine el documento y vuelva a subirlo" in contenido
+        assert b"reintentar" not in contenido

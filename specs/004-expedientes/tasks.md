@@ -21,8 +21,8 @@ ficticios y no se incluyen expedientes, textos ni archivos reales.
   `(hash_archivo, version_extractor)` en `tests/test_expedientes_models.py`;
   criterio: cada regla del `data-model.md` tiene una aserción distinguible.
 - [ ] T003 [P] Añadir pruebas rojas de visibilidad por creador y Administrador,
-  incluyendo denegación de expediente ajeno en HTML, JSON, reintento y
-  eliminación de documento (FR-013), en
+  incluyendo denegación de expediente ajeno en HTML, JSON y eliminación de
+  documento (FR-013), en
   `tests/test_expedientes_permissions.py`; criterio: las rutas inexistentes o
   sin autorización fallan antes de cualquier implementación.
 - [ ] T004 [P] Añadir pruebas rojas de creación y subida en una sola pantalla,
@@ -42,8 +42,8 @@ ficticios y no se incluyen expedientes, textos ni archivos reales.
   recuperación de `PROCESANDO` con más de 15 minutos (FR-014) en
   `tests/test_expedientes_worker.py`; criterio: el umbral se lee de settings y
   una fila vencida vuelve a `PENDIENTE`.
-- [ ] T008 [P] Añadir pruebas rojas de reintento, estado JSON/polling, estado
-  vacío, todos listos, error recuperable y accesibilidad textual en
+- [ ] T008 [P] Añadir pruebas rojas de estado JSON/polling, estado vacío, todos
+  listos, error recuperable y accesibilidad textual en
   `tests/test_expedientes_ui.py`; criterio: se cubren los estados y mensajes
   de `contracts/ui.md` sin afirmar contenido documental.
 - [ ] T009 [P] Añadir pruebas rojas de los comandos de huérfanos y supresión en
@@ -113,8 +113,8 @@ Ruff sobre los archivos afectados y revisión de que el núcleo no cambió.
   `expedientes/forms.py`; criterio: T004 pasa con validación server-side,
   errores españoles y sin duplicar reglas en plantillas.
 - [X] T022 Implementar vistas delgadas en `expedientes/views.py` y URLs en
-  `expedientes/urls.py` para listado, alta, detalle, subida, estado JSON,
-  reintento y eliminación confirmada del documento (FR-013); criterio:
+  `expedientes/urls.py` para listado, alta, detalle, subida, estado JSON y
+  eliminación confirmada del documento (FR-013); criterio:
   T003/T004/T008 pasan y cada vista solo autoriza, valida, llama servicios y
   renderiza/responde.
 - [X] T023 Crear las plantillas en `templates/expedientes/` usando el layout

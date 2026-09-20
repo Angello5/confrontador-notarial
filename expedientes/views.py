@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import DocumentoUploadForm, ExpedienteForm, formatos_admitidos
-from .models import Documento, Expediente
+from .models import Expediente
 from .services import (
     DocumentoDuplicado,
     eliminar_documento,
@@ -151,26 +151,6 @@ def expediente_estado(request, pk):
             "polling": bool(resumen["pendientes"] or resumen["procesando"]),
         }
     )
-
-
-@login_required
-@require_POST
-def documento_reintentar(request, pk, doc_id):
-    _requiere_rol(request)
-    expediente = _expediente_visible(request, pk)
-    documento = get_object_or_404(expediente.documentos, pk=doc_id)
-    if documento.estado != Documento.ERROR:
-        messages.error(
-            request, "Solo se puede reintentar un documento que no se pudo procesar."
-        )
-        return _render_detalle(request, expediente, status=400)
-    documento.estado = Documento.PENDIENTE
-    documento.error = ""
-    documento.procesando_el = None
-    documento.procesado_el = None
-    documento.save(update_fields=("estado", "error", "procesando_el", "procesado_el"))
-    messages.success(request, "Se reintentará la extracción del documento.")
-    return redirect("expediente_detalle", pk=expediente.pk)
 
 
 @login_required

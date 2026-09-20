@@ -8,11 +8,6 @@ urlpatterns = [
     path("<int:pk>/documentos/", views.documento_subir, name="documento_subir"),
     path("<int:pk>/estado/", views.expediente_estado, name="expediente_estado"),
     path(
-        "<int:pk>/documentos/<int:doc_id>/reintentar/",
-        views.documento_reintentar,
-        name="documento_reintentar",
-    ),
-    path(
         "<int:pk>/documentos/<int:doc_id>/eliminar/",
         views.documento_eliminar,
         name="documento_eliminar",

@@ -56,16 +56,7 @@ class DocumentoUploadForm(forms.Form):
         try:
             validar_archivo(archivo)
         except (OSError, ValueError) as exc:
-            detalle = str(exc)
-            if "vacío" in detalle:
-                mensaje = "El archivo está vacío."
-            elif "tamaño" in detalle:
-                mensaje = "El archivo supera el tamaño máximo permitido."
-            elif "formato" in detalle:
-                mensaje = "El formato de archivo no está admitido."
-            else:
-                mensaje = "Revise el formato, el contenido y el tamaño del archivo."
-            raise forms.ValidationError(mensaje)
+            raise forms.ValidationError(str(exc))
         return archivo
 
 
