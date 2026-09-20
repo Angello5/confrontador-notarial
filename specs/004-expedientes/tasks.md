@@ -130,11 +130,11 @@ de interfaz y de las 10 heurísticas mediante `checklists/ux.md` sin marcar
 
 ## Etapa 5: comandos de limpieza y supresión
 
-- [ ] T025 Implementar `limpiar_temporales` en
+- [X] T025 Implementar `limpiar_temporales` en
   `expedientes/management/commands/limpiar_temporales.py`; criterio: T009
   elimina únicamente huérfanos mayores de 24 horas, vacía `ruta_temporal` y
   no toca filas recientes ni datos extraídos.
-- [ ] T026 Implementar `suprimir_texto_expediente` en
+- [X] T026 Implementar `suprimir_texto_expediente` en
   `expedientes/management/commands/suprimir_texto_expediente.py`; criterio:
   T009 vacía la entrada `TextoExtraido` compartida para todos sus expedientes,
   informa el conteo afectado (FR-015), conserva metadatos exigidos y no borra

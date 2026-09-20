@@ -19,7 +19,7 @@ def test_limpiar_temporales_solo_elimina_huerfanos_antiguos(usuario_ficticio, tm
     reciente = tmp_path / "reciente-ficticio.tmp"
     antiguo.write_bytes(b"antiguo")
     reciente.write_bytes(b"reciente")
-    Documento.objects.create(
+    documento_antiguo = Documento.objects.create(
         expediente=expediente,
         rol="FUENTE",
         nombre_original="antiguo-ficticio.txt",
@@ -27,7 +27,9 @@ def test_limpiar_temporales_solo_elimina_huerfanos_antiguos(usuario_ficticio, tm
         tamano_bytes=7,
         ruta_temporal=str(antiguo),
         subido_por=usuario_ficticio,
-        subido_el=timezone.now() - timedelta(hours=25),
+    )
+    Documento.objects.filter(pk=documento_antiguo.pk).update(
+        subido_el=timezone.now() - timedelta(hours=25)
     )
     Documento.objects.create(
         expediente=expediente,
