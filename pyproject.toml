@@ -18,7 +18,7 @@ omit = ["test_*.py", "tests/*", "scripts/*", ".venv/*", "experimental/*"]
 
 [tool.coverage.report]
 show_missing = true
-include = ["extraer.py", "verificar.py", "lexico.py", "ortografia.py", "nucleo/*.py", "adaptadores/*.py", "experimental/*.py", "app.py", "app_ortografia.py", "config/*.py", "accounts/*.py", "core/*.py", "manage.py"]
+include = ["extraer.py", "verificar.py", "lexico.py", "ortografia.py", "nucleo/*.py", "adaptadores/*.py", "expedientes/**/*.py", "experimental/*.py", "app.py", "app_ortografia.py", "config/*.py", "accounts/**/*.py", "core/*.py", "manage.py"]
 
 [tool.coverage.xml]
 output = "coverage.xml"

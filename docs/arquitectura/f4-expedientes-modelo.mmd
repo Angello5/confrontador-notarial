@@ -1,0 +1,49 @@
+---
+title: F4 · Expedientes — modelo de datos
+---
+erDiagram
+    User ||--o{ Expediente : "crea"
+    User ||--o{ Documento : "sube"
+    Expediente ||--o{ Documento : "contiene"
+    TextoExtraido ||--o{ Documento : "reutilizado por"
+
+    User {
+        int id PK
+        string username UK
+        bool force_password_change
+        int session_version
+    }
+
+    Expediente {
+        int id PK
+        string codigo UK "lo digita el usuario"
+        %% sin estado: se deriva de sus documentos
+        int creado_por FK
+        datetime creado_el
+        datetime actualizado_el
+    }
+
+    Documento {
+        int id PK
+        int expediente FK
+        string rol "FUENTE|BORRADOR"
+        string nombre_original "solo para mostrar"
+        string hash_archivo "sha256, 64 chars"
+        int tamano_bytes
+        string estado "PENDIENTE|PROCESANDO|LISTO|ERROR"
+        string error "sin datos personales"
+        string ruta_temporal "se vacia al terminar"
+        int texto_extraido FK "null hasta procesar"
+        int subido_por FK
+        datetime subido_el
+        datetime procesado_el
+    }
+
+    TextoExtraido {
+        int id PK
+        string hash_archivo "sha256 del archivo"
+        string version_extractor "modelos OCR + version extraccion"
+        text texto "retencion indefinida"
+        datetime creado_el
+        datetime ultimo_uso_el
+    }

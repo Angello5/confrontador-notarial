@@ -13,4 +13,9 @@ def home(request):
     es_administrador = (
         request.user.is_staff and grupos.filter(name="Administrador").exists()
     )
-    return render(request, "core/home.html", {"es_administrador": es_administrador})
+    es_usuario = grupos.filter(name="Usuario").exists()
+    return render(
+        request,
+        "core/home.html",
+        {"es_administrador": es_administrador, "es_usuario": es_usuario},
+    )

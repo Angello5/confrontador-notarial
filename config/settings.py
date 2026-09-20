@@ -1,6 +1,7 @@
 """Django settings for the notarial ERP."""
 
 import os
+import tempfile
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -10,6 +11,38 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set.")
 DEBUG = os.environ.get("DJANGO_DEBUG", "").lower() in {"1", "true", "yes"}
+
+
+def _positive_setting(name, default):
+    value = os.environ.get(name, str(default))
+    try:
+        value = int(value)
+    except ValueError as exc:
+        raise ImproperlyConfigured(f"{name} must be a positive integer") from exc
+    if value <= 0:
+        raise ImproperlyConfigured(f"{name} must be a positive integer")
+    return value
+
+
+_temporary_default = Path(tempfile.gettempdir()) / "notaria-expedientes"
+_temporary_configured = Path(
+    os.environ.get("EXPEDIENTES_TEMP_DIR", _temporary_default)
+).expanduser()
+if not _temporary_configured.is_absolute():
+    raise ImproperlyConfigured("EXPEDIENTES_TEMP_DIR must be an absolute path")
+EXPEDIENTES_TEMP_DIR = _temporary_configured.resolve()
+try:
+    EXPEDIENTES_TEMP_DIR.relative_to((BASE_DIR / "static").resolve())
+except ValueError:
+    pass
+else:
+    raise ImproperlyConfigured("EXPEDIENTES_TEMP_DIR cannot be served as static")
+EXPEDIENTES_MAX_FILE_SIZE = _positive_setting(
+    "EXPEDIENTES_MAX_FILE_SIZE", 25 * 1024 * 1024
+)
+EXPEDIENTES_PROCESSING_TIMEOUT = _positive_setting(
+    "EXPEDIENTES_PROCESSING_TIMEOUT", 15 * 60
+)
 ALLOWED_HOSTS = [
     host
     for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
@@ -27,6 +60,7 @@ INSTALLED_APPS = [
     "crispy_bootstrap5",
     "accounts.apps.AccountsConfig",
     "core",
+    "expedientes.apps.ExpedientesConfig",
 ]
 
 MIDDLEWARE = [

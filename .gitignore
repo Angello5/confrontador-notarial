@@ -4,7 +4,9 @@ Cliente/
 Proyecto*/
 Resultado/
 Plantilla/
-expedientes/
+# `expedientes/` es código versionado; los datos reales se guardan en esta
+# carpeta local con nombre explícito para mantener la protección por defecto.
+expedientes_locales/
 # Un expediente por carpeta con sufijo numérico de cinco dígitos.
 *-[0-9][0-9][0-9][0-9][0-9]/
 *.docx
@@ -49,3 +51,4 @@ capturas*/
 .DS_Store
 .venv/
 venv/
+.codebase-memory/
