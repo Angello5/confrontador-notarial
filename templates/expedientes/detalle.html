@@ -1,0 +1,122 @@
+{% extends "core/base.html" %}
+
+{% block title %}{{ expediente.codigo }} · Expedientes{% endblock %}
+{% block heading %}Expediente {{ expediente.codigo }}{% endblock %}
+{% block content %}
+  <nav aria-label="Migas de pan">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ expediente.codigo }}</li>
+    </ol>
+  </nav>
+
+  {{ documentos_estado|json_script:"documentos-estado" }}
+  <div
+    x-data="{
+      estado: '{{ resumen.estado }}',
+      resumen: { total: {{ resumen.total }}, pendientes: {{ resumen.pendientes }}, procesando: {{ resumen.procesando }}, listos: {{ resumen.listos }}, errores: {{ resumen.errores }} },
+      documentos: JSON.parse(document.getElementById('documentos-estado').textContent),
+      mensaje: '',
+      temporizador: null,
+      async actualizar() {
+        try {
+          const respuesta = await fetch('{% url 'expediente_estado' expediente.pk %}', { headers: { 'Accept': 'application/json' } });
+          if (!respuesta.ok) throw new Error();
+          const datos = await respuesta.json();
+          this.estado = datos.estado;
+          this.resumen = datos.resumen;
+          this.documentos = datos.documentos;
+          this.mensaje = '';
+          if (!datos.polling && this.temporizador) {
+            clearInterval(this.temporizador);
+            this.temporizador = null;
+          }
+        } catch (error) {
+          this.mensaje = 'No se pudo actualizar el estado. Intente recargar la página.';
+        }
+      },
+      iniciar() {
+        if ({{ resumen.pendientes|add:resumen.procesando }} > 0) {
+          this.temporizador = setInterval(() => this.actualizar(), 2000);
+        }
+      }
+    }"
+    x-init="iniciar()"
+  >
+  <section class="card card-outline card-primary mb-3" aria-labelledby="estado-expediente">
+    <div class="card-header"><h2 id="estado-expediente" class="h5 mb-0">Estado del expediente</h2></div>
+    <div class="card-body">
+      <p class="mb-1" aria-live="polite">
+        <strong x-show="estado === 'VACIO'">Este expediente aún no tiene documentos.</strong>
+        <strong x-show="estado === 'PROCESANDO'">Procesando</strong>
+        <strong x-show="estado === 'LISTO'">Todos los documentos están listos.</strong>
+        <strong x-show="estado === 'ERROR'">No se pudo procesar uno o más documentos. Puede reintentar la extracción.</strong>
+      </p>
+      <p class="text-body-secondary mb-0"><span x-text="resumen.total">{{ resumen.total }}</span> documento(s): <span x-text="resumen.pendientes">{{ resumen.pendientes }}</span> pendiente(s), <span x-text="resumen.procesando">{{ resumen.procesando }}</span> procesando, <span x-text="resumen.listos">{{ resumen.listos }}</span> listo(s), <span x-text="resumen.errores">{{ resumen.errores }}</span> con error.</p>
+      <p x-show="mensaje" x-text="mensaje" class="alert alert-warning mt-3 mb-0" role="alert"></p>
+    </div>
+  </section>
+
+  <section class="card card-outline card-primary mb-3" aria-labelledby="subir-documento">
+    <div class="card-header"><h2 id="subir-documento" class="h5 mb-0">Cargar documento</h2></div>
+    <div class="card-body">
+      <p>Formatos admitidos: {{ formatos_admitidos }}. Tamaño máximo: {{ max_file_size_mb|floatformat:0 }} MB.</p>
+      <form method="post" enctype="multipart/form-data" action="{% url 'documento_subir' expediente.pk %}" novalidate>
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ upload_form.rol.id_for_label }}">{{ upload_form.rol.label }}</label>
+          {{ upload_form.rol }}
+          <div class="form-text">{{ upload_form.rol.help_text }}</div>
+          {% for error in upload_form.rol.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="{{ upload_form.archivo.id_for_label }}">{{ upload_form.archivo.label }}</label>
+          {{ upload_form.archivo }}
+          <div class="form-text">{{ upload_form.archivo.help_text }}</div>
+          {% for error in upload_form.archivo.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+        </div>
+        <button class="btn btn-primary" type="submit">Cargar documento</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="documentos-expediente">
+    <div class="card-header"><h2 id="documentos-expediente" class="h5 mb-0">Documentos</h2></div>
+    <div class="card-body">
+      {% if documentos %}
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <caption class="visually-hidden">Documentos y estado de extracción</caption>
+            <thead><tr><th scope="col">Archivo</th><th scope="col">Rol</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
+            <tbody>
+              {% for documento in documentos %}
+                <tr>
+                  <th scope="row">{{ documento.nombre_original }}</th>
+                  <td>{% if documento.rol == "FUENTE" %}Fuente{% else %}Borrador{% endif %}</td>
+                  <td>
+                    <span x-text="documentos.find(item => item.id === {{ documento.pk }})?.estado_texto">{% if documento.estado == "PENDIENTE" %}Pendiente{% elif documento.estado == "PROCESANDO" %}Procesando{% elif documento.estado == "LISTO" %}Listo{% else %}No se pudo procesar{% endif %}</span>
+                    <div class="small" x-show="documentos.find(item => item.id === {{ documento.pk }})?.estado === 'ERROR'">No se pudo procesar el archivo.</div>
+                  </td>
+                  <td>
+                    <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');" class="d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="confirmado" value="1">
+                      <button class="btn btn-outline-danger btn-sm" type="submit">Eliminar</button>
+                    </form>
+                    <form method="post" action="{% url 'documento_reintentar' expediente.pk documento.pk %}" class="d-inline" x-show="documentos.find(item => item.id === {{ documento.pk }})?.estado === 'ERROR'">
+                      {% csrf_token %}
+                      <button class="btn btn-outline-primary btn-sm" type="submit">Reintentar extracción</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="alert alert-info mb-0" role="status">Este expediente aún no tiene documentos.</p>
+      {% endif %}
+    </div>
+  </section>
+  </div>
+{% endblock %}

@@ -38,9 +38,9 @@ def test_usuario_no_puede_consultar_estado_reintentar_ni_eliminar_ajeno(
     )
     client.force_login(usuario_ficticio)
 
+    assert client.get(f"/expedientes/{propio.pk}/").status_code in {403, 404}
+    assert client.get(f"/expedientes/{propio.pk}/estado/").status_code in {403, 404}
     for ruta in (
-        f"/expedientes/{propio.pk}/",
-        f"/expedientes/{propio.pk}/estado/",
         f"/expedientes/{propio.pk}/documentos/{documento.pk}/reintentar/",
         f"/expedientes/{propio.pk}/documentos/{documento.pk}/eliminar/",
     ):

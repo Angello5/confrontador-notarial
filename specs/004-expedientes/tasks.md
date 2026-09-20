@@ -109,18 +109,18 @@ Ruff sobre los archivos afectados y revisión de que el núcleo no cambió.
 
 ## Etapa 4: vistas, rutas y UI
 
-- [ ] T021 Implementar formularios de código y subida en
+- [X] T021 Implementar formularios de código y subida en
   `expedientes/forms.py`; criterio: T004 pasa con validación server-side,
   errores españoles y sin duplicar reglas en plantillas.
-- [ ] T022 Implementar vistas delgadas en `expedientes/views.py` y URLs en
+- [X] T022 Implementar vistas delgadas en `expedientes/views.py` y URLs en
   `expedientes/urls.py` para listado, alta, detalle, subida, estado JSON,
   reintento y eliminación confirmada del documento (FR-013); criterio:
   T003/T004/T008 pasan y cada vista solo autoriza, valida, llama servicios y
   renderiza/responde.
-- [ ] T023 Crear las plantillas en `templates/expedientes/` usando el layout
+- [X] T023 Crear las plantillas en `templates/expedientes/` usando el layout
   AdminLTE 4 de F2 y Alpine.js local; criterio: T008 encuentra estados,
   mensajes, etiquetas, foco, navegación y polling sin CDN, React ni HTMX.
-- [ ] T024 Revisar respuestas JSON y mensajes para excluir texto, nombres,
+- [X] T024 Revisar respuestas JSON y mensajes para excluir texto, nombres,
   hashes, rutas y trazas; criterio: T003/T008 y una búsqueda de secretos/datos
   personales pasan en el diff de F4.
 

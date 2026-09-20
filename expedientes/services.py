@@ -14,9 +14,20 @@ from django.utils import timezone
 
 from adaptadores import extraccion
 
-from .models import Documento, TextoExtraido
+from .models import Documento, Expediente, TextoExtraido
 
 logger = logging.getLogger(__name__)
+
+ESTADOS_VISIBLES = {
+    Documento.PENDIENTE: "Pendiente",
+    Documento.PROCESANDO: "Procesando",
+    Documento.LISTO: "Listo",
+    Documento.ERROR: "No se pudo procesar",
+}
+
+
+class DocumentoDuplicado(ValueError):
+    """El hash y rol ya están registrados en el expediente."""
 
 
 def calcular_hash(ruta):
@@ -39,6 +50,32 @@ def crear_temporal(origen, nombre_original="", destino=None):
     else:
         shutil.copyfile(origen, ruta)
     return ruta
+
+
+def registrar_documento(expediente, archivo, rol, usuario):
+    """Valida que el temporal persistido solo sobreviva si se crea la fila."""
+    temporal = crear_temporal(archivo, archivo.name)
+    persistido = False
+    try:
+        hash_archivo = calcular_hash(temporal)
+        try:
+            with transaction.atomic():
+                documento = Documento.objects.create(
+                    expediente=expediente,
+                    rol=rol,
+                    nombre_original=Path(archivo.name).name,
+                    hash_archivo=hash_archivo,
+                    tamano_bytes=archivo.size,
+                    ruta_temporal=str(temporal),
+                    subido_por=usuario,
+                )
+        except IntegrityError as exc:
+            raise DocumentoDuplicado from exc
+        persistido = True
+        return documento
+    finally:
+        if not persistido:
+            temporal.unlink(missing_ok=True)
 
 
 def _archivo_tamano(archivo):
@@ -264,3 +301,66 @@ def eliminar_documento(documento, confirmado=False):
     ruta = documento.ruta_temporal
     documento.delete()
     _borrar_temporal(ruta)
+
+
+def resumen_expediente(expediente):
+    """Devuelve el estado derivado y contadores que puede mostrar la UI."""
+    estados = list(expediente.documentos.values_list("estado", flat=True))
+    contadores = {
+        "total": len(estados),
+        "pendientes": estados.count(Documento.PENDIENTE),
+        "procesando": estados.count(Documento.PROCESANDO),
+        "listos": estados.count(Documento.LISTO),
+        "errores": estados.count(Documento.ERROR),
+    }
+    if not estados:
+        estado = "VACIO"
+    elif Documento.ERROR in estados:
+        estado = Documento.ERROR
+    elif any(
+        estado_documento in estados
+        for estado_documento in (Documento.PENDIENTE, Documento.PROCESANDO)
+    ):
+        estado = Documento.PROCESANDO
+    else:
+        estado = Documento.LISTO
+    return {"estado": estado, **contadores}
+
+
+def resumen_documento(documento):
+    """Reduce un Documento al conjunto seguro que necesita el endpoint."""
+    error = (
+        "No se pudo procesar el archivo." if documento.estado == Documento.ERROR else ""
+    )
+    return {
+        "id": documento.pk,
+        "rol": documento.rol,
+        "estado": documento.estado,
+        "estado_texto": ESTADOS_VISIBLES[documento.estado],
+        "error": error,
+        "subido_el": documento.subido_el.isoformat() if documento.subido_el else None,
+        "procesando_el": (
+            documento.procesando_el.isoformat() if documento.procesando_el else None
+        ),
+        "procesado_el": (
+            documento.procesado_el.isoformat() if documento.procesado_el else None
+        ),
+    }
+
+
+def usuario_puede_ver_expediente(usuario, expediente):
+    if not usuario.is_authenticated:
+        return False
+    if usuario.groups.filter(name="Administrador").exists():
+        return True
+    return (
+        expediente.creado_por_id == usuario.pk
+        and usuario.groups.filter(name="Usuario").exists()
+    )
+
+
+def expedientes_visibles(usuario):
+    queryset = Expediente.objects.all()
+    if usuario.groups.filter(name="Administrador").exists():
+        return queryset
+    return queryset.filter(creado_por=usuario, creado_por__groups__name="Usuario")

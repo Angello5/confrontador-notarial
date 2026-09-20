@@ -35,6 +35,14 @@
                 <span>Inicio</span>
               </a>
             </li>
+            {% if es_administrador or es_usuario %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'expediente_lista' %}"{% if request.resolver_match.namespace == '' and request.resolver_match.url_name == 'expediente_lista' %} aria-current="page"{% endif %}>
+                  <span class="nav-icon" aria-hidden="true">▣</span>
+                  <span>Expedientes</span>
+                </a>
+              </li>
+            {% endif %}
             {% if es_administrador %}
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'admin:index' %}"{% if request.resolver_match.namespace == 'admin' and request.resolver_match.url_name == 'index' %} aria-current="page"{% endif %}>
