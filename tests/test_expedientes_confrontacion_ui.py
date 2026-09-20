@@ -1,0 +1,113 @@
+"""Contrato de la accion protegida de confrontacion F5."""
+
+import pytest
+from django.test import Client
+
+pytestmark = pytest.mark.django_db
+
+
+def _documentos(expediente, usuario, *, borrador=True):
+    from django.utils import timezone
+
+    from expedientes.models import Documento, TextoExtraido
+
+    def crear(rol, nombre, texto):
+        extraido = TextoExtraido.objects.create(
+            hash_archivo=(nombre.replace(".", "")[:64]).ljust(64, "0"),
+            version_extractor="extractor-ficticio-v1",
+            texto=texto,
+            ultimo_uso_el=timezone.now(),
+        )
+        return Documento.objects.create(
+            expediente=expediente,
+            rol=rol,
+            nombre_original=nombre,
+            hash_archivo=extraido.hash_archivo,
+            tamano_bytes=max(len(texto), 1),
+            estado=Documento.LISTO,
+            texto_extraido=extraido,
+            subido_por=usuario,
+        )
+
+    fuente = crear(Documento.FUENTE, "fuente-ficticia.txt", "fuente ficticia")
+    documento = (
+        crear(Documento.BORRADOR, "borrador-ficticio.txt", "borrador ficticio")
+        if borrador
+        else fuente
+    )
+    return fuente, documento
+
+
+def test_creador_y_administrador_llegan_al_servicio(
+    client, usuario_ficticio, administrador_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-UI", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    llamados = []
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda expediente, documento: (
+            llamados.append((expediente.pk, documento.pk))
+            or {"estado": "RESULTADO", "regla": [], "ortografia": []}
+        ),
+    )
+    ruta = f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+
+    client.force_login(usuario_ficticio)
+    assert client.post(ruta).status_code == 200
+    client.force_login(administrador_ficticio)
+    assert client.post(ruta).status_code == 200
+    assert llamados == [(expediente.pk, borrador.pk)] * 2
+
+
+def test_accion_rechaza_metodo_invalido_y_csrf(client, usuario_ficticio):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-CSRF", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    ruta = f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    client.force_login(usuario_ficticio)
+
+    assert client.get(ruta).status_code == 405
+    csrf_client = Client(enforce_csrf_checks=True)
+    csrf_client.force_login(usuario_ficticio)
+    assert csrf_client.post(ruta).status_code == 403
+
+
+def test_usuario_sin_rol_no_puede_confrontar(client, usuario_ficticio):
+    from django.contrib.auth import get_user_model
+    from expedientes.models import Expediente
+
+    sin_rol = get_user_model().objects.create_user(username="sin_rol_ficticio")
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-SIN-ROL", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    ruta = f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    client.force_login(sin_rol)
+
+    assert client.post(ruta).status_code == 403
+
+
+def test_accion_no_revela_documento_ajeno_ni_documento_fuente(
+    client, usuario_ficticio, administrador_ficticio
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-AJENO", creado_por=administrador_ficticio
+    )
+    fuente, borrador = _documentos(expediente, administrador_ficticio)
+    ruta_ajena = f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ruta_fuente = f"/expedientes/{expediente.pk}/documentos/{fuente.pk}/confrontar/"
+    client.force_login(usuario_ficticio)
+
+    assert client.post(ruta_ajena).status_code in {403, 404}
+    client.force_login(administrador_ficticio)
+    assert client.post(ruta_fuente).status_code in {403, 404}

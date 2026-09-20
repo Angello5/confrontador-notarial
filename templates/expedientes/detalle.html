@@ -101,6 +101,16 @@
                     </div>
                   </td>
                   <td>
+                    {% if documento.rol == "BORRADOR" %}
+                      {% if documento.confrontacion_estado.disponible %}
+                        <form method="post" action="{% url 'documento_confrontar' expediente.pk documento.pk %}" class="d-inline" onsubmit="this.querySelector('button').textContent='Confrontando el borrador…'; this.querySelector('button').disabled=true;">
+                          {% csrf_token %}
+                          <button class="btn btn-outline-primary btn-sm" type="submit">Confrontar borrador</button>
+                        </form>
+                      {% else %}
+                        <span class="small text-body-secondary">{{ documento.confrontacion_estado.mensaje }}</span>
+                      {% endif %}
+                    {% endif %}
                     <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');" class="d-inline">
                       {% csrf_token %}
                       <input type="hidden" name="confirmado" value="1">

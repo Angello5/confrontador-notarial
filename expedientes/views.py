@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import DocumentoUploadForm, ExpedienteForm, formatos_admitidos
-from .models import Expediente
+from .models import Documento, Expediente
 from .services import (
     DocumentoDuplicado,
     eliminar_documento,
@@ -16,6 +16,8 @@ from .services import (
     registrar_documento,
     resumen_documento,
     resumen_expediente,
+    estado_confrontacion,
+    confrontar_borrador,
     usuario_puede_ver_expediente,
 )
 
@@ -48,6 +50,9 @@ def _navegacion_contexto(request):
 
 def _render_detalle(request, expediente, upload_form=None, status=200):
     documentos = expediente.documentos.order_by("subido_el", "pk")
+    for documento in documentos:
+        if documento.rol == Documento.BORRADOR:
+            documento.confrontacion_estado = estado_confrontacion(expediente, documento)
     contexto = {
         "expediente": expediente,
         "documentos": documentos,
@@ -169,3 +174,21 @@ def documento_eliminar(request, pk, doc_id):
     eliminar_documento(documento, confirmado=True)
     messages.success(request, "Documento eliminado.")
     return redirect("expediente_detalle", pk=expediente.pk)
+
+
+@login_required
+@require_POST
+def documento_confrontar(request, pk, doc_id):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    borrador = get_object_or_404(
+        expediente.documentos, pk=doc_id, rol=Documento.BORRADOR
+    )
+    resultado = confrontar_borrador(expediente, borrador)
+    contexto = {
+        "expediente": expediente,
+        "borrador": borrador,
+        "resultado": resultado,
+    }
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/confrontacion.html", contexto)

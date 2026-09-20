@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+
+{% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
+{% block heading %}Confrontación del borrador{% endblock %}
+{% block content %}
+  <nav aria-label="Migas de pan">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Confrontación</li>
+    </ol>
+  </nav>
+
+  {% if resultado.estado == "ADVERTENCIA_CORRESPONDENCIA" %}
+    <section class="alert alert-warning" role="alert" aria-live="polite">
+      <h2 class="h5">Revise los documentos</h2>
+      <p>{{ resultado.mensaje }}</p>
+      <p class="mb-0">No se muestran diferencias campo por campo. Revise que el borrador y las fuentes pertenezcan al mismo expediente.</p>
+    </section>
+  {% elif resultado.estado == "NO_DISPONIBLE" %}
+    <section class="alert alert-info" role="status" aria-live="polite">
+      <h2 class="h5">No se puede confrontar todavía</h2>
+      <p class="mb-0">{{ resultado.mensaje }}</p>
+    </section>
+  {% elif resultado.estado == "RESULTADO" %}
+    <section class="card card-outline card-primary mb-3" aria-labelledby="resultado-titulo">
+      <div class="card-header"><h2 id="resultado-titulo" class="h5 mb-0">Resultado de la confrontación</h2></div>
+      <div class="card-body" role="status" aria-live="polite">
+        {% if resultado.regla or resultado.ortografia %}
+          <p class="mb-0">Se encontraron observaciones para revisar.</p>
+        {% else %}
+          <p class="mb-0">No se encontraron observaciones. El borrador concuerda con las fuentes y la ortografía revisada.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="card mb-3" aria-labelledby="regla-titulo">
+      <div class="card-header"><h2 id="regla-titulo" class="h5 mb-0">Regla <span class="badge text-bg-secondary">{{ resultado.regla|length }}</span></h2></div>
+      <div class="card-body">
+        {% if resultado.regla %}
+          <ul>
+            {% for observacion in resultado.regla %}<li>{{ observacion }}</li>{% endfor %}
+          </ul>
+        {% else %}<p class="mb-0">No se encontraron observaciones de regla.</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="card mb-3" aria-labelledby="ortografia-titulo">
+      <div class="card-header"><h2 id="ortografia-titulo" class="h5 mb-0">Ortografía <span class="badge text-bg-secondary">{{ resultado.ortografia|length }}</span></h2></div>
+      <div class="card-body">
+        {% if resultado.ortografia %}
+          <ul>
+            {% for palabra, motivo, sugerencia in resultado.ortografia %}<li>{{ palabra }}: {{ motivo }}{% if sugerencia != "?" %}; sugerencia: {{ sugerencia }}{% endif %}</li>{% endfor %}
+          </ul>
+        {% else %}<p class="mb-0">No se encontraron observaciones de ortografía.</p>{% endif %}
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

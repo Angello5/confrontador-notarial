@@ -13,6 +13,8 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from adaptadores import extraccion
+from adaptadores import diccionario
+from nucleo import ortografia, verificar
 
 from .models import Documento, Expediente, TextoExtraido
 
@@ -24,6 +26,8 @@ ESTADOS_VISIBLES = {
     Documento.LISTO: "Listo",
     Documento.ERROR: "No se pudo procesar",
 }
+
+_UMBRAL_PARRAFO = 88
 
 
 class DocumentoDuplicado(ValueError):
@@ -346,6 +350,105 @@ def resumen_documento(documento):
         "procesado_el": (
             documento.procesado_el.isoformat() if documento.procesado_el else None
         ),
+    }
+
+
+def _texto_listo(documento):
+    if documento.estado != Documento.LISTO or documento.texto_extraido_id is None:
+        return None
+    texto = documento.texto_extraido.texto
+    return texto if texto else None
+
+
+def _resultado_no_disponible(mensaje):
+    return {
+        "estado": "NO_DISPONIBLE",
+        "mensaje": mensaje,
+        "regla": [],
+        "ortografia": [],
+    }
+
+
+def estado_confrontacion(expediente, borrador):
+    """Indica si el borrador tiene los textos necesarios para confrontar."""
+    fuentes = list(expediente.documentos.filter(rol=Documento.FUENTE).order_by("pk"))
+    if borrador.rol != Documento.BORRADOR or not fuentes:
+        return {
+            "disponible": False,
+            "mensaje": "Cargue al menos una fuente y un borrador para confrontar.",
+        }
+    if borrador.estado in (Documento.PENDIENTE, Documento.PROCESANDO) or any(
+        fuente.estado in (Documento.PENDIENTE, Documento.PROCESANDO)
+        for fuente in fuentes
+    ):
+        return {
+            "disponible": False,
+            "mensaje": "Espere a que termine la extracción de los documentos.",
+        }
+    if borrador.estado == Documento.ERROR or any(
+        fuente.estado == Documento.ERROR for fuente in fuentes
+    ):
+        return {
+            "disponible": False,
+            "mensaje": "No se pudo procesar un documento. Elimínelo y vuelva a subirlo.",
+        }
+    if _texto_listo(borrador) is None or any(
+        _texto_listo(fuente) is None for fuente in fuentes
+    ):
+        return {
+            "disponible": False,
+            "mensaje": "El texto de este documento ya no está disponible. Vuelva a subirlo para confrontar.",
+        }
+    return {"disponible": True, "mensaje": ""}
+
+
+def confrontar_borrador(expediente, borrador):
+    """Ejecuta regla y ortografía sobre un borrador listo, sin persistir."""
+    if borrador.expediente_id != expediente.pk or borrador.rol != Documento.BORRADOR:
+        raise ValueError("El documento no es un borrador de este expediente.")
+
+    disponibilidad = estado_confrontacion(expediente, borrador)
+    if not disponibilidad["disponible"]:
+        return _resultado_no_disponible(disponibilidad["mensaje"])
+
+    fuentes = {
+        documento.nombre_original: documento.texto_extraido.texto
+        for documento in expediente.documentos.filter(rol=Documento.FUENTE).order_by(
+            "pk"
+        )
+    }
+    texto_borrador = borrador.texto_extraido.texto
+    aviso = verificar.diagnostico(fuentes, texto_borrador)
+    if aviso:
+        return {
+            "estado": "ADVERTENCIA_CORRESPONDENCIA",
+            "mensaje": aviso,
+            "regla": [],
+            "ortografia": [],
+        }
+
+    catalogo = verificar.catalogo(fuentes)
+    reglas = verificar.revisar(catalogo, texto_borrador, _UMBRAL_PARRAFO)
+    minutas = [
+        texto
+        for nombre, texto in fuentes.items()
+        if Path(nombre).suffix.lower() not in verificar.IMGS
+    ]
+    reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
+    dic, lemas = diccionario.diccionario()
+    propios = {palabra for nombre in catalogo["NOMBRE"] for palabra in nombre.split()}
+    faltas = ortografia.revisar(
+        texto_borrador,
+        dic,
+        lemas,
+        diccionario.lista_casa(),
+        propios,
+    )
+    return {
+        "estado": "RESULTADO",
+        "mensaje": "",
+        "regla": reglas,
+        "ortografia": faltas,
     }
 
 

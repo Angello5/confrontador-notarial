@@ -20,16 +20,16 @@ completan la lectura, advertencia y recuperación.
 **Purpose**: dejar explícita la superficie de archivos que se puede tocar y
 conservar los límites de F4/F5.
 
-- [ ] T001 Revisar `specs/005-confrontacion/research.md`, `plan.md` y `contracts/ui.md` contra `nucleo/verificar.py`, `nucleo/ortografia.py` y `expedientes/services.py`; criterio: la implementación queda limitada a `expedientes/services.py`, `expedientes/views.py`, `expedientes/urls.py`, `templates/expedientes/confrontacion.html` y tests F5, sin cambios en `spec.md`, `nucleo/`, `app.py`, `app_ortografia.py`, modelos, migraciones o locks.
-- [ ] T002 [P] Preparar los módulos de pruebas ficticias `tests/test_expedientes_confrontacion.py` y `tests/test_expedientes_confrontacion_ui.py`; criterio: pytest los descubre con los marcadores existentes, no contienen datos personales reales y fallan de forma controlada cuando referencian el servicio/ruta aún inexistente.
+- [X] T001 Revisar `specs/005-confrontacion/research.md`, `plan.md` y `contracts/ui.md` contra `nucleo/verificar.py`, `nucleo/ortografia.py` y `expedientes/services.py`; criterio: la implementación queda limitada a `expedientes/services.py`, `expedientes/views.py`, `expedientes/urls.py`, `templates/expedientes/confrontacion.html` y tests F5, sin cambios en `spec.md`, `nucleo/`, `app.py`, `app_ortografia.py`, modelos, migraciones o locks.
+- [X] T002 [P] Preparar los módulos de pruebas ficticias `tests/test_expedientes_confrontacion.py` y `tests/test_expedientes_confrontacion_ui.py`; criterio: pytest los descubre con los marcadores existentes, no contienen datos personales reales y fallan de forma controlada cuando referencian el servicio/ruta aún inexistente.
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
 **Purpose**: reutilizar modelos, autorización y recursos locales de F4 sin
 crear una entidad o infraestructura nueva.
 
-- [ ] T003 [P] Añadir en `tests/test_expedientes_confrontacion.py` fixtures/helpers sintéticos para `Expediente`, fuentes, borradores y `TextoExtraido`; criterio: permiten construir documentos `LISTO` con texto y estados bloqueantes sin escribir archivos reales ni alterar migraciones.
-- [ ] T004 Verificar en `tests/test_expedientes_confrontacion_ui.py` el contrato de autorización existente con un caso rojo de usuario sin rol, creador, Administrador y expediente ajeno; criterio: la acción futura exige la misma regla `usuario_puede_ver_expediente` y nunca revela la existencia de un expediente ajeno.
+- [X] T003 [P] Añadir en `tests/test_expedientes_confrontacion.py` fixtures/helpers sintéticos para `Expediente`, fuentes, borradores y `TextoExtraido`; criterio: permiten construir documentos `LISTO` con texto y estados bloqueantes sin escribir archivos reales ni alterar migraciones.
+- [X] T004 Verificar en `tests/test_expedientes_confrontacion_ui.py` el contrato de autorización existente con un caso rojo de usuario sin rol, creador, Administrador y expediente ajeno; criterio: la acción futura exige la misma regla `usuario_puede_ver_expediente` y nunca revela la existencia de un expediente ajeno.
 
 **Checkpoint**: fixtures y límites listos; no se implementa una capa nueva de
 persistencia, cola, API o autenticación.
@@ -45,16 +45,16 @@ no crea ni modifica entidades de resultado.
 
 ### Tests for User Story 1 (write first)
 
-- [ ] T005 [P] [US1] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas de precondición y orquestación: fuente/borrador disponibles, fuentes pasadas a `catalogo` y `diagnostico` con `nombre_original` como clave, minutas solo por extensión no imagen y umbral fijo 88; criterio: fallan antes de implementar y detectan una clave temporal, extensión mal clasificada o umbral expuesto.
-- [ ] T006 [P] [US1] Escribir en `tests/test_expedientes_confrontacion.py` una prueba roja de ejecución de regla + ortografía, sin léxico ni `experimental/`, usando mocks/recursos de diccionario ficticios; criterio: comprueba que los nombres del catálogo se pasan como `propios` y que ambos grupos llegan al resultado.
-- [ ] T007 [P] [US1] Escribir en `tests/test_expedientes_confrontacion_ui.py` pruebas rojas del POST de confrontación para creador y Administrador, método inválido/CSRF y documento que no es borrador; criterio: solo el acceso autorizado llega al servicio y las denegaciones no revelan datos.
+- [X] T005 [P] [US1] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas de precondición y orquestación: fuente/borrador disponibles, fuentes pasadas a `catalogo` y `diagnostico` con `nombre_original` como clave, minutas solo por extensión no imagen y umbral fijo 88; criterio: fallan antes de implementar y detectan una clave temporal, extensión mal clasificada o umbral expuesto.
+- [X] T006 [P] [US1] Escribir en `tests/test_expedientes_confrontacion.py` una prueba roja de ejecución de regla + ortografía, sin léxico ni `experimental/`, usando mocks/recursos de diccionario ficticios; criterio: comprueba que los nombres del catálogo se pasan como `propios` y que ambos grupos llegan al resultado.
+- [X] T007 [P] [US1] Escribir en `tests/test_expedientes_confrontacion_ui.py` pruebas rojas del POST de confrontación para creador y Administrador, método inválido/CSRF y documento que no es borrador; criterio: solo el acceso autorizado llega al servicio y las denegaciones no revelan datos.
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implementar en `expedientes/services.py` la selección validada del borrador y sus fuentes `FUENTE`, la comprobación de texto no vacío/estado `LISTO` y la construcción del `dict[str, str]` con claves `Documento.nombre_original`; criterio: T005 pasa, no se confrontan cadenas vacías, no se toca ningún modelo nuevo y cada borrador se mantiene separado.
-- [ ] T009 [US1] Implementar en `expedientes/services.py` la orquestación determinista `diagnostico` → `revisar`/`revisar_parrafos` con umbral interno 88 → `nucleo.ortografia.revisar`, cargando recursos desde `adaptadores.diccionario` y pasando palabras propias del catálogo; criterio: T006 pasa, no se llama léxico/IA, el resultado es en memoria y dos ejecuciones iguales son idénticas.
-- [ ] T010 [US1] Añadir en `expedientes/urls.py` y `expedientes/views.py` la acción POST por documento borrador, reutilizando `_expediente_visible`, `usuario_puede_ver_expediente` y servicios existentes; criterio: T007 pasa, requiere login/rol/CSRF, valida pertenencia y rol `BORRADOR`, y renderiza sin persistir el resultado.
-- [ ] T011 [US1] Crear la base de `templates/expedientes/confrontacion.html` y añadir en `templates/expedientes/detalle.html` la acción/estado por borrador, con breadcrumbs, estado `TRABAJANDO`, estado sin observaciones y mensaje seguro; criterio: la acción solo se habilita con precondiciones válidas y ninguna plantilla muestra texto completo, hashes, rutas ni términos técnicos.
+- [X] T008 [US1] Implementar en `expedientes/services.py` la selección validada del borrador y sus fuentes `FUENTE`, la comprobación de texto no vacío/estado `LISTO` y la construcción del `dict[str, str]` con claves `Documento.nombre_original`; criterio: T005 pasa, no se confrontan cadenas vacías, no se toca ningún modelo nuevo y cada borrador se mantiene separado.
+- [X] T009 [US1] Implementar en `expedientes/services.py` la orquestación determinista `diagnostico` → `revisar`/`revisar_parrafos` con umbral interno 88 → `nucleo.ortografia.revisar`, cargando recursos desde `adaptadores.diccionario` y pasando palabras propias del catálogo; criterio: T006 pasa, no se llama léxico/IA, el resultado es en memoria y dos ejecuciones iguales son idénticas.
+- [X] T010 [US1] Añadir en `expedientes/urls.py` y `expedientes/views.py` la acción POST por documento borrador, reutilizando `_expediente_visible`, `usuario_puede_ver_expediente` y servicios existentes; criterio: T007 pasa, requiere login/rol/CSRF, valida pertenencia y rol `BORRADOR`, y renderiza sin persistir el resultado.
+- [X] T011 [US1] Crear la base de `templates/expedientes/confrontacion.html` y añadir en `templates/expedientes/detalle.html` la acción/estado por borrador, con breadcrumbs, estado `TRABAJANDO`, estado sin observaciones y mensaje seguro; criterio: la acción solo se habilita con precondiciones válidas y ninguna plantilla muestra texto completo, hashes, rutas ni términos técnicos.
 
 **Checkpoint MVP**: T005–T011 verdes; un expediente ficticio listo se puede
 confrontar desde la pantalla y el núcleo permanece sin diff.
@@ -74,6 +74,7 @@ sugerencia, sin cambiar la salida del núcleo.
 - [ ] T013 [P] [US2] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas de ubicación sobre texto ficticio: línea 1/múltiples líneas, mayúsculas o tildes normalizadas, valor repetido una sola vez y valor ausente como `No ubicada`; criterio: la búsqueda vive en aplicación y conserva el fragmento original acotado.
 - [ ] T014 [P] [US2] Escribir en `tests/test_expedientes_confrontacion.py` prueba roja del mapeo de tuplas de ortografía `(palabra, motivo, sugerencia)` incluyendo `?`; criterio: devuelve palabra, motivo, sugerencia o `Sin sugerencia` y ubicación, sin parsear una string inventada.
 - [ ] T015 [P] [US2] Escribir en `tests/test_expedientes_confrontacion_ui.py` pruebas rojas de agrupación, recuentos, columnas accesibles y estado vacío; criterio: Regla y Ortografía se distinguen, los grupos muestran recuento y una confrontación limpia no se pinta como error.
+- [ ] T015a [P] [US2] Escribir pruebas de contrato con salida real de `nucleo.verificar.revisar()` y `revisar_parrafos()` sobre catálogo, minuta y borrador ficticios sembrados; criterio: el parser reconoce todas las observaciones producidas (DNI, nombre, monto, faltante y párrafo alterado) y ninguna cae en formato desconocido.
 
 ### Implementation for User Story 2
 
