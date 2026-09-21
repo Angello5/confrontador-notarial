@@ -71,28 +71,21 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
         rol = upload_form.expected_role or upload_form.data.get("rol")
         formularios[rol if rol in formularios else Documento.CLIENTE] = upload_form
     etiquetas = dict(Documento.ROLES)
+    descripciones = {
+        Documento.CLIENTE: "DNI, partidas y otros documentos del cliente.",
+        Documento.MINUTA: "Documento del encargo, normalmente Word.",
+        Documento.BORRADOR: "Documento elaborado que se comparará con las fuentes.",
+    }
+    por_rol = {Documento.BORRADOR: borradores}
     zonas = [
         {
-            "rol": Documento.CLIENTE,
-            "titulo": etiquetas[Documento.CLIENTE],
-            "descripcion": "DNI, partidas y otros documentos del cliente.",
-            "documentos": [d for d in documentos if d.rol == Documento.CLIENTE],
-            "form": formularios[Documento.CLIENTE],
-        },
-        {
-            "rol": Documento.MINUTA,
-            "titulo": etiquetas[Documento.MINUTA],
-            "descripcion": "Documento del encargo, normalmente Word.",
-            "documentos": [d for d in documentos if d.rol == Documento.MINUTA],
-            "form": formularios[Documento.MINUTA],
-        },
-        {
-            "rol": Documento.BORRADOR,
-            "titulo": etiquetas[Documento.BORRADOR],
-            "descripcion": "Documento elaborado que se comparará con las fuentes.",
-            "documentos": borradores,
-            "form": formularios[Documento.BORRADOR],
-        },
+            "rol": rol,
+            "titulo": etiquetas[rol],
+            "descripcion": descripciones[rol],
+            "documentos": por_rol.get(rol, [d for d in documentos if d.rol == rol]),
+            "form": formularios[rol],
+        }
+        for rol, _ in Documento.ROLES
     ]
     contexto = {
         "expediente": expediente,
