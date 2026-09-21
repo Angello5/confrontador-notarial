@@ -66,7 +66,10 @@ def crear_temporal(origen, nombre_original="", destino=None):
     destino = Path(destino or settings.EXPEDIENTES_TEMP_DIR)
     destino.mkdir(parents=True, exist_ok=True)
     destino.chmod(0o700)
-    ruta = destino / f"documento-{secrets.token_hex(16)}.tmp"
+    extension = Path(nombre_original).suffix.lower()
+    if extension not in extraccion.DOCS:
+        extension = ""
+    ruta = destino / f"documento-{secrets.token_hex(16)}{extension}"
     if hasattr(origen, "chunks"):
         with ruta.open("wb") as archivo:
             for bloque in origen.chunks():
