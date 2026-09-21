@@ -23,7 +23,17 @@ DECIMOSEGUNDO DECIMOTERCERO VIGESIMO VIGÉSIMO""".split()
 
 def sin_tilde(t: str) -> str:
     d = unicodedata.normalize("NFKD", t)
-    return "".join(c for c in d if not unicodedata.combining(c)).upper()
+    sin_combinantes = []
+    for c in d:
+        if (
+            c == "\N{COMBINING TILDE}"
+            and sin_combinantes
+            and sin_combinantes[-1] in "Nn"
+        ):
+            sin_combinantes[-1] = "Ñ"
+        elif not unicodedata.combining(c):
+            sin_combinantes.append(c)
+    return "".join(sin_combinantes).upper()
 
 
 def contar(textos) -> Counter:
@@ -65,6 +75,9 @@ def erratas(
         if _es_flexion(plana, vocab):
             continue
         m = process.extractOne(plana, conocidas, scorer=fuzz.ratio)
-        if m and m[1] >= umbral:
+        if m and (
+            m[1] >= umbral
+            or (m[0] != plana and m[0].replace("Ñ", "N") == plana.replace("Ñ", "N"))
+        ):
             fuera.append((plana, m[0], m[1]))
     return sorted(fuera, key=lambda x: -x[2])

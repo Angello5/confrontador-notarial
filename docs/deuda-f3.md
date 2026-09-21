@@ -30,6 +30,26 @@ borrador no. Si aparece, debe diagnosticarse junto con la calidad del OCR y no
 confundirse con un cambio de la regla. T014 sigue siendo el gate de la medición
 privada.
 
+### Eñe coherente en el núcleo
+
+`nucleo.lexico.sin_tilde()` y `nucleo.ortografia.plano()` aplican ahora el
+mismo criterio que `norm()`: las vocales pierden sus combinantes, pero la
+virgulilla que sigue a `N`/`n` recompone `Ñ`/`ñ`. `TILDE_IMPOSIBLE` y
+`ACENTO_CORRECTO` no incluyen la eñe como error ni la convierten. El vocabulario
+léxico y las sugerencias ortográficas distinguen `MUÑOZ` de `MUNOZ`; la lista de
+la casa conserva ambas formas si se reciben explícitamente. Las tres funciones
+repiten deliberadamente el pequeño bucle porque `nucleo/` mantiene módulos
+puros independientes; si la regla crece, conviene extraer una función común
+de normalización en `nucleo` sin mezclar adaptadores.
+
+La medición contra el expediente de referencia queda pendiente del usuario.
+Debe ejecutarse desde el repositorio saneado, con los recursos privados
+aprovisionados, exactamente en este orden:
+
+```bash
+python -m pytest -o addopts= -m local_reference --tb=no
+```
+
 Los diez code smells del análisis inicial de SonarCloud sobre `main` (`4cb625e`)
 se registran para la migración del núcleo en F3; no se corrigen en F1.
 
