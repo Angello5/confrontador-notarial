@@ -163,6 +163,92 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     assert "[DNI]" not in contenido
 
 
+def test_resultado_muestra_verificacion_de_extraccion_sin_texto_completo(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-EXTRACCION", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda *_: {
+            "estado": "RESULTADO",
+            "mensaje": "",
+            "regla": [],
+            "ortografia": [],
+            "extraccion": {
+                "catalogo": {
+                    "NOMBRE": ["NOMBRE FICTICIO"],
+                    "DNI": ["90000001"],
+                    "PARTIDA": [],
+                    "MONTO": ["1200.00"],
+                },
+                "documentos": [
+                    {
+                        "nombre": "cliente-ficticio.txt",
+                        "caracteres": 32,
+                        "catalogo": {
+                            "NOMBRE": ["NOMBRE FICTICIO"],
+                            "DNI": ["90000001"],
+                            "PARTIDA": [],
+                            "MONTO": [],
+                        },
+                        "aporta": True,
+                    },
+                    {
+                        "nombre": "imagen-ficticia.jpg",
+                        "caracteres": 4,
+                        "catalogo": {
+                            "NOMBRE": [],
+                            "DNI": [],
+                            "PARTIDA": [],
+                            "MONTO": [],
+                        },
+                        "aporta": False,
+                    },
+                ],
+            },
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+    assert '<details class="card mb-3"' in contenido
+    assert "Qué se extrajo de los documentos" in contenido
+    assert "NOMBRE FICTICIO" in contenido
+    assert "90000001" in contenido
+    assert "1200.00" in contenido
+    assert "cliente-ficticio.txt" in contenido
+    assert "imagen-ficticia.jpg" in contenido
+    assert "No aportó campos detectables" in contenido
+    assert "32 caracteres" in contenido
+    assert "texto completo ficticio que no debe aparecer" not in contenido
+
+
+def test_sondeo_no_expone_resumen_de_extraccion(client, usuario_ficticio):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-SONDEO", creado_por=usuario_ficticio
+    )
+    _documentos(expediente, usuario_ficticio)
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.get(f"/expedientes/{expediente.pk}/estado/")
+
+    assert respuesta.status_code == 200
+    datos = respuesta.json()
+    assert "extraccion" not in datos
+    assert "catalogo" not in datos
+    assert "texto completo ficticio" not in str(datos)
+
+
 def test_tabla_de_regla_no_muestra_columnas_vacias(
     client, usuario_ficticio, monkeypatch
 ):

@@ -273,6 +273,106 @@ def test_orquestacion_pasa_nombres_del_catalogo_a_ortografia(
     ]
 
 
+def test_confrontacion_devuelve_catalogo_y_aporte_por_documento(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    cliente = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "cliente-ficticio.txt",
+        "NOMBRE FICTICIO DNI 90000001",
+    )
+    minuta = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.docx",
+        "ANEXO FICTICIO SIN CAMPOS DETECTABLES",
+    )
+    anexo = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "anexo-ficticio.txt",
+        "TEXTO FICTICIO SIN CAMPOS",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-ficticio.txt",
+        "borrador ficticio",
+    )
+    llamadas = []
+
+    def catalogo(fuentes):
+        llamadas.append(fuentes)
+        if len(fuentes) > 1:
+            return {
+                "NOMBRE": {"NOMBRE FICTICIO"},
+                "DNI": {"90000001"},
+                "PARTIDA": set(),
+                "MONTO": set(),
+            }
+        if next(iter(fuentes)) == cliente.nombre_original:
+            return {
+                "NOMBRE": {"NOMBRE FICTICIO"},
+                "DNI": {"90000001"},
+                "PARTIDA": set(),
+                "MONTO": set(),
+            }
+        return {campo: set() for campo in ("NOMBRE", "DNI", "PARTIDA", "MONTO")}
+
+    monkeypatch.setattr("expedientes.services.verificar.catalogo", catalogo)
+    monkeypatch.setattr("expedientes.services.verificar.diagnostico", lambda *_: None)
+    monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
+    monkeypatch.setattr(
+        "expedientes.services.verificar.revisar_parrafos", lambda *_: []
+    )
+    monkeypatch.setattr(
+        "expedientes.services.diccionario.diccionario", lambda: (None, [])
+    )
+    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
+    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["extraccion"]["catalogo"] == {
+        "NOMBRE": ["NOMBRE FICTICIO"],
+        "DNI": ["90000001"],
+        "PARTIDA": [],
+        "MONTO": [],
+    }
+    documentos = resultado["extraccion"]["documentos"]
+    assert documentos[0] == {
+        "nombre": cliente.nombre_original,
+        "caracteres": len(cliente.texto_extraido.texto),
+        "catalogo": {
+            "NOMBRE": ["NOMBRE FICTICIO"],
+            "DNI": ["90000001"],
+            "PARTIDA": [],
+            "MONTO": [],
+        },
+        "aporta": True,
+    }
+    assert documentos[1]["nombre"] == minuta.nombre_original
+    assert documentos[1]["aporta"] is False
+    assert documentos[1]["caracteres"] == len(minuta.texto_extraido.texto)
+    assert documentos[2]["nombre"] == anexo.nombre_original
+    assert documentos[2]["aporta"] is False
+    assert "ANEXO FICTICIO SIN CAMPOS DETECTABLES" not in str(resultado)
+    assert llamadas[0] == {
+        cliente.nombre_original: cliente.texto_extraido.texto,
+        minuta.nombre_original: minuta.texto_extraido.texto,
+        anexo.nombre_original: anexo.texto_extraido.texto,
+    }
+    assert {next(iter(llamada)) for llamada in llamadas[1:]} == {
+        cliente.nombre_original,
+        minuta.nombre_original,
+        anexo.nombre_original,
+    }
+
+
 def test_diagnostico_bloqueante_detiene_toda_ejecucion(
     expediente_confrontacion, crear_documento_listo, monkeypatch
 ):
@@ -303,7 +403,10 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.catalogo",
-        lambda *_: llamadas.append("catalogo"),
+        lambda *_: (
+            llamadas.append("catalogo")
+            or {"NOMBRE": set(), "DNI": set(), "PARTIDA": set(), "MONTO": set()}
+        ),
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar", lambda *_: llamadas.append("regla")
@@ -321,7 +424,11 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
 
     assert resultado["estado"] == "ADVERTENCIA_CORRESPONDENCIA"
     assert resultado["mensaje"] == "aviso ficticio"
-    assert llamadas == []
+    # El catalogo SI se construye antes del diagnostico, una vez para el conjunto
+    # y otra por cada fuente: el usuario necesita ver que se extrajo para saber
+    # si el borrador es de otro expediente o si el OCR no leyo las fuentes. Lo
+    # que NO debe ejecutarse es la comparacion.
+    assert set(llamadas) == {"catalogo"}
 
 
 def test_diagnostico_real_bloquea_borrador_ajeno_antes_de_comparar(
@@ -837,3 +944,37 @@ def test_documento_pendiente_no_entra_al_nucleo(
 
     assert resultado["estado"] == "NO_DISPONIBLE"
     assert "Espere" in resultado["mensaje"]
+
+
+def test_advertencia_de_correspondencia_tambien_muestra_la_extraccion(
+    expediente_confrontacion, crear_documento_listo
+):
+    """Es cuando más falta hace: ¿es otro expediente o falló el OCR?"""
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "dni-ficticio.png",
+        "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.docx",
+        "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "ajeno-ficticio.docx",
+        "BRUNO TELURIO VENTORIA, DE NACIONALIDAD PERUANA. DNI 91000009.\n"
+        "CARLA NEBULOSA FICTICIA, DE NACIONALIDAD PERUANA. DNI 91000008.",
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "ADVERTENCIA_CORRESPONDENCIA"
+    assert resultado["extraccion"]["catalogo"]["DNI"] == ["90000001"]
+    assert len(resultado["extraccion"]["documentos"]) == 2

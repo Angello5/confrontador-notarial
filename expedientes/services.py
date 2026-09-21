@@ -30,6 +30,7 @@ ESTADOS_VISIBLES = {
 }
 
 _UMBRAL_PARRAFO = 88
+_CAMPOS_CATALOGO = ("NOMBRE", "DNI", "PARTIDA", "MONTO")
 
 _RE_OBSERVACION_CAMPO = re.compile(
     r"^\[(?P<campo>[^]]+)\]\s+«(?P<hallado>[^»]*)»\s+(?P<resto>.*)$"
@@ -395,6 +396,28 @@ def _resultado_no_disponible(mensaje):
     }
 
 
+def _catalogo_legible(catalogo):
+    return {campo: sorted(catalogo.get(campo, ())) for campo in _CAMPOS_CATALOGO}
+
+
+def _resumen_extraccion(fuentes_documentos, catalogo):
+    documentos = []
+    for documento in fuentes_documentos:
+        texto = documento.texto_extraido.texto
+        aporte = _catalogo_legible(
+            verificar.catalogo({documento.nombre_original: texto})
+        )
+        documentos.append(
+            {
+                "nombre": documento.nombre_original,
+                "caracteres": len(texto),
+                "catalogo": aporte,
+                "aporta": any(aporte.values()),
+            }
+        )
+    return {"catalogo": _catalogo_legible(catalogo), "documentos": documentos}
+
+
 def _normalizar_ubicacion(texto):
     texto = unicodedata.normalize("NFKD", texto)
     texto = "".join(c for c in texto if not unicodedata.combining(c)).upper()
@@ -599,16 +622,21 @@ def confrontar_borrador(expediente, borrador):
         for documento in fuentes_documentos
     }
     texto_borrador = borrador.texto_extraido.texto
+    # El catalogo se construye ANTES del diagnostico: si el aviso salta, el
+    # usuario necesita ver que se extrajo para saber si el borrador es de otro
+    # expediente o si el OCR no leyo los datos de las fuentes.
+    catalogo = verificar.catalogo(fuentes)
+    extraccion = _resumen_extraccion(fuentes_documentos, catalogo)
     aviso = verificar.diagnostico(fuentes, texto_borrador)
     if aviso:
         return {
             "estado": "ADVERTENCIA_CORRESPONDENCIA",
             "mensaje": aviso,
+            "extraccion": extraccion,
             "regla": [],
             "ortografia": [],
         }
 
-    catalogo = verificar.catalogo(fuentes)
     reglas = verificar.revisar(catalogo, texto_borrador, _UMBRAL_PARRAFO)
     minutas = [
         documento.texto_extraido.texto
@@ -633,6 +661,7 @@ def confrontar_borrador(expediente, borrador):
     return {
         "estado": "RESULTADO",
         "mensaje": "",
+        "extraccion": extraccion,
         "regla": adaptar_observaciones_regla(reglas, texto_borrador),
         "ortografia": adaptar_observaciones_ortografia(faltas, texto_borrador),
     }

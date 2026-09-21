@@ -27,6 +27,7 @@ firmadas y todavía no está decidido de dónde sale.
 - Q: ¿Cómo se presenta una observación que el núcleo informa desde ambos lados? → A: Una `FALTA` cuyo valor esperado ya aparece como esperado de una discrepancia del mismo campo se omite en la aplicación; las demás `FALTA` permanecen como hallazgos independientes.
 - Q: ¿Cómo se conservan los apellidos con partículas? → A (2026-09-20): las palabras de `STOP` solo se eliminan en los extremos del nombre capturado; las partículas interiores (`DE`, `LA`, `LOS`, `LAS`, `DEL`, `Y`) se conservan. El límite de nombres se fija en 7 palabras para admitir hasta dos partículas compuestas sin convertir líneas largas en nombres.
 - Q: ¿Se repite una observación de nombre si aparece varias veces en la carátula? → A (2026-09-20): no; el núcleo deduplica el candidato de carátula antes de emitir la observación.
+- Q: ¿Cómo puede verificar el usuario si una observación falta por un OCR incompleto? → A (2026-09-20): La pantalla de confrontación incluye una sección plegada por defecto con el catálogo agregado, el aporte por fuente y el número de caracteres extraídos; no muestra el texto completo. Se muestra también cuando salta la advertencia de correspondencia, que es cuando más falta hace.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -121,6 +122,14 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 - **FR-017**: La capa de regla DEBE conservar las partículas interiores de los
   nombres capturados, limitar los nombres a 7 palabras y emitir como máximo una
   observación de carátula por candidato.
+- **FR-018**: La pantalla de confrontación DEBE mostrar, plegada por defecto,
+  el catálogo agregado de `NOMBRE`, `DNI`, `PARTIDA` y `MONTO`, ordenado y
+  legible, además del catálogo obtenido al pasar cada fuente por separado a
+  `nucleo.verificar.catalogo()` y el conteo de caracteres de su texto. Se
+  muestra tanto con resultado como con advertencia de correspondencia.
+- **FR-019**: La pantalla DEBE señalar de forma visible cada fuente cuyo
+  catálogo no aporte ningún campo, sin mostrar su texto completo; este resumen
+  solo se entrega en la respuesta HTML autorizada y nunca en el sondeo JSON.
 
 ### Requisitos de seguridad y privacidad (Constitución I, IV y VI)
 
