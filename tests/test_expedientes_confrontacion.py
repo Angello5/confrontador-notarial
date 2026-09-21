@@ -403,7 +403,10 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.catalogo",
-        lambda *_: llamadas.append("catalogo"),
+        lambda *_: (
+            llamadas.append("catalogo")
+            or {"NOMBRE": set(), "DNI": set(), "PARTIDA": set(), "MONTO": set()}
+        ),
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar", lambda *_: llamadas.append("regla")
@@ -421,7 +424,11 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
 
     assert resultado["estado"] == "ADVERTENCIA_CORRESPONDENCIA"
     assert resultado["mensaje"] == "aviso ficticio"
-    assert llamadas == []
+    # El catalogo SI se construye antes del diagnostico, una vez para el conjunto
+    # y otra por cada fuente: el usuario necesita ver que se extrajo para saber
+    # si el borrador es de otro expediente o si el OCR no leyo las fuentes. Lo
+    # que NO debe ejecutarse es la comparacion.
+    assert set(llamadas) == {"catalogo"}
 
 
 def test_diagnostico_real_bloquea_borrador_ajeno_antes_de_comparar(
@@ -937,3 +944,37 @@ def test_documento_pendiente_no_entra_al_nucleo(
 
     assert resultado["estado"] == "NO_DISPONIBLE"
     assert "Espere" in resultado["mensaje"]
+
+
+def test_advertencia_de_correspondencia_tambien_muestra_la_extraccion(
+    expediente_confrontacion, crear_documento_listo
+):
+    """Es cuando más falta hace: ¿es otro expediente o falló el OCR?"""
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "dni-ficticio.png",
+        "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.docx",
+        "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "ajeno-ficticio.docx",
+        "BRUNO TELURIO VENTORIA, DE NACIONALIDAD PERUANA. DNI 91000009.\n"
+        "CARLA NEBULOSA FICTICIA, DE NACIONALIDAD PERUANA. DNI 91000008.",
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "ADVERTENCIA_CORRESPONDENCIA"
+    assert resultado["extraccion"]["catalogo"]["DNI"] == ["90000001"]
+    assert len(resultado["extraccion"]["documentos"]) == 2

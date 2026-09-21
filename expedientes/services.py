@@ -622,17 +622,21 @@ def confrontar_borrador(expediente, borrador):
         for documento in fuentes_documentos
     }
     texto_borrador = borrador.texto_extraido.texto
+    # El catalogo se construye ANTES del diagnostico: si el aviso salta, el
+    # usuario necesita ver que se extrajo para saber si el borrador es de otro
+    # expediente o si el OCR no leyo los datos de las fuentes.
+    catalogo = verificar.catalogo(fuentes)
+    extraccion = _resumen_extraccion(fuentes_documentos, catalogo)
     aviso = verificar.diagnostico(fuentes, texto_borrador)
     if aviso:
         return {
             "estado": "ADVERTENCIA_CORRESPONDENCIA",
             "mensaje": aviso,
+            "extraccion": extraccion,
             "regla": [],
             "ortografia": [],
         }
 
-    catalogo = verificar.catalogo(fuentes)
-    extraccion = _resumen_extraccion(fuentes_documentos, catalogo)
     reglas = verificar.revisar(catalogo, texto_borrador, _UMBRAL_PARRAFO)
     minutas = [
         documento.texto_extraido.texto
