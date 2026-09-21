@@ -19,6 +19,17 @@ descartó. En palabras (SEÑORA, NÚÑEZ, MUÑOZ, ESPAÑA, ÑANDÚ) se lee bien;
 descarta dentro de un nombre, se genera una observación. T014 sigue siendo el
 gate de la medición privada.
 
+### Eñe significativa en la capa de regla
+
+Desde F5, `nucleo.verificar.norm()` conserva `Ñ`/`ñ` como `Ñ` y sigue
+ignorando las tildes de las vocales. Así, una eñe omitida en el borrador se
+señala como diferencia de nombre y no se pierde por normalización. El riesgo
+residual es un falso positivo cuando una foto de DNI hace que el OCR descarte
+una eñe aislada: la fuente puede conservar la eñe y el texto extraído del
+borrador no. Si aparece, debe diagnosticarse junto con la calidad del OCR y no
+confundirse con un cambio de la regla. T014 sigue siendo el gate de la medición
+privada.
+
 Los diez code smells del análisis inicial de SonarCloud sobre `main` (`4cb625e`)
 se registran para la migración del núcleo en F3; no se corrigen en F1.
 
