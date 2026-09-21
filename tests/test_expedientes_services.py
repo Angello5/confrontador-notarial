@@ -211,3 +211,15 @@ def test_eliminar_documento_conserva_texto_extraido_compartido(usuario_ficticio)
 
     assert not Documento.objects.filter(pk=documento.pk).exists()
     assert TextoExtraido.objects.get(pk=texto.pk).texto == "texto que sigue disponible"
+
+
+def test_temporal_deduce_la_extension_del_origen_sin_nombre_explicito(tmp_path):
+    """Sin la extension, extraccion.leer() lee el binario como texto plano."""
+    from expedientes.services import crear_temporal
+
+    origen = Path(__file__).parent / "fixtures" / "formatos" / "tabla.docx"
+
+    ruta = crear_temporal(origen, destino=tmp_path)
+
+    assert ruta.suffix == ".docx"
+    assert ruta.stem != origen.stem
