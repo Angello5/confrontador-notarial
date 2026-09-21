@@ -513,12 +513,23 @@ def estado_confrontacion(expediente, borrador, fuentes=None):
     """Indica si el borrador tiene los textos necesarios para confrontar."""
     if fuentes is None:
         fuentes = list(
-            expediente.documentos.filter(rol=Documento.FUENTE).order_by("pk")
+            expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE).order_by("pk")
         )
-    if borrador.rol != Documento.BORRADOR or not fuentes:
+    documentos = list(fuentes)
+    if borrador is not None:
+        documentos.append(borrador)
+    roles = {documento.rol for documento in documentos}
+    faltantes = [etiqueta for rol, etiqueta in Documento.ROLES if rol not in roles]
+    if faltantes:
+        verbo = "Falta" if len(faltantes) == 1 else "Faltan"
         return {
             "disponible": False,
-            "mensaje": "Cargue al menos una fuente y un borrador para confrontar.",
+            "mensaje": f"{verbo}: {', '.join(faltantes)}.",
+        }
+    if borrador is None or borrador.rol != Documento.BORRADOR:
+        return {
+            "disponible": False,
+            "mensaje": "Falta: Proyecto (borrador).",
         }
     if borrador.estado in (Documento.PENDIENTE, Documento.PROCESANDO) or any(
         fuente.estado in (Documento.PENDIENTE, Documento.PROCESANDO)
@@ -554,7 +565,7 @@ def confrontar_borrador(expediente, borrador):
         raise ValueError("El documento no es un borrador de este expediente.")
 
     fuentes_documentos = list(
-        expediente.documentos.filter(rol=Documento.FUENTE).order_by("pk")
+        expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE).order_by("pk")
     )
     disponibilidad = estado_confrontacion(expediente, borrador, fuentes_documentos)
     if not disponibilidad["disponible"]:
@@ -577,9 +588,9 @@ def confrontar_borrador(expediente, borrador):
     catalogo = verificar.catalogo(fuentes)
     reglas = verificar.revisar(catalogo, texto_borrador, _UMBRAL_PARRAFO)
     minutas = [
-        texto
-        for nombre, texto in fuentes.items()
-        if Path(nombre).suffix.lower() not in verificar.IMGS
+        documento.texto_extraido.texto
+        for documento in fuentes_documentos
+        if documento.rol == Documento.MINUTA
     ]
     reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
     try:

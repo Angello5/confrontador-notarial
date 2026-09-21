@@ -14,7 +14,7 @@ requisito está definido y es verificable; no declara el Quality Gate remoto.
 - [X] CHK002 ¿El expediente resume cuántos documentos faltan sin sugerir un porcentaje que no se puede medir? [Heurística 1, Spec §UX]
 - [X] CHK003 ¿Está definido el estado de una consulta JSON fallida, una recarga y el regreso posterior a la pantalla? [Heurística 1, contracts §Avance]
 - [X] CHK004 ¿El vocabulario visible usa expediente, fuente, borrador y extracción, y evita task, worker, hash y términos técnicos? [Heurística 2, Spec §Requisitos UX]
-- [X] CHK005 ¿La ayuda diferencia minuta/documentos del cliente como `FUENTE` y proyecto de escritura como `BORRADOR` sin introducir reglas de negocio nuevas? [Heurística 2, Spec §Clarifications]
+- [X] CHK005 ¿La ayuda diferencia `MINUTA`, documentos del cliente (`CLIENTE`) y proyecto de escritura (`BORRADOR`) sin introducir reglas de negocio nuevas? [Heurística 2, Spec §Clarifications]
 
 ## Control, libertad y prevención de errores
 

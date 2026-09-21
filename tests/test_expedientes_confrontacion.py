@@ -64,6 +64,86 @@ def test_precondiciones_no_confrontan_texto_vacio_ni_documento_no_listo(
     assert llamadas == []
 
 
+@pytest.mark.parametrize(
+    ("roles", "texto_faltante"),
+    [
+        (("MINUTA", "BORRADOR"), "Documentos del cliente"),
+        (("CLIENTE", "BORRADOR"), "Minuta"),
+        (("CLIENTE", "MINUTA"), "Proyecto (borrador)"),
+    ],
+)
+def test_estado_confrontacion_indica_el_rol_obligatorio_ausente(
+    expediente_confrontacion, crear_documento_listo, roles, texto_faltante
+):
+    from expedientes.models import Documento
+    from expedientes.services import estado_confrontacion
+
+    documentos = [
+        crear_documento_listo(
+            expediente_confrontacion,
+            getattr(Documento, rol),
+            f"{rol.lower()}-ficticio.txt",
+            f"texto {rol.lower()} ficticio",
+        )
+        for rol in roles
+    ]
+    borrador = next(
+        (documento for documento in documentos if documento.rol == Documento.BORRADOR),
+        None,
+    )
+
+    estado = estado_confrontacion(expediente_confrontacion, borrador)
+
+    assert estado["disponible"] is False
+    assert texto_faltante in estado["mensaje"]
+
+
+def test_cliente_documento_de_texto_no_se_compara_como_parrafo(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "cliente-ficticio.txt",
+        "texto de cliente ficticio",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.docx",
+        "texto de minuta ficticia",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-ficticio.txt",
+        "texto de borrador ficticio",
+    )
+    llamadas = []
+    monkeypatch.setattr("expedientes.services.verificar.diagnostico", lambda *_: None)
+    monkeypatch.setattr(
+        "expedientes.services.verificar.catalogo",
+        lambda fuentes: {"NOMBRE": set()},
+    )
+    monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
+    monkeypatch.setattr(
+        "expedientes.services.verificar.revisar_parrafos",
+        lambda minutas, *_: llamadas.append(minutas) or [],
+    )
+    monkeypatch.setattr(
+        "expedientes.services.diccionario.diccionario", lambda: (None, [])
+    )
+    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
+    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
+
+    confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert llamadas == [["texto de minuta ficticia"]]
+
+
 def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     expediente_confrontacion, crear_documento_listo, monkeypatch
 ):
@@ -72,13 +152,13 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
 
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
+        Documento.MINUTA,
         "minuta-ficticia.txt",
         "fuente de texto ficticia",
     )
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
+        Documento.CLIENTE,
         "identidad-ficticia.jpg",
         "fuente de identidad ficticia",
     )
@@ -145,9 +225,15 @@ def test_orquestacion_pasa_nombres_del_catalogo_a_ortografia(
 
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
+        Documento.CLIENTE,
         "fuente-ficticia.txt",
         "fuente ficticia",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.docx",
+        "minuta ficticia",
     )
     borrador = crear_documento_listo(
         expediente_confrontacion,
@@ -195,9 +281,15 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
 
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
-        "fuente-ficticia.txt",
+        Documento.CLIENTE,
+        "cliente-ficticio.txt",
         "fuente ficticia",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.docx",
+        "minuta ficticia",
     )
     borrador = crear_documento_listo(
         expediente_confrontacion,
@@ -240,8 +332,14 @@ def test_diagnostico_real_bloquea_borrador_ajeno_antes_de_comparar(
 
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
-        "fuente-identidad-ficticia.txt",
+        Documento.CLIENTE,
+        "cliente-identidad-ficticia.txt",
+        "ANA LUZ QUISPE MAMANI DNI 90000001",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-identidad-ficticia.docx",
         "ANA LUZ QUISPE MAMANI DNI 90000001",
     )
     borrador = crear_documento_listo(
@@ -275,15 +373,27 @@ def test_anexo_sin_identidades_no_bloquea_diagnostico(
 
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
-        "fuente-identidad-ficticia.txt",
+        Documento.CLIENTE,
+        "cliente-identidad-ficticia.txt",
         "ANA LUZ QUISPE MAMANI DNI 90000001",
     )
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
+        Documento.MINUTA,
+        "minuta-identidad-ficticia.docx",
+        "ANA LUZ QUISPE MAMANI DNI 90000001",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
         "anexo-ficticio.txt",
         "ANEXO FICTICIO SIN IDENTIDADES NI NUMEROS PERSONALES",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.docx",
+        "minuta ficticia",
     )
     borrador = crear_documento_listo(
         expediente_confrontacion,
@@ -326,8 +436,14 @@ def test_confrontacion_real_detecta_dni_nombre_y_monto_alterados(
     borrador = borrador.replace("12,345.67", "12,346.67")
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
-        "fuente-ficticia.txt",
+        Documento.MINUTA,
+        "minuta-ficticia.txt",
+        fuente,
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "cliente-ficticio.txt",
         fuente,
     )
     documento_borrador = crear_documento_listo(
@@ -375,7 +491,10 @@ def test_confrontacion_real_identica_no_produce_observaciones_de_regla(
         "PARTIDA ELECTRONICA N° 80000001. MONTO S/ 12,345.67."
     )
     crear_documento_listo(
-        expediente_confrontacion, Documento.FUENTE, "fuente-ficticia.txt", texto
+        expediente_confrontacion, Documento.CLIENTE, "cliente-ficticio.txt", texto
+    )
+    crear_documento_listo(
+        expediente_confrontacion, Documento.MINUTA, "minuta-ficticia.docx", texto
     )
     borrador = crear_documento_listo(
         expediente_confrontacion, Documento.BORRADOR, "borrador-ficticio.txt", texto
@@ -572,7 +691,10 @@ def test_diccionario_no_aprovisionado_devuelve_mensaje_controlado(
 
     texto = "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001."
     crear_documento_listo(
-        expediente_confrontacion, Documento.FUENTE, "fuente-ficticia.txt", texto
+        expediente_confrontacion, Documento.CLIENTE, "cliente-ficticio.txt", texto
+    )
+    crear_documento_listo(
+        expediente_confrontacion, Documento.MINUTA, "minuta-ficticia.docx", texto
     )
     borrador = crear_documento_listo(
         expediente_confrontacion, Documento.BORRADOR, "borrador-ficticio.txt", texto
@@ -611,7 +733,7 @@ def test_diccionario_no_aprovisionado_no_intenta_descargar(tmp_path, monkeypatch
 
 @pytest.mark.parametrize(
     "rol_suprimido",
-    ["FUENTE", "BORRADOR"],
+    ["CLIENTE", "BORRADOR"],
 )
 def test_texto_suprimido_no_entra_al_nucleo(
     expediente_confrontacion,
@@ -624,9 +746,15 @@ def test_texto_suprimido_no_entra_al_nucleo(
 
     fuente = crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
+        Documento.CLIENTE,
         "fuente-supresion-ficticia.txt",
-        "" if rol_suprimido == "FUENTE" else "texto ficticio disponible",
+        "" if rol_suprimido == "CLIENTE" else "texto ficticio disponible",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-supresion-ficticia.docx",
+        "texto ficticio disponible",
     )
     borrador = crear_documento_listo(
         expediente_confrontacion,
@@ -645,7 +773,7 @@ def test_texto_suprimido_no_entra_al_nucleo(
     assert resultado["regla"] == []
     assert resultado["ortografia"] == []
     assert fuente.texto_extraido.texto == (
-        "" if rol_suprimido == "FUENTE" else "texto ficticio disponible"
+        "" if rol_suprimido == "CLIENTE" else "texto ficticio disponible"
     )
 
 
@@ -657,10 +785,16 @@ def test_documento_pendiente_no_entra_al_nucleo(
 
     crear_documento_listo(
         expediente_confrontacion,
-        Documento.FUENTE,
+        Documento.CLIENTE,
         "fuente-pendiente-ficticia.txt",
         "texto ficticio disponible",
         estado=Documento.PENDIENTE,
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-pendiente-ficticia.docx",
+        "texto ficticio disponible",
     )
     borrador = crear_documento_listo(
         expediente_confrontacion,

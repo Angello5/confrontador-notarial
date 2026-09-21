@@ -30,7 +30,7 @@ que permanece.
 | Campo | Tipo | Regla |
 |---|---|---|
 | `expediente` | FK a Expediente, requerido, CASCADE | — |
-| `rol` | texto de opciones, requerido | `FUENTE` (minuta y documentos del cliente) o `BORRADOR` (el proyecto de escritura a revisar). El núcleo trata todas las fuentes como un solo conjunto frente al destino. |
+| `rol` | texto de opciones, requerido | `CLIENTE` (documentos del cliente), `MINUTA` (encargo) o `BORRADOR` (proyecto de escritura a revisar). `CLIENTE` y `MINUTA` son fuentes del catálogo; son roles reales, no una agrupación visual. |
 | `nombre_original` | texto, requerido | Solo para mostrar. Dato no confiable: nunca se usa para construir una ruta. |
 | `hash_archivo` | texto de 64, requerido, indexado | SHA-256 del contenido, calculado antes de procesar. |
 | `tamano_bytes` | entero positivo, requerido | Se valida contra el máximo configurado antes de almacenar. |
@@ -45,6 +45,8 @@ que permanece.
 
 Restricción: un mismo `hash_archivo` no se repite dentro del mismo expediente
 con el mismo `rol`; subirlo otra vez se avisa en lugar de duplicar en silencio.
+La migración reversible de F5 convierte las filas históricas `FUENTE` en
+`CLIENTE`; al revertir, `CLIENTE` y `MINUTA` vuelven a `FUENTE`.
 
 ## TextoExtraido
 

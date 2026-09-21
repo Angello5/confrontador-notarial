@@ -18,6 +18,17 @@ documentos persistidos de F4, obtiene el texto ya extraído y delega la
 orquestación a `expedientes.services`. El resultado se descarta al terminar la
 respuesta.
 
+## Carga del expediente
+
+El detalle presenta dos columnas con aire visual: a la izquierda, las zonas
+«Documentos del cliente» (`CLIENTE`) y «Minuta» (`MINUTA`); a la derecha,
+«Proyecto (borrador)» (`BORRADOR`). Cada zona tiene un formulario independiente
+con selección múltiple, etiqueta «Obligatorio», formatos admitidos y tamaño
+máximo visibles antes de seleccionar archivos. La validación es server-side por
+archivo: los válidos quedan en cola y cada inválido se muestra con su nombre y
+motivo. La lista de documentos cargados es breve y muestra nombre y estado, sin
+tabla densa mientras no haya resultado.
+
 ## Disponibilidad de la acción
 
 En el detalle del expediente se muestra una acción por cada documento con rol
@@ -25,8 +36,8 @@ En el detalle del expediente se muestra una acción por cada documento con rol
 
 | Condición | Acción y mensaje visible |
 |---|---|
-| Existe al menos una `FUENTE` y el borrador tiene texto disponible; todas las fuentes necesarias están `LISTO` | Botón «Confrontar borrador». |
-| Falta el borrador o no hay fuentes | Acción no disponible. «Cargue al menos una fuente y un borrador para confrontar». |
+| Existe al menos un `CLIENTE`, una `MINUTA` y el borrador tiene texto disponible; todos están `LISTO` | Botón «Confrontar borrador». |
+| Falta `CLIENTE`, `MINUTA` o `BORRADOR` | Acción no disponible. El mensaje nombra cada rol faltante: «Documentos del cliente», «Minuta» o «Proyecto (borrador)». |
 | Una fuente o el borrador está `PENDIENTE`/`PROCESANDO` | Acción no disponible. «Espere a que termine la extracción de los documentos». |
 | El texto requerido es nulo o vacío por supresión | Acción no disponible. «El texto de este documento ya no está disponible. Vuelva a subirlo para confrontar». |
 | Hay un documento `ERROR` | Acción no disponible. «No se pudo procesar un documento. Elimínelo y vuelva a subirlo». |

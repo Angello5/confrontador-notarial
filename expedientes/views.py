@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -51,19 +53,55 @@ def _navegacion_contexto(request):
 def _render_detalle(request, expediente, upload_form=None, status=200):
     documentos = list(expediente.documentos.order_by("subido_el", "pk"))
     fuentes = [
-        documento for documento in documentos if documento.rol == Documento.FUENTE
+        documento for documento in documentos if documento.rol in Documento.ROLES_FUENTE
+    ]
+    borradores = [
+        documento for documento in documentos if documento.rol == Documento.BORRADOR
     ]
     for documento in documentos:
         if documento.rol == Documento.BORRADOR:
             documento.confrontacion_estado = estado_confrontacion(
                 expediente, documento, fuentes
             )
+    estado_general = estado_confrontacion(expediente, None, fuentes)
+    formularios = {
+        rol: DocumentoUploadForm(expected_role=rol) for rol, _ in Documento.ROLES
+    }
+    if upload_form is not None:
+        rol = upload_form.expected_role or upload_form.data.get("rol")
+        formularios[rol if rol in formularios else Documento.CLIENTE] = upload_form
+    etiquetas = dict(Documento.ROLES)
+    zonas = [
+        {
+            "rol": Documento.CLIENTE,
+            "titulo": etiquetas[Documento.CLIENTE],
+            "descripcion": "DNI, partidas y otros documentos del cliente.",
+            "documentos": [d for d in documentos if d.rol == Documento.CLIENTE],
+            "form": formularios[Documento.CLIENTE],
+        },
+        {
+            "rol": Documento.MINUTA,
+            "titulo": etiquetas[Documento.MINUTA],
+            "descripcion": "Documento del encargo, normalmente Word.",
+            "documentos": [d for d in documentos if d.rol == Documento.MINUTA],
+            "form": formularios[Documento.MINUTA],
+        },
+        {
+            "rol": Documento.BORRADOR,
+            "titulo": etiquetas[Documento.BORRADOR],
+            "descripcion": "Documento elaborado que se comparará con las fuentes.",
+            "documentos": borradores,
+            "form": formularios[Documento.BORRADOR],
+        },
+    ]
     contexto = {
         "expediente": expediente,
         "documentos": documentos,
+        "borradores": borradores,
+        "estado_general": estado_general,
+        "zonas": zonas,
         "documentos_estado": [resumen_documento(documento) for documento in documentos],
         "resumen": resumen_expediente(expediente),
-        "upload_form": upload_form or DocumentoUploadForm(),
         "formatos_admitidos": formatos_admitidos(),
         "max_file_size_mb": settings.EXPEDIENTES_MAX_FILE_SIZE / (1024 * 1024),
     }
@@ -121,25 +159,39 @@ def expediente_detalle(request, pk):
 def documento_subir(request, pk):
     _requiere_rol(request)
     expediente = _expediente_visible(request, pk)
-    form = DocumentoUploadForm(request.POST, request.FILES)
+    form = DocumentoUploadForm(
+        request.POST,
+        request.FILES,
+        expected_role=request.POST.get("rol"),
+    )
     if not form.is_valid():
         return _render_detalle(request, expediente, form, status=400)
 
-    try:
-        registrar_documento(
-            expediente,
-            form.cleaned_data["archivo"],
-            form.cleaned_data["rol"],
-            request.user,
-        )
-    except DocumentoDuplicado:
-        form.add_error(
-            "archivo", "Ese archivo ya está registrado con este rol en el expediente."
-        )
+    registrados = 0
+    for nombre, motivo in form.errores_archivos:
+        messages.error(request, f"No se cargó {nombre}: {motivo}")
+    for archivo in form.cleaned_data["archivos"]:
+        try:
+            registrar_documento(
+                expediente,
+                archivo,
+                form.cleaned_data["rol"],
+                request.user,
+            )
+        except DocumentoDuplicado:
+            messages.error(
+                request,
+                f"No se cargó {Path(archivo.name).name}: ya está registrado con este rol.",
+            )
+        else:
+            registrados += 1
+    if not registrados:
         return _render_detalle(request, expediente, form, status=400)
-    messages.success(
-        request, "Documento recibido. Quedó en cola para extraer su texto."
-    )
+    if registrados == 1:
+        mensaje = "Documento recibido. Quedó en cola para extraer su texto."
+    else:
+        mensaje = f"{registrados} documentos recibidos. Quedaron en cola para extraer su texto."
+    messages.success(request, mensaje)
     return redirect("expediente_detalle", pk=expediente.pk)
 
 

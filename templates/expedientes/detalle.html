@@ -57,75 +57,120 @@
     </div>
   </section>
 
-  <section class="card card-outline card-primary mb-3" aria-labelledby="subir-documento">
-    <div class="card-header"><h2 id="subir-documento" class="h5 mb-0">Cargar documento</h2></div>
-    <div class="card-body">
-      <p>Formatos admitidos: {{ formatos_admitidos }}. Tamaño máximo: {{ max_file_size_mb|floatformat:0 }} MB.</p>
-      <form method="post" enctype="multipart/form-data" action="{% url 'documento_subir' expediente.pk %}" novalidate>
-        {% csrf_token %}
-        <div class="mb-3">
-          <label class="form-label" for="{{ upload_form.rol.id_for_label }}">{{ upload_form.rol.label }}</label>
-          {{ upload_form.rol }}
-          <div class="form-text">{{ upload_form.rol.help_text }}</div>
-          {% for error in upload_form.rol.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
-        </div>
-        <div class="mb-3">
-          <label class="form-label" for="{{ upload_form.archivo.id_for_label }}">{{ upload_form.archivo.label }}</label>
-          {{ upload_form.archivo }}
-          <div class="form-text">{{ upload_form.archivo.help_text }}</div>
-          {% for error in upload_form.archivo.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
-        </div>
-        <button class="btn btn-primary" type="submit">Cargar documento</button>
-      </form>
-    </div>
-  </section>
-
-  <section class="card" aria-labelledby="documentos-expediente">
-    <div class="card-header"><h2 id="documentos-expediente" class="h5 mb-0">Documentos</h2></div>
-    <div class="card-body">
-      {% if documentos %}
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <caption class="visually-hidden">Documentos y estado de extracción</caption>
-            <thead><tr><th scope="col">Archivo</th><th scope="col">Rol</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
-            <tbody>
-              {% for documento in documentos %}
-                <tr>
-                  <th scope="row">{{ documento.nombre_original }}</th>
-                  <td>{% if documento.rol == "FUENTE" %}Fuente{% else %}Borrador{% endif %}</td>
-                  <td>
-                    <span x-text="documentos.find(item => item.id === {{ documento.pk }})?.estado_texto">{% if documento.estado == "PENDIENTE" %}Pendiente{% elif documento.estado == "PROCESANDO" %}Procesando{% elif documento.estado == "LISTO" %}Listo{% else %}No se pudo procesar{% endif %}</span>
-                    <div class="small" x-show="documentos.find(item => item.id === {{ documento.pk }})?.estado === 'ERROR'">
-                      Motivo: <span x-text="documentos.find(item => item.id === {{ documento.pk }})?.error">No se pudo procesar el archivo.</span>
-                      Elimine el documento y vuelva a subirlo.
-                    </div>
-                  </td>
-                  <td>
-                    {% if documento.rol == "BORRADOR" %}
-                      {% if documento.confrontacion_estado.disponible %}
-                        <form method="post" action="{% url 'documento_confrontar' expediente.pk documento.pk %}" class="d-inline" onsubmit="this.querySelector('button').textContent='Confrontando el borrador…'; this.querySelector('button').disabled=true;">
-                          {% csrf_token %}
-                          <button class="btn btn-outline-primary btn-sm" type="submit">Confrontar borrador</button>
+  <div class="row g-4">
+    <div class="col-12 col-xl-7">
+      <div class="mb-4">
+        <h2 class="h4">Minuta y documentos del cliente</h2>
+        <p class="text-body-secondary">Cargue las fuentes que se usarán para revisar el proyecto.</p>
+      </div>
+      <div class="row g-4">
+        {% for zona in zonas|slice:":2" %}
+          <div class="col-12">
+            <section class="card card-outline card-primary" aria-labelledby="zona-{{ zona.rol|lower }}">
+              <div class="card-header d-flex justify-content-between align-items-start gap-3">
+                <div>
+                  <h3 id="zona-{{ zona.rol|lower }}" class="h5 mb-1">{{ zona.titulo }}</h3>
+                  <p class="text-body-secondary mb-0">{{ zona.descripcion }}</p>
+                </div>
+                <span class="badge text-bg-warning">Obligatorio</span>
+              </div>
+              <div class="card-body">
+                <p class="small mb-3">Formatos admitidos: {{ formatos_admitidos }}. Tamaño máximo: {{ max_file_size_mb|floatformat:0 }} MB.</p>
+                <form method="post" enctype="multipart/form-data" action="{% url 'documento_subir' expediente.pk %}" novalidate>
+                  {% csrf_token %}
+                  {{ zona.form.rol }}
+                  <label class="form-label" for="{{ zona.form.archivos.id_for_label }}">{{ zona.form.archivos.label }}</label>
+                  {{ zona.form.archivos }}
+                  <div class="form-text">{{ zona.form.archivos.help_text }}</div>
+                  {% for error in zona.form.archivos.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+                  {% for error in zona.form.rol.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+                  {% for error in zona.form.errores_archivos %}<div class="alert alert-warning mt-3 mb-0" role="alert">No se cargó {{ error.0 }}: {{ error.1 }}</div>{% endfor %}
+                  <button class="btn btn-primary mt-3" type="submit">Cargar {{ zona.titulo|lower }}</button>
+                </form>
+                {% if zona.documentos %}
+                  <ul class="list-group list-group-flush mt-4" aria-label="Archivos de {{ zona.titulo }}">
+                    {% for documento in zona.documentos %}
+                      <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                          <strong>{{ documento.nombre_original }}</strong>
+                          <div class="small text-body-secondary">
+                            <span x-text="documentos.find(item => item.id === {{ documento.pk }})?.estado_texto">{% if documento.estado == "PENDIENTE" %}Pendiente{% elif documento.estado == "PROCESANDO" %}Procesando{% elif documento.estado == "LISTO" %}Listo{% else %}No se pudo procesar{% endif %}</span>
+                            {% if documento.estado == "ERROR" %}<span> · Motivo: no se pudo procesar el archivo. Elimine el documento y vuelva a subirlo.</span>{% endif %}
+                          </div>
+                        </div>
+                        <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');">
+                          {% csrf_token %}<input type="hidden" name="confirmado" value="1">
+                          <button class="btn btn-outline-danger btn-sm" type="submit">Eliminar</button>
                         </form>
-                      {% else %}
-                        <span class="small text-body-secondary">{{ documento.confrontacion_estado.mensaje }}</span>
-                      {% endif %}
-                    {% endif %}
-                    <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');" class="d-inline">
-                      {% csrf_token %}
-                      <input type="hidden" name="confirmado" value="1">
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}<p class="text-body-secondary mt-4 mb-0">Aún no hay archivos cargados.</p>{% endif %}
+              </div>
+            </section>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-12 col-xl-5">
+      {% with zona=zonas|last %}
+        <section class="card card-outline card-primary" aria-labelledby="zona-borrador">
+          <div class="card-header d-flex justify-content-between align-items-start gap-3">
+            <div>
+              <h2 id="zona-borrador" class="h4 mb-1">{{ zona.titulo }}</h2>
+              <p class="text-body-secondary mb-0">{{ zona.descripcion }}</p>
+            </div>
+            <span class="badge text-bg-warning">Obligatorio</span>
+          </div>
+          <div class="card-body">
+            <p class="small mb-3">Formatos admitidos: {{ formatos_admitidos }}. Tamaño máximo: {{ max_file_size_mb|floatformat:0 }} MB.</p>
+            <form method="post" enctype="multipart/form-data" action="{% url 'documento_subir' expediente.pk %}" novalidate>
+              {% csrf_token %}
+              {{ zona.form.rol }}
+              <label class="form-label" for="{{ zona.form.archivos.id_for_label }}">{{ zona.form.archivos.label }}</label>
+              {{ zona.form.archivos }}
+              <div class="form-text">{{ zona.form.archivos.help_text }}</div>
+              {% for error in zona.form.archivos.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+              {% for error in zona.form.errores_archivos %}<div class="alert alert-warning mt-3 mb-0" role="alert">No se cargó {{ error.0 }}: {{ error.1 }}</div>{% endfor %}
+              <button class="btn btn-primary mt-3" type="submit">Cargar {{ zona.titulo|lower }}</button>
+            </form>
+            {% if zona.documentos %}
+              <ul class="list-group list-group-flush mt-4" aria-label="Archivos de {{ zona.titulo }}">
+                {% for documento in zona.documentos %}
+                  <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-3">
+                    <div>
+                      <strong>{{ documento.nombre_original }}</strong>
+                      <div class="small text-body-secondary"><span x-text="documentos.find(item => item.id === {{ documento.pk }})?.estado_texto">{% if documento.estado == "PENDIENTE" %}Pendiente{% elif documento.estado == "PROCESANDO" %}Procesando{% elif documento.estado == "LISTO" %}Listo{% else %}No se pudo procesar{% endif %}</span></div>
+                    </div>
+                    <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');">
+                      {% csrf_token %}<input type="hidden" name="confirmado" value="1">
                       <button class="btn btn-outline-danger btn-sm" type="submit">Eliminar</button>
                     </form>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p class="alert alert-info mb-0" role="status">Este expediente aún no tiene documentos.</p>
-      {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}<p class="text-body-secondary mt-4 mb-0">Aún no hay archivos cargados.</p>{% endif %}
+            <div class="border-top mt-4 pt-4">
+              {% if borradores %}
+                {% for borrador in borradores %}
+                  {% if borrador.confrontacion_estado.disponible %}
+                    <form method="post" action="{% url 'documento_confrontar' expediente.pk borrador.pk %}" onsubmit="this.querySelector('button').textContent='Confrontando el borrador…'; this.querySelector('button').disabled=true;">
+                      {% csrf_token %}<button class="btn btn-outline-primary" type="submit">Confrontar borrador</button>
+                    </form>
+                  {% else %}
+                    <button class="btn btn-outline-primary" type="button" disabled>Confrontar borrador</button>
+                    <p class="small text-body-secondary mt-2 mb-0">{{ borrador.confrontacion_estado.mensaje }}</p>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <button class="btn btn-outline-primary" type="button" disabled>Confrontar borrador</button>
+                <p class="small text-body-secondary mt-2 mb-0">{{ estado_general.mensaje }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+      {% endwith %}
     </div>
-  </section>
+  </div>
   </div>
 {% endblock %}

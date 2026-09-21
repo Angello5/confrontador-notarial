@@ -80,7 +80,7 @@ python manage.py runserver 127.0.0.1:8000
 
 En `http://127.0.0.1:8000/`, inicia sesión con la cuenta local creada de
 forma interactiva, crea un expediente con un código ficticio y carga los dos
-archivos indicando `FUENTE` y `BORRADOR`. En otra terminal, con las mismas
+archivos indicando `CLIENTE`, `MINUTA` y `BORRADOR`. En otra terminal, con las mismas
 variables de entorno, ejecuta `python manage.py procesar_documentos`; la
 pantalla debe pasar por `PENDIENTE`/`PROCESANDO` a `LISTO` y el directorio
 temporal debe quedar vacío. Comprueba también eliminar un documento con

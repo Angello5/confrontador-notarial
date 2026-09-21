@@ -38,7 +38,7 @@ def test_pantalla_muestra_estado_y_accion_en_espanol(
     )
     Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="estado-ficticio.txt",
         hash_archivo=estado.lower().ljust(64, "0"),
         tamano_bytes=4,
@@ -57,6 +57,25 @@ def test_pantalla_muestra_estado_y_accion_en_espanol(
         assert b"reintentar" not in contenido
 
 
+def test_detalle_separa_las_tres_zonas_obligatorias(client, usuario_ficticio):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-ZONAS", creado_por=usuario_ficticio
+    )
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.get(f"/expedientes/{expediente.pk}/")
+    contenido = respuesta.content.decode()
+
+    assert "Documentos del cliente" in contenido
+    assert "Minuta" in contenido
+    assert "Proyecto (borrador)" in contenido
+    assert contenido.count("multiple") == 3
+    assert contenido.count("Obligatorio") >= 3
+    assert "Faltan:" in contenido
+
+
 def test_eliminar_sin_confirmacion_conserva_documento_y_temporal(
     client, usuario_ficticio, tmp_path
 ):
@@ -69,7 +88,7 @@ def test_eliminar_sin_confirmacion_conserva_documento_y_temporal(
     ruta.write_bytes(b"contenido ficticio")
     documento = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="no-eliminar-ficticio.txt",
         hash_archivo="8" * 64,
         tamano_bytes=ruta.stat().st_size,

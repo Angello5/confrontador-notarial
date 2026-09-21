@@ -47,7 +47,7 @@ def test_worker_recupera_procesando_vencido_y_no_toma_dos_veces(
     )
     documento = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="pendiente-ficticio.txt",
         hash_archivo="1" * 64,
         tamano_bytes=4,
@@ -78,7 +78,7 @@ def test_comando_procesa_dos_pendientes_borra_temporales_e_informa(
         documentos.append(
             Documento.objects.create(
                 expediente=expediente,
-                rol="FUENTE" if indice == 0 else "BORRADOR",
+                rol="CLIENTE" if indice == 0 else "BORRADOR",
                 nombre_original=f"documento-{indice}.txt",
                 hash_archivo=str(indice + 2) * 64,
                 tamano_bytes=ruta.stat().st_size,
@@ -129,7 +129,7 @@ def test_comando_recupera_vencido_al_arrancar_y_lo_procesa(
     ruta.write_bytes(b"contenido vencido ficticio")
     documento = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="vencido-ficticio.txt",
         hash_archivo="7" * 64,
         tamano_bytes=ruta.stat().st_size,

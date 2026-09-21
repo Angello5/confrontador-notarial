@@ -4,8 +4,8 @@
 `contracts/ui.md`.
 
 **Prerequisites**: F4 ya integrado en `origin/main`; PostgreSQL y las
-dependencias fijadas ya están disponibles. F5 no añade modelos, migraciones ni
-dependencias.
+dependencias fijadas ya están disponibles. F5 no añade entidades ni
+dependencias, pero incluye la migración reversible de roles de `Documento`.
 
 **Tests**: obligatorios por la especificación y por el principio III. Cada
 prueba nueva se escribe y se comprueba en rojo antes de implementar el código
@@ -20,7 +20,7 @@ completan la lectura, advertencia y recuperación.
 **Purpose**: dejar explícita la superficie de archivos que se puede tocar y
 conservar los límites de F4/F5.
 
-- [X] T001 Revisar `specs/005-confrontacion/research.md`, `plan.md` y `contracts/ui.md` contra `nucleo/verificar.py`, `nucleo/ortografia.py` y `expedientes/services.py`; criterio: la implementación queda limitada a `expedientes/services.py`, `expedientes/views.py`, `expedientes/urls.py`, `templates/expedientes/confrontacion.html` y tests F5, sin cambios en `spec.md`, `nucleo/`, `app.py`, `app_ortografia.py`, modelos, migraciones o locks.
+- [X] T001 Revisar `specs/005-confrontacion/research.md`, `plan.md` y `contracts/ui.md` contra `nucleo/verificar.py`, `nucleo/ortografia.py` y `expedientes/services.py`; criterio: el núcleo permanece sin cambios, los tres roles y la migración reversible quedan documentados y no se añaden dependencias ni locks.
 - [X] T002 [P] Preparar los módulos de pruebas ficticias `tests/test_expedientes_confrontacion.py` y `tests/test_expedientes_confrontacion_ui.py`; criterio: pytest los descubre con los marcadores existentes, no contienen datos personales reales y fallan de forma controlada cuando referencian el servicio/ruta aún inexistente.
 
 ## Phase 2: Foundational (Blocking Prerequisites)
@@ -45,13 +45,13 @@ no crea ni modifica entidades de resultado.
 
 ### Tests for User Story 1 (write first)
 
-- [X] T005 [P] [US1] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas de precondición y orquestación: fuente/borrador disponibles, fuentes pasadas a `catalogo` y `diagnostico` con `nombre_original` como clave, minutas solo por extensión no imagen y umbral fijo 88; criterio: fallan antes de implementar y detectan una clave temporal, extensión mal clasificada o umbral expuesto.
+- [X] T005 [P] [US1] Escribir en `tests/test_expedientes_confrontacion.py` pruebas rojas de precondición y orquestación: `CLIENTE`, `MINUTA` y `BORRADOR` disponibles, fuentes pasadas a `catalogo` y `diagnostico` con `nombre_original` como clave, párrafos solo para `MINUTA` y umbral fijo 88; criterio: fallan antes de implementar y detectan un rol faltante, una clave temporal, una clasificación por extensión o umbral expuesto.
 - [X] T006 [P] [US1] Escribir en `tests/test_expedientes_confrontacion.py` una prueba roja de ejecución de regla + ortografía, sin léxico ni `experimental/`, usando mocks/recursos de diccionario ficticios; criterio: comprueba que los nombres del catálogo se pasan como `propios` y que ambos grupos llegan al resultado.
 - [X] T007 [P] [US1] Escribir en `tests/test_expedientes_confrontacion_ui.py` pruebas rojas del POST de confrontación para creador y Administrador, método inválido/CSRF y documento que no es borrador; criterio: solo el acceso autorizado llega al servicio y las denegaciones no revelan datos.
 
 ### Implementation for User Story 1
 
-- [X] T008 [US1] Implementar en `expedientes/services.py` la selección validada del borrador y sus fuentes `FUENTE`, la comprobación de texto no vacío/estado `LISTO` y la construcción del `dict[str, str]` con claves `Documento.nombre_original`; criterio: T005 pasa, no se confrontan cadenas vacías, no se toca ningún modelo nuevo y cada borrador se mantiene separado.
+- [X] T008 [US1] Implementar en `expedientes/services.py` la selección validada del borrador y sus fuentes `CLIENTE`/`MINUTA`, la comprobación de los tres roles, texto no vacío/estado `LISTO` y la construcción del `dict[str, str]` con claves `Documento.nombre_original`; criterio: T005 pasa, no se confrontan cadenas vacías, no se toca el núcleo y cada borrador se mantiene separado.
 - [X] T009 [US1] Implementar en `expedientes/services.py` la orquestación determinista `diagnostico` → `revisar`/`revisar_parrafos` con umbral interno 88 → `nucleo.ortografia.revisar`, cargando recursos desde `adaptadores.diccionario` y pasando palabras propias del catálogo; criterio: T006 pasa, no se llama léxico/IA, el resultado es en memoria y dos ejecuciones iguales son idénticas.
 - [X] T010 [US1] Añadir en `expedientes/urls.py` y `expedientes/views.py` la acción POST por documento borrador, reutilizando `_expediente_visible`, `usuario_puede_ver_expediente` y servicios existentes; criterio: T007 pasa, requiere login/rol/CSRF, valida pertenencia y rol `BORRADOR`, y renderiza sin persistir el resultado.
 - [X] T011 [US1] Crear la base de `templates/expedientes/confrontacion.html` y añadir en `templates/expedientes/detalle.html` la acción/estado por borrador, con breadcrumbs, estado `TRABAJANDO`, estado sin observaciones y mensaje seguro; criterio: la acción solo se habilita con precondiciones válidas y ninguna plantilla muestra texto completo, hashes, rutas ni términos técnicos.
@@ -122,7 +122,7 @@ entra al núcleo, muestra estado no disponible y mantiene intacto el registro.
 
 ### Implementation for User Story 4
 
-- [X] T026 [US4] Integrar en `expedientes/services.py`, `expedientes/views.py` y el detalle existente la respuesta `NO_DISPONIBLE` para texto nulo/vacío y estados no listos; criterio: T024 y T025 pasan, no se crean filas, archivos ni migraciones.
+- [X] T026 [US4] Integrar en `expedientes/services.py`, `expedientes/views.py` y el detalle existente la respuesta `NO_DISPONIBLE` para texto nulo/vacío y estados no listos; criterio: T024 y T025 pasan, no se crean filas ni archivos de resultado.
 
 **Checkpoint**: supresión y procesamiento incompleto se distinguen de un
 resultado con diferencias.
@@ -134,13 +134,13 @@ de entregar la implementación a revisión.
 
 - [X] T027 [P] Ejecutar y revisar `python -m pytest tests/test_expedientes_confrontacion.py tests/test_expedientes_confrontacion_ui.py --cov --cov-report=term --cov-report=xml:coverage.xml`; criterio: pruebas nuevas verdes, cobertura XML válida y ningún marker privado ejecutado.
 - [X] T028 [P] Ejecutar `python -m ruff check .`, `python -m ruff format --check .` y `git diff --check`; criterio: gates locales verdes y solo archivos previstos modificados.
-- [X] T029 [P] Revisar `tests/conftest.py`, `.github/workflows/ci.yml`, locks y diff completo; criterio: no hay dependencia nueva, secreto, dato personal, import `experimental/`, llamada IA, ruta temporal o entidad/migración accidental.
+- [X] T029 [P] Revisar `tests/conftest.py`, `.github/workflows/ci.yml`, locks y diff completo; criterio: no hay dependencia nueva, secreto, dato personal, import `experimental/`, llamada IA, ruta temporal o entidad accidental; la migración de roles esperada está incluida.
 - [X] T030 Verificar contra `specs/005-confrontacion/contracts/ui.md`, `checklists/requirements.md` y `checklists/ux.md`; criterio: cada FR/SC y cada estado tiene prueba o evidencia local, los ítems pendientes siguen claramente pendientes y no se afirma Quality Gate remoto.
-- [X] T031 Ejecutar el checkpoint completo de `AGENTS.md` (Django check, migraciones sin cambios, pytest con cobertura, Ruff, `pip-audit --strict` y pre-commit si ya está habilitado); criterio: gates locales en verde, sin medición `local_reference` en CI y commit local preparado sin push.
+- [X] T031 Ejecutar el checkpoint completo de `AGENTS.md` (Django check, `makemigrations --check`, migración nueva aplicada/revertida, pytest con cobertura, Ruff, `pip-audit --strict` y pre-commit si ya está habilitado); criterio: gates locales en verde, sin medición `local_reference` en CI y commit local preparado sin push.
 
-**Evidencia T027**: las 33 pruebas F5 pasan de forma aislada; el hook de
+**Evidencia T027**: las pruebas F5 actualizadas pasan de forma aislada; el hook de
 cobertura exige el inventario productivo completo del repositorio, por lo que
-la validez de `coverage.xml` se comprobó con la suite completa (189 pasadas,
+la validez de `coverage.xml` se comprobó con la suite completa (196 pasadas,
 4 privadas omitidas, 88% total).
 
 ## Dependencias y orden
@@ -148,7 +148,7 @@ la validez de `coverage.xml` se comprobó con la suite completa (189 pasadas,
 ### Dependencias por fase
 
 - Setup T001–T002 → Foundation T003–T004 → US1 T005–T011 → US2 T012–T019 → US3 T020–T023 → US4 T024–T026 → Polish T027–T031.
-- No se escriben modelos ni migraciones: F4 ya provee las entidades y sus estados.
+- No se escriben entidades nuevas; la migración reversible de roles se ejecuta antes del resto de F5 y F4 conserva sus estados.
 - US2 depende de la forma de resultado de US1; US3 depende de la ruta y del estado de resultado; US4 puede validarse sobre la precondición compartida, pero se cierra después para mantener la prioridad documental aprobada.
 
 ### Oportunidades paralelas

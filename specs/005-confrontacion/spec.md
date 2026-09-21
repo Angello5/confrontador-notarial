@@ -20,7 +20,8 @@ firmadas y todavía no está decidido de dónde sale.
 - Q: ¿Entra la capa de léxico en F5? → A: No. El léxico necesita un corpus de escrituras ya firmadas y todavía no está decidido de dónde sale. F5 entrega **regla** y **ortografía**, que ya están listas para conectarse. La similitud entre palabras la resuelve `rapidfuzz`, que es lo que ambas capas ya usan por dentro: la de regla para proponer «debe decir X» y la de ortografía para sugerir la palabra correcta.
 - Q: ¿Se guardan las observaciones? → A: No en F5. La confrontación se calcula cuando el usuario la pide y se muestra. No hay OCR de por medio, así que rehacerla cuesta segundos. La persistencia es la decisión de F6 (historial y auditoría).
 - Q: ¿Qué umbral se usa? → A: 88, el mismo valor ya medido que usa la aplicación actual (`UMBRAL_PARRAFO`). No se inventa un valor nuevo ni se expone al usuario en F5.
-- Q: ¿Cómo se distingue la minuta del resto de fuentes, si F4 las guarda todas con rol `FUENTE`? → A: Por la extensión del archivo, igual que hace hoy la aplicación: son "minutas" las fuentes que NO son imágenes. Las imágenes son documentos de identidad y se procesan por otra rama del núcleo.
+- Q: ¿Cómo se distingue la minuta del resto de fuentes, si F4 las guarda todas con rol `FUENTE`? → A (sustituida el 2026-09-20): `CLIENTE`, `MINUTA` y `BORRADOR` son roles reales. `CLIENTE` y `MINUTA` forman el catálogo de fuentes; `revisar_parrafos()` recibe únicamente textos con rol `MINUTA`. Se sustituye la heurística por extensión: un PDF del cliente ya no se interpreta como minuta.
+- Q: ¿Qué documentos son obligatorios para confrontar? → A (2026-09-20): al menos un `CLIENTE`, una `MINUTA` y un `BORRADOR`. Si falta uno, la acción no está disponible y el mensaje nombra el rol faltante.
 - Q: ¿Qué se hace con un documento cuyo texto fue suprimido? → A: No se confronta. Se avisa de que su texto ya no está disponible y que hay que volver a subir el archivo.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -31,12 +32,12 @@ Como usuario de la notaría, quiero pedir la confrontación de un expediente y v
 
 **Why this priority**: Es el objetivo del sistema entero; todo lo anterior existe para llegar aquí.
 
-**Independent Test**: Con un expediente ficticio que tenga una fuente y un borrador ya extraídos, pedir la confrontación y comprobar que aparecen las diferencias sembradas a propósito.
+**Independent Test**: Con un expediente ficticio que tenga al menos un documento `CLIENTE`, una `MINUTA` y un `BORRADOR` ya extraídos, pedir la confrontación y comprobar que aparecen las diferencias sembradas a propósito.
 
 **Acceptance Scenarios**:
 
-1. **Given** un expediente con al menos una fuente y un borrador en estado `LISTO`, **When** el usuario pide la confrontación, **Then** ve las observaciones encontradas, agrupadas por capa.
-2. **Given** un expediente al que le falta el borrador o todas las fuentes, **When** el usuario lo mira, **Then** la acción de confrontar no está disponible y se explica qué falta.
+1. **Given** un expediente con al menos un `CLIENTE`, una `MINUTA` y un `BORRADOR` en estado `LISTO`, **When** el usuario pide la confrontación, **Then** ve las observaciones encontradas, agrupadas por capa.
+2. **Given** un expediente al que le falta `CLIENTE`, `MINUTA` o `BORRADOR`, **When** el usuario lo mira, **Then** la acción de confrontar no está disponible y se explica qué falta.
 3. **Given** un expediente con algún documento que no terminó de procesarse, **When** el usuario lo mira, **Then** se le indica que espere a que termine la extracción.
 4. **Given** un expediente ajeno, **When** alguien que no es su creador ni Administrador intenta confrontarlo, **Then** se deniega.
 5. **Given** una confrontación sin ninguna diferencia, **When** termina, **Then** se informa claramente de que no se encontraron observaciones, sin parecer un error ni una pantalla rota.
@@ -83,24 +84,25 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 ### Edge Cases
 
 - Un expediente con varios borradores: cada uno se confronta por separado y sus resultados se presentan por separado.
+- Cada zona acepta varios archivos en un envío; la validación es individual y los archivos válidos se registran aunque otro falle.
 - Un borrador sin ninguna línea larga: la comparación de párrafos no produce observaciones y eso no es un error.
 - Un valor que aparece muchas veces en el borrador: se señala sin repetir la misma observación una vez por aparición.
-- Una fuente que es imagen y otra que es documento: ambas alimentan el catálogo, pero solo las que no son imágenes se usan para comparar párrafos.
+- Un documento `CLIENTE` que es imagen y otro que es PDF: ambos alimentan el catálogo, pero ninguno se usa para comparar párrafos; solo los documentos `MINUTA` se usan para ello.
 - La confrontación tarda: la pantalla indica que está trabajando y no parece colgada.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: El sistema DEBE permitir pedir la confrontación de un expediente que tenga al menos una fuente y un borrador, ambos con texto disponible.
+- **FR-001**: El sistema DEBE permitir pedir la confrontación de un expediente que tenga al menos un `CLIENTE`, una `MINUTA` y un `BORRADOR`, todos con texto disponible.
 - **FR-002**: El sistema DEBE ejecutar la capa de **regla** (`nucleo.verificar`) comparando el borrador contra el catálogo construido con todas las fuentes.
-- **FR-003**: El sistema DEBE ejecutar la comparación de párrafos entre las minutas y el borrador. Son minutas las fuentes cuya extensión NO corresponde a una imagen.
+- **FR-003**: El sistema DEBE ejecutar la comparación de párrafos entre los documentos con rol `MINUTA` y el borrador. El rol, y no la extensión, identifica las minutas.
 - **FR-004**: El sistema DEBE ejecutar la capa de **ortografía** (`nucleo.ortografia`) sobre el borrador, dando por buenos los nombres propios que la capa de regla ya validó contra las fuentes.
 - **FR-005**: El sistema DEBE ejecutar primero el diagnóstico de correspondencia y, si indica que el borrador no pertenece al expediente, mostrar el aviso y NO listar la comparación campo por campo.
 - **FR-006**: El sistema DEBE mostrar las observaciones agrupadas por capa, con el recuento de cada grupo.
 - **FR-007**: El sistema DEBE indicar, para cada observación cuyo valor aparezca en el borrador, el número de línea y un fragmento del borrador alrededor del hallazgo.
 - **FR-008**: El sistema DEBE usar el umbral ya medido (88) y NO exponerlo al usuario en esta fase.
-- **FR-009**: El sistema DEBE pasar al núcleo las fuentes identificadas por su nombre de archivo original, porque la extensión decide cómo se interpreta cada fuente.
+- **FR-009**: El sistema DEBE pasar al núcleo un catálogo con `CLIENTE` y `MINUTA`, identificado por `Documento.nombre_original`; la clave conserva la extensión porque el núcleo la usa para decidir si una fuente es imagen al extraer el DNI. Esto no decide qué texto entra a `revisar_parrafos()`.
 - **FR-010**: El sistema DEBE avisar, y no confrontar, cuando un documento necesario tenga el texto suprimido o vacío.
 - **FR-011**: El sistema NO DEBE guardar las observaciones en esta fase; se calculan cuando se piden.
 - **FR-012**: El sistema NO DEBE ejecutar la capa de léxico en esta fase ni importar nada de `experimental/`.
@@ -123,7 +125,10 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 
 ### Key Entities *(include if feature involves data)*
 
-F5 no añade entidades nuevas ni migraciones. Consume `Expediente`, `Documento` y `TextoExtraido` de F4, y produce un resultado en memoria que se muestra y se descarta.
+F5 no añade entidades nuevas, pero modifica los roles de `Documento` con una
+migración reversible que convierte `FUENTE` histórico en `CLIENTE`. Consume
+`Expediente`, `Documento` y `TextoExtraido`, y produce un resultado en memoria
+que se muestra y se descarta.
 
 ## Success Criteria *(mandatory)*
 

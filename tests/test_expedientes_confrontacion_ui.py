@@ -29,7 +29,8 @@ def _documentos(expediente, usuario, *, borrador=True):
             subido_por=usuario,
         )
 
-    fuente = crear(Documento.FUENTE, "fuente-ficticia.txt", "fuente ficticia")
+    fuente = crear(Documento.CLIENTE, "cliente-ficticio.txt", "cliente ficticio")
+    crear(Documento.MINUTA, "minuta-ficticia.docx", "minuta ficticia")
     documento = (
         crear(Documento.BORRADOR, "borrador-ficticio.txt", "borrador ficticio")
         if borrador
@@ -237,6 +238,6 @@ def test_detalle_distingue_texto_suprimido_de_fallo_de_procesamiento(
     contenido = respuesta.content.decode()
 
     assert respuesta.status_code == 200
-    assert "Confrontar borrador" not in contenido
+    assert "disabled>Confrontar borrador</button>" in contenido
     assert "texto del borrador ya no está disponible" in contenido
     assert fuente.pk != borrador.pk

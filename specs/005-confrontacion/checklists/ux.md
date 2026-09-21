@@ -36,6 +36,13 @@ siendo evidencia externa cuando corresponda.
 - [X] CHK016 El fragmento se limita al hallazgo necesario y nunca se muestra texto completo, rutas, hashes o datos personales en mensajes. [Privacidad, Constitución IV]
 - [X] CHK017 No se cargan recursos CDN ni se envía el contenido a servicios externos. [Seguridad/Dependencia, Constitución VI/VII]
 
+## Carga y roles documentales
+
+- [X] CHK018 La pantalla separa en dos columnas las zonas `CLIENTE`, `MINUTA` y `BORRADOR`, y marca las tres como obligatorias para confrontar. [Heurística 2/5, contracts §Carga]
+- [X] CHK019 Cada zona acepta múltiples archivos y muestra formatos admitidos y tamaño máximo antes de la carga. [Heurística 5/10, contracts §Carga]
+- [X] CHK020 La validación server-side es individual: los archivos válidos se registran y cada inválido muestra nombre y motivo sin usar el nombre para construir rutas. [Seguridad/Heurística 9, contracts §Carga]
+- [X] CHK021 La comparación de párrafos usa solo documentos con rol `MINUTA`; los documentos `CLIENTE` alimentan el catálogo, pero su extensión no los convierte en minuta. [Heurística 2, spec Clarifications]
+
 ## Evidencia de implementación
 
 Validación local del 2026-09-20: pruebas UI F5, revisión de plantillas y

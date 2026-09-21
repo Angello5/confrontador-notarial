@@ -25,7 +25,7 @@ def test_limpiar_temporales_solo_elimina_huerfanos_antiguos(
     reciente.write_bytes(b"reciente")
     documento_antiguo = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="antiguo-ficticio.txt",
         hash_archivo="2" * 64,
         tamano_bytes=7,
@@ -83,7 +83,7 @@ def test_suprimir_texto_vacia_compartidos_e_informa_expedientes_afectados(
     for expediente in expedientes:
         Documento.objects.create(
             expediente=expediente,
-            rol="FUENTE",
+            rol="CLIENTE",
             nombre_original="compartido-ficticio.txt",
             hash_archivo="4" * 64,
             tamano_bytes=8,
