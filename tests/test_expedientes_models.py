@@ -54,7 +54,7 @@ def test_documento_y_texto_extraido_aplican_roles_estados_y_unicidades(
     )
     documento = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="fuente-sintetica.txt",
         hash_archivo="a" * 64,
         tamano_bytes=12,
@@ -64,7 +64,11 @@ def test_documento_y_texto_extraido_aplican_roles_estados_y_unicidades(
 
     assert documento.estado == "PENDIENTE"
     assert documento.tamano_bytes > 0
-    assert {choice[0] for choice in Documento.ROLES} == {"FUENTE", "BORRADOR"}
+    assert {choice[0] for choice in Documento.ROLES} == {
+        "CLIENTE",
+        "MINUTA",
+        "BORRADOR",
+    }
     assert {choice[0] for choice in Documento.ESTADOS} == {
         "PENDIENTE",
         "PROCESANDO",
@@ -76,7 +80,7 @@ def test_documento_y_texto_extraido_aplican_roles_estados_y_unicidades(
         with transaction.atomic():
             Documento.objects.create(
                 expediente=expediente,
-                rol="FUENTE",
+                rol="CLIENTE",
                 nombre_original="otra-fuente.txt",
                 hash_archivo="a" * 64,
                 tamano_bytes=20,

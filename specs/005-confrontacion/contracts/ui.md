@@ -18,6 +18,17 @@ documentos persistidos de F4, obtiene el texto ya extraído y delega la
 orquestación a `expedientes.services`. El resultado se descarta al terminar la
 respuesta.
 
+## Carga del expediente
+
+El detalle presenta dos columnas con aire visual: a la izquierda, las zonas
+«Documentos del cliente» (`CLIENTE`) y «Minuta» (`MINUTA`); a la derecha,
+«Proyecto (borrador)» (`BORRADOR`). Cada zona tiene un formulario independiente
+con selección múltiple, etiqueta «Obligatorio», formatos admitidos y tamaño
+máximo visibles antes de seleccionar archivos. La validación es server-side por
+archivo: los válidos quedan en cola y cada inválido se muestra con su nombre y
+motivo. La lista de documentos cargados es breve y muestra nombre y estado, sin
+tabla densa mientras no haya resultado.
+
 ## Disponibilidad de la acción
 
 En el detalle del expediente se muestra una acción por cada documento con rol
@@ -25,8 +36,8 @@ En el detalle del expediente se muestra una acción por cada documento con rol
 
 | Condición | Acción y mensaje visible |
 |---|---|
-| Existe al menos una `FUENTE` y el borrador tiene texto disponible; todas las fuentes necesarias están `LISTO` | Botón «Confrontar borrador». |
-| Falta el borrador o no hay fuentes | Acción no disponible. «Cargue al menos una fuente y un borrador para confrontar». |
+| Existe al menos un `CLIENTE`, una `MINUTA` y el borrador tiene texto disponible; todos están `LISTO` | Botón «Confrontar borrador». |
+| Falta `CLIENTE`, `MINUTA` o `BORRADOR` | Acción no disponible. El mensaje nombra cada rol faltante: «Documentos del cliente», «Minuta» o «Proyecto (borrador)». |
 | Una fuente o el borrador está `PENDIENTE`/`PROCESANDO` | Acción no disponible. «Espere a que termine la extracción de los documentos». |
 | El texto requerido es nulo o vacío por supresión | Acción no disponible. «El texto de este documento ya no está disponible. Vuelva a subirlo para confrontar». |
 | Hay un documento `ERROR` | Acción no disponible. «No se pudo procesar un documento. Elimínelo y vuelva a subirlo». |
@@ -35,6 +46,11 @@ En el detalle del expediente se muestra una acción por cada documento con rol
 La disponibilidad es una ayuda de interfaz, no una autorización: el servidor
 repite todas las comprobaciones y devuelve denegación o un estado comprensible
 si el estado cambió entre la carga y el POST.
+
+El sondeo JSON del detalle incluye una lista segura por borrador con su
+identificador, `disponible` y `mensaje`; no incluye nombre, ruta, hash ni texto.
+La pantalla reemplaza esa lista en cada sondeo y muestra la acción en cuanto el
+estado pasa a disponible, sin recargar la página.
 
 ## Estados del resultado
 
@@ -49,7 +65,8 @@ si el estado cambió entre la carga y el POST.
 
 Si la respuesta tarda más de un segundo, la implementación mantiene visible el
 estado `TRABAJANDO` durante el cálculo. No se requiere polling porque F5 no
-crea un trabajo persistente ni guarda estado.
+crea un trabajo persistente ni guarda estado; el polling descrito arriba solo
+consulta la extracción de F4 y la disponibilidad previa a la acción.
 
 ## Agrupación y forma de cada observación
 
@@ -66,6 +83,12 @@ Cada fila de `Regla` contiene:
 | Valor hallado | Valor encontrado en el borrador; para un faltante, «No aparece en el borrador»; para un párrafo alterado, «No aparece o fue alterado». |
 | Valor esperado | Valor de la fuente cuando existe; para una ausencia sin candidato, «No coincide con ninguna fuente»; para párrafo, fragmento de fuente y porcentaje de coincidencia. |
 | Ubicación | «Línea N» y fragmento corto del borrador si el valor se encuentra; «No ubicada» si no se encuentra. La línea se calcula en la aplicación buscando el valor en el texto original. |
+
+La tabla de `Regla` no añade columnas vacías de «Motivo» o «Porcentaje». Si la
+salida de un párrafo trae una coincidencia, se muestra como detalle junto al
+valor esperado; los motivos de ortografía se muestran en su propia tabla. Una
+`FALTA` que duplica el valor esperado de una discrepancia del mismo campo se
+consolida en una sola fila; las faltas sin equivalente se mantienen.
 
 Cada fila de `Ortografía` contiene:
 

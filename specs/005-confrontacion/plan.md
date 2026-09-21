@@ -27,9 +27,10 @@ y no importa `app.py`, `app_ortografia.py` ni `experimental/`.
 `rapidfuzz`, `spylls`, `pymupdf` y los adaptadores ya fijados. No se añade
 ninguna dependencia.
 
-**Storage**: PostgreSQL solo como origen de `Expediente`, `Documento` y
-`TextoExtraido` de F4. F5 no crea modelos, migraciones ni filas de resultados;
-el resultado vive en memoria durante la respuesta.
+**Storage**: PostgreSQL como origen de `Expediente`, `Documento` y
+`TextoExtraido` de F4. F5 añade una migración reversible de roles (`FUENTE` a
+`CLIENTE`); no crea filas de resultados, que viven en memoria durante la
+respuesta.
 
 **Testing**: pytest con PostgreSQL del proyecto, datos ficticios, pruebas de
 servicios y de integración de vistas/permisos/UI. Se ejecutan primero pruebas
@@ -46,12 +47,12 @@ Bootstrap 5 y Alpine.js locales.
 una latencia nueva. Si tarda más de un segundo, la pantalla muestra estado de
 trabajo y no un porcentaje inventado.
 
-**Constraints**: consumir el núcleo sin cambiar su comportamiento; pasar las
-fuentes con el nombre original como clave; separar minutas por extensión no
-imagen; usar umbral 88 oculto; pasar nombres propios aceptados a ortografía;
-no importar IA/`experimental/`; no persistir resultados; no añadir entidades,
-migraciones, dependencias, API pública, SPA, HTMX, Redis o cola nueva; no
-mostrar datos personales en logs/mensajes.
+**Constraints**: consumir el núcleo sin cambiar su comportamiento; pasar
+`CLIENTE` y `MINUTA` con el nombre original como clave; separar minutas por rol,
+no por extensión; usar umbral 88 oculto; pasar nombres propios aceptados a
+ortografía; no importar IA/`experimental/`; no persistir resultados; no añadir
+entidades, dependencias, API pública, SPA, HTMX, Redis o cola nueva; no mostrar
+datos personales en logs/mensajes.
 
 **Scale/Scope**: máximo aproximado de 10 usuarios del ERP. Un expediente puede
 tener varias fuentes y varios borradores; cada borrador listo se confronta por
@@ -94,7 +95,9 @@ specs/005-confrontacion/
     └── ux.md                       # Nielsen y accesibilidad
 ```
 
-No se crea `data-model.md`: F5 no añade entidades ni migraciones. Tampoco se
+No se crea `data-model.md`: F5 modifica roles existentes, pero no añade
+entidades. La migración reversible se incluye en `expedientes/migrations/`.
+Tampoco se
 crea `quickstart.md` en esta etapa porque el entregable aprobado enumera los
 seis artefactos anteriores; la validación operativa se describe en las tareas
 y en el contrato UI.
@@ -143,8 +146,8 @@ de UI/privacidad. No quedan decisiones de negocio inventadas.
 
 - `contracts/ui.md` define la acción por borrador, estados de precondición,
   advertencia de correspondencia, agrupación, campos, ubicación y mensajes.
-- `tasks.md` ordena tests rojos, servicio, vista/URL, plantilla y gates sin
-  crear entidades ni migraciones.
+- `tasks.md` ordena tests rojos, migración de roles, servicio, vista/URL,
+  plantilla y gates sin crear entidades nuevas.
 - Los checklists revisan trazabilidad de requisitos y las 10 heurísticas de
   Nielsen; ningún ítem se marca como evidencia de implementación en esta fase.
 

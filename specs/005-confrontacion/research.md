@@ -39,11 +39,11 @@ esta etapa. La capa de léxico queda fuera de F5.
 
 - **Decisión**: el servicio arma `fuentes` como `dict[str, str]` con la clave
   exacta `Documento.nombre_original` y el texto de cada `Documento` con rol
-  `FUENTE`. Se pasa ese diccionario directamente a `catalogo()` y
+  `CLIENTE` o `MINUTA`. Se pasa ese diccionario directamente a `catalogo()` y
   `diagnostico()`, porque el núcleo decide si una fuente es imagen leyendo la
-  extensión de esa clave. Las minutas para `revisar_parrafos()` son los textos
-  de las fuentes cuyo sufijo, calculado con el nombre original, no pertenece a
-  `nucleo.verificar.IMGS`.
+  extensión de esa clave. Las minutas para `revisar_parrafos()` son únicamente
+  los textos de documentos con rol `MINUTA`; la extensión ya no clasifica el
+  rol.
 - **Alternativas descartadas**: usar el `pk`, un nombre temporal o una ruta
   reconstruida como clave (rompe la decisión de imagen por extensión y puede
   filtrar detalles del servidor); tratar todos los documentos como minutas
@@ -54,8 +54,8 @@ esta etapa. La capa de léxico queda fuera de F5.
 
 - **Decisión**: cada borrador se confronta de forma independiente. El botón
   solo está habilitado para un borrador con texto no vacío cuando existe al
-  menos una fuente con texto no vacío y todas las fuentes necesarias están en
-  `LISTO`. Un documento pendiente/procesándose se muestra como espera; un
+  menos un `CLIENTE` y una `MINUTA` con texto no vacío y todos están en `LISTO`.
+  Un documento pendiente/procesándose se muestra como espera; un
   documento con texto suprimido (`texto_extraido` nulo o `texto == ""`) se
   muestra como no disponible y pide volver a subirlo. No se ejecuta el núcleo
   para ninguna precondición fallida.

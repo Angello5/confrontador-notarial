@@ -142,7 +142,7 @@ def test_registrar_documento_borra_temporal_si_la_fila_no_se_crea(
     hash_archivo = hashlib.sha256(contenido).hexdigest()
     Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="anterior-ficticio.txt",
         hash_archivo=hash_archivo,
         tamano_bytes=len(contenido),
@@ -153,7 +153,7 @@ def test_registrar_documento_borra_temporal_si_la_fila_no_se_crea(
         registrar_documento(
             expediente,
             SimpleUploadedFile("duplicado-ficticio.txt", contenido),
-            "FUENTE",
+            "CLIENTE",
             usuario_ficticio,
         )
 
@@ -198,7 +198,7 @@ def test_eliminar_documento_conserva_texto_extraido_compartido(usuario_ficticio)
     )
     documento = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="eliminar-ficticio.txt",
         hash_archivo="5" * 64,
         tamano_bytes=5,

@@ -18,8 +18,8 @@ def test_usuario_crea_expediente_y_sube_fuente_sintetica(client, usuario_fictici
     respuesta = client.post(
         f"/expedientes/{expediente.pk}/documentos/",
         {
-            "rol": "FUENTE",
-            "archivo": SimpleUploadedFile(
+            "rol": "CLIENTE",
+            "archivos": SimpleUploadedFile(
                 "fuente-sintetica.txt", b"contenido ficticio de prueba"
             ),
         },
@@ -61,8 +61,8 @@ def test_subida_invalida_no_escribe_temporal(
     respuesta = client.post(
         f"/expedientes/{expediente.pk}/documentos/",
         {
-            "rol": "FUENTE",
-            "archivo": SimpleUploadedFile(nombre, contenido),
+            "rol": "CLIENTE",
+            "archivos": SimpleUploadedFile(nombre, contenido),
         },
     )
 
@@ -86,6 +86,55 @@ def test_subida_con_formulario_invalido_no_crea_documento(client, usuario_fictic
     assert not Documento.objects.filter(expediente=expediente).exists()
 
 
+def test_subida_multiple_registra_validos_y_explica_archivo_invalido(
+    client, usuario_ficticio
+):
+    from expedientes.models import Documento, Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-MULTIPLE", creado_por=usuario_ficticio
+    )
+    client.force_login(usuario_ficticio)
+    respuesta = client.post(
+        f"/expedientes/{expediente.pk}/documentos/",
+        {
+            "rol": "CLIENTE",
+            "archivos": [
+                SimpleUploadedFile("cliente-valido.txt", b"texto ficticio valido"),
+                SimpleUploadedFile("cliente-invalido.bin", b"bytes ficticios"),
+            ],
+        },
+        follow=True,
+    )
+
+    assert respuesta.status_code == 200
+    assert Documento.objects.filter(expediente=expediente).count() == 1
+    assert b"cliente-invalido.bin" in respuesta.content
+    assert b"Formato de archivo no admitido" in respuesta.content
+
+
+def test_subida_multiple_acepta_dos_archivos_validos(client, usuario_ficticio):
+    from expedientes.models import Documento, Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-MULTIPLE-VALIDOS", creado_por=usuario_ficticio
+    )
+    client.force_login(usuario_ficticio)
+    respuesta = client.post(
+        f"/expedientes/{expediente.pk}/documentos/",
+        {
+            "rol": "MINUTA",
+            "archivos": [
+                SimpleUploadedFile("minuta-uno.txt", b"texto uno ficticio"),
+                SimpleUploadedFile("minuta-dos.txt", b"texto dos ficticio"),
+            ],
+        },
+    )
+
+    assert respuesta.status_code == 302
+    assert Documento.objects.filter(expediente=expediente, rol="MINUTA").count() == 2
+
+
 def test_duplicado_por_rol_se_rechaza_sin_datos_no_confiables(client, usuario_ficticio):
     from expedientes.models import Documento, Expediente
 
@@ -94,7 +143,7 @@ def test_duplicado_por_rol_se_rechaza_sin_datos_no_confiables(client, usuario_fi
     )
     Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="anterior.txt",
         hash_archivo="2e61afd25d3ca76a0ee265dbc22ba5e9d844dc93ac5f2e37199a34fcbdcb5a52",
         tamano_bytes=16,
@@ -104,13 +153,13 @@ def test_duplicado_por_rol_se_rechaza_sin_datos_no_confiables(client, usuario_fi
     respuesta = client.post(
         f"/expedientes/{expediente.pk}/documentos/",
         {
-            "rol": "FUENTE",
-            "archivo": SimpleUploadedFile("repetido.txt", b"b" * 16),
+            "rol": "CLIENTE",
+            "archivos": SimpleUploadedFile("repetido.txt", b"b" * 16),
         },
     )
 
     assert respuesta.status_code == 400
-    assert b"repetido.txt" not in respuesta.content
+    assert b"repetido.txt" in respuesta.content
     assert b"hash" not in respuesta.content.lower()
 
 
@@ -124,8 +173,8 @@ def test_archivo_mayor_de_25_mb_se_rechaza_antes_de_guardar(client, usuario_fict
     respuesta = client.post(
         f"/expedientes/{expediente.pk}/documentos/",
         {
-            "rol": "FUENTE",
-            "archivo": SimpleUploadedFile(
+            "rol": "CLIENTE",
+            "archivos": SimpleUploadedFile(
                 "grande-sintetico.txt", b"x" * (25 * 1024 * 1024 + 1)
             ),
         },

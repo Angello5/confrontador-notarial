@@ -12,9 +12,9 @@ permanece pendiente del propietario.
 - [X] CHK001 Cada una de las cuatro historias tiene criterio independiente y sus escenarios tienen una salida observable. [Spec §User Scenarios & Testing]
 - [X] CHK002 FR-001 a FR-012 tienen correspondencia con una tarea, una prueba o un contrato UI. [Spec §Requirements, tasks.md]
 - [X] CHK003 Se conserva el límite de F5: regla y ortografía sí; léxico, historial e informe exportable no. [Spec §FR-012, roadmap]
-- [X] CHK004 Se declara que no hay entidades nuevas, migraciones ni persistencia de observaciones. [Spec §Key Entities/FR-011, plan]
+- [X] CHK004 Se declara que no hay entidades nuevas ni persistencia de observaciones; la migración reversible de roles está documentada. [Spec §Key Entities/FR-011, plan]
 - [X] CHK005 Se cubren varios borradores con resultado independiente. [Spec §Edge Cases, contracts §Disponibilidad]
-- [X] CHK006 Se cubren fuentes imagen y documento, incluyendo la regla de minutas por extensión. [Spec §FR-003/FR-009, research]
+- [X] CHK006 Se cubren documentos `CLIENTE` y `MINUTA`; la regla de párrafos usa el rol `MINUTA`, mientras la extensión solo conserva su función interna para el catálogo. [Spec §FR-003/FR-009, research]
 
 ## Claridad funcional y técnica
 
@@ -43,7 +43,9 @@ permanece pendiente del propietario.
 
 ## Evidencia de implementación
 
-Validación local del 2026-09-20: suite F5, `manage.py check`, migraciones sin
-cambios, Ruff y revisión de privacidad ejecutados en esta rama. El Quality Gate
-remoto, las mediciones privadas y las dos aclaraciones pendientes no se
-afirman como evidencia local.
+Validación local del 2026-09-20: suite completa (196 pruebas seleccionadas, 4
+privadas omitidas), `manage.py check`, `makemigrations --check`, migración de
+roles aplicada y revertida en PostgreSQL ficticio, Ruff, `pip-audit --strict`,
+generación de fixtures ficticios y revisión de privacidad ejecutados en esta
+rama. El Quality Gate remoto, las mediciones privadas y las dos aclaraciones
+pendientes no se afirman como evidencia local.
