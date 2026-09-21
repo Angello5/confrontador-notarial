@@ -66,7 +66,11 @@ def crear_temporal(origen, nombre_original="", destino=None):
     destino = Path(destino or settings.EXPEDIENTES_TEMP_DIR)
     destino.mkdir(parents=True, exist_ok=True)
     destino.chmod(0o700)
-    extension = Path(nombre_original).suffix.lower()
+    # La extension decide como lee extraccion.leer(); si se pierde, el archivo
+    # se lee como texto plano y sale basura binaria. Se toma solo el sufijo, y
+    # solo si pertenece a la lista cerrada: el nombre del navegador no es fiable.
+    nombre = nombre_original or getattr(origen, "name", "") or str(origen)
+    extension = Path(nombre).suffix.lower()
     if extension not in extraccion.DOCS:
         extension = ""
     ruta = destino / f"documento-{secrets.token_hex(16)}{extension}"
