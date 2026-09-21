@@ -25,6 +25,8 @@ firmadas y todavía no está decidido de dónde sale.
 - Q: ¿Qué se hace con un documento cuyo texto fue suprimido? → A: No se confronta. Se avisa de que su texto ya no está disponible y que hay que volver a subir el archivo.
 - Q: ¿Qué ocurre mientras termina la extracción? → A: El sondeo del detalle también actualiza la disponibilidad de cada borrador, de modo que la acción aparece sin recargar la página cuando todos los textos están listos.
 - Q: ¿Cómo se presenta una observación que el núcleo informa desde ambos lados? → A: Una `FALTA` cuyo valor esperado ya aparece como esperado de una discrepancia del mismo campo se omite en la aplicación; las demás `FALTA` permanecen como hallazgos independientes.
+- Q: ¿Cómo se conservan los apellidos con partículas? → A (2026-09-20): las palabras de `STOP` solo se eliminan en los extremos del nombre capturado; las partículas interiores (`DE`, `LA`, `LOS`, `LAS`, `DEL`, `Y`) se conservan. El límite de nombres se fija en 7 palabras para admitir hasta dos partículas compuestas sin convertir líneas largas en nombres.
+- Q: ¿Se repite una observación de nombre si aparece varias veces en la carátula? → A (2026-09-20): no; el núcleo deduplica el candidato de carátula antes de emitir la observación.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -116,6 +118,9 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 - **FR-016**: La normalización de la capa de regla DEBE conservar `Ñ`/`ñ` como
   `Ñ`, mientras continúa ignorando las tildes de las vocales, para distinguir
   una eñe omitida en el borrador.
+- **FR-017**: La capa de regla DEBE conservar las partículas interiores de los
+  nombres capturados, limitar los nombres a 7 palabras y emitir como máximo una
+  observación de carátula por candidato.
 
 ### Requisitos de seguridad y privacidad (Constitución I, IV y VI)
 
@@ -153,7 +158,8 @@ que se muestra y se descarta.
 ## Assumptions
 
 - `nucleo/verificar.py` conserva su comportamiento medido salvo FR-016, que
-  corrige la pérdida silenciosa de la eñe; `nucleo/ortografia.py` no cambia.
+  corrige la pérdida silenciosa de la eñe, y FR-017, que corrige la pérdida de
+  partículas de apellidos compuestos; `nucleo/ortografia.py` no cambia.
   La medición contra el expediente de referencia sigue siendo privada.
 - El diccionario `es_PE` y la lista de términos de la casa ya se aprovisionan como en `adaptadores/diccionario.py`.
 - La capa de léxico queda fuera de F5 hasta decidir de dónde sale el corpus de escrituras firmadas.

@@ -85,8 +85,12 @@ STOP = {
 def nombres(t: str) -> list[str]:
     out = []
     for a, b in RE_NOMBRE.findall(norm(t)):
-        w = [x for x in (a or b).split() if x not in STOP and len(x) > 1]
-        if 2 <= len(w) <= 5:
+        w = [x for x in (a or b).split() if len(x) > 1 or x in STOP]
+        while w and w[0] in STOP:
+            w.pop(0)
+        while w and w[-1] in STOP:
+            w.pop()
+        if 2 <= len(w) <= 7:
             out.append(" ".join(w))
     return out
 
@@ -198,15 +202,19 @@ def revisar(cat: dict[str, set[str]], destino: str, umbral: int) -> list[str]:
     # la caratula lista los nombres sueltos, sin "DE NACIONALIDAD" que los delate.
     # ponytail: heuristica por linea corta; si aparecen falsos positivos, acotar a
     # las lineas anteriores a "EN LA CIUDAD DE".
+    vistos_caratula = set()
     for linea in map(norm, destino.splitlines()):
-        if not (4 < len(linea) < 60) or linea in vistos["NOMBRE"]:
+        if not (4 < len(linea) < 60):
             continue
         cand = linea.rstrip(",.")
-        if not 2 <= len(cand.split()) <= 5 or not cand.replace(" ", "").isalpha():
+        if cand in vistos["NOMBRE"] or cand in vistos_caratula:
+            continue
+        if not 2 <= len(cand.split()) <= 7 or not cand.replace(" ", "").isalpha():
             continue
         m = process.extractOne(cand, cat["NOMBRE"], scorer=fuzz.ratio)
         if m and 80 <= m[1] < 100:
             obs.append(f"[NOMBRE] «{cand}» debe decir «{m[0]}»   (caratula)")
+            vistos_caratula.add(cand)
             vistos["NOMBRE"].add(m[0])
     for m in RE_DNI_DOC.finditer(d):
         check("DNI", m.group(1), f"   …{d[max(0, m.start() - 55) : m.end()][-70:]}")
