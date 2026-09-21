@@ -19,6 +19,61 @@ def test_estado_json_no_expone_texto_ruta_ni_contenido(client, usuario_ficticio)
     assert "ruta_temporal" not in respuesta.json()
 
 
+def test_estado_json_actualiza_disponibilidad_por_borrador(client, usuario_ficticio):
+    from django.utils import timezone
+
+    from expedientes.models import Documento, Expediente, TextoExtraido
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-DISPONIBILIDAD", creado_por=usuario_ficticio
+    )
+    documentos = []
+    for rol, nombre in (
+        (Documento.CLIENTE, "cliente-disponibilidad.txt"),
+        (Documento.MINUTA, "minuta-disponibilidad.txt"),
+        (Documento.BORRADOR, "borrador-disponibilidad.txt"),
+    ):
+        texto = TextoExtraido.objects.create(
+            hash_archivo=(nombre.replace(".", "")[:64]).ljust(64, "0"),
+            version_extractor="extractor-ficticio-v1",
+            texto="texto ficticio disponible",
+            ultimo_uso_el=timezone.now(),
+        )
+        documentos.append(
+            Documento.objects.create(
+                expediente=expediente,
+                rol=rol,
+                nombre_original=nombre,
+                hash_archivo=texto.hash_archivo,
+                tamano_bytes=10,
+                estado=Documento.PENDIENTE,
+                texto_extraido=texto,
+                subido_por=usuario_ficticio,
+            )
+        )
+
+    client.force_login(usuario_ficticio)
+    ruta = f"/expedientes/{expediente.pk}/estado/"
+    no_disponible = client.get(ruta).json()
+
+    assert no_disponible["borradores"] == [
+        {
+            "id": documentos[-1].pk,
+            "disponible": False,
+            "mensaje": "Espere a que termine la extracción de los documentos.",
+        }
+    ]
+
+    Documento.objects.filter(pk__in=[documento.pk for documento in documentos]).update(
+        estado=Documento.LISTO
+    )
+    disponible = client.get(ruta).json()
+
+    assert disponible["borradores"] == [
+        {"id": documentos[-1].pk, "disponible": True, "mensaje": ""}
+    ]
+
+
 @pytest.mark.parametrize(
     ("estado", "mensaje"),
     [

@@ -47,6 +47,11 @@ La disponibilidad es una ayuda de interfaz, no una autorización: el servidor
 repite todas las comprobaciones y devuelve denegación o un estado comprensible
 si el estado cambió entre la carga y el POST.
 
+El sondeo JSON del detalle incluye una lista segura por borrador con su
+identificador, `disponible` y `mensaje`; no incluye nombre, ruta, hash ni texto.
+La pantalla reemplaza esa lista en cada sondeo y muestra la acción en cuanto el
+estado pasa a disponible, sin recargar la página.
+
 ## Estados del resultado
 
 | Estado | Presentación | Acción siguiente |
@@ -60,7 +65,8 @@ si el estado cambió entre la carga y el POST.
 
 Si la respuesta tarda más de un segundo, la implementación mantiene visible el
 estado `TRABAJANDO` durante el cálculo. No se requiere polling porque F5 no
-crea un trabajo persistente ni guarda estado.
+crea un trabajo persistente ni guarda estado; el polling descrito arriba solo
+consulta la extracción de F4 y la disponibilidad previa a la acción.
 
 ## Agrupación y forma de cada observación
 
@@ -77,6 +83,12 @@ Cada fila de `Regla` contiene:
 | Valor hallado | Valor encontrado en el borrador; para un faltante, «No aparece en el borrador»; para un párrafo alterado, «No aparece o fue alterado». |
 | Valor esperado | Valor de la fuente cuando existe; para una ausencia sin candidato, «No coincide con ninguna fuente»; para párrafo, fragmento de fuente y porcentaje de coincidencia. |
 | Ubicación | «Línea N» y fragmento corto del borrador si el valor se encuentra; «No ubicada» si no se encuentra. La línea se calcula en la aplicación buscando el valor en el texto original. |
+
+La tabla de `Regla` no añade columnas vacías de «Motivo» o «Porcentaje». Si la
+salida de un párrafo trae una coincidencia, se muestra como detalle junto al
+valor esperado; los motivos de ortografía se muestran en su propia tabla. Una
+`FALTA` que duplica el valor esperado de una discrepancia del mismo campo se
+consolida en una sola fila; las faltas sin equivalente se mantienen.
 
 Cada fila de `Ortografía` contiene:
 

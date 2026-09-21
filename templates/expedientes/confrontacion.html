@@ -47,8 +47,7 @@
             <table class="table table-striped" aria-describedby="regla-titulo">
               <thead><tr>
                 <th scope="col">Campo</th><th scope="col">Valor hallado</th>
-                <th scope="col">Valor esperado</th><th scope="col">Motivo</th>
-                <th scope="col">Porcentaje</th>
+                <th scope="col">Valor esperado</th>
                 <th scope="col">Ubicación</th>
               </tr></thead>
               <tbody>
@@ -56,9 +55,10 @@
                   <tr>
                     <td>{{ observacion.campo }}</td>
                     <td>{{ observacion.hallado }}</td>
-                    <td>{{ observacion.esperado }}</td>
-                    <td>{{ observacion.motivo|default:"—" }}</td>
-                    <td>{{ observacion.porcentaje|default:"—" }}{% if observacion.porcentaje %}%{% endif %}</td>
+                    <td>
+                      {{ observacion.esperado }}
+                      {% if observacion.motivo %}<div class="small text-body-secondary">{{ observacion.motivo }}</div>{% endif %}
+                    </td>
                     <td>
                       {% if observacion.ubicacion.linea %}
                         Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}

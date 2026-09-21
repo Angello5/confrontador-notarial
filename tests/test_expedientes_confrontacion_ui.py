@@ -163,6 +163,57 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     assert "[DNI]" not in contenido
 
 
+def test_tabla_de_regla_no_muestra_columnas_vacias(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-COLUMNAS", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda *_: {
+            "estado": "RESULTADO",
+            "mensaje": "",
+            "regla": [
+                {
+                    "formato": "regla",
+                    "campo": "DNI",
+                    "hallado": "90000002",
+                    "esperado": "90000001",
+                    "motivo": "",
+                    "porcentaje": "",
+                    "ubicacion": {"linea": 1, "fragmento": "DNI 90000002."},
+                },
+                {
+                    "formato": "regla",
+                    "campo": "PARRAFO",
+                    "hallado": "No aparece o fue alterado",
+                    "esperado": "texto de fuente ficticia…",
+                    "motivo": "Coincidencia: 87.50%",
+                    "porcentaje": "87.50",
+                    "ubicacion": {"linea": None, "fragmento": "No ubicada"},
+                },
+            ],
+            "ortografia": [],
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+    encabezado_regla = contenido.split('<section class="card mb-3"', 1)[1].split(
+        '<section class="card mb-3"', 1
+    )[0]
+    assert '<th scope="col">Motivo</th>' not in encabezado_regla
+    assert '<th scope="col">Porcentaje</th>' not in encabezado_regla
+    assert "Coincidencia: 87.50%" in encabezado_regla
+
+
 def test_advertencia_de_correspondencia_es_distinta_de_una_observacion(
     client, usuario_ficticio, monkeypatch
 ):

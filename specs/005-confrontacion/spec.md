@@ -23,6 +23,8 @@ firmadas y todavía no está decidido de dónde sale.
 - Q: ¿Cómo se distingue la minuta del resto de fuentes, si F4 las guarda todas con rol `FUENTE`? → A (sustituida el 2026-09-20): `CLIENTE`, `MINUTA` y `BORRADOR` son roles reales. `CLIENTE` y `MINUTA` forman el catálogo de fuentes; `revisar_parrafos()` recibe únicamente textos con rol `MINUTA`. Se sustituye la heurística por extensión: un PDF del cliente ya no se interpreta como minuta.
 - Q: ¿Qué documentos son obligatorios para confrontar? → A (2026-09-20): al menos un `CLIENTE`, una `MINUTA` y un `BORRADOR`. Si falta uno, la acción no está disponible y el mensaje nombra el rol faltante.
 - Q: ¿Qué se hace con un documento cuyo texto fue suprimido? → A: No se confronta. Se avisa de que su texto ya no está disponible y que hay que volver a subir el archivo.
+- Q: ¿Qué ocurre mientras termina la extracción? → A: El sondeo del detalle también actualiza la disponibilidad de cada borrador, de modo que la acción aparece sin recargar la página cuando todos los textos están listos.
+- Q: ¿Cómo se presenta una observación que el núcleo informa desde ambos lados? → A: Una `FALTA` cuyo valor esperado ya aparece como esperado de una discrepancia del mismo campo se omite en la aplicación; las demás `FALTA` permanecen como hallazgos independientes.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -39,8 +41,9 @@ Como usuario de la notaría, quiero pedir la confrontación de un expediente y v
 1. **Given** un expediente con al menos un `CLIENTE`, una `MINUTA` y un `BORRADOR` en estado `LISTO`, **When** el usuario pide la confrontación, **Then** ve las observaciones encontradas, agrupadas por capa.
 2. **Given** un expediente al que le falta `CLIENTE`, `MINUTA` o `BORRADOR`, **When** el usuario lo mira, **Then** la acción de confrontar no está disponible y se explica qué falta.
 3. **Given** un expediente con algún documento que no terminó de procesarse, **When** el usuario lo mira, **Then** se le indica que espere a que termine la extracción.
-4. **Given** un expediente ajeno, **When** alguien que no es su creador ni Administrador intenta confrontarlo, **Then** se deniega.
-5. **Given** una confrontación sin ninguna diferencia, **When** termina, **Then** se informa claramente de que no se encontraron observaciones, sin parecer un error ni una pantalla rota.
+4. **Given** los documentos pasan de pendientes a `LISTO`, **When** el sondeo recibe el nuevo estado, **Then** la acción de cada borrador disponible aparece sin recargar la página.
+5. **Given** un expediente ajeno, **When** alguien que no es su creador ni Administrador intenta confrontarlo, **Then** se deniega.
+6. **Given** una confrontación sin ninguna diferencia, **When** termina, **Then** se informa claramente de que no se encontraron observaciones, sin parecer un error ni una pantalla rota.
 
 ### User Story 2 - Entender cada observación (Priority: P1)
 
@@ -54,9 +57,10 @@ Como usuario, quiero que cada observación me diga qué campo falla, qué dice e
 
 1. **Given** una observación de la capa de regla, **When** el usuario la lee, **Then** ve el campo (`NOMBRE`, `DNI`, `PARTIDA`, `MONTO`), el valor que aparece en el borrador y el valor esperado según las fuentes, o el aviso de que no coincide con ninguna.
 2. **Given** un dato que está en las fuentes y no aparece en el borrador, **When** el usuario lee las observaciones, **Then** aparece señalado como faltante.
-3. **Given** una observación cuyo valor aparece en el borrador, **When** el usuario la lee, **Then** ve el número de línea y un fragmento del borrador alrededor del hallazgo.
-4. **Given** una observación de la capa de ortografía, **When** el usuario la lee, **Then** ve la palabra, el motivo y la sugerencia cuando la hay.
-5. **Given** un párrafo de la minuta que no aparece en el borrador o aparece alterado, **When** el usuario lee las observaciones, **Then** aparece señalado con su porcentaje de coincidencia.
+3. **Given** una `FALTA` que duplica el valor esperado de una discrepancia del mismo campo, **When** el usuario lee las observaciones, **Then** solo ve una fila para ese hallazgo; las faltas sin discrepancia equivalente sí aparecen.
+4. **Given** una observación cuyo valor aparece en el borrador, **When** el usuario la lee, **Then** ve el número de línea y un fragmento del borrador alrededor del hallazgo.
+5. **Given** una observación de la capa de ortografía, **When** el usuario la lee, **Then** ve la palabra, el motivo y la sugerencia cuando la hay.
+6. **Given** un párrafo de la minuta que no aparece en el borrador o aparece alterado, **When** el usuario lee las observaciones, **Then** aparece señalado con su porcentaje de coincidencia.
 
 ### User Story 3 - Detectar un borrador que no es de este expediente (Priority: P2)
 
@@ -106,6 +110,9 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 - **FR-010**: El sistema DEBE avisar, y no confrontar, cuando un documento necesario tenga el texto suprimido o vacío.
 - **FR-011**: El sistema NO DEBE guardar las observaciones en esta fase; se calculan cuando se piden.
 - **FR-012**: El sistema NO DEBE ejecutar la capa de léxico en esta fase ni importar nada de `experimental/`.
+- **FR-013**: El sondeo de estado DEBE devolver por cada borrador su disponibilidad de confrontación y el motivo seguro cuando no esté disponible, sin texto, ruta, hash ni nombre de archivo.
+- **FR-014**: La aplicación DEBE consolidar una `FALTA` cuando su valor esperado ya esté presente como valor esperado de una discrepancia del mismo campo, sin modificar la salida del núcleo.
+- **FR-015**: La tabla de regla NO DEBE mostrar columnas vacías de motivo o porcentaje; el detalle de coincidencia se muestra en las observaciones donde exista y la tabla de ortografía conserva su motivo.
 
 ### Requisitos de seguridad y privacidad (Constitución I, IV y VI)
 

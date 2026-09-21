@@ -98,6 +98,10 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
         "expediente": expediente,
         "documentos": documentos,
         "borradores": borradores,
+        "borradores_estado": [
+            {"id": borrador.pk, **borrador.confrontacion_estado}
+            for borrador in borradores
+        ],
         "estado_general": estado_general,
         "zonas": zonas,
         "documentos_estado": [resumen_documento(documento) for documento in documentos],
@@ -201,15 +205,25 @@ def expediente_estado(request, pk):
     _requiere_rol(request)
     expediente = _expediente_visible(request, pk)
     resumen = resumen_expediente(expediente)
-    documentos = [
-        resumen_documento(documento) for documento in expediente.documentos.all()
+    documentos = list(expediente.documentos.all())
+    fuentes = [
+        documento for documento in documentos if documento.rol in Documento.ROLES_FUENTE
+    ]
+    borradores = [
+        {
+            "id": documento.pk,
+            **estado_confrontacion(expediente, documento, fuentes),
+        }
+        for documento in documentos
+        if documento.rol == Documento.BORRADOR
     ]
     return JsonResponse(
         {
             "expediente_id": expediente.pk,
             "estado": resumen["estado"],
             "resumen": resumen,
-            "documentos": documentos,
+            "documentos": [resumen_documento(documento) for documento in documentos],
+            "borradores": borradores,
             "polling": bool(resumen["pendientes"] or resumen["procesando"]),
         }
     )

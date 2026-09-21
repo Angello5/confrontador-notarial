@@ -654,10 +654,36 @@ def test_contrato_parser_usa_salida_real_del_nucleo():
     observaciones = adaptar_observaciones_regla(salidas, borrador)
 
     assert salidas
-    assert len(observaciones) == len(salidas)
+    assert len(observaciones) == 5
     assert all(item["formato"] == "regla" for item in observaciones)
-    assert {item["campo"] for item in observaciones} >= {"DNI", "NOMBRE", "MONTO"}
+    assert {item["campo"] for item in observaciones} == {
+        "DNI",
+        "NOMBRE",
+        "MONTO",
+        "PARTIDA",
+        "PARRAFO",
+    }
     assert any(item["campo"] == "PARRAFO" for item in observaciones)
+
+
+def test_adaptador_omite_falta_duplicada_y_conserva_falta_real():
+    from expedientes.services import adaptar_observaciones_regla
+    from nucleo import verificar
+
+    fuente = "DNI 90000001. PARTIDA ELECTRONICA N° 80000001."
+    borrador = "DNI 90000002."
+    salidas = verificar.revisar(
+        verificar.catalogo({"fuente-ficticia.txt": fuente}), borrador, 88
+    )
+
+    observaciones = adaptar_observaciones_regla(salidas, borrador)
+
+    assert [
+        (item["campo"], item["hallado"], item["esperado"]) for item in observaciones
+    ] == [
+        ("DNI", "90000002", "90000001"),
+        ("PARTIDA", "No aparece en el borrador", "80000001"),
+    ]
 
 
 def test_contrato_parser_usa_salida_real_de_revisar_parrafos():

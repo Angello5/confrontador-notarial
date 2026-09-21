@@ -501,7 +501,23 @@ def parsear_observacion_regla(salida, texto_borrador):
 
 
 def adaptar_observaciones_regla(salidas, texto_borrador):
-    return [parsear_observacion_regla(salida, texto_borrador) for salida in salidas]
+    observaciones = [
+        parsear_observacion_regla(salida, texto_borrador) for salida in salidas
+    ]
+    esperados_en_discrepancias = {
+        (observacion["campo"], observacion["esperado"])
+        for observacion in observaciones
+        if observacion["hallado"] != "No aparece en el borrador"
+    }
+    return [
+        observacion
+        for observacion in observaciones
+        if not (
+            observacion["hallado"] == "No aparece en el borrador"
+            and (observacion["campo"], observacion["esperado"])
+            in esperados_en_discrepancias
+        )
+    ]
 
 
 def adaptar_observaciones_ortografia(salidas, texto_borrador):

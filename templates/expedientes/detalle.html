@@ -11,11 +11,13 @@
   </nav>
 
   {{ documentos_estado|json_script:"documentos-estado" }}
+  {{ borradores_estado|json_script:"borradores-estado" }}
   <div
     x-data="{
       estado: '{{ resumen.estado }}',
       resumen: { total: {{ resumen.total }}, pendientes: {{ resumen.pendientes }}, procesando: {{ resumen.procesando }}, listos: {{ resumen.listos }}, errores: {{ resumen.errores }} },
       documentos: JSON.parse(document.getElementById('documentos-estado').textContent),
+      confrontaciones: JSON.parse(document.getElementById('borradores-estado').textContent).reduce((resultado, item) => { resultado[item.id] = item; return resultado; }, {}),
       mensaje: '',
       temporizador: null,
       async actualizar() {
@@ -26,6 +28,7 @@
           this.estado = datos.estado;
           this.resumen = datos.resumen;
           this.documentos = datos.documentos;
+          this.confrontaciones = datos.borradores.reduce((resultado, item) => { resultado[item.id] = item; return resultado; }, {});
           this.mensaje = '';
           if (!datos.polling && this.temporizador) {
             clearInterval(this.temporizador);
@@ -153,14 +156,11 @@
             <div class="border-top mt-4 pt-4">
               {% if borradores %}
                 {% for borrador in borradores %}
-                  {% if borrador.confrontacion_estado.disponible %}
-                    <form method="post" action="{% url 'documento_confrontar' expediente.pk borrador.pk %}" onsubmit="this.querySelector('button').textContent='Confrontando el borrador…'; this.querySelector('button').disabled=true;">
+                    <form x-show="confrontaciones[{{ borrador.pk }}]?.disponible" method="post" action="{% url 'documento_confrontar' expediente.pk borrador.pk %}" onsubmit="this.querySelector('button').textContent='Confrontando el borrador…'; this.querySelector('button').disabled=true;">
                       {% csrf_token %}<button class="btn btn-outline-primary" type="submit">Confrontar borrador</button>
                     </form>
-                  {% else %}
-                    <button class="btn btn-outline-primary" type="button" disabled>Confrontar borrador</button>
-                    <p class="small text-body-secondary mt-2 mb-0">{{ borrador.confrontacion_estado.mensaje }}</p>
-                  {% endif %}
+                    <button x-show="!confrontaciones[{{ borrador.pk }}]?.disponible" class="btn btn-outline-primary" type="button" disabled>Confrontar borrador</button>
+                    <p x-show="!confrontaciones[{{ borrador.pk }}]?.disponible" x-text="confrontaciones[{{ borrador.pk }}]?.mensaje" class="small text-body-secondary mt-2 mb-0">{{ borrador.confrontacion_estado.mensaje }}</p>
                 {% endfor %}
               {% else %}
                 <button class="btn btn-outline-primary" type="button" disabled>Confrontar borrador</button>
