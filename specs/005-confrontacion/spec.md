@@ -25,6 +25,7 @@ firmadas y todavía no está decidido de dónde sale.
 - Q: ¿Qué se hace con un documento cuyo texto fue suprimido? → A: No se confronta. Se avisa de que su texto ya no está disponible y que hay que volver a subir el archivo.
 - Q: ¿Qué ocurre mientras termina la extracción? → A: El sondeo del detalle también actualiza la disponibilidad de cada borrador, de modo que la acción aparece sin recargar la página cuando todos los textos están listos.
 - Q: ¿Cómo se presenta una observación que el núcleo informa desde ambos lados? → A: Una `FALTA` cuyo valor esperado ya aparece como esperado de una discrepancia del mismo campo se omite en la aplicación; las demás `FALTA` permanecen como hallazgos independientes.
+- Q: ¿Cómo puede verificar el usuario si una observación falta por un OCR incompleto? → A: La pantalla de confrontación incluye una sección plegada por defecto con el catálogo agregado, el aporte por fuente y el número de caracteres extraídos; no muestra el texto completo.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -116,6 +117,13 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 - **FR-016**: La normalización de la capa de regla DEBE conservar `Ñ`/`ñ` como
   `Ñ`, mientras continúa ignorando las tildes de las vocales, para distinguir
   una eñe omitida en el borrador.
+- **FR-017**: La pantalla de confrontación DEBE mostrar, plegada por defecto,
+  el catálogo agregado de `NOMBRE`, `DNI`, `PARTIDA` y `MONTO`, ordenado y
+  legible, además del catálogo obtenido al pasar cada fuente por separado a
+  `nucleo.verificar.catalogo()` y el conteo de caracteres de su texto.
+- **FR-018**: La pantalla DEBE señalar de forma visible cada fuente cuyo
+  catálogo no aporte ningún campo, sin mostrar su texto completo; este resumen
+  solo se entrega en la respuesta HTML autorizada y nunca en el sondeo JSON.
 
 ### Requisitos de seguridad y privacidad (Constitución I, IV y VI)
 

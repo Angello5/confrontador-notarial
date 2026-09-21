@@ -99,6 +99,21 @@ Cada fila de `Ortografía` contiene:
 | Sugerencia | Sugerencia del núcleo o «Sin sugerencia» cuando devuelve `?`. |
 | Ubicación | Línea y fragmento corto del borrador, calculados en la aplicación. |
 
+## Verificación de extracción
+
+Después de un resultado de confrontación se muestra una sección `<details>`
+plegada por defecto, titulada «Qué se extrajo de los documentos». Presenta el
+catálogo agregado en el orden `NOMBRE`, `DNI`, `PARTIDA`, `MONTO` y, para cada
+fuente, su nombre original, la cantidad de caracteres extraídos y el catálogo
+que aportó al pasar su texto por `nucleo.verificar.catalogo()` por separado.
+Una fuente sin valores en los cuatro campos muestra la señal visible «No
+aportó campos detectables». Nunca se muestra el texto extraído completo.
+
+Este resumen forma parte únicamente de la respuesta HTML de la acción de
+confrontación para el creador del expediente o un Administrador. El endpoint de
+sondeo conserva su contrato seguro y no devuelve catálogo, aportes, conteos de
+caracteres ni texto extraído.
+
 La aplicación adapta la salida actual de regla (`list[str]`) con el formato
 documentado en `research.md`; no se muestra la cadena cruda al usuario. Las
 tuplas de ortografía se mapean directamente a las columnas anteriores.
