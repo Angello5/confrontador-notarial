@@ -50,6 +50,20 @@ aprovisionados, exactamente en este orden:
 python -m pytest -o addopts= -m local_reference --tb=no
 ```
 
+### Apellidos compuestos y deduplicación de carátula
+
+`nucleo.verificar.nombres()` conserva las partículas de `STOP` que aparecen
+entre palabras del nombre y solo elimina ruido en sus extremos. El límite es de
+7 palabras: cubre nombres con dos partículas compuestas sin ampliar más de lo
+necesario la heurística de carátula. `catalogo()`, `correspondencia()` y
+`revisar()` reciben así el nombre completo; la carátula registra una sola
+observación por candidato repetido.
+
+`RE_DNI_DOC` mantiene deliberadamente el rango de 6 a 9 dígitos. El hallazgo
+de un DNI de 7 dígitos queda pendiente de consulta con la notaría: puede ser una
+libreta electoral antigua legítima o un error de OCR; esta tarea no cambia la
+regla.
+
 Los diez code smells del análisis inicial de SonarCloud sobre `main` (`4cb625e`)
 se registran para la migración del núcleo en F3; no se corrigen en F1.
 

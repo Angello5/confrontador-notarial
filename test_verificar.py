@@ -117,6 +117,75 @@ def test_re_nombre_conserva_nombre_sin_coma():
     ]
 
 
+@pytest.mark.parametrize(
+    ("texto", "esperado"),
+    [
+        (
+            "LUCAS DE LA VEGA ZAFIRO, DE NACIONALIDAD PERUANA.",
+            ["LUCAS DE LA VEGA ZAFIRO"],
+        ),
+        (
+            "ELENA DE LOS ASTROS DE LA TORRE, DE NACIONALIDAD PERUANA.",
+            ["ELENA DE LOS ASTROS DE LA TORRE"],
+        ),
+        (
+            "MATEO Y DEL BOSQUE RIOS, DE NACIONALIDAD PERUANA.",
+            ["MATEO Y DEL BOSQUE RIOS"],
+        ),
+    ],
+)
+def test_nombres_conserva_particulas_internas(texto, esperado):
+    assert RE_NOMBRE.search(texto)
+    assert nombres(texto) == esperado
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "DE LUCAS LUZ ZAFIRO, DE NACIONALIDAD PERUANA.",
+        "LUCAS LUZ ZAFIRO LA, DE NACIONALIDAD PERUANA.",
+    ],
+)
+def test_nombres_descarta_particula_suelta_en_extremo(texto):
+    assert RE_NOMBRE.search(texto)
+    assert nombres(texto) == ["LUCAS LUZ ZAFIRO"]
+
+
+def test_revisar_no_observa_nombre_compuesto_igual_en_fuente_y_borrador():
+    texto = "LUCAS DE LA VEGA ZAFIRO, DE NACIONALIDAD PERUANA."
+    cat = catalogo({"cliente.txt": texto})
+
+    assert cat["NOMBRE"] == {"LUCAS DE LA VEGA ZAFIRO"}
+    assert correspondencia(cat, texto) == (1.0, 0)
+    assert revisar(cat, texto, 88) == []
+
+
+def test_revisar_reporta_nombre_compuesto_alterado_completo():
+    fuente = "LUCAS DE LA VEGA ZAFIRO, DE NACIONALIDAD PERUANA."
+    borrador = "LUCAS DE LA VEGA ZAFIRA, DE NACIONALIDAD PERUANA."
+    cat = catalogo({"cliente.txt": fuente})
+
+    observaciones = revisar(cat, borrador, 88)
+
+    assert any(
+        "[NOMBRE] «LUCAS DE LA VEGA ZAFIRA» debe decir «LUCAS DE LA VEGA ZAFIRO»"
+        in observacion
+        for observacion in observaciones
+    )
+
+
+def test_revisar_no_duplica_nombre_compuesto_repetido_en_caratula():
+    fuente = "LUCAS DE LA VEGA ZAFIRO, DE NACIONALIDAD PERUANA."
+    borrador = "LUCAS DE LA VEGA ZAFIRA\nLUCAS DE LA VEGA ZAFIRA"
+    cat = catalogo({"cliente.txt": fuente})
+
+    observaciones = revisar(cat, borrador, 88)
+
+    assert observaciones == [
+        "[NOMBRE] «LUCAS DE LA VEGA ZAFIRA» debe decir «LUCAS DE LA VEGA ZAFIRO»   (caratula)"
+    ]
+
+
 def test_correspondencia_y_diagnostico_sinteticos():
     fuentes = {"cliente.txt": "NOMBRE ANA LUZ QUISPE MAMANI DNI 90000001"}
     cat = catalogo(fuentes)
