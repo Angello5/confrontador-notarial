@@ -44,3 +44,13 @@ def test_lista_de_casa_se_actualiza_sin_duplicados(monkeypatch, tmp_path):
     assert app_ortografia.lista_casa() == {"SIGLA"}
     assert app_ortografia.agregar_a_lista(["SIGLA", "TÉRMINO"]) == 1
     assert app_ortografia.lista_casa() == {"SIGLA", "TÉRMINO"}
+
+
+def test_lista_de_casa_conserva_enie_y_la_distingue_de_n(monkeypatch, tmp_path):
+    import adaptadores.diccionario as recursos
+
+    lista = tmp_path / "lista.txt"
+    monkeypatch.setattr(recursos, "LISTA", lista)
+
+    assert app_ortografia.agregar_a_lista(["MUÑOZ", "MUNOZ"]) == 2
+    assert app_ortografia.lista_casa() == {"MUÑOZ", "MUNOZ"}

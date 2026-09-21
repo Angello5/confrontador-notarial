@@ -36,11 +36,14 @@ def _errores_pureza(codigo):
 
 
 def test_reglas_reciben_texto_sintetico():
-    from nucleo.lexico import contar, erratas
+    from nucleo.lexico import contar, erratas, sin_tilde
     from nucleo.ortografia import plano
     from nucleo.verificar import nombre_reniec, nombres, norm
 
-    assert norm("LÍNEA Ñ") == "LINEA N"
+    assert norm("LÍNEA Ñ ñ") == "LINEA Ñ Ñ"
+    assert norm("MUÑÓZ") == "MUÑOZ"
+    assert sin_tilde("MUÑÓZ") == "MUÑOZ"
+    assert plano("MUÑÓZ") == "muñoz"
     assert nombres("ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA") == [
         "ALBA ZURBELIA LUMARIA"
     ]
@@ -57,14 +60,53 @@ def test_reglas_reciben_texto_sintetico():
     assert plano("ACCIÓN") == "accion"
 
 
-def test_eñe_en_nombre_no_genera_observacion():
+def test_eñe_en_nombre_genera_observacion_con_el_valor_esperado():
     from nucleo.verificar import catalogo, revisar
 
-    con_enye = (
-        "DOÑA ZURBELIA ÑANDÚ PEÑALOZA, DE NACIONALIDAD PERUANA, CON DNI N° 90000004"
-    )
+    con_enye = "ROSA ELENA MUÑOZ PEÑA, DE NACIONALIDAD PERUANA"
     con_n = con_enye.replace("Ñ", "N")
-    assert revisar(catalogo({"minuta.docx": con_enye}), con_n, 90) == []
+    observaciones = revisar(catalogo({"minuta.docx": con_enye}), con_n, 90)
+    assert (
+        "[NOMBRE] «ROSA ELENA MUNOZ PENA» debe decir «ROSA ELENA MUÑOZ PEÑA»"
+        in observaciones
+    )
+
+
+def test_eñe_igual_en_ambos_lados_no_genera_observacion():
+    from nucleo.verificar import catalogo, revisar
+
+    texto = "ROSA ELENA MUÑOZ PEÑA, DE NACIONALIDAD PERUANA"
+    assert revisar(catalogo({"minuta.docx": texto}), texto, 90) == []
+
+
+def test_nombres_con_eñe_se_detectan_con_y_sin_tilde_vocal():
+    from nucleo.verificar import nombres, norm
+
+    assert nombres("NUÑEZ IBAÑEZ, DE NACIONALIDAD PERUANA") == ["NUÑEZ IBAÑEZ"]
+    assert nombres(norm("NÚÑEZ IBAÑEZ, DE NACIONALIDAD PERUANA")) == ["NUÑEZ IBAÑEZ"]
+
+
+def test_heuristica_de_caratula_admite_eñe():
+    from nucleo.verificar import catalogo, revisar
+
+    fuente = "ROSA ELENA MUÑOZ PEÑA, DE NACIONALIDAD PERUANA"
+    observaciones = revisar(
+        catalogo({"minuta.docx": fuente}), "ROSA ELENA MUNOZ PENA", 90
+    )
+    assert any(
+        obs.startswith("[NOMBRE]") and "MUÑOZ PEÑA" in obs for obs in observaciones
+    )
+
+
+def test_tildes_de_vocales_siguen_siendo_indiferentes():
+    from nucleo.verificar import catalogo, norm, revisar
+
+    assert norm("PERÚ") == norm("PERU")
+    texto = "ROSA ELENA MUÑOZ PEÑA, DE NACIONALIDAD PERÚ"
+    assert (
+        revisar(catalogo({"minuta.docx": texto}), texto.replace("PERÚ", "PERU"), 90)
+        == []
+    )
 
 
 def test_nucleo_solo_importa_lista_blanca_y_no_abre_accesos():
@@ -145,3 +187,31 @@ def test_apps_declaran_imports_de_nuevos_modulos_sin_ejecutar_streamlit():
             for nodo in nodos:
                 if nodo.module == modulo:
                     assert all(hasattr(componente, alias.name) for alias in nodo.names)
+
+
+def test_los_tres_modulos_tratan_la_enie_igual():
+    """La Ñ se conserva y las tildes de vocales se ignoran, en los tres.
+
+    Cada módulo normaliza por su cuenta. Cuando solo `verificar` conservó la Ñ,
+    `lexico` y `ortografia` siguieron convirtiéndola en N y nadie se enteró
+    hasta probarlo a mano. Esta prueba falla si alguien vuelve a tocar uno y se
+    olvida de los otros dos.
+    """
+    from nucleo.lexico import sin_tilde
+    from nucleo.ortografia import plano
+    from nucleo.verificar import norm
+
+    normalizadores = {
+        "verificar.norm": norm,
+        "lexico.sin_tilde": sin_tilde,
+        "ortografia.plano": plano,
+    }
+
+    for nombre, fn in normalizadores.items():
+        assert "Ñ" in fn("MUÑOZ").upper(), f"{nombre} descarta la Ñ"
+        assert fn("MUÑOZ").upper() != fn("MUNOZ").upper(), (
+            f"{nombre} confunde MUÑOZ con MUNOZ"
+        )
+        assert fn("PERÚ").upper() == fn("PERU").upper(), (
+            f"{nombre} distingue tildes de vocales, y no debe"
+        )

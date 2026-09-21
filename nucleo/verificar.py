@@ -12,8 +12,18 @@ RELLENO = re.compile(r"[=_.]{3,}|(?:-?/@/\s*)+")
 
 def norm(t: str) -> str:
     # NFKD antes de upper: 'Nº' -> 'No' minuscula si se invierte el orden
-    t = unicodedata.normalize("NFKD", t)
-    t = "".join(c for c in t if not unicodedata.combining(c)).upper()
+    descompuesto = unicodedata.normalize("NFKD", t)
+    sin_combinantes = []
+    for c in descompuesto:
+        if (
+            c == "\N{COMBINING TILDE}"
+            and sin_combinantes
+            and sin_combinantes[-1] in "Nn"
+        ):
+            sin_combinantes[-1] = "Ñ"
+        elif not unicodedata.combining(c):
+            sin_combinantes.append(c)
+    t = "".join(sin_combinantes).upper()
     return re.sub(r"\s+", " ", RELLENO.sub(" ", t)).strip()
 
 
@@ -32,8 +42,8 @@ RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
 RE_MONTO = re.compile(r"S/\s*(\d[\d,]*\.\d{2})")
 
 RE_NOMBRE = re.compile(
-    r"([A-Z][A-Z ]{8,60}?)[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
-    r"|CASAD[AO]\s+CON\s+([A-Z][A-Z ]{8,60}?)[,.]"
+    r"([A-ZÑ][A-ZÑ ]{8,60}?)[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
+    r"|CASAD[AO]\s+CON\s+([A-ZÑ][A-ZÑ ]{8,60}?)[,.]"
 )
 # Nombre en mayusculas antes de NACIONALIDAD o despues de CASAD@ CON.
 
@@ -57,6 +67,7 @@ STOP = {
     "SOLTERO",
     "QUIEN",
     "SENOR",
+    "SEÑOR",
     "NOTARIO",
     "A",
     "FAVOR",
@@ -73,7 +84,7 @@ STOP = {
 
 def nombres(t: str) -> list[str]:
     out = []
-    for a, b in RE_NOMBRE.findall(t):
+    for a, b in RE_NOMBRE.findall(norm(t)):
         w = [x for x in (a or b).split() if x not in STOP and len(x) > 1]
         if 2 <= len(w) <= 5:
             out.append(" ".join(w))

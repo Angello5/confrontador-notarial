@@ -113,6 +113,9 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 - **FR-013**: El sondeo de estado DEBE devolver por cada borrador su disponibilidad de confrontación y el motivo seguro cuando no esté disponible, sin texto, ruta, hash ni nombre de archivo.
 - **FR-014**: La aplicación DEBE consolidar una `FALTA` cuando su valor esperado ya esté presente como valor esperado de una discrepancia del mismo campo, sin modificar la salida del núcleo.
 - **FR-015**: La tabla de regla NO DEBE mostrar columnas vacías de motivo o porcentaje; el detalle de coincidencia se muestra en las observaciones donde exista y la tabla de ortografía conserva su motivo.
+- **FR-016**: La normalización de la capa de regla DEBE conservar `Ñ`/`ñ` como
+  `Ñ`, mientras continúa ignorando las tildes de las vocales, para distinguir
+  una eñe omitida en el borrador.
 
 ### Requisitos de seguridad y privacidad (Constitución I, IV y VI)
 
@@ -149,7 +152,9 @@ que se muestra y se descarta.
 
 ## Assumptions
 
-- `nucleo/verificar.py` y `nucleo/ortografia.py` NO cambian su comportamiento en esta fase. F5 los consume; si hiciera falta un cambio, se justifica y se mide contra el expediente de referencia.
+- `nucleo/verificar.py` conserva su comportamiento medido salvo FR-016, que
+  corrige la pérdida silenciosa de la eñe; `nucleo/ortografia.py` no cambia.
+  La medición contra el expediente de referencia sigue siendo privada.
 - El diccionario `es_PE` y la lista de términos de la casa ya se aprovisionan como en `adaptadores/diccionario.py`.
 - La capa de léxico queda fuera de F5 hasta decidir de dónde sale el corpus de escrituras firmadas.
 - El informe exportable es F7 y el historial es F6; F5 solo muestra en pantalla.
