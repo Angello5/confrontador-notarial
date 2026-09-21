@@ -187,3 +187,31 @@ def test_apps_declaran_imports_de_nuevos_modulos_sin_ejecutar_streamlit():
             for nodo in nodos:
                 if nodo.module == modulo:
                     assert all(hasattr(componente, alias.name) for alias in nodo.names)
+
+
+def test_los_tres_modulos_tratan_la_enie_igual():
+    """La Ñ se conserva y las tildes de vocales se ignoran, en los tres.
+
+    Cada módulo normaliza por su cuenta. Cuando solo `verificar` conservó la Ñ,
+    `lexico` y `ortografia` siguieron convirtiéndola en N y nadie se enteró
+    hasta probarlo a mano. Esta prueba falla si alguien vuelve a tocar uno y se
+    olvida de los otros dos.
+    """
+    from nucleo.lexico import sin_tilde
+    from nucleo.ortografia import plano
+    from nucleo.verificar import norm
+
+    normalizadores = {
+        "verificar.norm": norm,
+        "lexico.sin_tilde": sin_tilde,
+        "ortografia.plano": plano,
+    }
+
+    for nombre, fn in normalizadores.items():
+        assert "Ñ" in fn("MUÑOZ").upper(), f"{nombre} descarta la Ñ"
+        assert fn("MUÑOZ").upper() != fn("MUNOZ").upper(), (
+            f"{nombre} confunde MUÑOZ con MUNOZ"
+        )
+        assert fn("PERÚ").upper() == fn("PERU").upper(), (
+            f"{nombre} distingue tildes de vocales, y no debe"
+        )
