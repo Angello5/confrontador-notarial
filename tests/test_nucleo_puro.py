@@ -36,11 +36,14 @@ def _errores_pureza(codigo):
 
 
 def test_reglas_reciben_texto_sintetico():
-    from nucleo.lexico import contar, erratas
+    from nucleo.lexico import contar, erratas, sin_tilde
     from nucleo.ortografia import plano
     from nucleo.verificar import nombre_reniec, nombres, norm
 
     assert norm("LÍNEA Ñ ñ") == "LINEA Ñ Ñ"
+    assert norm("MUÑÓZ") == "MUÑOZ"
+    assert sin_tilde("MUÑÓZ") == "MUÑOZ"
+    assert plano("MUÑÓZ") == "muñoz"
     assert nombres("ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA") == [
         "ALBA ZURBELIA LUMARIA"
     ]

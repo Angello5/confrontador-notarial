@@ -7,7 +7,7 @@ from pathlib import Path
 
 from adaptadores.extraccion import leer
 from lexico import vocabulario
-from nucleo.lexico import contar, erratas
+from nucleo.lexico import ACENTO_CORRECTO, TILDE_IMPOSIBLE, _es_flexion, contar, erratas, sin_tilde
 
 BASE = Path(__file__).parent / "tests" / "fixtures"
 FIRMADA = BASE / "resultado" / "correcto.docx"
@@ -69,3 +69,16 @@ def test_vocabulario_incluye_archivos_homonimos_en_subcarpetas(tmp_path):
     assert [(p, c, round(s, 1)) for p, c, s in hallazgos] == [
         ("FERROVIARIX", "FERROVIARIO", 90.9)
     ]
+
+
+def test_sin_tilde_conserva_enie_y_no_confunde_variante_con_n():
+    assert sin_tilde("MUÑOZ") == "MUÑOZ"
+    assert sin_tilde("MUÑOZ") != sin_tilde("MUNOZ")
+    assert TILDE_IMPOSIBLE.search("MUÑOZ") is None
+    assert "MUÑOZ".translate(ACENTO_CORRECTO) == "MUÑOZ"
+
+    vocab = contar(["MUÑOZ"])
+    assert "MUÑOZ" in vocab
+    assert "MUNOZ" not in vocab
+    assert not _es_flexion("MUNOZ", vocab)
+    assert erratas("MUNOZ", vocab) == [("MUNOZ", "MUÑOZ", 90.9090909090909)]

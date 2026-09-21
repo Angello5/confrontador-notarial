@@ -4,7 +4,7 @@ python -m pytest test_ortografia.py
 """
 
 from adaptadores.diccionario import diccionario, lista_casa
-from nucleo.ortografia import revisar
+from nucleo.ortografia import plano, revisar, tildada
 
 ERRORES = {
     "DEUDORR": "no existe en castellano",
@@ -69,3 +69,14 @@ def test_ortografia():
         f"OK — {len(ERRORES)} errores detectados, {len(CORRECTAS)} correctas respetadas, "
         f"lista de la casa: {len(lista_casa())} términos"
     )
+
+
+def test_plano_conserva_enie_sin_alterar_aceptacion_de_tilde_ausente():
+    class DiccionarioFicticio:
+        def lookup(self, palabra):
+            return palabra in {"lámpara", "LÁMPARA"}
+
+    assert plano("MUÑOZ") == "muñoz"
+    assert tildada("MUÑOZ") is False
+    assert plano("ACCIÓN") == "accion"
+    assert revisar("LAMPARA", DiccionarioFicticio(), ["lámpara"], set()) == []
