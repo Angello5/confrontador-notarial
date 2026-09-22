@@ -46,6 +46,18 @@ RE_DNI_DOC_ORIGINAL = re.compile(
 @pytest.mark.parametrize(
     "texto",
     [
+        "DNI 1234567",
+        "DNI 123456789",
+        "DNI 912345678",
+    ],
+)
+def test_re_dni_doc_solo_acepta_ocho_digitos_con_limites(texto):
+    assert RE_DNI_DOC.search(texto) is None
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
         "DNI 90000001",
         "DNI: 90000001",
         "IDENTIDAD N° 90000001",
@@ -197,6 +209,15 @@ def test_correspondencia_y_diagnostico_sinteticos():
     )
 
 
+def test_correspondencia_ignora_dnis_cortos_y_largos():
+    fuentes = {"cliente.txt": "NOMBRE ANA LUZ QUISPE MAMANI DNI 90000001"}
+    cat = catalogo(fuentes)
+    destino = "OTRA PERSONA DNI 90000002 DNI 912345678 DNI 90000003 DNI 1234567"
+
+    assert correspondencia(cat, destino) == (0.0, 2)
+    assert "trae 2 DNI distintos" in (diagnostico(fuentes, destino) or "")
+
+
 def test_verificacion(monkeypatch, tmp_path):
     from adaptadores import extraccion
 
@@ -245,3 +266,39 @@ def test_catalogo_clasifica_imagenes_por_suffix_path_y_compartida_imags():
         }
     )
     assert cat["NOMBRE"] == {"ALBA ZURBELIA LUMARIA", "BRISA ZURBELIA LUMARIA"}
+
+
+def test_catalogo_pdf_usa_reniec_y_prosa_sin_duplicar():
+    reniec = "NOMBRES  ALBA\nAPELLIDO PATERNO  ZURBELIA\nAPELLIDO MATERNO  LUMARIA"
+    prosa = "BRISA SOL TELURIO, DE NACIONALIDAD PERUANA."
+
+    cat = catalogo({"cliente.pdf": f"{prosa}\n{reniec}"})
+
+    assert cat["NOMBRE"] == {"ALBA ZURBELIA LUMARIA", "BRISA SOL TELURIO"}
+
+
+def test_catalogo_pdf_conserva_nombres_en_prosa():
+    cat = catalogo({"minuta.pdf": "BRISA SOL TELURIO, DE NACIONALIDAD PERUANA."})
+
+    assert cat["NOMBRE"] == {"BRISA SOL TELURIO"}
+
+
+def test_catalogo_pdf_reniec_y_prosa_iguales_no_duplica():
+    nombre = "ALBA ZURBELIA LUMARIA"
+    reniec = "NOMBRES  ALBA\nAPELLIDO PATERNO  ZURBELIA\nAPELLIDO MATERNO  LUMARIA"
+
+    cat = catalogo({"cliente.pdf": f"{nombre}, DE NACIONALIDAD PERUANA.\n{reniec}"})
+
+    assert cat["NOMBRE"] == {nombre}
+
+
+def test_catalogo_imagen_mantiene_cui_y_reniec():
+    raw = (
+        "NOMBRES  ALBA\nAPELLIDO PATERNO  ZURBELIA\n"
+        "APELLIDO MATERNO  LUMARIA\n90000001-2"
+    )
+
+    cat = catalogo({"cliente.png": raw})
+
+    assert cat["NOMBRE"] == {"ALBA ZURBELIA LUMARIA"}
+    assert cat["DNI"] == {"90000001"}

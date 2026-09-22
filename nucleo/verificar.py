@@ -32,9 +32,9 @@ RE_CUI = re.compile(r"\b(\d{8})\s*-\s*\d\b")
 
 RE_DNI_DOC = re.compile(
     r"(?:DNI|IDENTIDAD|D[.]N[.]I[.]?)"
-    r"\s*(?:(?:N[O°]?|NUMERO)\s*)?(?:[:.]\s*)?(\d{6,9})"
+    r"\s*(?:(?:N[O°]?|NUMERO)\s*)?(?:[:.]\s*)?(?<!\d)(\d{8})(?!\d)"
 )
-# En documentos el DNI viene rotulado; aceptamos 6-9 digitos para cazar los mal escritos.
+# En documentos el DNI viene rotulado y siempre tiene exactamente 8 digitos.
 
 RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
 # La forma corta PARTIDA N° también es valida en algunos actos.
@@ -115,6 +115,7 @@ def catalogo(fuentes: dict[str, str]) -> dict[str, set[str]]:
         nombre = nom.rsplit("/", 1)[-1]
         sufijo = re.search(r"(?<!^)(\.[^.]*)$", nombre)
         es_img = bool(sufijo and sufijo.group(1).lower() in IMGS)
+        es_pdf = bool(sufijo and sufijo.group(1).lower() == ".pdf")
         cat["DNI"] |= set(RE_CUI.findall(t)) if es_img else set(RE_DNI_DOC.findall(t))
         cat["PARTIDA"] |= set(RE_PARTIDA.findall(t))
         cat["MONTO"] |= set(RE_MONTO.findall(t))
@@ -123,6 +124,8 @@ def catalogo(fuentes: dict[str, str]) -> dict[str, set[str]]:
                 cat["NOMBRE"].add(n)
         else:
             cat["NOMBRE"] |= set(nombres(t))
+            if es_pdf and (n := nombre_reniec(raw)):
+                cat["NOMBRE"].add(n)
     return cat
 
 

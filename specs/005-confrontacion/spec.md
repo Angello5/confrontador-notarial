@@ -28,6 +28,8 @@ firmadas y todavía no está decidido de dónde sale.
 - Q: ¿Cómo se conservan los apellidos con partículas? → A (2026-09-20): las palabras de `STOP` solo se eliminan en los extremos del nombre capturado; las partículas interiores (`DE`, `LA`, `LOS`, `LAS`, `DEL`, `Y`) se conservan. El límite de nombres se fija en 7 palabras para admitir hasta dos partículas compuestas sin convertir líneas largas en nombres.
 - Q: ¿Se repite una observación de nombre si aparece varias veces en la carátula? → A (2026-09-20): no; el núcleo deduplica el candidato de carátula antes de emitir la observación.
 - Q: ¿Cómo puede verificar el usuario si una observación falta por un OCR incompleto? → A (2026-09-20): La pantalla de confrontación incluye una sección plegada por defecto con el catálogo agregado, el aporte por fuente y el número de caracteres extraídos; no muestra el texto completo. Se muestra también cuando salta la advertencia de correspondencia, que es cuando más falta hace.
+- Q: ¿Cómo se extraen nombres de formularios de cliente en PDF? → A (2026-09-22): la capa de regla conserva la vía de prosa y añade la vía de etiquetas RENIEC (`nombre_reniec()`); ambas salidas se unen sin duplicados. Las imágenes mantienen `RE_CUI` y `nombre_reniec()`. Otros formatos y formularios de partidas registrales quedan fuera hasta disponer de fixtures y una decisión específica.
+- Q: ¿Qué longitud tiene un DNI documental? → A (2026-09-22): exactamente 8 dígitos, con límites que impiden capturar una parte de un número más largo. `RE_CUI` conserva el formato de 8 dígitos, guion y dígito verificador de imágenes.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -130,6 +132,11 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 - **FR-019**: La pantalla DEBE señalar de forma visible cada fuente cuyo
   catálogo no aporte ningún campo, sin mostrar su texto completo; este resumen
   solo se entrega en la respuesta HTML autorizada y nunca en el sondeo JSON.
+- **FR-020**: Para una fuente PDF, la capa de regla DEBE unir los nombres
+  encontrados por `nombres()` y `nombre_reniec()`, sin duplicarlos. Para una
+  imagen DEBE conservar las vías existentes de `RE_CUI` y `nombre_reniec()`.
+- **FR-021**: `RE_DNI_DOC` DEBE capturar solo exactamente 8 dígitos y no DEBE
+  capturar ocho dígitos que formen parte de una secuencia numérica mayor.
 
 ### Requisitos de seguridad y privacidad (Constitución I, IV y VI)
 
@@ -168,7 +175,8 @@ que se muestra y se descarta.
 
 - `nucleo/verificar.py` conserva su comportamiento medido salvo FR-016, que
   corrige la pérdida silenciosa de la eñe, y FR-017, que corrige la pérdida de
-  partículas de apellidos compuestos; `nucleo/ortografia.py` no cambia.
+  partículas de apellidos compuestos, FR-020 y FR-021; `nucleo/ortografia.py`
+  no cambia.
   La medición contra el expediente de referencia sigue siendo privada.
 - El diccionario `es_PE` y la lista de términos de la casa ya se aprovisionan como en `adaptadores/diccionario.py`.
 - La capa de léxico queda fuera de F5 hasta decidir de dónde sale el corpus de escrituras firmadas.
