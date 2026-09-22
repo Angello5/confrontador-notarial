@@ -59,10 +59,25 @@ necesario la heurística de carátula. `catalogo()`, `correspondencia()` y
 `revisar()` reciben así el nombre completo; la carátula registra una sola
 observación por candidato repetido.
 
-`RE_DNI_DOC` mantiene deliberadamente el rango de 6 a 9 dígitos. El hallazgo
-de un DNI de 7 dígitos queda pendiente de consulta con la notaría: puede ser una
-libreta electoral antigua legítima o un error de OCR; esta tarea no cambia la
-regla.
+### Formularios de cliente en PDF
+
+La capa de regla se diseñó para la prosa notarial, pero los documentos del
+cliente suelen ser formularios con campos etiquetados. Esta ronda cubre esa
+disposición de RENIEC en fuentes `.pdf`: `catalogo()` conserva la vía de prosa
+(`nombres()`) y además intenta `nombre_reniec()`, uniendo los resultados en el
+conjunto de nombres sin duplicarlos. Las imágenes mantienen su vía existente
+de `RE_CUI` y `nombre_reniec()`.
+
+Los demás formatos no se amplían todavía a la vía RENIEC: el hallazgo verificado
+corresponde a formularios escaneados en PDF y no hay fixtures ficticios que
+representen formularios en `.docx`, `.doc`, `.rtf`, `.odt`, `.xlsx`, `.txt` o
+`.csv`; por ahora siguen usando la vía de prosa. Las partidas registrales y
+otros formularios tampoco están cubiertos todavía.
+
+`RE_DNI_DOC` captura únicamente números de exactamente 8 dígitos y exige que no
+formen parte de una secuencia numérica mayor. `RE_CUI` conserva el formato de
+las imágenes: 8 dígitos, guion y dígito verificador. Esto evita que partidas,
+asientos o trámites numerados contaminen el diagnóstico de correspondencia.
 
 Los diez code smells del análisis inicial de SonarCloud sobre `main` (`4cb625e`)
 se registran para la migración del núcleo en F3; no se corrigen en F1.
