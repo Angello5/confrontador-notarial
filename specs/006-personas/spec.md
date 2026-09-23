@@ -42,6 +42,13 @@ personas de listas restrictivas que no son parte del acto.
 - Q: ¿Se unen los grupos de un documento manuscrito separados por espacios? → A: No. Unir `0605 12 37` en un solo número es fabricar un dato. Queda como deuda: se prefiere no detectarlo a inventarlo.
 - Q: ¿Cómo se presenta una página que no se pudo clasificar? → A: Se cuenta y se lista por archivo y página, sin su contenido, para poder revisarla a mano si falta un compareciente.
 - Q: ¿Entran las personas jurídicas en esta fase? → A: No. Se reconocen para poder descartarlas sin ruido, pero modelarlas como parte del acto queda fuera.
+- Q: ¿Cuándo se unifican dos apariciones de una persona? → A: Solo con el
+  mismo documento exacto y nombre completo compatible, admitiendo el orden
+  explícito `APELLIDOS, NOMBRES`; o con el mismo nombre completo exacto cuando
+  ambos bloques carecen de documento. Los nombres parecidos no se unifican y
+  un mismo documento con nombres incompatibles queda separado para revisión:
+  se prefiere perder una unificación legítima antes que atribuir un documento
+  a la persona equivocada.
 
 ## User Scenarios & Testing *(mandatory)*
 

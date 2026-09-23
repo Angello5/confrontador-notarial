@@ -8,7 +8,9 @@ from nucleo.verificar import (
     Procedencia,
     catalogo,
     clasificar_pagina,
+    comparar_personas,
     revisar,
+    unificar_personas,
 )
 
 
@@ -146,3 +148,229 @@ def test_catalogo_no_descarta_paginas_identitarias_por_confusion_de_tipo():
 
     assert resultado.paginas_descartadas == ()
     assert len(resultado.personas) >= 1
+
+
+def test_comparar_personas_detecta_documentos_intercambiados():
+    fuentes = catalogo(
+        {
+            "cliente-ficticio.txt": (
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011\f"
+                "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000022"
+            )
+        }
+    )
+    observaciones = comparar_personas(
+        fuentes,
+        "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000022\n"
+        "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000011",
+    )
+
+    assert [observacion["tipo"] for observacion in observaciones] == [
+        "DOCUMENTO_CRUZADO",
+        "DOCUMENTO_CRUZADO",
+    ]
+    assert observaciones[0]["nombre"] == "ALBA ZAFIRO LUMARIA"
+    assert observaciones[0]["documento_hallado"] == "90000022"
+    assert observaciones[0]["documento_esperado"] == "90000011"
+
+
+def test_comparar_personas_detecta_documento_sin_titular():
+    fuentes = catalogo(
+        {
+            "cliente-ficticio.txt": (
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011"
+            )
+        }
+    )
+
+    observaciones = comparar_personas(
+        fuentes,
+        "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000099",
+    )
+
+    assert len(observaciones) == 1
+    assert observaciones[0]["tipo"] == "DOCUMENTO_SIN_TITULAR"
+    assert observaciones[0]["documento_hallado"] == "90000099"
+
+
+def test_unificacion_conservadora_usa_documento_y_nombre_exacto():
+    persona_uno = Persona(
+        "ALBA ZAFIRO LUMARIA",
+        "90000011",
+        (Procedencia("biometrica-ficticia.pdf", 1),),
+    )
+    persona_dos = Persona(
+        "LUMARIA, ALBA ZAFIRO",
+        "90000011",
+        (Procedencia("sunarp-ficticio.pdf", 2),),
+    )
+    sin_documento_uno = Persona(
+        "BRUNO TELURIO NEBULOSA",
+        None,
+        (Procedencia("declaracion-ficticia.pdf", 1),),
+        "SIN_DOCUMENTO",
+    )
+    sin_documento_dos = Persona(
+        "BRUNO TELURIO NEBULOSA",
+        None,
+        (Procedencia("cliente-ficticio.pdf", 3),),
+        "SIN_DOCUMENTO",
+    )
+
+    resultado = unificar_personas(
+        (persona_uno, persona_dos, sin_documento_uno, sin_documento_dos)
+    )
+
+    assert len(resultado) == 2
+    assert resultado[0].documento == "90000011"
+    assert resultado[0].procedencias == (
+        Procedencia("biometrica-ficticia.pdf", 1),
+        Procedencia("sunarp-ficticio.pdf", 2),
+    )
+    assert len(resultado[1].procedencias) == 2
+
+
+def test_unificacion_no_mezcla_nombres_parecidos_con_documentos_distintos():
+    personas = (
+        Persona(
+            "ALBA ZAFIRO LUMARIA",
+            "90000011",
+            (Procedencia("cliente-a-ficticio.pdf", 1),),
+        ),
+        Persona(
+            "ALBA ZAFIRO LUMARIA",
+            "90000022",
+            (Procedencia("cliente-b-ficticio.pdf", 1),),
+        ),
+    )
+
+    assert unificar_personas(personas) == personas
+
+
+def test_catalogo_unifica_apellidos_nombres_explicitos_con_mismo_documento():
+    resultado = catalogo(
+        {
+            "prosa-ficticia.txt": (
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011"
+            ),
+            "sunarp-ficticio.txt": (
+                "ZAFIRO LUMARIA, ALBA DE NACIONALIDAD PERUANA. DNI 90000011"
+            ),
+        }
+    )
+
+    assert len(resultado.personas) == 1
+    assert resultado.personas[0].nombre == "ALBA ZAFIRO LUMARIA"
+    assert len(resultado.personas[0].procedencias) == 2
+
+
+def test_etiqueta_dni_corrompida_por_ocr_se_acepta_solo_en_forma_cerrada():
+    resultado = catalogo(
+        {
+            "biometrica-ficticia.txt": (
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. D.N.1, 90000011"
+            )
+        }
+    )
+
+    assert resultado["DNI"] == {"90000011"}
+
+
+@pytest.mark.parametrize(
+    "linea",
+    [
+        "DNI 90000011",
+        "DNI. 90000011",
+        "D.N.I. 90000011",
+        "D.N.I. N° 90000011",
+        "D.N.1, 90000011",
+    ],
+)
+def test_etiquetas_documentales_cerradas(linea):
+    resultado = catalogo(
+        {
+            "identidad-ficticia.txt": (
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. " + linea
+            )
+        }
+    )
+
+    assert resultado["DNI"] == {"90000011"}
+
+
+@pytest.mark.parametrize(
+    "linea",
+    [
+        "OPERADOR DNI 90000011",
+        "USUARIO DNI 90000011",
+        "TRANSACCION DNI 90000011",
+        "VERIFICACION DNI 90000011",
+        "RUC 90000011",
+        "TELEFONO 90000011",
+        "CORREO DNI 90000011",
+    ],
+)
+def test_numeros_de_metadatos_no_entran_como_documentos(linea):
+    resultado = catalogo({"metadatos-ficticios.txt": linea})
+
+    assert resultado["DNI"] == set()
+
+
+def test_cui_se_extrae_con_su_control_y_no_se_unen_grupos_manuscritos():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": (
+                "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA\n"
+                "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA"
+            ),
+            "manuscrito-ficticio.txt": (
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 0605 12 37"
+            ),
+        }
+    )
+
+    assert "90000011" in resultado["DNI"]
+    assert "06051237" not in resultado["DNI"]
+
+
+def test_nombre_incompatible_con_mismo_documento_no_se_unifica():
+    personas = (
+        Persona(
+            "ALBA ZAFIRO LUMARIA",
+            "90000011",
+            (Procedencia("cliente-a-ficticio.pdf", 1),),
+        ),
+        Persona(
+            "BRUNO TELURIO NEBULOSA",
+            "90000011",
+            (Procedencia("cliente-b-ficticio.pdf", 1),),
+        ),
+    )
+
+    resultado = unificar_personas(personas)
+
+    assert len(resultado) == 2
+    assert {persona.estado for persona in resultado} == {"REVISION_MANUAL"}
+
+
+def test_persona_con_nombre_sin_documento_se_conserva_sin_observacion_documental():
+    resultado = catalogo(
+        {
+            "declaracion-ficticia.txt": (
+                "DECLARACION JURADA\n"
+                "APELLIDOS: LUMARIA ZAFIRO\n"
+                "NOMBRES: ALBA\n"
+                "NOMBRES Y APELLIDOS DEL CONYUGE: BRUNO TELURIO NEBULOSA"
+            )
+        }
+    )
+
+    assert (
+        Persona(
+            "BRUNO TELURIO NEBULOSA",
+            None,
+            (Procedencia("declaracion-ficticia.txt", 1),),
+            "SIN_DOCUMENTO",
+        )
+        in resultado.personas
+    )

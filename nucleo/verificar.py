@@ -99,8 +99,8 @@ RE_CUI = re.compile(r"\b(\d{8})\s*-\s*\d\b")
 # CUI del RENIEC: 8 digitos + guion + verificador. El watermark (sello) no lo trae.
 
 RE_DNI_DOC = re.compile(
-    r"(?:DNI|IDENTIDAD|D[.]N[.]I[.]?)"
-    r"\s*(?:(?:N[O°]?|NUMERO)\s*)?(?:[:.]\s*)?(?<!\d)(\d{8})(?!\d)"
+    r"(?:DNI|IDENTIDAD|D[.]N[.]I[.]?|D[.]N[.]1[,.;]?)"
+    r"\s*(?:(?:N[O°]?|NUMERO)\s*)?(?:[:,.]\s*)?(?<!\d)(\d{8})(?!\d)"
 )
 # En documentos el DNI viene rotulado y siempre tiene exactamente 8 digitos.
 
@@ -114,6 +114,10 @@ RE_NOMBRE = re.compile(
     r"|CASAD[AO]\s+CON\s+([A-ZÑ][A-ZÑ ]{8,60}?)[,.]"
 )
 # Nombre en mayusculas antes de NACIONALIDAD o despues de CASAD@ CON.
+RE_NOMBRE_APELLIDOS = re.compile(
+    r"([A-ZÑ][A-ZÑ ]{2,60}),\s*([A-ZÑ][A-ZÑ ]{2,60})"
+    r"\s+(?:DE\s+)?NACIONALIDAD"
+)
 
 RE_RENIEC = {"nom": "NOMBRES", "pat": "APELLIDO PATERNO", "mat": "APELLIDO MATERNO"}
 
@@ -240,6 +244,13 @@ def _nombres_de_pagina(
 ) -> list[str]:
     t = norm(raw)
     out = list(nombres(t))
+    # Solo la coma delimita el orden ``APELLIDOS, NOMBRES``; no se reordena
+    # ninguna línea de prosa que no tenga esa frontera explícita.
+    if tipo in {"RENIEC", "BIOMETRICA", "SUNARP", "IDENTIDAD", "PROSA"}:
+        out.extend(
+            f"{nombres_propios.strip().removesuffix(' DE')} {apellidos.strip()}"
+            for apellidos, nombres_propios in RE_NOMBRE_APELLIDOS.findall(t)
+        )
     if tipo in {"RENIEC", "BIOMETRICA"}:
         if tipo == "BIOMETRICA":
             n = _linea_etiquetada(raw, "NOMBRES")
@@ -285,9 +296,23 @@ def _documentos_de_pagina(raw: str, tipo: str, es_img: bool) -> list[str]:
 def _personas_de_pagina(pagina: Pagina, tipo: str) -> list[Persona]:
     sufijo = _sufijo(pagina.fuente.rsplit("/", 1)[-1])
     es_img = bool(sufijo and sufijo in IMGS)
+    procedencia = (Procedencia(pagina.fuente, pagina.numero),)
+    # Una línea con nombre y documento es una frontera verificable. La usamos
+    # primero para no cruzar a dos comparecientes de la misma página; los
+    # formularios RENIEC/biométricos caen al bloque completo porque sus campos
+    # viven en líneas distintas.
+    asociados = []
+    for linea in pagina.texto.splitlines():
+        nombres_linea = _nombres_de_pagina(linea, tipo, sufijo == ".pdf", es_img)
+        documentos_linea = _documentos_de_pagina(linea, tipo, es_img)
+        if len(nombres_linea) == 1 and len(documentos_linea) == 1:
+            asociados.append(
+                Persona(nombres_linea[0], documentos_linea[0], procedencia)
+            )
+    if asociados:
+        return asociados
     nombres_pagina = _nombres_de_pagina(pagina.texto, tipo, sufijo == ".pdf", es_img)
     documentos = _documentos_de_pagina(pagina.texto, tipo, es_img)
-    procedencia = (Procedencia(pagina.fuente, pagina.numero),)
     if len(nombres_pagina) == 1 and len(documentos) == 1:
         return [Persona(nombres_pagina[0], documentos[0], procedencia)]
     personas = [
@@ -298,6 +323,149 @@ def _personas_de_pagina(pagina: Pagina, tipo: str) -> list[Persona]:
         for documento in documentos
     )
     return personas
+
+
+def _nombre_clave(nombre: str | None) -> str:
+    """Normaliza solo nombres explícitos; no aproxima ni reordena prosa."""
+    if not nombre:
+        return ""
+    limpio = norm(nombre)
+    if "," in limpio:
+        apellidos, nombres_propios = (parte.strip() for parte in limpio.split(",", 1))
+        limpio = f"{nombres_propios} {apellidos}"
+    return re.sub(r"[^A-ZÑ ]", " ", limpio).strip()
+
+
+def unificar_personas(personas) -> tuple[Persona, ...]:
+    """Unifica únicamente evidencia fuerte y conserva todo lo ambiguo.
+
+    El criterio deliberadamente pierde unificaciones legítimas antes que
+    atribuir un documento a otra persona: documento exacto más nombre exacto
+    (admitiendo ``APELLIDOS, NOMBRES``), o nombre exacto cuando ambos bloques
+    carecen de documento. Nombres parecidos nunca son una identidad.
+    """
+    unificadas: list[Persona] = []
+    for persona in personas:
+        clave_nombre = _nombre_clave(persona.nombre)
+        fusion = None
+        for indice, existente in enumerate(unificadas):
+            mismo_documento = (
+                persona.documento
+                and existente.documento
+                and persona.documento == existente.documento
+            )
+            ambos_sin_documento = (
+                not persona.documento
+                and not existente.documento
+                and clave_nombre
+                and clave_nombre == _nombre_clave(existente.nombre)
+            )
+            if mismo_documento and clave_nombre == _nombre_clave(existente.nombre):
+                fusion = indice
+                break
+            if ambos_sin_documento:
+                fusion = indice
+                break
+        if fusion is None:
+            unificadas.append(persona)
+            continue
+        existente = unificadas[fusion]
+        procedencias = tuple(
+            dict.fromkeys((*existente.procedencias, *persona.procedencias))
+        )
+        estado = (
+            "CONFIRMADA"
+            if existente.documento or persona.documento
+            else "SIN_DOCUMENTO"
+        )
+        unificadas[fusion] = Persona(
+            existente.nombre or persona.nombre,
+            existente.documento or persona.documento,
+            procedencias,
+            estado,
+        )
+    documentos = {}
+    for persona in unificadas:
+        if persona.documento and persona.nombre:
+            documentos.setdefault(persona.documento, set()).add(
+                _nombre_clave(persona.nombre)
+            )
+    return tuple(
+        Persona(
+            persona.nombre,
+            persona.documento,
+            persona.procedencias,
+            "REVISION_MANUAL"
+            if persona.documento and len(documentos.get(persona.documento, ())) > 1
+            else persona.estado,
+        )
+        for persona in unificadas
+    )
+
+
+def _catalogo_borrador(borrador) -> Catalogo:
+    if isinstance(borrador, Catalogo):
+        return borrador
+    if isinstance(borrador, str):
+        return catalogo({"borrador": borrador})
+    raise TypeError("borrador debe ser texto o Catalogo")
+
+
+def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
+    """Compara titulares de documentos sin alterar las reglas históricas."""
+    if not isinstance(fuente, Catalogo):
+        raise TypeError("fuente debe ser Catalogo")
+    destino = _catalogo_borrador(borrador)
+    por_nombre = {}
+    por_documento = {}
+    for persona in fuente.personas:
+        if persona.nombre:
+            por_nombre.setdefault(_nombre_clave(persona.nombre), []).append(persona)
+        if persona.documento:
+            por_documento.setdefault(persona.documento, []).append(persona)
+
+    observaciones = []
+    vistos = set()
+    for persona in destino.personas:
+        if not persona.documento:
+            continue
+        nombre_clave = _nombre_clave(persona.nombre)
+        titulares = por_nombre.get(nombre_clave, []) if nombre_clave else []
+        titular = titulares[0] if len(titulares) == 1 else None
+        esperado = titular.documento if titular else None
+        if (
+            titular
+            and esperado
+            and esperado != persona.documento
+            and persona.documento in por_documento
+        ):
+            observacion = {
+                "tipo": "DOCUMENTO_CRUZADO",
+                "nombre": persona.nombre,
+                "documento_hallado": persona.documento,
+                "documento_esperado": esperado,
+                "procedencias": titular.procedencias,
+            }
+        elif persona.documento not in por_documento:
+            observacion = {
+                "tipo": "DOCUMENTO_SIN_TITULAR",
+                "nombre": persona.nombre,
+                "documento_hallado": persona.documento,
+                "documento_esperado": None,
+                "procedencias": (),
+            }
+        else:
+            continue
+        clave = (
+            observacion["tipo"],
+            observacion["nombre"],
+            observacion["documento_hallado"],
+            observacion["documento_esperado"],
+        )
+        if clave not in vistos:
+            observaciones.append(observacion)
+            vistos.add(clave)
+    return tuple(observaciones)
 
 
 def _paginas(fuentes: Mapping[str, str]) -> list[Pagina]:
@@ -326,7 +494,7 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
             no_clasificadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
         personas.extend(_personas_de_pagina(pagina, tipo))
     return Catalogo(
-        tuple(personas),
+        unificar_personas(personas),
         frozenset(partidas),
         frozenset(montos),
         tuple(descartadas),

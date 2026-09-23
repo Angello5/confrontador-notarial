@@ -231,6 +231,70 @@ def test_resultado_muestra_verificacion_de_extraccion_sin_texto_completo(
     assert "texto completo ficticio que no debe aparecer" not in contenido
 
 
+def test_resultado_muestra_personas_una_vez_con_procedencia_segura(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-PERSONAS", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda *_: {
+            "estado": "RESULTADO",
+            "mensaje": "",
+            "personas": [
+                {
+                    "formato": "persona",
+                    "tipo": "DOCUMENTO_CRUZADO",
+                    "nombre": "ALBA ZAFIRO LUMARIA",
+                    "hallado": "90000022",
+                    "esperado": "90000011",
+                    "motivo": "El documento pertenece a otra persona según las fuentes.",
+                    "procedencias": [
+                        {"archivo": "biometrica-ficticia.pdf", "pagina": 2},
+                        {"archivo": "sunarp-ficticio.pdf", "pagina": 4},
+                    ],
+                    "ubicacion": {"linea": 1, "fragmento": "DNI 90000022"},
+                }
+            ],
+            "extraccion": {
+                "personas": [
+                    {
+                        "nombre": "ALBA ZAFIRO LUMARIA",
+                        "documento": "90000011",
+                        "estado": "CONFIRMADA",
+                        "procedencias": [
+                            {"archivo": "biometrica-ficticia.pdf", "pagina": 2},
+                            {"archivo": "sunarp-ficticio.pdf", "pagina": 4},
+                        ],
+                    }
+                ],
+                "paginas_descartadas": [],
+                "paginas_no_clasificadas": [],
+                "documentos": [],
+            },
+            "regla": [],
+            "ortografia": [],
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+    assert "Personas extraídas" in contenido
+    assert contenido.count("ALBA ZAFIRO LUMARIA") == 2
+    assert "biometrica-ficticia.pdf" in contenido
+    assert "sunarp-ficticio.pdf" in contenido
+    assert "/srv/privado" not in contenido
+    assert "sha256" not in contenido.lower()
+    assert "texto completo ficticio" not in contenido
+
+
 def test_sondeo_no_expone_resumen_de_extraccion(client, usuario_ficticio):
     from expedientes.models import Expediente
 

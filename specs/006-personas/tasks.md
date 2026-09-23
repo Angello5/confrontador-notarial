@@ -42,7 +42,7 @@ ninguna tarea está marcada como completada.
 - [X] T008 [P] Probar `revisar`, `correspondencia`, `diagnostico` y
   `revisar_parrafos` contra fixtures históricos; criterio: la salida de
   partidas, montos, párrafos y diagnóstico queda idéntica antes/después.
-- [ ] T009 [P] Probar documento cruzado y documento sin titular; criterio: el
+- [X] T009 [P] Probar documento cruzado y documento sin titular; criterio: el
   comparador nuevo devuelve estructuras de observación deterministas sin
   cambiar las cadenas de `revisar()`.
 
@@ -78,20 +78,20 @@ ninguna tarea está marcada como completada.
 
 ## Phase 5 — etiquetas y unificación
 
-- [ ] T020 [P] Escribir prueba roja de etiquetas `DNI`, `DNI.`, `D.N.I.`,
+- [X] T020 [P] Escribir prueba roja de etiquetas `DNI`, `DNI.`, `D.N.I.`,
   `D.N.I. N°` y la errata `D.N.1,`; criterio: solo la errata acotada entra.
-- [ ] T021 [P] Probar rechazo de números de operador, usuario, transacción,
+- [X] T021 [P] Probar rechazo de números de operador, usuario, transacción,
   verificación, RUC, partida, teléfono, correo y resultados SISGEN; criterio:
   ningún falso positivo entra como documento.
-- [ ] T022 [P] Probar `CUI` con control y el límite de DNI manuscrito partido;
+- [X] T022 [P] Probar `CUI` con control y el límite de DNI manuscrito partido;
   criterio: el segundo queda fuera por la decisión NC-004.
-- [ ] T023 [P] Probar nombres etiquetados y `APELLIDOS, NOMBRES`; criterio:
+- [X] T023 [P] Probar nombres etiquetados y `APELLIDOS, NOMBRES`; criterio:
   solo el patrón explícito se reordena, la prosa arbitraria no.
-- [ ] T024 [P] Probar unificación por documento exacto y por nombre exacto sin
+- [X] T024 [P] Probar unificación por documento exacto y por nombre exacto sin
   documento; criterio: todas las procedencias aparecen una vez.
-- [ ] T025 [P] Probar que nombres parecidos con documentos distintos y nombres
+- [X] T025 [P] Probar que nombres parecidos con documentos distintos y nombres
   incompatibles con un mismo documento no se unifican y quedan en revisión.
-- [ ] T026 Implementar extracción localizada, tolerancia cerrada y unificación
+- [X] T026 Implementar extracción localizada, tolerancia cerrada y unificación
   conservadora; criterio: T020–T025 pasan sin fuzzy matching aprobatorio.
 
 ## Phase 6 — servicio y UI
@@ -99,33 +99,33 @@ ninguna tarea está marcada como completada.
 - [ ] T027 [P] Escribir pruebas rojas del servicio F5 para que las fuentes
   entreguen páginas, el borrador conserve su texto plano y el catálogo de
   personas se construya por documento/página, no por legajo concatenado.
-- [ ] T028 [P] Escribir prueba roja de documento cruzado con dos personas y
+- [X] T028 [P] Escribir prueba roja de documento cruzado con dos personas y
   documentos intercambiados; criterio: la observación identifica esperado,
   hallado y procedencia de fuente.
-- [ ] T029 [P] Escribir prueba roja de documento no titular, nombre sin DNI,
+- [X] T029 [P] Escribir prueba roja de documento no titular, nombre sin DNI,
   conflicto de lecturas, páginas descartadas y página no clasificada; criterio:
   estados seguros y sin llamadas externas.
-- [ ] T030 [P] Escribir pruebas rojas de UI para una persona una sola vez con
+- [X] T030 [P] Escribir pruebas rojas de UI para una persona una sola vez con
   varias procedencias, tabla accesible, recuentos y mensajes de re-subida;
   criterio: no muestra texto completo, hashes, rutas ni datos en logs.
-- [ ] T031 Implementar el consumo en `expedientes/services.py`, observaciones
+- [X] T031 Implementar el consumo en `expedientes/services.py`, observaciones
   nuevas y adaptación de plantilla; criterio: T027–T030 pasan, se conserva la
   autorización de F5 y el resultado no se persiste.
 
 ## Phase 7 — verificación final
 
-- [ ] T032 Ejecutar pruebas F11 y la suite existente con cobertura; criterio:
+- [X] T032 Ejecutar pruebas F11 y la suite existente con cobertura; criterio:
   ningún marker privado se ejecuta por defecto y la paridad de F5 queda
   documentada con fixtures ficticios.
 - [ ] T033 Ejecutar `python -m ruff check .`, `python -m ruff format --check .`
   y `git diff --check`; criterio: solo se modifican archivos previstos.
 - [ ] T034 Ejecutar Django check, `makemigrations --check`, `pip-audit --strict`
   y gitleaks; F11 no crea migraciones.
-- [ ] T035 Revisar diff por privacidad: ningún DNI, nombre, domicilio,
+- [X] T035 Revisar diff por privacidad: ningún DNI, nombre, domicilio,
   fragmento real, secreto, ruta temporal o contenido de expediente.
-- [ ] T036 Revisar `requirements.md`, `ux.md`, el contrato y la spec sin marcar
+- [X] T036 Revisar `requirements.md`, `ux.md`, el contrato y la spec sin marcar
   `[X]` por inferencia; criterio: solo evidencia ejecutada queda marcada.
-- [ ] T037 Preparar commit local en `feature/f11-personas`; criterio: no push,
+- [X] T037 Preparar commit local en `feature/f11-personas`; criterio: no push,
   no Pull Request y Quality Gate/medición privada remotos se reportan aparte.
 
 ## Dependencias y estrategia
