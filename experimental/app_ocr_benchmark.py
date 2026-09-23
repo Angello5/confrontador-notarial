@@ -16,6 +16,7 @@ import streamlit as st
 
 from experimental.ocr_benchmark import (
     ENGINE_SPECS,
+    accuracy_rate,
     benchmark,
     dependency_status,
     read_reference,
@@ -64,7 +65,7 @@ archivos = st.file_uploader(
 referencia = st.file_uploader(
     "Texto de referencia (opcional)",
     type=["docx", "doc", "rtf", "txt", "md"],
-    help="Acepta Word (DOCX/DOC/RTF) o texto. Con un único documento se calculan CER y WER.",
+    help="Acepta Word (DOCX/DOC/RTF) o texto. Se compara contra cada documento seleccionado.",
 )
 
 if seleccionados and any(
@@ -73,7 +74,8 @@ if seleccionados and any(
     st.warning(ENGINE_SPECS[seleccionados[0]].warning)
 if len(archivos) > 1 and referencia is not None:
     st.info(
-        "CER/WER se omite al procesar varios documentos; sube un solo documento para medirlo contra una referencia."
+        "La referencia se comparará contra cada archivo y motor seleccionado. "
+        "Asegúrate de que el Word contenga el texto esperado para esos documentos."
     )
 
 if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
@@ -84,7 +86,7 @@ if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
         with tempfile.TemporaryDirectory(prefix="ocr-benchmark-") as temporal:
             temporal_path = Path(temporal)
             texto_referencia = ""
-            if referencia is not None and len(archivos) == 1:
+            if referencia is not None:
                 referencia_suffix = Path(referencia.name).suffix.lower()
                 referencia_path = temporal_path / f"reference{referencia_suffix}"
                 referencia_path.write_bytes(referencia.getvalue())
@@ -93,7 +95,8 @@ if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
                     if texto_referencia.strip():
                         st.success(
                             f"Referencia leída: {referencia.name} "
-                            f"({len(texto_referencia):,} caracteres)."
+                            f"({len(texto_referencia):,} caracteres; "
+                            "se usará contra cada archivo y motor)."
                         )
                     else:
                         st.warning("La referencia está vacía.")
@@ -110,6 +113,12 @@ if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
                     documentos.append(
                         {
                             "nombre": nombre,
+                            "referencia": (
+                                referencia.name
+                                if referencia is not None
+                                else "Sin referencia"
+                            ),
+                            "referencia_caracteres": len(texto_referencia),
                             "resultados": benchmark(
                                 paginas,
                                 seleccionados,
@@ -129,33 +138,65 @@ if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
 documentos = st.session_state.get("ocr_benchmarks", ())
 if documentos:
     st.divider()
+    st.subheader("Tabla comparativa")
+    st.caption(
+        "CER y WER son tasas de error: 0 es exacto. "
+        "Las precisiones son su inversa: 100% es exacto."
+    )
+    filas = []
     for documento in documentos:
-        st.subheader(f"Resultados: {documento['nombre']}")
+        referencia_nombre = documento.get("referencia", "Sin referencia")
+        referencia_caracteres = documento.get("referencia_caracteres", 0)
+        if documento["error"]:
+            filas.append(
+                {
+                    "Documento": documento["nombre"],
+                    "Motor": "-",
+                    "Referencia": referencia_nombre,
+                    "Ref. caracteres": referencia_caracteres,
+                    "Estado": "Error: " + documento["error"],
+                }
+            )
+            continue
+        for resultado in documento["resultados"]:
+            filas.append(
+                {
+                    "Documento": documento["nombre"],
+                    "Motor": labels[resultado.engine_id],
+                    "Referencia": referencia_nombre,
+                    "Ref. caracteres": referencia_caracteres,
+                    "Estado": "Error" if resultado.error else "OK",
+                    "Páginas": resultado.paginas,
+                    "Caracteres": resultado.caracteres,
+                    "Preparación (s)": round(resultado.tiempo_preparacion, 3),
+                    "Procesamiento (s)": round(resultado.tiempo_procesamiento, 3),
+                    "Total (s)": round(resultado.tiempo_total, 3),
+                    "Personas": resultado.catalogo.get("personas", 0),
+                    "DNI": resultado.catalogo.get("documentos", 0),
+                    "Partidas": resultado.catalogo.get("partidas", 0),
+                    "Montos": resultado.catalogo.get("montos", 0),
+                    "CER": None if resultado.cer is None else round(resultado.cer, 4),
+                    "WER": None if resultado.wer is None else round(resultado.wer, 4),
+                    "Precisión caracteres (%)": (
+                        None
+                        if resultado.cer is None
+                        else round(accuracy_rate(resultado.cer) or 0.0, 2)
+                    ),
+                    "Precisión palabras (%)": (
+                        None
+                        if resultado.wer is None
+                        else round(accuracy_rate(resultado.wer) or 0.0, 2)
+                    ),
+                }
+            )
+    st.dataframe(pd.DataFrame(filas), width="stretch", hide_index=True)
+
+    for documento in documentos:
+        st.subheader(f"Texto extraído: {documento['nombre']}")
         if documento["error"]:
             st.error(documento["error"])
             continue
-        resultados = documento["resultados"]
-        filas = []
-        for resultado in resultados:
-            fila = {
-                "Motor": labels[resultado.engine_id],
-                "Estado": "Error" if resultado.error else "OK",
-                "Páginas": resultado.paginas,
-                "Caracteres": resultado.caracteres,
-                "Preparación (s)": round(resultado.tiempo_preparacion, 3),
-                "Procesamiento (s)": round(resultado.tiempo_procesamiento, 3),
-                "Total (s)": round(resultado.tiempo_total, 3),
-                "Personas": resultado.catalogo.get("personas", 0),
-                "DNI": resultado.catalogo.get("documentos", 0),
-                "Partidas": resultado.catalogo.get("partidas", 0),
-                "Montos": resultado.catalogo.get("montos", 0),
-                "CER": None if resultado.cer is None else round(resultado.cer, 4),
-                "WER": None if resultado.wer is None else round(resultado.wer, 4),
-            }
-            filas.append(fila)
-        st.dataframe(pd.DataFrame(filas), width="stretch", hide_index=True)
-
-        for resultado in resultados:
+        for resultado in documento["resultados"]:
             with st.expander(labels[resultado.engine_id]):
                 if resultado.error:
                     st.error(resultado.error)

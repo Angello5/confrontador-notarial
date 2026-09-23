@@ -4,6 +4,7 @@ import pytest
 
 from experimental.ocr_benchmark import (
     ENGINE_SPECS,
+    accuracy_rate,
     benchmark,
     error_rate,
     render_pages,
@@ -84,6 +85,37 @@ def test_error_rate_returns_cer_and_wer_against_reference():
 @pytest.mark.ocr_research
 def test_error_rate_is_unavailable_without_reference():
     assert error_rate("texto", "") == {"cer": None, "wer": None}
+
+
+@pytest.mark.ocr_research
+def test_accuracy_rate_is_inverse_error_percentage():
+    assert accuracy_rate(0.25) == pytest.approx(75.0)
+    assert accuracy_rate(None) is None
+
+
+@pytest.mark.ocr_research
+def test_benchmark_compares_multiple_pages_against_one_reference(tmp_path):
+    pages = (tmp_path / "page-1.png", tmp_path / "page-2.png")
+    for page in pages:
+        page.write_bytes(b"synthetic page")
+
+    textos = {
+        page.name: f"Texto de referencia {indice}"
+        for indice, page in enumerate(pages, 1)
+    }
+
+    def factory(_engine_id):
+        return lambda path: textos[Path(path).name]
+
+    resultado = benchmark(
+        pages,
+        ("paddleocr-v5",),
+        factory=factory,
+        referencia="\f".join(textos.values()),
+    )[0]
+
+    assert resultado.cer == pytest.approx(0.0)
+    assert resultado.wer == pytest.approx(0.0)
 
 
 @pytest.mark.ocr_research
