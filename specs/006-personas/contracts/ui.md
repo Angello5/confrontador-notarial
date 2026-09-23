@@ -55,7 +55,7 @@ Cada persona aparece una vez, con:
 | Estado | `Confirmada`, `Sin documento` o `Revisión manual`; nunca se expresa una similitud como aprobación. |
 
 La sección incluye recuentos seguros de páginas descartadas por `separador` y
-`SISGEN` y de páginas `no clasificadas`, sin mostrar el texto descartado. El
+`SISGEN` y de páginas `no clasificadas` (con archivo y página), sin mostrar el texto descartado. El
 nombre del archivo se escapa como cualquier dato de usuario y no se escribe en
 logs.
 
@@ -96,11 +96,10 @@ completo de fuente o borrador.
 - Los estados `Sin documento` y `Revisión manual` no se presentan como
   coincidencias aprobadas.
 
-## Decisiones pendientes visibles
+## Decisiones aplicadas
 
-- `[NEEDS CLARIFICATION]` SISGEN: el contrato no fija aún si el DNI de
-  `Documento Identificativo` se conserva o si toda la página se descarta.
-- `[NEEDS CLARIFICATION]` un nombre sin documento: se muestra como extracción,
-  pero no se compara ni se aprueba hasta una decisión de la notaría.
-- `[NEEDS CLARIFICATION]` página no clasificada: se propone mostrar recuento y
-  revisión manual, sin descarte.
+- SISGEN se descarta completo, incluido `Documento Identificativo`.
+- Un nombre sin documento se conserva y se verifica solo como nombre.
+- Una página no clasificada se cuenta y lista por archivo y página, sin texto.
+- Las páginas se unen con `\f` en la cadena plana; no hay migración. El texto
+  histórico sin separador se procesa como un bloque.

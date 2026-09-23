@@ -20,27 +20,19 @@ implementa código ni reescribe `spec.md`.
   temporal al terminar.
 - `specs/005-confrontacion/`: F5 pasa `dict[str, str]` al núcleo y conserva la
   salida textual de reglas para no alterar la medición.
-- `docs/catalogo-fuentes.md`: se leyó completo desde el commit histórico
-  `a88016b`, porque no está presente en `origin/main` ni en este worktree.
+- `docs/catalogo-fuentes.md`: está incorporado al árbol de F11 y se usa como
+  referencia de tipos, etiquetas y descarte.
 
-## Hallazgo que bloquea una lectura literal de la referencia
+## Resoluciones aplicadas
 
-El catálogo no está en el árbol de esta rama. El objeto Git histórico sí
-contiene la versión que censó 435 páginas, por lo que se usó como referencia
-de planificación; antes de implementar debe incorporarse al árbol o confirmarse
-que esa ausencia es intencional.
-
-Además, el mismo catálogo tiene dos afirmaciones incompatibles sobre SISGEN:
-
-- el censo dice que las 62 consultas de coincidencias no aportan identidades
-  del acto y `spec.md` ordena descartarlas enteras;
-- la descripción detallada dice que `Documento Identificativo` es el documento
-  consultado y sí pertenece al acto, aunque ordena excluir los resultados de
-  listas restrictivas.
-
-No se puede escoger una de las dos reglas sin una decisión de negocio. La
-implementación debe detenerse en esta parte hasta resolver `[NEEDS CLARIFICATION]`
-NC-001 de abajo.
+- NC-001: toda página SISGEN se descarta, incluido `Documento Identificativo`.
+- NC-002: el adaptador une páginas con el separador `\f`; no hay campo nuevo ni
+  migración. Un texto histórico sin separador se procesa como un solo bloque.
+- NC-003: el cónyuge entra como `Persona` sin documento; solo se verifica su
+  nombre.
+- NC-004: los grupos manuscritos separados por espacios no se unen.
+- NC-005: una página no clasificada se cuenta y se lista por archivo y página,
+  sin guardar ni mostrar su contenido.
 
 ## Decisiones de diseño
 
@@ -53,8 +45,9 @@ El retorno de `catalogo()` pasará a ser un `Catalogo` puro e inmutable, con:
   nombre legible pero sin documento o un documento legible sin nombre.
 - `partidas` y `montos`: conjuntos de valores extraídos con las expresiones
   existentes.
-- `paginas_descartadas`: conteo y tipo de cada página descartada, sin guardar
-  su texto.
+- `paginas_descartadas`: conteo y tipo de cada página descartada, y
+  `paginas_no_clasificadas`: archivo y página para revisión manual, sin guardar
+  texto.
 
 `Procedencia` contiene únicamente la clave de fuente entregada por la
 aplicación y el número de página. `estado` distingue una asociación confirmada
@@ -102,25 +95,14 @@ Se añadirá una operación `leer_paginas(Path) -> tuple[str, ...]`:
 - DOCX, formatos legacy, TXT y XLSX: una tupla de una página lógica, porque
   esos adaptadores no disponen de paginación fiable sin renderizar.
 
-`leer(Path)` conservará su firma y devolverá `"\n".join(leer_paginas(Path))`
+`leer(Path)` conservará su firma y devolverá `"\f".join(leer_paginas(Path))`
 para que CLI, Streamlit, léxico, F4 y tests existentes sigan recibiendo una
 cadena. La función común para PDF no volverá a ejecutar OCR: la caché de OCR se
 guardará con el mismo contenido por página y sus metadatos de modelo.
 
-La cadena plana de F4 no contiene separadores de página recuperables de forma
-segura. Por eso el diseño recomendado añade a `TextoExtraido` un campo nullable
-de páginas serializadas, manteniendo `texto` plano para compatibilidad. Las
-nuevas extracciones guardan ambos: `texto` para consumidores antiguos y las
-páginas para F11. La versión del extractor cambia para no reutilizar una fila
-antigua como si tuviera páginas.
-
-Las filas existentes con `paginas` nulo no se rellenan inventando una página ni
-se intenta reconstruir el límite desde saltos de línea. Como F4 ya eliminó el
-archivo temporal, no hay fuente local para migrarlas. F11 debe informar
-`NO_DISPONIBLE` y pedir volver a subir el documento; el texto antiguo continúa
-sirviendo a F5 mientras tanto. Esto preserva datos y evita cruces silenciosos,
-pero requiere una migración de esquema, en conflicto con la frase de
-`spec.md` que dice que F11 no añade migraciones: NC-002.
+La cadena plana de F4 sigue siendo el único valor persistido. Las páginas nuevas
+se separan con `\f`; las filas antiguas no se migran ni se rellenan de forma
+inventada y se procesan como un solo bloque, degradando sin romper F5.
 
 ### 3. Segmentación mínima
 
@@ -146,10 +128,8 @@ precedencia fija: `BLANCA_SEPARADOR`, `SISGEN`, `RENIEC`, `BIOMETRICA`,
 - `BLANCA_SEPARADOR`: texto vacío o solo separadores, sin etiquetas ni tokens
   de identidad.
 - `SISGEN`: combinación de dos o más marcas estructurales (`CONSULTA
-  REALIZADA`, `COINCIDENCIAS`, `DOCUMENTO IDENTIFICATIVO`, `N. CONSULTA`). Sus
-  resultados numerados, nombres y documentos de listas restrictivas se
-  excluyen siempre. El tratamiento de `Documento Identificativo` queda en
-  NC-001.
+  REALIZADA`, `COINCIDENCIAS`, `DOCUMENTO IDENTIFICATIVO`, `N. CONSULTA`). La
+  página completa, incluido `Documento Identificativo`, se excluye siempre.
 - `RENIEC`: `CUI` y las tres etiquetas de nombres de la consulta.
 - `BIOMETRICA`: `INFORMACION PERSONAL` con `Primer Apellido`, `Segundo
   Apellido` y `Nombres`, o la firma rotulada del mismo bloque.
@@ -166,8 +146,7 @@ precedencia fija: `BLANCA_SEPARADOR`, `SISGEN`, `RENIEC`, `BIOMETRICA`,
   explícito y deja la procedencia para revisión.
 
 Las únicas páginas descartadas enteras son las que una regla estructural
-inequívoca clasifica como separador o SISGEN, cuando NC-001 confirme el alcance
-de SISGEN. Las cabeceras, marcas de agua, pies de consulta, pies legales y
+inequívoca clasifica como separador o SISGEN. Las cabeceras, marcas de agua, pies de consulta, pies legales y
 bloques de resultados se eliminan del análisis de personas, no del texto plano
 ni de la extracción de partidas/montos. Una cifra de ocho dígitos sin etiqueta
 no es DNI. Ante duda, se conserva el candidato como `revision_manual` o no se
@@ -210,25 +189,12 @@ Un nombre sin documento permanece visible como candidato sin documento hasta
 que la notaría defina si participa en la confrontación. Esto evita convertir
 una coincidencia aproximada en aprobación.
 
-## `[NEEDS CLARIFICATION]`
+## Decisiones aplicadas
 
-- **NC-001 — SISGEN**: ¿se descarta cada consulta completa, como dicen el
-  censo y FR-004, o se conserva solo `Documento Identificativo`, como dice la
-  sección detallada del catálogo? La respuesta cambia directamente el
-  catálogo de DNI.
-- **NC-002 — páginas persistidas**: ¿se autoriza añadir el campo nullable de
-  páginas y su migración a `TextoExtraido`, pese a que `spec.md` afirma que F11
-  no añade migraciones? Sin ese dato no se puede segmentar de forma segura el
-  texto ya guardado por F4.
-- **NC-003 — cónyuge sin documento**: ¿un nombre sin DNI se muestra solo como
-  extracción informativa o también genera una observación/comprobación?
-  El diseño lo conserva, pero no lo aprueba ni lo compara automáticamente.
-- **NC-004 — DNI manuscrito partido**: ¿se permite unir grupos separados por
-  espacios en una declaración jurada? El diseño no los une por defecto porque
-  el catálogo pide medir esa tasa de error antes de habilitarlo.
-- **NC-005 — páginas desconocidas**: ¿la notaría prefiere que una página sin
-  tipo conocido aparezca como `revision_manual` o que se muestre solo el
-  recuento de no clasificada? No se descartará mientras no haya decisión.
+Las cinco aclaraciones del propietario están incorporadas en `spec.md`: SISGEN
+se descarta completo; no hay migración; el cónyuge se conserva sin documento;
+los grupos manuscritos separados no se unen; y las páginas desconocidas se
+cuentan y listan por archivo y página, sin texto.
 
 ## Deuda explícita
 

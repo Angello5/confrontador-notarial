@@ -4,8 +4,7 @@
 [spec.md](spec.md)
 
 **Input**: `specs/006-personas/spec.md`, `research.md`,
-`docs/catalogo-fuentes.md` (referencia histórica `a88016b` hasta que se
-incorpore al árbol) y el contrato actual de F5.
+`docs/catalogo-fuentes.md` y el contrato actual de F5.
 
 ## Summary
 
@@ -17,8 +16,10 @@ para clasificar, descartar con reglas estructurales y comparar identidades por
 bloque. La confrontación de partidas, montos y párrafos permanece en sus
 funciones y algoritmos actuales.
 
-La implementación queda condicionada a NC-001 (SISGEN) y NC-002 (persistencia
-de páginas). Esta etapa entrega el plan; no modifica código de aplicación.
+Las cinco aclaraciones del propietario están resueltas en `spec.md`. Esta
+entrega implementa el separador de páginas, la clasificación conservadora y el
+contrato puro de personas; documento cruzado y unificación quedan para otra
+ronda.
 
 ## Technical Context
 
@@ -28,10 +29,10 @@ de páginas). Esta etapa entrega el plan; no modifica código de aplicación.
 las reglas históricas, PyMuPDF/RapidOCR ya instalados en los adaptadores. No se
 añade ninguna dependencia.
 
-**Storage**: F4 conserva `TextoExtraido.texto` como cadena. La opción
-recomendada añade un campo nullable para las páginas y una migración reversible;
-la decisión depende de NC-002. No se guardan archivos originales, bloques
-completos ni texto de páginas descartadas.
+**Storage**: F4 conserva `TextoExtraido.texto` como cadena. Las páginas se
+separan con `\f` dentro de esa cadena; no se añade campo ni migración. Las filas
+históricas sin separador se procesan como un único bloque. No se guardan
+archivos originales, bloques completos ni texto de páginas descartadas.
 
 **Testing**: pytest con datos ficticios. Las pruebas rojas cubren el contrato
 de `Catalogo`, clasificación, límites de asociación, errata `D.N.1,`,
@@ -54,22 +55,22 @@ alterar el resultado de partidas, montos o párrafos.
 
 ## Constitution Check
 
-*GATE: compatible después de la investigación, con dos decisiones del
-propietario aún bloqueantes.*
+*GATE: compatible; las cinco decisiones del propietario están incorporadas en
+`spec.md`.*
 
 | Principio | Comprobación del diseño | Resultado |
 |---|---|---|
-| I. Determinismo y sin IA | Clasificación, asociación, tolerancia de etiquetas y unificación son reglas puras; la similitud aproximada nunca aprueba ni unifica. | PASS condicionado a NC-001 |
+| I. Determinismo y sin IA | Clasificación, asociación y tolerancia de etiquetas son reglas puras; la similitud aproximada nunca aprueba ni unifica. | PASS |
 | II. Núcleo de dominio puro | `Catalogo`, `Persona`, clasificación y comparación reciben texto/estructuras; la página y procedencia son datos, no acceso a Django/OCR/FS. | PASS |
 | III. Pruebas primero | Cada regla nueva tiene una prueba roja ficticia antes de implementarse; se añade prueba de paridad de la salida histórica. | PASS sujeto a tasks.md |
-| IV. Privacidad | No se versionan expedientes; se guardan como máximo metadatos de procedencia y páginas ya extraídas; no se escriben datos en logs. | PASS condicionado a la decisión de cache |
+| IV. Privacidad | No se versionan expedientes; se conserva la cadena plana con su separador y solo metadatos de procedencia; no se escriben datos en logs. | PASS |
 | V. Simplicidad | Una página es un bloque; `leer()` se conserva como wrapper; no se crea un segmentador visual ni una dependencia. | PASS |
 | VI. Seguridad y acceso | Las personas y procedencias solo se muestran después de la autorización existente de F5; el núcleo no decide permisos. | PASS |
-| VII. DevSecOps | Se mantienen Ruff, pytest/cobertura, pip-audit, gitleaks y Quality Gate; la migración, si se autoriza, será reversible. | PASS |
-| VIII. Usabilidad | El contrato muestra procedencia, recuentos de páginas descartadas y acciones claras para caché antigua, revisión manual y documento sin titular. | PASS condicionado a NC-003/NC-005 |
+| VII. DevSecOps | Se mantienen Ruff, pytest/cobertura, pip-audit, gitleaks y Quality Gate; F11 no añade migraciones. | PASS |
+| VIII. Usabilidad | El contrato muestra procedencia, recuentos de páginas descartadas y estados seguros para revisión manual y documento sin titular. | PASS |
 
-**Resultado**: no implementar hasta resolver NC-001 y NC-002. Las demás
-decisiones pendientes deben conservarse visibles como estados seguros.
+**Resultado**: se puede implementar la primera parte. Documento cruzado,
+unificación y consumo de UI quedan fuera de esta ronda.
 
 ## Contract and compatibility design
 
@@ -77,7 +78,7 @@ decisiones pendientes deben conservarse visibles como estados seguros.
 Pagina(fuente, numero, texto)
 Procedencia(fuente, pagina)
 Persona(nombre | None, documento | None, procedencias, estado)
-Catalogo(personas, partidas, montos, paginas_descartadas)
+Catalogo(personas, partidas, montos, paginas_descartadas, paginas_no_clasificadas)
 ```
 
 `Catalogo` ofrece la vista por campos de solo lectura. `catalogo()` acepta la
@@ -117,9 +118,7 @@ specs/006-personas/
 ```text
 nucleo/verificar.py                 # Catalogo, clasificación y comparación pura
 adaptadores/extraccion.py           # leer_paginas y wrapper leer
-expedientes/models.py               # páginas nullable si NC-002 lo autoriza
-expedientes/services.py             # páginas guardadas, servicio F5 y UI segura
-expedientes/migrations/             # migración reversible, solo si se autoriza
+expedientes/services.py             # consumo posterior de páginas
 tests/test_personas.py              # núcleo y reglas ficticias
 tests/test_extraccion_paginas.py    # adapter y compatibilidad leer/cache
 tests/test_expedientes_personas.py  # servicio, estados, permisos y UI
@@ -131,13 +130,10 @@ del núcleo en F11.
 
 ## Implementation phases
 
-### Phase 0 — decisiones bloqueantes
+### Phase 0 — decisiones cerradas
 
-1. Resolver NC-001 sobre SISGEN y actualizar el catálogo de referencia si el
-   propietario confirma una interpretación.
-2. Resolver NC-002 sobre `TextoExtraido` y filas antiguas.
-3. Si alguna respuesta cambia FR-004, FR-003 o las entidades de salida, parar y
-   pedir actualización de `spec.md`; esta etapa no la reescribe.
+Las cinco aclaraciones están resueltas y escritas en `spec.md`; no se añade
+migración. Las respuestas no cambian FR-001–FR-015.
 
 ### Phase 1 — pruebas rojas y contrato puro
 
@@ -148,10 +144,9 @@ contrato de `Catalogo`, su proyección compatible y la comprobación ligada.
 
 ### Phase 2 — extracción por páginas y cache
 
-Extraer páginas sin duplicar OCR, mantener `leer()` idéntico para consumidores
-anteriores y, si NC-002 lo autoriza, persistir páginas junto a la cadena plana.
-Invalidar por `version_extractor`; no convertir filas antiguas en una página
-falsa. Añadir estado seguro de re-subida para documentos sin páginas.
+Extraer páginas sin duplicar OCR, unirlas con `\f` y mantener `leer()` para los
+consumidores anteriores. No convertir filas antiguas sin separador en una
+frontera inventada; se procesan como un bloque.
 
 ### Phase 3 — clasificación y asociación
 
@@ -180,8 +175,8 @@ La medición privada y Quality Gate remoto se reportan como evidencia separada.
   aceptar la regresión.
 - Si una regla de descarte clasifica una página válida, quitarla y degradar a
   `revision_manual`; no ampliar la regla sin fixture que demuestre su límite.
-- Si las páginas persistidas no están disponibles, mantener F5 con texto plano
-  y bloquear solo el flujo F11 para pedir re-subida.
+- Si el texto histórico no tiene separador, mantener F5 con texto plano y
+  tratarlo como un solo bloque; la revisión de procedencia queda degradada.
 - Si una persona se unifica de más, conservar candidatos separados y registrar
   observación manual; nunca corregir escogiendo el nombre más parecido.
 
@@ -190,7 +185,6 @@ La medición privada y Quality Gate remoto se reportan como evidencia separada.
 | Elemento | Motivo | Alternativa simple descartada |
 |---|---|---|
 | `Catalogo` con proyección Mapping | Permite introducir asociaciones sin romper `cat["DNI"]` ni las funciones medidas. | Cambiar todos los consumidores en una sola edición rompe compatibilidad y aumenta el diff. |
-| Campo nullable de páginas | El texto plano no conserva límites de PDF; F11 necesita procedencia verificable. | Inferir páginas por saltos de línea crea cruces silenciosos. Requiere NC-002. |
 | Clasificador de página | SISGEN y separadores deben descartarse antes de extraer personas. | Una regex global sobre el legajo mezcla operador, terceros y comparecientes. |
 | Comparación persona-documento separada | El contrato `list[str]` histórico no puede expresar una relación segura. | Cambiar el formato de todas las observaciones altera F5 y su medición. |
 

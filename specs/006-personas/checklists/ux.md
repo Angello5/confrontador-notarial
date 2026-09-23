@@ -37,11 +37,11 @@ todos los ítems pendientes.
 - [ ] CHK018 No se cargan recursos CDN ni se envía contenido a servicios externos. [Constitución I/VI/VII]
 - [ ] CHK019 El nombre de archivo se escapa y se muestra solo como procedencia autorizada, nunca como ruta ejecutable. [Seguridad]
 
-## Decisiones pendientes
+## Decisiones aplicadas
 
-- [NEEDS CLARIFICATION] CHK020 Definir presentación del DNI consultado en SISGEN antes de cerrar el recuento de descartes. [NC-001]
-- [NEEDS CLARIFICATION] CHK021 Definir si el nombre sin documento es informativo o genera una observación. [NC-003]
-- [NEEDS CLARIFICATION] CHK022 Definir si la página no clasificada se lista como revisión manual o solo como recuento. [NC-005]
+- SISGEN se descarta completo y no muestra su documento consultado.
+- El nombre sin documento se muestra como extracción y se verifica solo como nombre.
+- La página no clasificada se cuenta y lista por archivo y página, sin texto.
 
 ## Evidencia
 

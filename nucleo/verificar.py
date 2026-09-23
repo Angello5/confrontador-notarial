@@ -2,10 +2,78 @@
 
 import re
 import unicodedata
+from collections import namedtuple
+from collections.abc import Mapping
 
 from rapidfuzz import fuzz, process
 
 IMGS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
+SEPARADOR_PAGINA = "\f"
+
+
+Procedencia = namedtuple("Procedencia", "fuente pagina")
+Pagina = namedtuple("Pagina", "fuente numero texto")
+PaginaDescartada = namedtuple("PaginaDescartada", "fuente pagina tipo")
+
+
+class Persona(namedtuple("PersonaBase", "nombre documento procedencias estado")):
+    __slots__ = ()
+
+    def __new__(cls, nombre, documento, procedencias, estado="CONFIRMADA"):
+        return super().__new__(cls, nombre, documento, procedencias, estado)
+
+
+class Catalogo(Mapping[str, frozenset[str]]):
+    """Resultado puro con una vista histórica calculada, no almacenada."""
+
+    __slots__ = (
+        "personas",
+        "partidas",
+        "montos",
+        "paginas_descartadas",
+        "paginas_no_clasificadas",
+        "_fijo",
+    )
+
+    def __init__(
+        self,
+        personas,
+        partidas=frozenset(),
+        montos=frozenset(),
+        paginas_descartadas=(),
+        paginas_no_clasificadas=(),
+    ):
+        object.__setattr__(self, "personas", tuple(personas))
+        object.__setattr__(self, "partidas", frozenset(partidas))
+        object.__setattr__(self, "montos", frozenset(montos))
+        object.__setattr__(self, "paginas_descartadas", tuple(paginas_descartadas))
+        object.__setattr__(
+            self, "paginas_no_clasificadas", tuple(paginas_no_clasificadas)
+        )
+        object.__setattr__(self, "_fijo", True)
+
+    def __setattr__(self, campo, valor):
+        if hasattr(self, "_fijo"):
+            raise AttributeError("Catalogo es de solo lectura")
+        object.__setattr__(self, campo, valor)
+
+    def __getitem__(self, campo: str) -> frozenset[str]:
+        if campo == "NOMBRE":
+            return frozenset(p.nombre for p in self.personas if p.nombre)
+        if campo == "DNI":
+            return frozenset(p.documento for p in self.personas if p.documento)
+        if campo == "PARTIDA":
+            return self.partidas
+        if campo == "MONTO":
+            return self.montos
+        raise KeyError(campo)
+
+    def __iter__(self):
+        return iter(("NOMBRE", "DNI", "PARTIDA", "MONTO"))
+
+    def __len__(self) -> int:
+        return 4
+
 
 RELLENO = re.compile(r"[=_.]{3,}|(?:-?/@/\s*)+")
 
@@ -108,25 +176,162 @@ def nombre_reniec(raw: str) -> str | None:
     return f"{c['nom']} {c['pat']} {c['mat']}" if len(c) == 3 else None
 
 
-def catalogo(fuentes: dict[str, str]) -> dict[str, set[str]]:
-    cat = {"NOMBRE": set(), "DNI": set(), "PARTIDA": set(), "MONTO": set()}
-    for nom, raw in fuentes.items():
-        t = norm(raw)
-        nombre = nom.rsplit("/", 1)[-1]
-        sufijo = re.search(r"(?<!^)(\.[^.]*)$", nombre)
-        es_img = bool(sufijo and sufijo.group(1).lower() in IMGS)
-        es_pdf = bool(sufijo and sufijo.group(1).lower() == ".pdf")
-        cat["DNI"] |= set(RE_CUI.findall(t)) if es_img else set(RE_DNI_DOC.findall(t))
-        cat["PARTIDA"] |= set(RE_PARTIDA.findall(t))
-        cat["MONTO"] |= set(RE_MONTO.findall(t))
-        if es_img:
-            if n := nombre_reniec(raw):
-                cat["NOMBRE"].add(n)
+_TIPOS_DESCARTADOS = {"BLANCA_SEPARADOR", "SISGEN"}
+_MARCAS_SISGEN = (
+    "CONSULTA REALIZADA",
+    "COINCIDENCIAS",
+    "DOCUMENTO IDENTIFICATIVO",
+    "N CONSULTA",
+)
+
+
+def clasificar_pagina(texto: str) -> str:
+    """Clasifica por marcas estructurales, conservando lo que sea dudoso."""
+    t = norm(texto)
+    if not t:
+        return "BLANCA_SEPARADOR"
+    if sum(marca in t for marca in _MARCAS_SISGEN) >= 2:
+        return "SISGEN"
+    if (RE_CUI.search(t) or "APELLIDO PATERNO" in t) and all(
+        etiqueta in t for etiqueta in RE_RENIEC.values()
+    ):
+        return "RENIEC"
+    if "INFORMACION PERSONAL" in t and all(
+        etiqueta in t for etiqueta in ("PRIMER APELLIDO", "SEGUNDO APELLIDO", "NOMBRES")
+    ):
+        return "BIOMETRICA"
+    if "DECLARACION JURADA" in t or (
+        "APELLIDOS" in t and "NOMBRES" in t and "DOCUMENTO DE IDENTIDAD" in t
+    ):
+        return "DECLARACION_JURADA"
+    if (
+        sum(marca in t for marca in ("PARTIDA", "ASIENTO", "CARGO", "IDENTIFICADO CON"))
+        >= 2
+    ):
+        return "SUNARP"
+    if "FICHA DE IDENTIDAD" in t or "DOCUMENTO NACIONAL DE IDENTIDAD" in t:
+        return "IDENTIDAD"
+    if nombres(t) or RE_DNI_DOC.search(t):
+        return "PROSA"
+    return "DESCONOCIDA"
+
+
+def _sufijo(nombre: str) -> str | None:
+    match = re.search(r"(?<!^)(\.[^.]+)$", nombre)
+    return match.group(1).lower() if match else None
+
+
+def _linea_etiquetada(raw: str, etiqueta: str) -> str | None:
+    """Lee campos de formularios sin interpretar números cercanos."""
+    for linea in raw.splitlines():
+        t = norm(linea)
+        if not t.startswith(etiqueta):
+            continue
+        resto = t[len(etiqueta) :].lstrip(" :")
+        if etiqueta == "NOMBRES" and resto.startswith(("Y ", "DEL ")):
+            continue
+        if resto:
+            return resto
+    return None
+
+
+def _nombres_de_pagina(
+    raw: str, tipo: str, es_pdf: bool, es_img: bool = False
+) -> list[str]:
+    t = norm(raw)
+    out = list(nombres(t))
+    if tipo in {"RENIEC", "BIOMETRICA"}:
+        if tipo == "BIOMETRICA":
+            n = _linea_etiquetada(raw, "NOMBRES")
+            pat = _linea_etiquetada(raw, "PRIMER APELLIDO")
+            mat = _linea_etiquetada(raw, "SEGUNDO APELLIDO")
+            reniec = " ".join(x for x in (n, pat, mat) if x)
+        elif es_img or es_pdf:
+            reniec = nombre_reniec(raw)
         else:
-            cat["NOMBRE"] |= set(nombres(t))
-            if es_pdf and (n := nombre_reniec(raw)):
-                cat["NOMBRE"].add(n)
-    return cat
+            reniec = None
+        if reniec:
+            out.append(reniec)
+    if tipo == "DECLARACION_JURADA":
+        apellidos = _linea_etiquetada(raw, "APELLIDOS")
+        nombres_campo = _linea_etiquetada(raw, "NOMBRES")
+        if apellidos and nombres_campo:
+            out.append(f"{nombres_campo} {apellidos}")
+        conyuge = _linea_etiquetada(raw, "NOMBRES Y APELLIDOS DEL CONYUGE")
+        if conyuge:
+            out.append(conyuge)
+    if es_pdf and (reniec := nombre_reniec(raw)):
+        out.append(reniec)
+    return list(dict.fromkeys(out))
+
+
+def _documentos_de_pagina(raw: str, tipo: str, es_img: bool) -> list[str]:
+    if tipo == "SISGEN":
+        return []
+    limpio = "\n".join(
+        linea
+        for linea in raw.splitlines()
+        if not re.search(
+            r"\b(?:OPERADOR|USUARIO|NOTARIO|TRANSACCION|VERIFICACION|RUC|TELEFONO|CORREO)\b",
+            norm(linea),
+        )
+    )
+    t = norm(limpio)
+    if es_img or tipo == "RENIEC":
+        return list(dict.fromkeys(RE_CUI.findall(t)))
+    return list(dict.fromkeys(RE_DNI_DOC.findall(t)))
+
+
+def _personas_de_pagina(pagina: Pagina, tipo: str) -> list[Persona]:
+    sufijo = _sufijo(pagina.fuente.rsplit("/", 1)[-1])
+    es_img = bool(sufijo and sufijo in IMGS)
+    nombres_pagina = _nombres_de_pagina(pagina.texto, tipo, sufijo == ".pdf", es_img)
+    documentos = _documentos_de_pagina(pagina.texto, tipo, es_img)
+    procedencia = (Procedencia(pagina.fuente, pagina.numero),)
+    if len(nombres_pagina) == 1 and len(documentos) == 1:
+        return [Persona(nombres_pagina[0], documentos[0], procedencia)]
+    personas = [
+        Persona(nombre, None, procedencia, "SIN_DOCUMENTO") for nombre in nombres_pagina
+    ]
+    personas.extend(
+        Persona(None, documento, procedencia, "REVISION_MANUAL")
+        for documento in documentos
+    )
+    return personas
+
+
+def _paginas(fuentes: Mapping[str, str]) -> list[Pagina]:
+    return [
+        Pagina(nombre, numero, texto)
+        for nombre, raw in fuentes.items()
+        for numero, texto in enumerate(raw.split(SEPARADOR_PAGINA), 1)
+    ]
+
+
+def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
+    personas = []
+    partidas = set()
+    montos = set()
+    descartadas = []
+    no_clasificadas = []
+    for pagina in _paginas(fuentes):
+        t = norm(pagina.texto)
+        partidas.update(RE_PARTIDA.findall(t))
+        montos.update(RE_MONTO.findall(t))
+        tipo = clasificar_pagina(pagina.texto)
+        if tipo in _TIPOS_DESCARTADOS:
+            descartadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
+            continue
+        if tipo == "DESCONOCIDA":
+            no_clasificadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
+        personas.extend(_personas_de_pagina(pagina, tipo))
+    return Catalogo(
+        tuple(personas),
+        frozenset(partidas),
+        frozenset(montos),
+        tuple(descartadas),
+        tuple(no_clasificadas),
+    )
 
 
 def correspondencia(cat: dict[str, set[str]], destino: str) -> tuple[float, int]:

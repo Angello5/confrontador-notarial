@@ -2,8 +2,7 @@
 
 **Propósito**: verificar trazabilidad de `spec.md`, decisiones del núcleo,
 compatibilidad F5 y límites de privacidad. `[X]` requiere evidencia real de
-implementación; `[NEEDS CLARIFICATION]` mantiene una decisión del propietario
-abierta. Esta planificación no marca ningún ítem como completado.
+implementación; las decisiones del propietario ya están resueltas.
 
 **Feature**: [spec.md](../spec.md)
 
@@ -28,8 +27,8 @@ abierta. Esta planificación no marca ningún ítem como completado.
 - [ ] CHK014 `Catalogo` expone la relación persona-documento y una proyección de lectura `NOMBRE`, `DNI`, `PARTIDA`, `MONTO`. [plan §Contract]
 - [ ] CHK015 `revisar()`, `correspondencia()` y `diagnostico()` aceptan la proyección nueva y entradas legado sin cambiar sus cadenas ni umbrales. [plan §Contract, tasks T006/T008]
 - [ ] CHK016 La comparación ligada es una función estructurada separada de las cadenas históricas de `revisar()`. [research §1]
-- [ ] CHK017 Las páginas F4 antiguas con `paginas` nulo no se convierten silenciosamente en una única página. [research §2, NC-002]
-- [ ] CHK018 El catálogo de la rama o su fuente histórica está disponible y se resuelve su contradicción SISGEN. [research §Hallazgo, tasks T001/T002]
+- [ ] CHK017 El texto F4 antiguo sin separador se procesa como un bloque sin inventar fronteras. [research §2, spec FR-015]
+- [X] CHK018 El catálogo de la rama está disponible y la contradicción SISGEN está resuelta. [research §Resoluciones aplicadas, tasks T001/T002]
 
 ## Seguridad, privacidad y determinismo
 
@@ -39,14 +38,14 @@ abierta. Esta planificación no marca ningún ítem como completado.
 - [ ] CHK022 No se guardan textos descartados ni se escriben personas en logs o mensajes de error. [Constitución IV, contracts §Privacidad]
 - [ ] CHK023 Un número aislado, de operador, RUC, partida, transacción, teléfono o correo no se captura como DNI. [research §5, tasks T021]
 - [ ] CHK024 Fuzzy matching no aprueba ni unifica personas; los conflictos quedan en `revision_manual`. [research §6]
-- [ ] CHK025 La migración de páginas, si se autoriza, es reversible y conserva `texto` plano. [NC-002, tasks T012/T034]
+- [X] CHK025 No hay migración de páginas: la cadena plana usa `\f` y las filas antiguas sin separador se tratan como un bloque. [spec FR-015, tasks T003/T012]
 
-## Decisiones pendientes
+## Decisiones aplicadas
 
-- [NEEDS CLARIFICATION] CHK026 El catálogo y `spec.md` se contradicen sobre si SISGEN aporta el `Documento Identificativo`; el propietario debe decidir antes de implementar. [NC-001]
-- [NEEDS CLARIFICATION] CHK027 `spec.md` prohíbe migraciones F11, pero FR-003 no puede cumplirse para caché F4 plana sin guardar páginas; el propietario debe autorizar una estrategia. [NC-002]
-- [NEEDS CLARIFICATION] CHK028 Debe definirse si un cónyuge sin documento se verifica o solo se muestra. [NC-003]
-- [NEEDS CLARIFICATION] CHK029 Debe definirse si se unen grupos manuscritos del documento separados por espacios. [NC-004]
+- SISGEN se descarta entero, incluido el documento consultado.
+- El cónyuge entra sin documento y solo se verifica su nombre.
+- Los grupos manuscritos separados no se unen.
+- La página no clasificada se cuenta y lista por archivo y página, sin texto.
 
 ## Evidencia
 
