@@ -55,7 +55,8 @@ def test_la_llave_de_cache_cambia_con_el_formato_y_con_el_motor(monkeypatch):
     )
 
     def llave_actual():
-        import hashlib, json
+        import hashlib
+        import json
 
         identidad = json.dumps(
             {
