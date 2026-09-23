@@ -31,7 +31,7 @@
     <section class="card card-outline card-primary mb-3" aria-labelledby="resultado-titulo">
       <div class="card-header"><h2 id="resultado-titulo" class="h5 mb-0">Resultado de la confrontación</h2></div>
       <div class="card-body" role="status" aria-live="polite">
-        {% if resultado.regla or resultado.ortografia %}
+        {% if resultado.personas or resultado.regla or resultado.ortografia %}
           <p class="mb-0">Se encontraron observaciones para revisar.</p>
         {% else %}
           <p class="mb-0">No se encontraron observaciones. El borrador concuerda con las fuentes y la ortografía revisada.</p>
@@ -43,16 +43,53 @@
       <details class="card mb-3" aria-labelledby="extraccion-titulo">
         <summary id="extraccion-titulo" class="card-header h5">Qué se extrajo de los documentos</summary>
         <div class="card-body">
-          <p class="text-body-secondary">Revise los campos detectados y el aporte de cada fuente. El texto completo no se muestra aquí.</p>
-          <h3 class="h6">Catálogo agregado</h3>
-          <dl class="row">
-            {% for campo, valores in resultado.extraccion.catalogo.items %}
-              <dt class="col-sm-3">{{ campo }}</dt>
-              <dd class="col-sm-9">
-                {% if valores %}{{ valores|join:", " }}{% else %}<span class="text-body-secondary">Sin valores detectados</span>{% endif %}
-              </dd>
-            {% endfor %}
-          </dl>
+          <p class="text-body-secondary">Revise las personas detectadas y su procedencia. El texto completo no se muestra aquí.</p>
+          {% if resultado.extraccion.personas %}
+            <h3 class="h6">Personas extraídas</h3>
+            <div class="table-responsive">
+              <table class="table table-striped" aria-label="Personas extraídas">
+                <thead><tr>
+                  <th scope="col">Nombre</th><th scope="col">Documento</th>
+                  <th scope="col">Procedencia</th><th scope="col">Estado</th>
+                </tr></thead>
+                <tbody>
+                  {% for persona in resultado.extraccion.personas %}
+                    <tr>
+                      <td>{{ persona.nombre }}</td>
+                      <td>{{ persona.documento }}</td>
+                      <td>
+                        {% for procedencia in persona.procedencias %}
+                          {{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}
+                        {% empty %}No ubicada{% endfor %}
+                      </td>
+                      <td>{{ persona.estado }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% if resultado.extraccion.paginas_descartadas %}
+              <p class="small text-body-secondary">Páginas descartadas: {{ resultado.extraccion.paginas_descartadas|length }}.</p>
+            {% endif %}
+            {% if resultado.extraccion.paginas_no_clasificadas %}
+              <p class="small text-body-secondary">Páginas no clasificadas para revisión: {{ resultado.extraccion.paginas_no_clasificadas|length }}.</p>
+              <ul class="small">
+                {% for pagina in resultado.extraccion.paginas_no_clasificadas %}
+                  <li>{{ pagina.archivo }}, página {{ pagina.pagina }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          {% else %}
+            <h3 class="h6">Catálogo agregado</h3>
+            <dl class="row">
+              {% for campo, valores in resultado.extraccion.catalogo.items %}
+                <dt class="col-sm-3">{{ campo }}</dt>
+                <dd class="col-sm-9">
+                  {% if valores %}{{ valores|join:", " }}{% else %}<span class="text-body-secondary">Sin valores detectados</span>{% endif %}
+                </dd>
+              {% endfor %}
+            </dl>
+          {% endif %}
 
           <h3 class="h6 mt-4">Aporte por documento</h3>
           {% for documento in resultado.extraccion.documentos %}
@@ -63,6 +100,10 @@
                 <p class="alert alert-warning py-2 mb-2" role="status">No aportó campos detectables.</p>
               {% endif %}
               <dl class="row mb-0">
+                {% if documento.personas %}
+                  <dt class="col-sm-3">Personas</dt>
+                  <dd class="col-sm-9">{{ documento.personas|length }}</dd>
+                {% endif %}
                 {% for campo, valores in documento.catalogo.items %}
                   <dt class="col-sm-3">{{ campo }}</dt>
                   <dd class="col-sm-9">
@@ -74,6 +115,42 @@
           {% endfor %}
         </div>
       </details>
+    {% endif %}
+
+    {% if resultado.personas %}
+    <section class="card mb-3" aria-labelledby="personas-titulo">
+      <div class="card-header"><h2 id="personas-titulo" class="h5 mb-0">Personas <span class="badge text-bg-secondary">{{ resultado.personas|length }}</span></h2></div>
+      <div class="card-body">
+        {% if resultado.personas %}
+          <div class="table-responsive">
+            <table class="table table-striped" aria-describedby="personas-titulo">
+              <thead><tr>
+                <th scope="col">Persona</th><th scope="col">Documento hallado</th>
+                <th scope="col">Documento esperado</th><th scope="col">Procedencia</th>
+                <th scope="col">Ubicación</th>
+              </tr></thead>
+              <tbody>
+                {% for observacion in resultado.personas %}
+                  <tr>
+                    <td>{{ observacion.nombre }}<div class="small text-body-secondary">{{ observacion.motivo }}</div></td>
+                    <td>{{ observacion.hallado }}</td>
+                    <td>{{ observacion.esperado }}</td>
+                    <td>
+                      {% for procedencia in observacion.procedencias %}
+                        {{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}
+                      {% empty %}No ubicada{% endfor %}
+                    </td>
+                    <td>
+                      {% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}<p class="mb-0">No se encontraron observaciones de identidad.</p>{% endif %}
+      </div>
+    </section>
     {% endif %}
 
     <section class="card mb-3" aria-labelledby="regla-titulo">

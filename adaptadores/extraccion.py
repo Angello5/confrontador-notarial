@@ -20,7 +20,7 @@ import tempfile
 from functools import lru_cache
 from pathlib import Path
 
-from nucleo.verificar import IMGS
+from nucleo.verificar import IMGS, SEPARADOR_PAGINA
 
 # formatos que abre textutil (macOS) o LibreOffice (Linux)
 LEGACY = {".doc", ".rtf", ".odt", ".wordml"}
@@ -114,7 +114,7 @@ def ocr_lineas(fuente, tol: int = 9) -> str:
     )
 
 
-def _pdf(p: Path) -> str:
+def _pdf_paginas(p: Path) -> tuple[str, ...]:
     import pymupdf
 
     with pymupdf.open(p) as doc:
@@ -125,7 +125,11 @@ def _pdf(p: Path) -> str:
                 print(f"    pagina {i}: sin texto, aplicando OCR", file=sys.stderr)
                 txt = ocr_lineas(pg.get_pixmap(dpi=DPI).tobytes("png"))
             paginas.append(txt)
-    return "\n".join(paginas)
+    return tuple(paginas)
+
+
+def _pdf(p: Path) -> str:
+    return SEPARADOR_PAGINA.join(_pdf_paginas(p))
 
 
 def _xlsx(p: Path) -> str:
@@ -240,21 +244,27 @@ def _docx(p: Path) -> str:
 
 def leer(p: Path) -> str:
     """Texto plano de cualquier formato soportado. Cachea lo que pasa por OCR."""
+    return SEPARADOR_PAGINA.join(leer_paginas(p))
+
+
+def leer_paginas(p: Path) -> tuple[str, ...]:
+    """Devuelve una página lógica por elemento y conserva el cache de OCR."""
     s = p.suffix.lower()
     p = p.resolve(strict=True)
     if s == ".docx":
-        return _docx(p)
+        return (_docx(p),)
     if s in LEGACY:
-        return _legacy(p)
+        return (_legacy(p),)
     if s == ".xlsx":
-        return _xlsx(p)
+        return (_xlsx(p),)
     if s == ".pdf":
-        return _cacheado(p.read_bytes(), lambda: _pdf(p))
+        paginas = _cacheado(p.read_bytes(), lambda: list(_pdf_paginas(p)))
+        return (paginas,) if isinstance(paginas, str) else tuple(paginas)
     if s in IMGS:
-        return _cacheado(p.read_bytes(), lambda: ocr_lineas(p))
+        return (_cacheado(p.read_bytes(), lambda: ocr_lineas(p)),)
     if s in {".xls", ".ppt"}:
         raise ValueError(f"{p.name}: formato binario antiguo, guardalo como .{s[1:]}x")
-    return p.read_text(errors="ignore")
+    return (p.read_text(errors="ignore"),)
 
 
 def archivos(rutas: list[str]) -> list[Path]:

@@ -373,6 +373,53 @@ def test_confrontacion_devuelve_catalogo_y_aporte_por_documento(
     }
 
 
+def test_confrontacion_detecta_documentos_intercambiados_en_personas(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "fuente-personas-ficticia.txt",
+        "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011\f"
+        "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000022",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-personas-ficticia.docx",
+        "MINUTA FICTICIA",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-personas-ficticio.txt",
+        "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000022\n"
+        "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000011",
+    )
+    monkeypatch.setattr("expedientes.services.verificar.diagnostico", lambda *_: None)
+    monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
+    monkeypatch.setattr(
+        "expedientes.services.verificar.revisar_parrafos", lambda *_: []
+    )
+    monkeypatch.setattr(
+        "expedientes.services.diccionario.diccionario", lambda: (None, [])
+    )
+    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
+    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert [observacion["tipo"] for observacion in resultado["personas"]] == [
+        "DOCUMENTO_CRUZADO",
+        "DOCUMENTO_CRUZADO",
+    ]
+    assert resultado["personas"][0]["nombre"] == "ALBA ZAFIRO LUMARIA"
+    assert resultado["personas"][0]["esperado"] == "90000011"
+
+
 def test_diagnostico_bloqueante_detiene_toda_ejecucion(
     expediente_confrontacion, crear_documento_listo, monkeypatch
 ):
