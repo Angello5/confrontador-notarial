@@ -113,6 +113,13 @@ def error_rate(reconocido: str, referencia: str) -> dict[str, float | None]:
     return {"cer": cer, "wer": wer}
 
 
+def accuracy_rate(error: float | None) -> float | None:
+    """Convierte CER/WER en porcentaje de acierto, donde 100 es exacto."""
+    if error is None:
+        return None
+    return max(0.0, (1.0 - error) * 100.0)
+
+
 def read_reference(origen: Path) -> str:
     """Lee una referencia de texto o Word usando el extractor existente."""
     origen = Path(origen)

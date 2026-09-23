@@ -16,8 +16,12 @@ streamlit run experimental/app_ocr_benchmark.py --server.port 8504
 ```
 
 La interfaz acepta varios PDF o imágenes en una sola selección. Cada documento
-se procesa por separado para conservar su nombre y sus resultados. Las
-dependencias son opcionales y están fuera de `requirements.txt` del ERP.
+se procesa por separado para conservar su nombre y sus resultados. La referencia puede ser un archivo Word (`.docx`, `.doc` o `.rtf`) o texto
+(`.txt`/`.md`). Se extrae una vez y se compara contra cada documento y cada
+motor seleccionado. La tabla muestra el archivo de referencia usado en cada
+fila, CER, WER, precisión de caracteres y precisión de palabras; CER/WER igual a
+cero y precisión igual a 100% significan coincidencia exacta. Si se comparan
+varios documentos, el Word debe contener el texto esperado para esa comparación.
 El benchmark CPU desactiva la ruta OneDNN/PIR de PaddleX que es incompatible
 con algunas combinaciones de PaddlePaddle 3.x; esto prioriza una comparación
 reproducible sobre la aceleración específica de ese backend. Los modelos de
@@ -38,7 +42,7 @@ local.
 Para que el tiempo sea comparable, un PDF se rasteriza a 200 DPI y cada motor
 recibe las mismas páginas. La tabla muestra preparación, procesamiento, tiempo
 total, caracteres, personas, DNI, partidas y montos detectados por el núcleo.
-Si se sube un `.txt` de referencia ficticio, también calcula CER y WER.
+Si se sube una referencia `.docx`, `.doc`, `.rtf`, `.txt` o `.md`, también calcula CER y WER.
 
 ## Verificación sin modelos
 
