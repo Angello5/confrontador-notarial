@@ -40,7 +40,7 @@ personas de listas restrictivas que no son parte del acto.
 - Q: ¿Y el cónyuge, que aparece con nombre pero sin documento? → A: Entra al catálogo como persona sin documento. Su nombre se verifica; no se genera observación sobre su documento, porque no se tiene.
 - Q: ¿Cómo se entrega el texto por página sin migrar la caché de F4? → A: El adaptador separa las páginas con un salto de página al unirlas. El texto se sigue guardando como una sola cadena y el núcleo la divide al usarla. El texto guardado antes de este cambio no lleva separador y se trata como un solo bloque: degrada sin romperse.
 - Q: ¿Se unen los grupos de un documento manuscrito separados por espacios? → A: No. Unir `0605 12 37` en un solo número es fabricar un dato. Queda como deuda: se prefiere no detectarlo a inventarlo.
-- Q: ¿Cómo se presenta una página que no se pudo clasificar? → A: Se cuenta y se lista por archivo y página, sin su contenido, para poder revisarla a mano si falta un compareciente.
+- Q: ¿Cómo se presenta una página que no se pudo clasificar? → A: Solo se cuenta y lista por archivo y página si conserva alguna identidad posible; una página de prosa o anexo sin nombres ni documentos se ignora porque no puede aportar a la confrontación.
 - Q: ¿Entran las personas jurídicas en esta fase? → A: No. Se reconocen para poder descartarlas sin ruido, pero modelarlas como parte del acto queda fuera.
 - Q: ¿Cuándo se unifican dos apariciones de una persona? → A: Solo con el
   mismo documento exacto y nombre completo compatible, admitiendo el orden

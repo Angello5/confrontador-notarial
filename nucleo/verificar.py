@@ -225,10 +225,31 @@ def _sufijo(nombre: str) -> str | None:
     return match.group(1).lower() if match else None
 
 
+def _celdas(linea: str) -> list[str]:
+    """Conserva la frontera de columnas que ``ocr_lineas`` marca con dos espacios."""
+    celdas = []
+    for celda in re.split(r"\s{2,}", linea):
+        valor = norm(celda)
+        if valor:
+            celdas.append(valor)
+    return celdas
+
+
 def _linea_etiquetada(raw: str, etiqueta: str) -> str | None:
     """Lee campos de formularios sin interpretar números cercanos."""
     for linea in raw.splitlines():
-        t = norm(linea)
+        celdas = _celdas(linea)
+        for indice, celda in enumerate(celdas):
+            rotulo = re.sub(r"^\d+[.)]?\s*", "", celda).rstrip(":")
+            if rotulo.startswith(f"{etiqueta}:"):
+                return rotulo[len(etiqueta) + 1 :].lstrip()
+            if rotulo != etiqueta or indice + 1 == len(celdas):
+                continue
+            resto = celdas[indice + 1]
+            if etiqueta == "NOMBRES" and resto.startswith(("Y ", "DEL ")):
+                continue
+            return resto
+        t = re.sub(r"^\d+[.)]?\s*", "", norm(linea))
         if not t.startswith(etiqueta):
             continue
         resto = t[len(etiqueta) :].lstrip(" :")
@@ -490,9 +511,10 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         if tipo in _TIPOS_DESCARTADOS:
             descartadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
             continue
-        if tipo == "DESCONOCIDA":
+        personas_pagina = _personas_de_pagina(pagina, tipo)
+        if tipo == "DESCONOCIDA" and personas_pagina:
             no_clasificadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
-        personas.extend(_personas_de_pagina(pagina, tipo))
+        personas.extend(personas_pagina)
     return Catalogo(
         unificar_personas(personas),
         frozenset(partidas),
