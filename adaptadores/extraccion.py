@@ -12,6 +12,7 @@ pagina a pagina y se pasan por el mismo OCR.
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
 import re
 import subprocess
@@ -36,6 +37,9 @@ _OCR_FILES = {
     "latin_PP-OCRv5_rec_mobile_infer.onnx": "b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a",
 }
 _OCR_USE_CLS = False
+
+# 1: texto unido en una cadena. 2: una entrada por pagina.
+_FORMATO_CACHE = 2
 
 
 def version_extractor() -> str:
@@ -73,7 +77,16 @@ def _cacheado(clave: bytes, calcular):
     """Cachea OCR costoso usando también la identidad de sus modelos."""
     # Identificador de caché, no firma ni decisión de seguridad.
     identidad = json.dumps(
-        {"modelos": _OCR_FILES, "use_cls": _OCR_USE_CLS}, sort_keys=True
+        {
+            "modelos": _OCR_FILES,
+            "use_cls": _OCR_USE_CLS,
+            "rapidocr": importlib.metadata.version("rapidocr"),
+            # Sube cuando cambia la FORMA de lo que se cachea, no solo el motor.
+            # Sin esto, una entrada vieja se devuelve tal cual y el cambio queda
+            # inactivo en silencio: paso al guardar paginas en vez de una cadena.
+            "formato": _FORMATO_CACHE,
+        },
+        sort_keys=True,
     ).encode()
     f = CACHE / (
         hashlib.sha1(clave + identidad, usedforsecurity=False).hexdigest() + ".json"

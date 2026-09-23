@@ -34,3 +34,41 @@ def test_cache_pdf_historica_sigue_siendoun_bloque(tmp_path, monkeypatch):
     )
 
     assert leer_paginas(ruta) == ("TEXTO HISTORICO FICTICIO",)
+
+
+def test_la_llave_de_cache_cambia_con_el_formato_y_con_el_motor(monkeypatch):
+    """Una entrada vieja no puede devolverse cuando cambia la forma del dato.
+
+    Ocurrió de verdad: al pasar de guardar una cadena a guardar páginas, las
+    entradas anteriores se seguían devolviendo como una sola página y la
+    segmentación quedaba inactiva en silencio. Nada fallaba: el sistema
+    simplemente dejaba de hacer lo nuevo.
+    """
+    from adaptadores import extraccion
+
+    llaves = []
+    monkeypatch.setattr(
+        extraccion,
+        "_escribir_cache",
+        lambda ruta, valor: llaves.append(ruta.name),
+        raising=False,
+    )
+
+    def llave_actual():
+        import hashlib
+        import json
+
+        identidad = json.dumps(
+            {
+                "modelos": extraccion._OCR_FILES,
+                "use_cls": extraccion._OCR_USE_CLS,
+                "rapidocr": extraccion.importlib.metadata.version("rapidocr"),
+                "formato": extraccion._FORMATO_CACHE,
+            },
+            sort_keys=True,
+        ).encode()
+        return hashlib.sha1(b"contenido" + identidad, usedforsecurity=False).hexdigest()
+
+    original = llave_actual()
+    monkeypatch.setattr(extraccion, "_FORMATO_CACHE", extraccion._FORMATO_CACHE + 1)
+    assert llave_actual() != original, "cambiar el formato debe invalidar la caché"
