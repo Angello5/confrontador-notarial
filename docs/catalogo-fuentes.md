@@ -207,7 +207,7 @@ Qué aporta y qué contamina:
 
 | Dato | Uso |
 |---|---|
-| `Documento Identificativo` | El documento consultado: **sí es del acto** |
+| `Documento Identificativo` | El documento consultado, pero **sin nombre al lado**: no se puede atribuir a nadie, así que la página se descarta entera. Ese número aparece con su nombre en la ficha RENIEC y en la biométrica del mismo legajo. |
 | `N. Consulta` | 8 dígitos, **no es un documento** |
 | Bloques `1.-`, `2.-` de coincidencias | Terceros ajenos: **excluir** |
 | Pie con usuario y notaría | **Excluir** |

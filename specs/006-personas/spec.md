@@ -36,6 +36,11 @@ personas de listas restrictivas que no son parte del acto.
 - Q: ¿Se extrae una persona por archivo? → A: No. Un legajo reúne varios documentos y varias personas en un solo PDF; una declaración jurada trae al declarante y a su cónyuge. Hay que segmentar antes de asociar.
 - Q: ¿Qué se hace con las páginas que no aportan identidades del acto? → A: Se descartan enteras. Son las consultas de coincidencias y los separadores en blanco: 100 de las 435 páginas del corpus.
 - Q: ¿Se puede confiar en las etiquetas? → A: No del todo. El OCR las corrompe: `D.N.I.` se leyó como `D.N.1,`. El reconocimiento debe tolerar erratas en la etiqueta, no solo variedad de etiquetas.
+- Q: ¿Qué se hace con el documento que aparece en una consulta de coincidencias, sin nombre al lado? → A: Se descarta la página entera. Un documento sin titular es justo lo que causaba el cruce de identidades, y ese número aparece con su nombre en la ficha RENIEC y en la biométrica del mismo legajo. Corrige una contradicción entre `spec.md` y el catálogo de fuentes.
+- Q: ¿Y el cónyuge, que aparece con nombre pero sin documento? → A: Entra al catálogo como persona sin documento. Su nombre se verifica; no se genera observación sobre su documento, porque no se tiene.
+- Q: ¿Cómo se entrega el texto por página sin migrar la caché de F4? → A: El adaptador separa las páginas con un salto de página al unirlas. El texto se sigue guardando como una sola cadena y el núcleo la divide al usarla. El texto guardado antes de este cambio no lleva separador y se trata como un solo bloque: degrada sin romperse.
+- Q: ¿Se unen los grupos de un documento manuscrito separados por espacios? → A: No. Unir `0605 12 37` en un solo número es fabricar un dato. Queda como deuda: se prefiere no detectarlo a inventarlo.
+- Q: ¿Cómo se presenta una página que no se pudo clasificar? → A: Se cuenta y se lista por archivo y página, sin su contenido, para poder revisarla a mano si falta un compareciente.
 - Q: ¿Entran las personas jurídicas en esta fase? → A: No. Se reconocen para poder descartarlas sin ruido, pero modelarlas como parte del acto queda fuera.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -97,7 +102,9 @@ Como notario, quiero saber en qué documento y en qué página se encontró cada
 - **FR-003**: El adaptador de extracción DEBE entregar el texto **por página**, no como una sola cadena, para que el núcleo pueda segmentar.
 - **FR-004**: El sistema DEBE clasificar cada página por tipo, según `docs/catalogo-fuentes.md`, y descartar entera la que no aporte identidades del acto.
 - **FR-005**: El sistema DEBE descartar los bloques de metadatos de consulta: marca de agua, cabecera del notario y pie con usuario, entidad y transacción.
-- **FR-006**: El sistema DEBE descartar los bloques de coincidencias de listas restrictivas.
+- **FR-006**: El sistema DEBE descartar **entera** la página de consulta de coincidencias, incluidos su documento consultado y las entidades listadas.
+- **FR-014**: Una persona con nombre y sin documento DEBE entrar al catálogo. Su nombre se verifica; NO se genera observación sobre su documento.
+- **FR-015**: El adaptador DEBE separar las páginas con un salto de página al unir el texto. El texto extraído antes de este cambio se trata como un solo bloque.
 - **FR-007**: El reconocimiento de la etiqueta del documento DEBE tolerar erratas de OCR.
 - **FR-008**: El sistema DEBE señalar cuando el borrador asigna a una persona un documento que, según las fuentes, es de otra.
 - **FR-009**: El sistema DEBE señalar un documento que no pertenezca a ninguna persona conocida.
