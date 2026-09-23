@@ -41,7 +41,7 @@ todos los ítems pendientes.
 
 - SISGEN se descarta completo y no muestra su documento consultado.
 - El nombre sin documento se muestra como extracción y se verifica solo como nombre.
-- La página no clasificada se cuenta y lista por archivo y página, sin texto.
+- La página no clasificada que pueda contener identidad se cuenta y lista por archivo y página, sin texto; las que no tienen nombres ni documentos no se listan.
 
 ## Evidencia
 

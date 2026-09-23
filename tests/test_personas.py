@@ -6,6 +6,7 @@ from nucleo.verificar import (
     Catalogo,
     Persona,
     Procedencia,
+    _linea_etiquetada,
     catalogo,
     clasificar_pagina,
     comparar_personas,
@@ -129,9 +130,7 @@ def test_catalogo_descarta_solo_separadores_y_sisgen_y_conserva_campos_no_identi
         (2, "BLANCA_SEPARADOR"),
         (3, "SISGEN"),
     ]
-    assert [(p.pagina, p.tipo) for p in resultado.paginas_no_clasificadas] == [
-        (1, "DESCONOCIDA")
-    ]
+    assert resultado.paginas_no_clasificadas == ()
 
 
 def test_catalogo_no_descarta_paginas_identitarias_por_confusion_de_tipo():
@@ -374,3 +373,84 @@ def test_persona_con_nombre_sin_documento_se_conserva_sin_observacion_documental
         )
         in resultado.personas
     )
+
+
+@pytest.mark.parametrize(
+    ("fuente", "texto", "esperado"),
+    [
+        (
+            "reniec-ficticio.pdf",
+            "CUI: 90000031 - 5\n"
+            "APELLIDO PATERNO  LUMARIA  APELLIDO MATERNO  ZAFIRO\n"
+            "NOMBRES  ALBA  ESTADO CIVIL  SOLTERA",
+            "ALBA LUMARIA ZAFIRO",
+        ),
+        (
+            "biometrica-ficticia.txt",
+            "INFORMACION PERSONAL\n"
+            "PRIMER APELLIDO  LUMARIA  SEGUNDO APELLIDO  ZAFIRO\n"
+            "NOMBRES  ALBA\nDNI 90000031",
+            "ALBA LUMARIA ZAFIRO",
+        ),
+        (
+            "declaracion-ficticia.txt",
+            "DECLARACION JURADA\n"
+            "APELLIDOS  LUMARIA ZAFIRO  NOMBRES  ALBA\n"
+            "DNI 90000031",
+            "ALBA LUMARIA ZAFIRO",
+        ),
+    ],
+)
+def test_formularios_en_dos_columnas_conservan_nombre_completo(fuente, texto, esperado):
+    assert esperado in catalogo({fuente: texto})["NOMBRE"]
+
+
+def test_rotulo_no_arrastra_columnas_siguientes_ni_marca_de_agua():
+    linea = (
+        "PRIMER APELLIDO  LUMARIA  SELLO FICTICIO 20260101 10:20:30  "
+        "SEGUNDO APELLIDO  ZAFIRO"
+    )
+
+    assert _linea_etiquetada(linea, "PRIMER APELLIDO") == "LUMARIA"
+    assert _linea_etiquetada(linea, "SEGUNDO APELLIDO") == "ZAFIRO"
+
+
+def test_rotulos_numerados_de_declaracion_tambien_respetan_columnas():
+    linea = "1. APELLIDOS: LUMARIA ZAFIRO  2. NOMBRES: ALBA"
+
+    assert _linea_etiquetada(linea, "APELLIDOS") == "LUMARIA ZAFIRO"
+    assert _linea_etiquetada(linea, "NOMBRES") == "ALBA"
+
+
+def test_nombre_completo_con_mismo_documento_se_unifica_entre_formularios():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": (
+                "CUI: 90000031 - 5\n"
+                "APELLIDO PATERNO  LUMARIA  APELLIDO MATERNO  ZAFIRO\n"
+                "NOMBRES  ALBA"
+            ),
+            "biometrica-ficticia.txt": (
+                "INFORMACION PERSONAL\n"
+                "PRIMER APELLIDO  LUMARIA  SEGUNDO APELLIDO  ZAFIRO\n"
+                "NOMBRES  ALBA\nDNI 90000031"
+            ),
+        }
+    )
+
+    assert resultado.personas == (
+        Persona(
+            "ALBA LUMARIA ZAFIRO",
+            "90000031",
+            (
+                Procedencia("reniec-ficticio.pdf", 1),
+                Procedencia("biometrica-ficticia.txt", 1),
+            ),
+        ),
+    )
+
+
+def test_pagina_desconocida_sin_identidad_no_se_lista_para_revision():
+    resultado = catalogo({"anexo-ficticio.txt": "SELLO FICTICIO SIN DATOS"})
+
+    assert resultado.paginas_no_clasificadas == ()

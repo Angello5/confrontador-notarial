@@ -55,7 +55,7 @@ Cada persona aparece una vez, con:
 | Estado | `Confirmada`, `Sin documento` o `Revisión manual`; nunca se expresa una similitud como aprobación. |
 
 La sección incluye recuentos seguros de páginas descartadas por `separador` y
-`SISGEN` y de páginas `no clasificadas` (con archivo y página), sin mostrar el texto descartado. El
+`SISGEN` y de páginas `no clasificadas` que puedan contener identidad (con archivo y página), sin mostrar el texto descartado. Las páginas sin nombres ni documentos no se listan. El
 nombre del archivo se escapa como cualquier dato de usuario y no se escribe en
 logs.
 
@@ -100,6 +100,6 @@ completo de fuente o borrador.
 
 - SISGEN se descarta completo, incluido `Documento Identificativo`.
 - Un nombre sin documento se conserva y se verifica solo como nombre.
-- Una página no clasificada se cuenta y lista por archivo y página, sin texto.
+- Una página no clasificada que pueda contener identidad se cuenta y lista por archivo y página, sin texto; las que no tienen nombres ni documentos no se listan.
 - Las páginas se unen con `\f` en la cadena plana; no hay migración. El texto
   histórico sin separador se procesa como un bloque.

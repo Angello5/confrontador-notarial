@@ -45,7 +45,7 @@ implementación; las decisiones del propietario ya están resueltas.
 - SISGEN se descarta entero, incluido el documento consultado.
 - El cónyuge entra sin documento y solo se verifica su nombre.
 - Los grupos manuscritos separados no se unen.
-- La página no clasificada se cuenta y lista por archivo y página, sin texto.
+- La página no clasificada que pueda contener identidad se cuenta y lista por archivo y página, sin texto; las que no tienen nombres ni documentos no se listan.
 
 ## Evidencia
 

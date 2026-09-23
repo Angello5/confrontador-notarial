@@ -31,8 +31,9 @@ implementa código ni reescribe `spec.md`.
 - NC-003: el cónyuge entra como `Persona` sin documento; solo se verifica su
   nombre.
 - NC-004: los grupos manuscritos separados por espacios no se unen.
-- NC-005: una página no clasificada se cuenta y se lista por archivo y página,
-  sin guardar ni mostrar su contenido.
+- NC-005: una página no clasificada que conserva identidad posible se cuenta y
+  se lista por archivo y página, sin guardar ni mostrar su contenido; la prosa
+  o anexo sin nombres ni documentos se ignora porque no puede aportar.
 
 ## Decisiones de diseño
 
@@ -193,8 +194,8 @@ una coincidencia aproximada en aprobación.
 
 Las cinco aclaraciones del propietario están incorporadas en `spec.md`: SISGEN
 se descarta completo; no hay migración; el cónyuge se conserva sin documento;
-los grupos manuscritos separados no se unen; y las páginas desconocidas se
-cuentan y listan por archivo y página, sin texto.
+los grupos manuscritos separados no se unen; y las páginas desconocidas con
+identidad posible se cuentan y listan por archivo y página, sin texto.
 
 ## Deuda explícita
 
