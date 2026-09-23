@@ -18,6 +18,7 @@ from experimental.ocr_benchmark import (
     ENGINE_SPECS,
     benchmark,
     dependency_status,
+    read_reference,
     render_pages,
 )
 
@@ -62,8 +63,8 @@ archivos = st.file_uploader(
 )
 referencia = st.file_uploader(
     "Texto de referencia (opcional)",
-    type=["txt", "md"],
-    help="Si se proporciona un único documento, se calculan CER y WER contra este texto ficticio esperado.",
+    type=["docx", "doc", "rtf", "txt", "md"],
+    help="Acepta Word (DOCX/DOC/RTF) o texto. Con un único documento se calculan CER y WER.",
 )
 
 if seleccionados and any(
@@ -82,6 +83,22 @@ if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
         documentos = []
         with tempfile.TemporaryDirectory(prefix="ocr-benchmark-") as temporal:
             temporal_path = Path(temporal)
+            texto_referencia = ""
+            if referencia is not None and len(archivos) == 1:
+                referencia_suffix = Path(referencia.name).suffix.lower()
+                referencia_path = temporal_path / f"reference{referencia_suffix}"
+                referencia_path.write_bytes(referencia.getvalue())
+                try:
+                    texto_referencia = read_reference(referencia_path)
+                    if texto_referencia.strip():
+                        st.success(
+                            f"Referencia leída: {referencia.name} "
+                            f"({len(texto_referencia):,} caracteres)."
+                        )
+                    else:
+                        st.warning("La referencia está vacía.")
+                except Exception as exc:
+                    st.error(f"No se pudo leer la referencia {referencia.name}: {exc}")
             for indice, archivo in enumerate(archivos, 1):
                 nombre = Path(archivo.name).name
                 origen = temporal_path / f"{indice:03d}-{nombre}"
@@ -89,11 +106,6 @@ if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
                 try:
                     paginas = render_pages(
                         origen, temporal_path / f"pages-{indice:03d}"
-                    )
-                    texto_referencia = (
-                        referencia.getvalue().decode("utf-8", errors="replace")
-                        if referencia is not None and len(archivos) == 1
-                        else ""
                     )
                     documentos.append(
                         {

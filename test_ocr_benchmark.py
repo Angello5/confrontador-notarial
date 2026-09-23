@@ -103,7 +103,9 @@ def test_render_pages_creates_one_png_per_pdf_page(tmp_path):
 
 @pytest.mark.ocr_research
 def test_read_reference_extracts_fictional_docx():
-    referencia = Path(__file__).parent / "tests" / "fixtures" / "cliente" / "minuta.docx"
+    referencia = (
+        Path(__file__).parent / "tests" / "fixtures" / "cliente" / "minuta.docx"
+    )
 
     texto = read_reference(referencia)
 
