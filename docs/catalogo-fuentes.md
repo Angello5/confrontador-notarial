@@ -3,7 +3,8 @@
 Qué documentos llegan a la confrontación, cómo se presenta en cada uno la
 identidad de las personas, y qué datos **no** son de los comparecientes.
 
-Salió de examinar 11 expedientes reales de la notaría (75 archivos). Todos los
+Salió de examinar 11 expedientes reales de la notaría: 75 archivos y **las 435
+páginas** de todos los PDF, pasadas por OCR y agrupadas por forma. Todos los
 ejemplos de este documento son **ficticios**: reproducen la disposición y las
 etiquetas de los documentos reales, con nombres inventados y números de
 documento del rango 9000xxxx, que está por encima de los emitidos.
@@ -53,7 +54,33 @@ metadatos.
 Sin excluirlos, el catálogo mezcla al ciudadano con el personal de la notaría,
 y la confrontación puede dar por buena una identidad que no corresponde.
 
-## Los cuatro tipos encontrados
+
+## Censo: qué hay en 435 páginas
+
+Agrupadas por las marcas estructurales que contiene cada una.
+
+| Páginas | Tipo |
+|---:|---|
+| 62 | Consulta de coincidencias SISGEN |
+| 38 | Página en blanco o separador de escaneo |
+| 32 | Ficha de autenticación biométrica |
+| 30 | Consulta en línea RENIEC |
+| 30 | Declaración jurada de conocimiento del cliente |
+| ~90 | Partidas y certificados SUNARP, en varias combinaciones |
+| ~60 | Prosa notarial: minuta y proyecto |
+| ~30 | Poderes y facultades |
+| 17 | Documento nacional de identidad escaneado |
+| 3 | Vehicular |
+| 6 | Sucesión intestada / municipal |
+
+Dos cifras que condicionan el diseño:
+
+- **38 páginas en blanco**, casi una de cada diez. Son separadores del escáner.
+  El OCR gasta tiempo en ellas y no aportan nada.
+- **62 páginas de SISGEN**, el tipo más numeroso del corpus, y ninguna de ellas
+  aporta identidades del acto.
+
+## Los tipos encontrados
 
 ### 1. Consulta en línea RENIEC — "Informe de la Consulta"
 
@@ -143,6 +170,60 @@ CARGO: GERENTE GENERAL
   reconoce**.
 - Contaminantes: `Código de Verificación` (8 dígitos) y el número de partida
   (8 dígitos).
+
+
+### 6. Consulta de coincidencias SISGEN — el caso más peligroso
+
+Es el tipo **más numeroso del corpus**: 62 de 435 páginas.
+
+```
+CONSULTA REALIZADA
+Fecha:                     16/09/2026 16:10:21
+Documento Identificativo:  D.N.I. 90000011
+Coincidencias:             0
+Nombre:
+N. Consulta:               80000003
+```
+
+Cuando hay coincidencias, la página **lista entidades de listas restrictivas**:
+
+```
+1.- (564) OTRO - Porcentaje de similitud: 70%
+   Nombre:                   EMPRESA FICTICIA SAC
+   Documento identificativo: RUC 20000000001
+   Delito/Cargo:             ...
+   Lista Origen:             ...
+```
+
+**Esas personas y empresas NO son parte del acto.** Son coincidencias por
+parecido de nombre en listas de vigilancia. Si entran al catálogo, la escritura
+se estaría confrontando contra identidades de una lista de sancionados.
+
+De 62 páginas, 30 tienen cero coincidencias y al menos una tiene dos. Es decir:
+el caso peligroso es **poco frecuente pero real**, que es la peor combinación,
+porque no aparece al probar con dos o tres expedientes.
+
+Qué aporta y qué contamina:
+
+| Dato | Uso |
+|---|---|
+| `Documento Identificativo` | El documento consultado: **sí es del acto** |
+| `N. Consulta` | 8 dígitos, **no es un documento** |
+| Bloques `1.-`, `2.-` de coincidencias | Terceros ajenos: **excluir** |
+| Pie con usuario y notaría | **Excluir** |
+
+## El OCR corrompe las propias etiquetas
+
+En una página SISGEN real, el documento del compareciente **no se captura**, y
+no por culpa del patrón:
+
+```
+DOCUMENTO IDENTIFICATIVO: D.N.1,   ← la I se leyó como 1 y el punto como coma
+```
+
+La etiqueta llega corrompida, así que cualquier regla que dependa de reconocerla
+exactamente falla. Esto vale para todos los tipos: **la tolerancia a erratas de
+la etiqueta es tan importante como la variedad de etiquetas**.
 
 ### 5. Minuta y proyecto de escritura
 
