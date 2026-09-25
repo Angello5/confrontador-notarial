@@ -13,7 +13,7 @@
 ### Session 2026-09-25
 
 - Q: ¿Qué campos entran? → A: `estado_civil`, `fecha_nacimiento`, `domicilio` y `distrito`. El cónyuge de la declaración jurada queda para otra fase.
-- Q: ¿De qué documentos se leen? → A: Solo de plantillas reconocidas con fiabilidad alta: consulta RENIEC y ficha biométrica. La declaración jurada (manuscrita) y el DNI escaneado no aportan estos campos en esta fase.
+- Q: ¿De qué documentos se leen? → A: Solo de la **consulta RENIEC**. La ficha biométrica no trae estos campos: el "estado civil" que se le atribuía venía del pie "Registro Nacional de Identificación y Estado Civil", detectado al revisar el plan. La declaración jurada (manuscrita) y el DNI escaneado no aportan estos campos en esta fase.
 - Q: ¿Qué gana la confrontación? → A: Tres reglas nuevas, en la capa de regla: (1) compareciente casado según la fuente que la minuta presenta como soltero o sin cónyuge; (2) compareciente menor de edad; (3) domicilio de la fuente que no aparece en el borrador.
 - Q: US1, ¿se compara contra la minuta, el borrador o ambos? → A: Contra el **borrador**, que es lo que se confronta; la minuta es una fuente más. "Sin mención de cónyuge" significa: en el borrador, la cláusula donde aparece el nombre de la persona (desde el nombre hasta el siguiente punto y seguido o salto de línea, ampliada a la anterior si el nombre abre la cláusula) no contiene ningún marcador de estado civil (`CASAD[AO] CON`, `SOLTER[AO]`, `VIUD[AO]`, `DIVORCIAD[AO]`, `CONVIVIENTE`). Un cónyuge mencionado en otra cláusula no cuenta: la observación es por persona, no por documento.
 - Q: ¿Cambia la persistencia? → A: No en esta fase. La persona ampliada se calcula al confrontar, como el resto del catálogo; la persistencia es F6.
@@ -44,7 +44,7 @@ Como notario, quiero que el sistema señale a un compareciente menor de edad seg
 1. **Given** una persona con fecha de nacimiento que implica menos de 18 años, **When** se confronta, **Then** se genera una observación con la edad calculada.
 2. **Given** una fecha ilegible o ausente, **Then** no se genera observación ni error.
 
-`[NEEDS CLARIFICATION]`: ¿la edad se calcula a la fecha de hoy o a la fecha del acto? La fecha del acto no se extrae hoy del borrador.
+Decisión del propietario (2026-09-25): la edad se calcula **a la fecha de hoy**; la observación muestra la fecha usada. Extraer la fecha del acto queda como deuda.
 
 ### User Story 3 - Domicilio que no aparece (Priority: P2)
 
@@ -55,7 +55,7 @@ Como notario, quiero saber cuándo el domicilio de la fuente oficial no aparece 
 1. **Given** una persona con domicilio en la fuente, **When** el borrador no lo contiene tras normalizar, **Then** se genera una observación con el domicilio esperado.
 2. **Given** el domicilio presente con diferencias solo de tildes, mayúsculas o abreviaturas comunes (AV./AVENIDA, JR./JIRÓN, MZ./MANZANA, LT./LOTE), **Then** no hay observación.
 
-`[NEEDS CLARIFICATION]`: lista de abreviaturas que la notaría considera equivalentes.
+Decisión del propietario (2026-09-25): equivalencias de vía peruanas habituales: AV/AVENIDA, JR/JIRÓN, CA/CALLE, PSJ/PASAJE, MZ/MANZANA, LT/LOTE, URB/URBANIZACIÓN, AAHH/ASENTAMIENTO HUMANO, DPTO/DEPARTAMENTO, INT/INTERIOR, N°/NÚMERO, S/N. Se comparan sin puntos, tildes ni orden del número.
 
 ### User Story 4 - Ver los campos nuevos (Priority: P2)
 
@@ -63,7 +63,7 @@ Como notario, quiero ver estado civil, fecha de nacimiento y domicilio de cada p
 
 ### Edge Cases
 
-- La misma persona aparece en RENIEC y en biométrica con estado civil distinto: se conserva el de RENIEC y se marca conflicto para revisión manual.
+- La misma persona aparece en dos consultas RENIEC con estado civil distinto: se conserva la de fecha de emisión más reciente y se marca conflicto para revisión manual.
 - El estado civil viene con género (CASADA/CASADO) o en minúsculas: se normaliza.
 - La fecha viene en formato `dd/mm/aaaa` con separadores mal leídos por OCR (`03/07/1976`, `03-07-1976`, `03/07/197б`): se acepta lo claro y se descarta lo dudoso sin inventar.
 - Persona sin documento pero con estado civil: no participa en la regla de cónyuge, porque no está confirmada.
@@ -73,7 +73,7 @@ Como notario, quiero ver estado civil, fecha de nacimiento y domicilio de cada p
 ### Functional Requirements
 
 - **FR-001**: `Persona` DEBE incorporar `estado_civil`, `fecha_nacimiento`, `domicilio` y `distrito`, todos opcionales, con la procedencia de cada uno.
-- **FR-002**: Los campos DEBEN leerse solo de páginas clasificadas como RENIEC o BIOMETRICA, por etiqueta y columna, según `docs/catalogo-datos.md`.
+- **FR-002**: Los campos DEBEN leerse solo de páginas clasificadas como RENIEC, por etiqueta al inicio de línea y valor en su columna: `ESTADO CIVIL`, `FECHA DE NACIMIENTO`, `DIRECCIÓN` y `DISTRITO DE DOMICILIO`. `DISTRITO DE NACIMIENTO` NO es el distrito de domicilio. El pie "IDENTIFICACIÓN Y ESTADO CIVIL" no es un campo.
 - **FR-003**: `estado_civil` DEBE normalizarse a SOLTERO / CASADO / VIUDO / DIVORCIADO sin género; el género se conserva aparte si hace falta mostrarlo.
 - **FR-004**: `fecha_nacimiento` DEBE normalizarse a fecha; una fecha no interpretable con certeza se descarta.
 - **FR-005**: La capa de regla DEBE emitir observación cuando el estado civil de la fuente contradiga al del borrador (US1).
