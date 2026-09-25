@@ -13,6 +13,7 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F4 · terminada (PR #20)** | Expedientes | Subir archivos desde la PC, extracción en segundo plano, borrado del archivo al terminar | F2, F3 | Retención del texto extraído: **indefinida**, con supresión a solicitud (constitución 1.6.0) |
 | **F5 · terminada (PR #22)** | Confrontación | Observaciones en pantalla, agrupadas por capa | F4 | Capas incluidas: regla y ortografía; el léxico se aplaza |
 | **F11 · terminada (PR #31)** | Extracción por personas | El sistema deja de cruzar documentos entre comparecientes | F5 | Alcance: personas naturales; las jurídicas quedan fuera |
+| **F12 · en curso** | Persona ampliada | Estado civil, fecha de nacimiento y domicilio entran en la confrontación | F11 | Reglas de cónyuge, minoría de edad y domicilio |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
 | **F7** | Informe exportable | Descargar o imprimir las observaciones | F5 | Formato |

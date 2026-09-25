@@ -51,6 +51,8 @@
                 <thead><tr>
                   <th scope="col">Nombre</th><th scope="col">Documento</th>
                   <th scope="col">Procedencia</th><th scope="col">Estado</th>
+                  <th scope="col">Estado civil</th><th scope="col">Fecha de nacimiento</th>
+                  <th scope="col">Domicilio</th><th scope="col">Distrito</th>
                 </tr></thead>
                 <tbody>
                   {% for persona in resultado.extraccion.personas %}
@@ -63,6 +65,14 @@
                         {% empty %}No ubicada{% endfor %}
                       </td>
                       <td>{{ persona.estado }}</td>
+                      <td>{{ persona.estado_civil|default:"No detectado" }}<br>
+                        {% if persona.procedencia_estado_civil %}{{ persona.procedencia_estado_civil.archivo }}, página {{ persona.procedencia_estado_civil.pagina }}{% else %}No ubicada{% endif %}</td>
+                      <td>{{ persona.fecha_nacimiento|default:"No detectada" }}<br>
+                        {% if persona.procedencia_fecha_nacimiento %}{{ persona.procedencia_fecha_nacimiento.archivo }}, página {{ persona.procedencia_fecha_nacimiento.pagina }}{% else %}No ubicada{% endif %}</td>
+                      <td>{{ persona.domicilio|default:"No detectado" }}<br>
+                        {% if persona.procedencia_domicilio %}{{ persona.procedencia_domicilio.archivo }}, página {{ persona.procedencia_domicilio.pagina }}{% else %}No ubicada{% endif %}</td>
+                      <td>{{ persona.distrito|default:"No detectado" }}<br>
+                        {% if persona.procedencia_distrito %}{{ persona.procedencia_distrito.archivo }}, página {{ persona.procedencia_distrito.pagina }}{% else %}No ubicada{% endif %}</td>
                     </tr>
                   {% endfor %}
                 </tbody>
