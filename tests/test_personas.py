@@ -323,13 +323,13 @@ def test_cui_se_extrae_con_su_control_y_no_se_unen_grupos_manuscritos():
                 "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA"
             ),
             "manuscrito-ficticio.txt": (
-                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 0605 12 37"
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 9000 00 22"
             ),
         }
     )
 
     assert "90000011" in resultado["DNI"]
-    assert "06051237" not in resultado["DNI"]
+    assert "90000022" not in resultado["DNI"]
 
 
 def test_nombre_incompatible_con_mismo_documento_no_se_unifica():

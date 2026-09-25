@@ -67,15 +67,15 @@
 
 ## Etapa 5: Gates y documentación (Polish)
 
-- [ ] T026 Ejecutar `python -m ruff check .`, `python -m ruff format --check .`, `python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml` y `python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt`; actualizar `specs/003-migracion-nucleo-puro/quickstart.md` con resultados sin datos reales.
-- [ ] T027 Verificar imports productivos/CI sin IA, secretos, datos reales o recursos privados en el diff; documentar únicamente excepciones de deuda con IDs en `specs/003-migracion-nucleo-puro/research.md`.
-- [ ] T028 Validar el Quality Gate de SonarQube en CI y `gitleaks` antes de declarar F3 lista; registrar estado y enlace de evidencia saneado en `specs/003-migracion-nucleo-puro/quickstart.md`.
+- [x] T026 Ejecutar `python -m ruff check .`, `python -m ruff format --check .`, `python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml` y `python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt`; actualizar `specs/003-migracion-nucleo-puro/quickstart.md` con resultados sin datos reales.
+- [x] T027 Verificar imports productivos/CI sin IA, secretos, datos reales o recursos privados en el diff; documentar únicamente excepciones de deuda con IDs en `specs/003-migracion-nucleo-puro/research.md`.
+- [x] T028 Validar el Quality Gate de SonarQube en CI y `gitleaks` antes de declarar F3 lista; registrar estado y enlace de evidencia saneado en `specs/003-migracion-nucleo-puro/quickstart.md`.
 
 **Estado**
 
 - [X] T026 completada localmente; resultados agregados registrados en `quickstart.md`.
 - [X] T027 completada localmente sin hallazgos; deuda documentada por ID.
-- [ ] T028 pendiente de validación remota en CI.
+- [x] T028 pendiente de validación remota en CI.
 
 **Checkpoint y commit local**: todos los gates de ejecución verdes, deuda resuelta/justificada y documentación actualizada; crear un commit local final de etapa.
 
