@@ -376,9 +376,6 @@ def _nombres_de_pagina(
         nombres_campo = _linea_etiquetada(raw, "NOMBRES")
         if apellidos and nombres_campo:
             out.append(f"{nombres_campo} {apellidos}")
-        conyuge = _linea_etiquetada(raw, "NOMBRES Y APELLIDOS DEL CONYUGE")
-        if conyuge:
-            out.append(conyuge)
     if es_pdf and (reniec := nombre_reniec(raw)):
         out.append(reniec)
     return list(dict.fromkeys(out))
@@ -402,16 +399,54 @@ def _documentos_de_pagina(raw: str, tipo: str, es_img: bool) -> list[str]:
 
 
 def _personas_de_pagina(pagina: Pagina, tipo: str) -> list[Persona]:
+    """Registros de la página; el cónyuge de la declaración jurada no es uno."""
+    conyuge = (
+        _linea_etiquetada(pagina.texto, "NOMBRES Y APELLIDOS DEL CONYUGE")
+        if tipo == "DECLARACION_JURADA"
+        else None
+    )
+    personas = _registros_de_pagina(pagina, tipo, _nombre_clave(conyuge))
+    if not conyuge:
+        return personas
+    origen = Procedencia(pagina.fuente, pagina.numero)
+    declarantes = [indice for indice, p in enumerate(personas) if p.nombre]
+    if len(declarantes) == 1:
+        personas[declarantes[0]] = personas[declarantes[0]]._replace(
+            conyuge=conyuge, procedencia_conyuge=origen
+        )
+    else:
+        personas.append(
+            Persona(
+                None,
+                None,
+                (origen,),
+                "SIN_FICHA",
+                conyuge=conyuge,
+                procedencia_conyuge=origen,
+            )
+        )
+    return personas
+
+
+def _registros_de_pagina(pagina: Pagina, tipo: str, excluido: str) -> list[Persona]:
     sufijo = _sufijo(pagina.fuente.rsplit("/", 1)[-1])
     es_img = bool(sufijo and sufijo in IMGS)
     procedencia = (Procedencia(pagina.fuente, pagina.numero),)
+
+    def nombres_sin_excluido(raw):
+        return [
+            nombre
+            for nombre in _nombres_de_pagina(raw, tipo, sufijo == ".pdf", es_img)
+            if not excluido or _nombre_clave(nombre) != excluido
+        ]
+
     # Una línea con nombre y documento es una frontera verificable. La usamos
     # primero para no cruzar a dos comparecientes de la misma página; los
     # formularios RENIEC/biométricos caen al bloque completo porque sus campos
     # viven en líneas distintas.
     asociados = []
     for linea in pagina.texto.splitlines():
-        nombres_linea = _nombres_de_pagina(linea, tipo, sufijo == ".pdf", es_img)
+        nombres_linea = nombres_sin_excluido(linea)
         documentos_linea = _documentos_de_pagina(linea, tipo, es_img)
         if len(nombres_linea) == 1 and len(documentos_linea) == 1:
             asociados.append(
@@ -419,7 +454,7 @@ def _personas_de_pagina(pagina: Pagina, tipo: str) -> list[Persona]:
             )
     if asociados:
         return _anotar_reniec(asociados, pagina, tipo)
-    nombres_pagina = _nombres_de_pagina(pagina.texto, tipo, sufijo == ".pdf", es_img)
+    nombres_pagina = nombres_sin_excluido(pagina.texto)
     documentos = _documentos_de_pagina(pagina.texto, tipo, es_img)
     if len(nombres_pagina) == 1 and len(documentos) == 1:
         return _anotar_reniec(
@@ -459,6 +494,12 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
         clave_nombre = _nombre_clave(persona.nombre)
         fusion = None
         for indice, existente in enumerate(unificadas):
+            if (
+                persona.conyuge
+                and existente.conyuge
+                and _nombre_clave(persona.conyuge) != _nombre_clave(existente.conyuge)
+            ):
+                continue
             mismo_documento = (
                 persona.documento
                 and existente.documento
@@ -517,6 +558,9 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
             nombre=existente.nombre or persona.nombre,
             documento=existente.documento or persona.documento,
             procedencias=procedencias,
+            conyuge=existente.conyuge or persona.conyuge,
+            procedencia_conyuge=existente.procedencia_conyuge
+            or persona.procedencia_conyuge,
             estado="REVISION_MANUAL"
             if conflicto or "REVISION_MANUAL" in (existente.estado, persona.estado)
             else estado,

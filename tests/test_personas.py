@@ -358,7 +358,7 @@ def test_nombre_incompatible_con_mismo_documento_no_se_unifica():
     assert {persona.estado for persona in resultado} == {"REVISION_MANUAL"}
 
 
-def test_persona_con_nombre_sin_documento_se_conserva_sin_observacion_documental():
+def test_declarante_sin_ficha_es_mencion_con_su_conyuge():
     resultado = catalogo(
         {
             "declaracion-ficticia.txt": (
@@ -370,15 +370,19 @@ def test_persona_con_nombre_sin_documento_se_conserva_sin_observacion_documental
         }
     )
 
-    assert (
+    origen = Procedencia("declaracion-ficticia.txt", 1)
+    assert resultado.personas == ()
+    assert resultado.menciones == (
         Persona(
-            "BRUNO TELURIO NEBULOSA",
+            "ALBA LUMARIA ZAFIRO",
             None,
-            (Procedencia("declaracion-ficticia.txt", 1),),
-            "SIN_DOCUMENTO",
-        )
-        in resultado.personas
+            (origen,),
+            "SIN_FICHA",
+            conyuge="BRUNO TELURIO NEBULOSA",
+            procedencia_conyuge=origen,
+        ),
     )
+    assert "BRUNO TELURIO NEBULOSA" in resultado["NOMBRE"]
 
 
 @pytest.mark.parametrize(
@@ -1096,3 +1100,117 @@ def test_ficha_reniec_sin_documento_legible_es_mencion():
     assert [(m.nombre, m.documento, m.estado) for m in resultado.menciones] == [
         ("ALBA LUMARIA ZAFIRO", None, "SIN_FICHA")
     ]
+
+
+def _declaracion(conyuge, documento="90000011"):
+    dni = f"DNI: {documento}\n" if documento else ""
+    return (
+        "DECLARACION JURADA\nAPELLIDOS: LUMARIA ZAFIRO\nNOMBRES: ALBA\n"
+        f"{dni}NOMBRES Y APELLIDOS DEL CONYUGE: {conyuge}"
+    )
+
+
+def test_conyuge_de_declaracion_jurada_se_adjunta_al_ancla():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "declaracion-ficticia.txt": _declaracion("EMILIO SOLANO QUIMERA"),
+        }
+    )
+
+    origen = Procedencia("declaracion-ficticia.txt", 1)
+    (ancla,) = resultado.personas
+    assert (ancla.conyuge, ancla.procedencia_conyuge) == (
+        "EMILIO SOLANO QUIMERA",
+        origen,
+    )
+    assert ancla.adjuntos == (
+        Persona(
+            "ALBA LUMARIA ZAFIRO",
+            "90000011",
+            (origen,),
+            conyuge="EMILIO SOLANO QUIMERA",
+            procedencia_conyuge=origen,
+        ),
+    )
+    assert ancla.estado == "CONFIRMADA"
+    assert resultado.menciones == ()
+    assert "EMILIO SOLANO QUIMERA" in resultado["NOMBRE"]
+
+
+def test_declarante_sin_documento_se_pega_por_nombre_unico():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "declaracion-ficticia.txt": _declaracion("EMILIO SOLANO QUIMERA", None),
+        }
+    )
+
+    (ancla,) = resultado.personas
+    assert ancla.conyuge == "EMILIO SOLANO QUIMERA"
+    assert [(a.nombre, a.documento) for a in ancla.adjuntos] == [
+        ("ALBA LUMARIA ZAFIRO", None)
+    ]
+    assert resultado.menciones == ()
+
+
+def test_menciones_del_mismo_declarante_con_conyuges_distintos_no_se_fusionan():
+    resultado = catalogo(
+        {
+            "declaracion-ficticia.txt": _declaracion("EMILIO SOLANO QUIMERA")
+            + "\f"
+            + _declaracion("FABIO RIVORIA TELMO")
+        }
+    )
+
+    assert [m.conyuge for m in resultado.menciones] == [
+        "EMILIO SOLANO QUIMERA",
+        "FABIO RIVORIA TELMO",
+    ]
+    assert {m.estado for m in resultado.menciones} == {"SIN_FICHA"}
+
+
+def test_dos_declaraciones_con_conyuges_distintos_en_el_mismo_ancla():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "declaracion-ficticia.txt": _declaracion("EMILIO SOLANO QUIMERA")
+            + "\f"
+            + _declaracion("FABIO RIVORIA TELMO"),
+        }
+    )
+
+    (ancla,) = resultado.personas
+    assert ancla.estado == "CONFIRMADA"
+    assert ancla.conyuge == "EMILIO SOLANO QUIMERA"
+    assert ancla.procedencia_conyuge == Procedencia("declaracion-ficticia.txt", 1)
+    assert [a.conyuge for a in ancla.adjuntos] == [
+        "EMILIO SOLANO QUIMERA",
+        "FABIO RIVORIA TELMO",
+    ]
+    assert {"EMILIO SOLANO QUIMERA", "FABIO RIVORIA TELMO"} <= resultado["NOMBRE"]
+
+
+def test_conyuge_sin_declarante_identificado_es_mencion_propia():
+    resultado = catalogo(
+        {
+            "declaracion-ficticia.txt": (
+                "DECLARACION JURADA\n"
+                "NOMBRES Y APELLIDOS DEL CONYUGE: EMILIO SOLANO QUIMERA"
+            )
+        }
+    )
+
+    origen = Procedencia("declaracion-ficticia.txt", 1)
+    assert resultado.personas == ()
+    assert resultado.menciones == (
+        Persona(
+            None,
+            None,
+            (origen,),
+            "SIN_FICHA",
+            conyuge="EMILIO SOLANO QUIMERA",
+            procedencia_conyuge=origen,
+        ),
+    )
+    assert resultado["NOMBRE"] == {"EMILIO SOLANO QUIMERA"}
