@@ -807,3 +807,84 @@ def test_domicilio_de_otra_persona_no_satisface_fuente():
     borrador = "ALBA LUMARIA ZAFIRO vive en Calle Sol 8.\nBRUNO TELURIO NEBULOSA vive en Av. Luna 12."
     obs = revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1))
     assert [fila["tipo"] for fila in obs] == ["DOMICILIO_NO_ENCONTRADO"]
+
+
+# Paridad F13 (SC-005): salida capturada con el código previo a F13 sobre un
+# legajo ficticio con ficha RENIEC, biométrica, declaración jurada con cónyuge,
+# prosa, SUNARP y un documento suelto. No debe cambiar.
+_LEGAJO_MINUTA = (
+    "COMPARECEN ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, CON DNI 90000011, Y "
+    "CLARA FICTELIA SOLARIA, DE NACIONALIDAD PERUANA, CON DNI 90000033, SOBRE LA "
+    "PARTIDA N° 80000001 POR S/ 1,500.00\n"
+    "DIANA ROCIO VENTORIA, DE NACIONALIDAD PERUANA, SIN DOCUMENTO A LA VISTA.\n"
+    "LA VENDEDORA DECLARA QUE EL INMUEBLE FICTICIO SE ENTREGA LIBRE DE CARGAS, "
+    "GRAVAMENES Y MEDIDAS JUDICIALES."
+)
+_LEGAJO = {
+    "reniec-ficticio.pdf": (
+        "CUI: 90000011 - 5\n"
+        "APELLIDO PATERNO  LUMARIA  APELLIDO MATERNO  ZAFIRO\n"
+        "NOMBRES  ALBA\n"
+        "ESTADO CIVIL  CASADA  SEXO  FEMENINO\n"
+        "\f"
+        "INFORMACION PERSONAL\nPRIMER APELLIDO  TELURIO  SEGUNDO APELLIDO  NEBULOSA\n"
+        "NOMBRES  BRUNO\nDNI 90000022"
+    ),
+    "declaracion-ficticia.txt": (
+        "DECLARACION JURADA\nAPELLIDOS: LUMARIA ZAFIRO\nNOMBRES: ALBA\nDNI: 90000011\n"
+        "NOMBRES Y APELLIDOS DEL CONYUGE: EMILIO SOLANO QUIMERA"
+    ),
+    "minuta-ficticia.txt": _LEGAJO_MINUTA,
+    "sunarp-ficticio.txt": (
+        "PARTIDA ELECTRONICA N° 80000001\nASIENTO B00001\n"
+        "TELURIO NEBULOSA, BRUNO DE NACIONALIDAD PERUANA"
+    ),
+    "suelto-ficticio.txt": "DNI 90000044",
+}
+_LEGAJO_BORRADOR = (
+    "ALBA LUMARIA ZAFIRA\nBRUNO TELURIO NEBULOSA\n"
+    "COMPARECEN ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, CON DNI 90000011, Y "
+    "CLARA FICTELIA SOLARIO, DE NACIONALIDAD PERUANA, CON DNI 90000039, SOBRE LA "
+    "PARTIDA N° 80000002 POR S/ 1,500.00\n"
+    "EMILIO SOLANO QUIMERA, DE NACIONALIDAD PERUANA, CONYUGE."
+)
+
+
+def test_paridad_capa_de_campos_con_legajo_ficticio():
+    from nucleo.verificar import correspondencia, diagnostico, revisar_parrafos
+
+    cat = catalogo(_LEGAJO)
+    assert cat["NOMBRE"] == {
+        "ALBA LUMARIA ZAFIRO",
+        "BRUNO TELURIO NEBULOSA",
+        "CLARA FICTELIA SOLARIA",
+        "COMPARECEN ALBA LUMARIA ZAFIRO",
+        "DIANA ROCIO VENTORIA",
+        "EMILIO SOLANO QUIMERA",
+    }
+    assert cat["DNI"] == {"90000011", "90000022", "90000033", "90000044"}
+    assert revisar(cat, _LEGAJO_BORRADOR, 88) == [
+        "[NOMBRE] «CLARA FICTELIA SOLARIO» debe decir «CLARA FICTELIA SOLARIA»",
+        "[NOMBRE] «ALBA LUMARIA ZAFIRA» debe decir «ALBA LUMARIA ZAFIRO»   (caratula)",
+        "[DNI] «90000039» debe decir «90000033»   …Y CLARA FICTELIA SOLARIO, DE NACIONALIDAD PERUANA, CON DNI 90000039",
+        "[PARTIDA] «80000002» debe decir «80000001»",
+        "[NOMBRE] FALTA: «BRUNO TELURIO NEBULOSA» esta en las fuentes y no aparece en el destino",
+        "[NOMBRE] FALTA: «CLARA FICTELIA SOLARIA» esta en las fuentes y no aparece en el destino",
+        "[NOMBRE] FALTA: «COMPARECEN ALBA LUMARIA ZAFIRO» esta en las fuentes y no aparece en el destino",
+        "[NOMBRE] FALTA: «DIANA ROCIO VENTORIA» esta en las fuentes y no aparece en el destino",
+        "[DNI] FALTA: «90000022» esta en las fuentes y no aparece en el destino",
+        "[DNI] FALTA: «90000033» esta en las fuentes y no aparece en el destino",
+        "[DNI] FALTA: «90000044» esta en las fuentes y no aparece en el destino",
+        "[PARTIDA] FALTA: «80000001» esta en las fuentes y no aparece en el destino",
+    ]
+    assert correspondencia(cat, _LEGAJO_BORRADOR) == (0.5, 1)
+    assert diagnostico(_LEGAJO, _LEGAJO_BORRADOR) is None
+    assert diagnostico(_LEGAJO, "SIN DATOS DNI 90000098 DNI 90000099") == (
+        "El borrador no corresponde a estas fuentes: no comparte ningun dato "
+        "identificatorio y trae 2 DNI distintos. Parece otro expediente o una "
+        "plantilla."
+    )
+    assert revisar_parrafos([_LEGAJO_MINUTA], _LEGAJO_BORRADOR, 88) == [
+        "[PARRAFO] falta o alterado (38.19%): LA VENDEDORA DECLARA QUE EL INMUEBLE "
+        "FICTICIO SE ENTREGA LIBRE DE CARGAS, GRAVAMENES Y MEDIDAS JUDIC…"
+    ]
