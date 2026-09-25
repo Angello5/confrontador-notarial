@@ -116,12 +116,14 @@ configurar el ejecutable o el formato desde una entrada no confiable.
 
 ## Aprovisionamiento offline de modelos para F8
 
-En el equipo conectado, aprovisionar los dos modelos verificados en `~/.cache/notaria-ocr/models/`. Copiar ese directorio al servidor sin red, conservando nombres y estructura; en el servidor comprobarlo antes de arrancar:
+Por solicitud del propietario y la medición agregada del PR #37, el detector predeterminado pasa a PP-OCRv5 mobile: 50 frente a 46 personas completas en 300 páginas y 14 % menos tiempo. El reconocedor latin PP-OCRv5 mobile no cambia. La medición privada de exactitud contra el expediente de referencia queda pendiente del propietario; el cambio de modelo invalida la caché de texto por `version_extractor()` y la caché de disco por `_OCR_FILES`, sin cambiar el formato guardado.
+
+En el equipo conectado, descargar `ch_PP-OCRv5_mobile_det.onnx` desde `https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0/onnx/PP-OCRv5/det/ch_PP-OCRv5_mobile_det.onnx` y aprovisionar los dos modelos verificados en `~/.cache/notaria-ocr/models/`. Copiar ese directorio al servidor sin red, conservando nombres y estructura; en el servidor comprobarlo antes de arrancar:
 
 ```bash
 cd ~/.cache/notaria-ocr/models
 sha256sum -c - <<'EOF'
-d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_det_infer.onnx
+4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae  ch_PP-OCRv5_mobile_det.onnx
 b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx
 EOF
 ```

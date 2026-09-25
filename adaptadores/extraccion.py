@@ -33,7 +33,7 @@ SOFFICE = "soffice"
 DPI = 200  # suficiente para DNI y sellos; a 300 tarda el doble sin ganar aciertos
 
 _OCR_FILES = {
-    "ch_PP-OCRv4_det_infer.onnx": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
+    "ch_PP-OCRv5_mobile_det.onnx": "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae",
     "latin_PP-OCRv5_rec_mobile_infer.onnx": "b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a",
 }
 _OCR_USE_CLS = False
@@ -67,7 +67,7 @@ def _ocr():
         params={
             "Global.use_cls": _OCR_USE_CLS,
             "Global.log_level": "error",
-            "Det.model_path": str(paths["ch_PP-OCRv4_det_infer.onnx"]),
+            "Det.model_path": str(paths["ch_PP-OCRv5_mobile_det.onnx"]),
             "Rec.model_path": str(paths["latin_PP-OCRv5_rec_mobile_infer.onnx"]),
         }
     )

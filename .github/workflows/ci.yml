@@ -69,25 +69,12 @@ jobs:
           from hashlib import sha256
           from pathlib import Path
           from urllib.request import urlopen
-          from shutil import copyfile
-
-          import rapidocr
-
           from adaptadores.extraccion import OCR_MODELS, _OCR_FILES
 
           OCR_MODELS.mkdir(parents=True, exist_ok=True)
-          copyfile(
-              Path(rapidocr.__file__).parent / "models" / "ch_PP-OCRv4_det_infer.onnx",
-              OCR_MODELS / "ch_PP-OCRv4_det_infer.onnx",
-          )
-          bundled = Path(rapidocr.__file__).parent / "models"
-          for name, expected in {
-              "ch_PP-OCRv4_rec_infer.onnx": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b",
-              "ch_ppocr_mobile_v2.0_cls_infer.onnx": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
-          }.items():
-              assert sha256((bundled / name).read_bytes()).hexdigest() == expected
           base = "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0"
           downloads = {
+              "ch_PP-OCRv5_mobile_det.onnx": f"{base}/onnx/PP-OCRv5/det/ch_PP-OCRv5_mobile_det.onnx",
               "latin_PP-OCRv5_rec_mobile_infer.onnx": f"{base}/onnx/PP-OCRv5/rec/latin_PP-OCRv5_rec_mobile_infer.onnx",
           }
           for name, url in downloads.items():

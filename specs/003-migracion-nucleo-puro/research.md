@@ -65,11 +65,11 @@ llamada OCR por página, CPU local; no es una estimación de producción.
 
 ## Recursos fijados y alfabeto reconocido
 
-Los hashes de modelos requeridos se validan antes de inicializar OCR. El detector v4 y el reconocedor v5 están en `OCR_MODELS`; el reconocedor y clasificador v4 siguen en el paquete RapidOCR para la comparación. El alfabeto v5 se lee desde la metadata ONNX.
+Los hashes de modelos requeridos se validan antes de inicializar OCR. En la medición histórica se usó el detector v4; el detector predeterminado actual es v5 mobile. La comparación de reconocedores v4/v5 queda registrada en esta tabla histórica; el test opt-in actual mide solo la configuración predeterminada sin acceder a modelos del paquete RapidOCR. El alfabeto v5 se lee desde la metadata ONNX.
 
 | Recurso | SHA-256 | Ñ | ñ |
 |---|---|---|---|
-| Detector `ch_PP-OCRv4_det_infer.onnx` | `d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9` | — | — |
+| Detector v4 de la medición histórica | `d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9` | — | — |
 | Clasificador `ch_ppocr_mobile_v2.0_cls_infer.onnx` | `e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c` | — | — |
 | PP-OCRv4 `ch_PP-OCRv4_rec_infer.onnx` | `48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b` | No | No |
 | Diccionario v4 `ppocr_keys_v1.txt` | `28b2362ad4ab2dc38769aa72feb535e3a9ddb3fd2a7585a05920e6393b1dc7f7` | No | No |
