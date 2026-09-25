@@ -45,14 +45,16 @@
         <div class="card-body">
           <p class="text-body-secondary">Revise las personas detectadas y su procedencia. El texto completo no se muestra aquí.</p>
           {% if resultado.extraccion.personas %}
-            <h3 class="h6">Personas extraídas</h3>
+            <h3 class="h6">Personas con ficha</h3>
+            <p class="small text-body-secondary">Cada ficha RENIEC o biométrica es una persona. Los demás documentos solo añaden datos.</p>
             <div class="table-responsive">
-              <table class="table table-striped" aria-label="Personas extraídas">
+              <table class="table table-striped" aria-label="Personas con ficha">
                 <thead><tr>
                   <th scope="col">Nombre</th><th scope="col">Documento</th>
                   <th scope="col">Procedencia</th><th scope="col">Estado</th>
                   <th scope="col">Estado civil</th><th scope="col">Fecha de nacimiento</th>
                   <th scope="col">Domicilio</th><th scope="col">Distrito</th>
+                  <th scope="col">Cónyuge</th><th scope="col">Datos adjuntos</th>
                 </tr></thead>
                 <tbody>
                   {% for persona in resultado.extraccion.personas %}
@@ -73,6 +75,14 @@
                         {% if persona.procedencia_domicilio %}{{ persona.procedencia_domicilio.archivo }}, página {{ persona.procedencia_domicilio.pagina }}{% else %}No ubicada{% endif %}</td>
                       <td>{{ persona.distrito|default:"No detectado" }}<br>
                         {% if persona.procedencia_distrito %}{{ persona.procedencia_distrito.archivo }}, página {{ persona.procedencia_distrito.pagina }}{% else %}No ubicada{% endif %}</td>
+                      <td>{{ persona.conyuge|default:"No declarado" }}<br>
+                        {% if persona.procedencia_conyuge %}{{ persona.procedencia_conyuge.archivo }}, página {{ persona.procedencia_conyuge.pagina }}{% else %}No ubicada{% endif %}</td>
+                      <td>
+                        {% for adjunto in persona.adjuntos %}
+                          <div>{{ adjunto.nombre }} · {{ adjunto.documento }}<br>
+                            <span class="small text-body-secondary">{% for procedencia in adjunto.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% empty %}No ubicada{% endfor %}</span></div>
+                        {% empty %}Ninguno{% endfor %}
+                      </td>
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -90,6 +100,7 @@
               </ul>
             {% endif %}
           {% else %}
+            <p class="alert alert-info py-2" role="status">Ninguna ficha RENIEC o biométrica en el legajo.</p>
             <h3 class="h6">Catálogo agregado</h3>
             <dl class="row">
               {% for campo, valores in resultado.extraccion.catalogo.items %}
@@ -100,6 +111,32 @@
               {% endfor %}
             </dl>
           {% endif %}
+          {% if resultado.extraccion.menciones %}
+            <h3 class="h6 mt-4">Menciones sin ficha</h3>
+            <p class="small text-body-secondary">Aparecen en los documentos pero no tienen ficha en el legajo. Se verifican campo por campo, no como persona. Si es un compareciente, falta su ficha.</p>
+            <div class="table-responsive">
+              <table class="table table-striped" aria-label="Menciones sin ficha">
+                <thead><tr>
+                  <th scope="col">Nombre</th><th scope="col">Documento</th>
+                  <th scope="col">Cónyuge</th><th scope="col">Origen</th>
+                </tr></thead>
+                <tbody>
+                  {% for mencion in resultado.extraccion.menciones %}
+                    <tr>
+                      <td>{{ mencion.nombre }}</td>
+                      <td>{{ mencion.documento }}</td>
+                      <td>{{ mencion.conyuge|default:"No declarado" }}</td>
+                      <td>
+                        {% for procedencia in mencion.procedencias %}
+                          {{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}
+                        {% empty %}No ubicada{% endfor %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
 
           <h3 class="h6 mt-4">Aporte por documento</h3>
           {% for documento in resultado.extraccion.documentos %}
@@ -109,11 +146,9 @@
               {% if not documento.aporta %}
                 <p class="alert alert-warning py-2 mb-2" role="status">No aportó campos detectables.</p>
               {% endif %}
+              {% if documento.personas %}<p class="small mb-1">Personas con ficha: {{ documento.personas|length }}</p>{% endif %}
+              {% if documento.menciones %}<p class="small mb-1">Menciones sin ficha: {{ documento.menciones|length }}</p>{% endif %}
               <dl class="row mb-0">
-                {% if documento.personas %}
-                  <dt class="col-sm-3">Personas</dt>
-                  <dd class="col-sm-9">{{ documento.personas|length }}</dd>
-                {% endif %}
                 {% for campo, valores in documento.catalogo.items %}
                   <dt class="col-sm-3">{{ campo }}</dt>
                   <dd class="col-sm-9">

@@ -306,7 +306,7 @@ def test_resultado_muestra_personas_una_vez_con_procedencia_segura(
         f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
-    assert "Personas extraídas" in contenido
+    assert "Personas con ficha" in contenido
     assert contenido.count("ALBA ZAFIRO LUMARIA") == 2
     assert "biometrica-ficticia.pdf" in contenido
     assert "sunarp-ficticio.pdf" in contenido
@@ -331,7 +331,10 @@ def test_sondeo_no_expone_resumen_de_extraccion(client, usuario_ficticio):
         "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA\n"
         "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA\n"
         "ESTADO CIVIL  CASADA\nFECHA DE NACIMIENTO  03/07/1990\n"
-        "DIRECCION  Av. Luna 12\nDISTRITO DE DOMICILIO  Miraflores"
+        "DIRECCION  Av. Luna 12\nDISTRITO DE DOMICILIO  Miraflores\f"
+        "DECLARACION JURADA\nAPELLIDOS: LUMARIA ZAFIRO\nNOMBRES: ALBA\n"
+        "NOMBRES Y APELLIDOS DEL CONYUGE: EMILIO SOLANO QUIMERA\f"
+        "CLARA FICTELIA SOLARIA, DE NACIONALIDAD PERUANA. DNI 90000033"
     )
     fuente.texto_extraido.save(update_fields=("texto",))
     client.force_login(usuario_ficticio)
@@ -343,8 +346,10 @@ def test_sondeo_no_expone_resumen_de_extraccion(client, usuario_ficticio):
     assert "extraccion" not in datos
     assert "catalogo" not in datos
     assert "texto completo ficticio" not in str(datos)
-    for privado in ("CASADA", "1990", "Luna", "Miraflores"):
+    for privado in ("CASADA", "1990", "Luna", "Miraflores", "EMILIO", "CLARA"):
         assert privado not in str(datos)
+    for campo in ("menciones", "adjuntos", "conyuge", "procedencias"):
+        assert campo not in str(datos)
 
 
 def test_tabla_de_regla_no_muestra_columnas_vacias(
@@ -476,3 +481,142 @@ def test_detalle_distingue_texto_suprimido_de_fallo_de_procesamiento(
     assert "disabled>Confrontar borrador</button>" in contenido
     assert "texto del borrador ya no está disponible" in contenido
     assert fuente.pk != borrador.pk
+
+
+def _persona_legible(nombre, documento, **extra):
+    fila = {
+        "nombre": nombre,
+        "documento": documento,
+        "estado": "Confirmada",
+        "procedencias": [{"archivo": "reniec-ficticio.pdf", "pagina": 1}],
+        "estado_civil": None,
+        "fecha_nacimiento": None,
+        "domicilio": None,
+        "distrito": None,
+        "procedencia_estado_civil": None,
+        "procedencia_fecha_nacimiento": None,
+        "procedencia_domicilio": None,
+        "procedencia_distrito": None,
+        "conyuge": None,
+        "procedencia_conyuge": None,
+        "adjuntos": [],
+    }
+    return {**fila, **extra}
+
+
+def _post_extraccion(client, usuario, monkeypatch, codigo, extraccion):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(codigo=codigo, creado_por=usuario)
+    _, borrador = _documentos(expediente, usuario)
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda *_: {
+            "estado": "RESULTADO",
+            "mensaje": "",
+            "regla": [],
+            "ortografia": [],
+            "extraccion": {
+                "catalogo": {"NOMBRE": [], "DNI": [], "PARTIDA": [], "MONTO": []},
+                "paginas_descartadas": [],
+                "paginas_no_clasificadas": [],
+                **extraccion,
+            },
+        },
+    )
+    client.force_login(usuario)
+    return client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+
+def test_extraccion_separa_personas_con_ficha_y_menciones_sin_ficha(
+    client, usuario_ficticio, monkeypatch
+):
+    contenido = _post_extraccion(
+        client,
+        usuario_ficticio,
+        monkeypatch,
+        "EXP-FICTICIO-ANCLAS",
+        {
+            "personas": [
+                _persona_legible(
+                    "ALBA LUMARIA ZAFIRO",
+                    "90000011",
+                    conyuge="EMILIO <b>SOLANO</b>",
+                    procedencia_conyuge={
+                        "archivo": "declaracion-ficticia.txt",
+                        "pagina": 3,
+                    },
+                    adjuntos=[
+                        {
+                            "nombre": "Sin nombre",
+                            "documento": "90000011",
+                            "procedencias": [
+                                {"archivo": "suelto-ficticio.txt", "pagina": 2}
+                            ],
+                        }
+                    ],
+                ),
+                _persona_legible("BRUNO TELURIO NEBULOSA", "90000022"),
+            ],
+            "menciones": [
+                _persona_legible(
+                    "CLARA FICTELIA SOLARIA",
+                    "Sin documento",
+                    estado="Sin ficha",
+                    procedencias=[{"archivo": "minuta-ficticia.txt", "pagina": 4}],
+                    conyuge="DARIO FICTICIO",
+                )
+            ],
+            "documentos": [
+                {
+                    "nombre": "reniec-ficticio.pdf",
+                    "caracteres": 10,
+                    "catalogo": {},
+                    "aporta": True,
+                    "personas": [{}, {}],
+                    "menciones": [{}],
+                }
+            ],
+        },
+    )
+
+    assert "Personas con ficha" in contenido
+    assert (
+        "Cada ficha RENIEC o biométrica es una persona. "
+        "Los demás documentos solo añaden datos."
+    ) in contenido
+    assert "EMILIO &lt;b&gt;SOLANO&lt;/b&gt;" in contenido
+    assert "<b>SOLANO</b>" not in contenido
+    assert "declaracion-ficticia.txt, página 3" in contenido
+    assert "Sin nombre · 90000011" in contenido
+    assert "suelto-ficticio.txt, página 2" in contenido
+    assert "No declarado" in contenido
+    assert "Ninguno" in contenido
+    assert "Menciones sin ficha" in contenido
+    assert (
+        "Aparecen en los documentos pero no tienen ficha en el legajo. "
+        "Se verifican campo por campo, no como persona. "
+        "Si es un compareciente, falta su ficha."
+    ) in contenido
+    assert "minuta-ficticia.txt, página 4" in contenido
+    assert "DARIO FICTICIO" in contenido
+    assert "Personas con ficha: 2" in contenido
+    assert "Menciones sin ficha: 1" in contenido
+
+
+def test_extraccion_sin_fichas_avisa_y_muestra_catalogo(
+    client, usuario_ficticio, monkeypatch
+):
+    contenido = _post_extraccion(
+        client,
+        usuario_ficticio,
+        monkeypatch,
+        "EXP-FICTICIO-SIN-FICHAS",
+        {"personas": [], "menciones": [], "documentos": []},
+    )
+
+    assert "Ninguna ficha RENIEC o biométrica en el legajo." in contenido
+    assert "Catálogo agregado" in contenido
+    assert "Menciones sin ficha" not in contenido

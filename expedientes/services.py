@@ -35,6 +35,7 @@ _ESTADOS_PERSONA = {
     "CONFIRMADA": "Confirmada",
     "SIN_DOCUMENTO": "Sin documento",
     "REVISION_MANUAL": "Revisión manual",
+    "SIN_FICHA": "Sin ficha",
 }
 
 _RE_OBSERVACION_CAMPO = re.compile(
@@ -416,9 +417,11 @@ def _procedencias_legibles(procedencias):
     ]
 
 
-def _personas_legibles(catalogo):
-    if not isinstance(catalogo, verificar.Catalogo):
-        return []
+def _origen_legible(origen):
+    return _procedencias_legibles((origen,))[0] if origen else None
+
+
+def _personas_legibles(personas):
     return [
         {
             "nombre": persona.nombre or "No identificado",
@@ -432,9 +435,9 @@ def _personas_legibles(catalogo):
             "domicilio": persona.domicilio,
             "distrito": persona.distrito,
             **{
-                f"procedencia_{campo}": _procedencias_legibles((origen,))[0]
-                if (origen := getattr(persona, f"procedencia_{campo}"))
-                else None
+                f"procedencia_{campo}": _origen_legible(
+                    getattr(persona, f"procedencia_{campo}")
+                )
                 for campo in (
                     "estado_civil",
                     "fecha_nacimiento",
@@ -442,8 +445,18 @@ def _personas_legibles(catalogo):
                     "distrito",
                 )
             },
+            "conyuge": persona.conyuge,
+            "procedencia_conyuge": _origen_legible(persona.procedencia_conyuge),
+            "adjuntos": [
+                {
+                    "nombre": adjunto.nombre or "Sin nombre",
+                    "documento": adjunto.documento or "Sin documento",
+                    "procedencias": _procedencias_legibles(adjunto.procedencias),
+                }
+                for adjunto in persona.adjuntos or ()
+            ],
         }
-        for persona in catalogo.personas
+        for persona in personas
     ]
 
 
@@ -470,17 +483,20 @@ def _resumen_extraccion(fuentes_documentos, catalogo):
             "catalogo": aporte,
             "aporta": any(aporte.values())
             or bool(
-                aporte_catalogo.personas
+                aporte_catalogo.personas or aporte_catalogo.menciones
                 if isinstance(aporte_catalogo, verificar.Catalogo)
                 else ()
             ),
         }
         if isinstance(aporte_catalogo, verificar.Catalogo):
-            fila["personas"] = _personas_legibles(aporte_catalogo)
+            fila["personas"] = _personas_legibles(aporte_catalogo.personas)
+            fila["menciones"] = _personas_legibles(aporte_catalogo.menciones)
         documentos.append(fila)
+    es_catalogo = isinstance(catalogo, verificar.Catalogo)
     return {
         "catalogo": _catalogo_legible(catalogo),
-        "personas": _personas_legibles(catalogo),
+        "personas": _personas_legibles(catalogo.personas) if es_catalogo else [],
+        "menciones": _personas_legibles(catalogo.menciones) if es_catalogo else [],
         "paginas_descartadas": _paginas_legibles(catalogo.paginas_descartadas)
         if isinstance(catalogo, verificar.Catalogo)
         else [],

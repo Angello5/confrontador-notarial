@@ -16,7 +16,9 @@ def test_persona_ampliada_se_presenta_con_procedencia_sin_ruta():
         "ESTADO CIVIL  CASADA\nFECHA DE NACIMIENTO  03/07/1990\n"
         "DIRECCION  Av. Luna 12\nDISTRITO DE DOMICILIO  Miraflores"
     )
-    filas = _personas_legibles(catalogo({"/srv/privado/reniec-ficticio.pdf": pagina}))
+    filas = _personas_legibles(
+        catalogo({"/srv/privado/reniec-ficticio.pdf": pagina}).personas
+    )
     fila = filas[0]
     assert fila["estado_civil"] == "CASADO"
     assert fila["fecha_nacimiento"] == "1990-07-03"
@@ -1125,3 +1127,90 @@ def test_advertencia_de_correspondencia_tambien_muestra_la_extraccion(
     assert resultado["estado"] == "ADVERTENCIA_CORRESPONDENCIA"
     assert resultado["extraccion"]["catalogo"]["DNI"] == ["90000001"]
     assert len(resultado["extraccion"]["documentos"]) == 2
+
+
+def test_resumen_extraccion_separa_personas_con_ficha_y_menciones():
+    from types import SimpleNamespace
+
+    from expedientes.services import _resumen_extraccion
+    from nucleo.verificar import catalogo
+
+    textos = {
+        "reniec-ficticio.pdf": (
+            "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA\n"
+            "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA"
+        ),
+        "declaracion-ficticia.txt": (
+            "DECLARACION JURADA\nAPELLIDOS: LUMARIA ZAFIRO\nNOMBRES: ALBA\n"
+            "DNI: 90000011\nNOMBRES Y APELLIDOS DEL CONYUGE: EMILIO SOLANO QUIMERA"
+        ),
+        "minuta-ficticia.txt": (
+            "CLARA FICTELIA SOLARIA, DE NACIONALIDAD PERUANA. DNI 90000033"
+        ),
+    }
+    documentos = [
+        SimpleNamespace(nombre_original=nombre, texto_extraido=SimpleNamespace(texto=t))
+        for nombre, t in textos.items()
+    ]
+    cat = catalogo({f"/srv/privado/{nombre}": t for nombre, t in textos.items()})
+
+    resumen = _resumen_extraccion(documentos, cat)
+
+    (ancla,) = resumen["personas"]
+    assert ancla["nombre"] == "ALBA LUMARIA ZAFIRO"
+    assert ancla["estado"] == "Confirmada"
+    assert ancla["conyuge"] == "EMILIO SOLANO QUIMERA"
+    assert ancla["procedencia_conyuge"] == {
+        "archivo": "declaracion-ficticia.txt",
+        "pagina": 1,
+    }
+    assert ancla["adjuntos"] == [
+        {
+            "nombre": "ALBA LUMARIA ZAFIRO",
+            "documento": "90000011",
+            "procedencias": [{"archivo": "declaracion-ficticia.txt", "pagina": 1}],
+        }
+    ]
+    (mencion,) = resumen["menciones"]
+    assert mencion["nombre"] == "CLARA FICTELIA SOLARIA"
+    assert mencion["documento"] == "90000033"
+    assert mencion["estado"] == "Sin ficha"
+    assert mencion["conyuge"] is None
+    assert mencion["adjuntos"] == []
+    assert mencion["procedencias"] == [{"archivo": "minuta-ficticia.txt", "pagina": 1}]
+    por_documento = {
+        fila["nombre"]: (len(fila["personas"]), len(fila["menciones"]))
+        for fila in resumen["documentos"]
+    }
+    assert por_documento == {
+        "reniec-ficticio.pdf": (1, 0),
+        "declaracion-ficticia.txt": (0, 1),
+        "minuta-ficticia.txt": (0, 1),
+    }
+    assert all(fila["aporta"] for fila in resumen["documentos"])
+    assert "/srv/privado" not in str(resumen)
+
+
+def test_adjunto_sin_nombre_se_presenta_de_forma_explicita():
+    from expedientes.services import _personas_legibles
+    from nucleo.verificar import catalogo
+
+    cat = catalogo(
+        {
+            "reniec-ficticio.pdf": (
+                "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA\n"
+                "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA"
+            ),
+            "suelto-ficticio.txt": "DNI 90000011",
+        }
+    )
+
+    (fila,) = _personas_legibles(cat.personas)
+    assert fila["adjuntos"] == [
+        {
+            "nombre": "Sin nombre",
+            "documento": "90000011",
+            "procedencias": [{"archivo": "suelto-ficticio.txt", "pagina": 1}],
+        }
+    ]
+    assert (fila["conyuge"], fila["procedencia_conyuge"]) == (None, None)
