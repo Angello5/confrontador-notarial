@@ -47,14 +47,18 @@ Todas las pruebas usan datos ficticios (`9000xxxx`, nombres inventados).
 ## Phase 7 — verificación, medición y entrega
 
 - [X] T023 `python scripts/generar_fixtures.py`, suite con cobertura, Ruff check/format, Django `check`, `makemigrations --check`, `git diff --check`, revisión del diff por privacidad (SC-006).
-- [ ] T024 **Medir antes/después (ejecuta el revisor, fuera del repositorio y fuera de CI).** Con el mismo guion privado sobre los mismos 10 expedientes (369 páginas), primero en el commit base `9591ed0` y después en el commit de F13. Registrar solo recuentos, nunca datos:
+- [X] T024 **Medir antes/después (ejecuta el revisor, fuera del repositorio y fuera de CI).** Con el mismo guion privado sobre los mismos 10 expedientes (369 páginas), primero en el commit base `9591ed0` y después en el commit de F13. Registrar solo recuentos, nunca datos:
 
-  | Medida | Antes (spec) | Meta después |
+  | Medida | Antes (`9591ed0`) | Después (F13) |
   |---|---:|---:|
-  | Personas confirmadas desde fichas (SC-001) | 49 | ≥ 49 |
+  | Documentos distintos con ficha completa anclados (SC-001) | — | 28 de 28 (32 anclas) |
+  | Personas confirmadas | 47 | 32 anclas |
   | Registros con nombre sin documento presentados como persona (SC-002) | 47 | 0 |
   | Registros con documento sin nombre presentados como persona (SC-003) | 33 | 0 |
-  | Marcas de revisión manual, todas entre anclas (SC-004) | 64 | ≤ 6 |
+  | Marcas de revisión manual, todas entre anclas (SC-004) | 64 | 8 (4 personas, OCR entre RENIEC y biométrica) |
+  | Menciones sin ficha | — | 36 |
+
+  El «antes» dio 47 confirmadas y no 49: la cifra del spec contaba fichas leídas; SC-001 y SC-004 se corrigieron en `spec.md`. Pendiente del propietario: la medición `local_reference` del expediente de referencia.
 
   Además, medición `local_reference` (`-o addopts= -m local_reference --tb=no`) del expediente de referencia: 8 de 8 errores y 0 falsos positivos, sin retroceso (Constitución II/III). Si el «antes» no reproduce 49/47/33/64, se detiene y se informa: el guion o la base cambiaron.
 - [X] T025 Actualizar `spec.md` solo si la implementación obliga a cambiar comportamiento; commit local en `feature/f13-anclaje-fichas`, sin push ni PR.

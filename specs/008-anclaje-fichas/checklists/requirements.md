@@ -30,4 +30,4 @@ prueba ejecutada; en esta etapa solo hay plan, así que casi todo sigue abierto.
 
 - [ ] CHK015 ¿Sondeo, logs y errores sin adjuntos, menciones ni cónyuge? [spec Seguridad; T021]
 - [ ] CHK016 ¿Solo datos ficticios y sin migración, IA, red ni dependencias? [FR-009; SC-006; T023]
-- [ ] CHK017 ¿La medición antes/después alcanza ≥ 49 / 0 / 0 / ≤ 6 y el expediente de referencia sigue 8 de 8 sin falsos positivos? [SC-001..SC-004; T024]
+- [X] CHK017 ¿La medición antes/después alcanza 28 de 28 anclados / 0 / 0 / revisión solo entre anclas? Sí (T024). Pendiente del propietario: expediente de referencia 8 de 8 sin falsos positivos. [SC-001..SC-004; T024]

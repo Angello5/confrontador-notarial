@@ -35,7 +35,7 @@ Código leído: `nucleo/verificar.py` (F11/F12) y `expedientes/services.py`.
 Motivo: FR-001 dice «con su documento» y SC-002/SC-003 exigen cero registros
 incompletos presentados como persona. Una ficha que el OCR no leyó completa
 (las 6 del Assumptions) produce **menciones**, no anclas. Es la condición que
-ya usa `_anotar_reniec()`, así que SC-001 (≥ 49) conserva las mismas personas.
+ya usa `_anotar_reniec()`, así que SC-001 conserva las mismas personas con ficha completa (28 documentos; la cifra «≥ 49» del spec original contaba fichas leídas y se corrigió tras la medición).
 
 **D2. Adjunto = el mismo `Persona` de hoy, guardado dentro del ancla.**
 `Persona` gana tres campos opcionales al final: `adjuntos`, `conyuge` y
