@@ -21,8 +21,8 @@ Persona = namedtuple(
     "Persona",
     "nombre documento procedencias estado estado_civil fecha_nacimiento domicilio distrito "
     "procedencia_estado_civil procedencia_fecha_nacimiento procedencia_domicilio procedencia_distrito "
-    "fecha_emision emisiones_campos",
-    defaults=("CONFIRMADA",) + (None,) * 10,
+    "fecha_emision emisiones_campos adjuntos conyuge procedencia_conyuge",
+    defaults=("CONFIRMADA",) + (None,) * 13,
 )
 
 
@@ -35,6 +35,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         "montos",
         "paginas_descartadas",
         "paginas_no_clasificadas",
+        "menciones",
         "_fijo",
     )
 
@@ -45,6 +46,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         montos=frozenset(),
         paginas_descartadas=(),
         paginas_no_clasificadas=(),
+        menciones=(),
     ):
         object.__setattr__(self, "personas", tuple(personas))
         object.__setattr__(self, "partidas", frozenset(partidas))
@@ -53,6 +55,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         object.__setattr__(
             self, "paginas_no_clasificadas", tuple(paginas_no_clasificadas)
         )
+        object.__setattr__(self, "menciones", tuple(menciones))
         object.__setattr__(self, "_fijo", True)
 
     def __setattr__(self, campo, valor):
@@ -60,11 +63,22 @@ class Catalogo(Mapping[str, frozenset[str]]):
             raise AttributeError("Catalogo es de solo lectura")
         object.__setattr__(self, campo, valor)
 
+    def _registros(self):
+        for persona in self.personas:
+            yield persona
+            yield from persona.adjuntos or ()
+        yield from self.menciones
+
     def __getitem__(self, campo: str) -> frozenset[str]:
         if campo == "NOMBRE":
-            return frozenset(p.nombre for p in self.personas if p.nombre)
+            return frozenset(
+                nombre
+                for p in self._registros()
+                for nombre in (p.nombre, p.conyuge)
+                if nombre
+            )
         if campo == "DNI":
-            return frozenset(p.documento for p in self.personas if p.documento)
+            return frozenset(p.documento for p in self._registros() if p.documento)
         if campo == "PARTIDA":
             return self.partidas
         if campo == "MONTO":

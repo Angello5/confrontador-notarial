@@ -888,3 +888,38 @@ def test_paridad_capa_de_campos_con_legajo_ficticio():
         "[PARRAFO] falta o alterado (38.19%): LA VENDEDORA DECLARA QUE EL INMUEBLE "
         "FICTICIO SE ENTREGA LIBRE DE CARGAS, GRAVAMENES Y MEDIDAS JUDIC…"
     ]
+
+
+def test_persona_f13_anade_campos_al_final_y_catalogo_menciones_vacias():
+    origen = (Procedencia("ficticio.pdf", 1),)
+    persona = Persona("ALBA LUMARIA ZAFIRO", "90000011", origen)
+    assert persona == Persona("ALBA LUMARIA ZAFIRO", "90000011", origen, "CONFIRMADA")
+    assert Persona._fields[-3:] == ("adjuntos", "conyuge", "procedencia_conyuge")
+    assert (persona.adjuntos, persona.conyuge, persona.procedencia_conyuge) == (
+        None,
+        None,
+        None,
+    )
+    assert Catalogo((persona,)).menciones == ()
+
+
+def test_proyeccion_incluye_anclas_adjuntos_menciones_y_conyuges():
+    origen = (Procedencia("ficticio.pdf", 1),)
+    adjunto = Persona("ALBA LUMARIA ZAFIRA", "90000011", origen, conyuge="EMILIO SOLANO")
+    ancla = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        origen,
+        adjuntos=(adjunto,),
+        conyuge="EMILIO SOLANO QUIMERA",
+    )
+    mencion = Persona("DIANA ROCIO VENTORIA", "90000044", origen, "SIN_FICHA")
+    cat = Catalogo((ancla,), menciones=(mencion,))
+    assert cat["NOMBRE"] == {
+        "ALBA LUMARIA ZAFIRO",
+        "ALBA LUMARIA ZAFIRA",
+        "EMILIO SOLANO",
+        "EMILIO SOLANO QUIMERA",
+        "DIANA ROCIO VENTORIA",
+    }
+    assert cat["DNI"] == {"90000011", "90000044"}
