@@ -49,7 +49,9 @@ def test_ocr_requiere_recursos_fijados_sin_descarga(monkeypatch, tmp_path):
 
     extraccion._ocr.cache_clear()
     monkeypatch.setattr(extraccion, "OCR_MODELS", tmp_path)
-    with pytest.raises(RuntimeError, match="Recurso OCR ausente o inválido"):
+    for name in extraccion._OCR_FILES:
+        (tmp_path / name).write_bytes(b"modelo ficticio invalido")
+    with pytest.raises(RuntimeError, match="ch_PP-OCRv5_mobile_det.onnx"):
         extraccion._ocr()
 
 
@@ -57,9 +59,9 @@ def test_cache_ocr_se_invalida_si_cambia_modelo(monkeypatch, tmp_path):
     from adaptadores import extraccion
 
     monkeypatch.setattr(extraccion, "CACHE", tmp_path)
-    monkeypatch.setattr(extraccion, "_OCR_FILES", {"rec": "sha-v4"})
+    monkeypatch.setattr(extraccion, "_OCR_FILES", {"det": "sha-v4"})
     assert extraccion._cacheado(b"documento ficticio", lambda: "OCR v4") == "OCR v4"
-    monkeypatch.setattr(extraccion, "_OCR_FILES", {"rec": "sha-v5"})
+    monkeypatch.setattr(extraccion, "_OCR_FILES", {"det": "sha-v5"})
     assert extraccion._cacheado(b"documento ficticio", lambda: "OCR v5") == "OCR v5"
 
 

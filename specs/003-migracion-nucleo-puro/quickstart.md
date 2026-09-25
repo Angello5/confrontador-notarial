@@ -66,7 +66,7 @@ Checkpoint de Etapa 2 (Python 3.13.9, `.venv` instalado con los locks):
 
 ## Recursos OCR/diccionario verificados en CI
 
-Estos hashes identifican los modelos OCR y el diccionario `es_PE` que usa la verificación de recursos del workflow. No son hashes de distribuciones Python; esos pertenecen a los locks `requirements*.txt`.
+Estos hashes identifican los modelos OCR predeterminados y el diccionario `es_PE` que usa la verificación de recursos del workflow. No son hashes de distribuciones Python; esos pertenecen a los locks `requirements*.txt`.
 
 La revisión de secretos conserva en `.gitleaksignore` únicamente tres huellas
 históricas del commit `32c9142` (`generic-api-key`, líneas 28, 29 y 36) para
@@ -82,11 +82,9 @@ gitleaks git --redact --log-opts="2893539..HEAD"
 
 Ambos comandos deben terminar sin hallazgos.
 
-| Detector compartido y modelos de comparación PP-OCRv4 | SHA-256 |
+| Detector predeterminado | SHA-256 |
 |---|---|
-| `ch_PP-OCRv4_det_infer.onnx` | `d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9` |
-| `ch_PP-OCRv4_rec_infer.onnx` | `48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b` |
-| `ch_ppocr_mobile_v2.0_cls_infer.onnx` | `e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c` |
+| `ch_PP-OCRv5_mobile_det.onnx` | `4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae` |
 
 | Recurso PP-OCRv5 latin predeterminado | SHA-256 |
 |---|---|
@@ -104,21 +102,22 @@ ejecución. RapidOCR 3.4.3 y onnxruntime 1.30.0 están fijados por hashes en
 
 ```bash
 mkdir -p ~/.cache/notaria-ocr/models
-cp "$(~/.venvs/confrontador/bin/python -c 'import rapidocr; from pathlib import Path; print(Path(rapidocr.__file__).parent / "models" / "ch_PP-OCRv4_det_infer.onnx")')" ~/.cache/notaria-ocr/models/
+curl -fsSL https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0/onnx/PP-OCRv5/det/ch_PP-OCRv5_mobile_det.onnx -o ~/.cache/notaria-ocr/models/ch_PP-OCRv5_mobile_det.onnx
 curl -fsSL https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0/onnx/PP-OCRv5/rec/latin_PP-OCRv5_rec_mobile_infer.onnx -o ~/.cache/notaria-ocr/models/latin_PP-OCRv5_rec_mobile_infer.onnx
-(cd ~/.cache/notaria-ocr/models && printf '%s\n' 'd2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_det_infer.onnx' 'b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx' | sha256sum -c -)
+(cd ~/.cache/notaria-ocr/models && printf '%s\n' '4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae  ch_PP-OCRv5_mobile_det.onnx' 'b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx' | sha256sum -c -)
 ```
 
-Para reproducir la tabla comparativa, con `fonts-liberation` instalado en Linux
+Para medir la configuración vigente, con `fonts-liberation` instalado en Linux
 y esos recursos verificados, ejecutar explícitamente el test opt-in:
 
 ```bash
 python -m pytest -o addopts= -m ocr_research -s test_ocr_research.py
 ```
 
-El test usa el detector v4 y el reconocedor v5 de `OCR_MODELS`; toma el
-reconocedor/clasificador y el diccionario v4 del paquete RapidOCR. v5 lee su
-alfabeto de metadata ONNX y no requiere un archivo de claves externo.
+El test usa el detector v5 mobile y el reconocedor v5 de `OCR_MODELS`; lee el
+alfabeto de metadata ONNX y no requiere un archivo de claves externo. La
+comparación v4/v5 original queda registrada como medición histórica en
+`research.md`.
 
 ## Aprovisionamiento offline para el servidor (F8)
 
@@ -127,7 +126,7 @@ En el equipo conectado, descarga/prepara los recursos como arriba. Copia íntegr
 ```bash
 cd ~/.cache/notaria-ocr/models
 sha256sum -c - <<'EOF'
-d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9  ch_PP-OCRv4_det_infer.onnx
+4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae  ch_PP-OCRv5_mobile_det.onnx
 b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a  latin_PP-OCRv5_rec_mobile_infer.onnx
 EOF
 ```
