@@ -33,7 +33,7 @@ SOFFICE = "soffice"
 DPI = 200  # suficiente para DNI y sellos; a 300 tarda el doble sin ganar aciertos
 
 _OCR_FILES = {
-    "ch_PP-OCRv4_det_infer.onnx": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
+    "ch_PP-OCRv5_mobile_det.onnx": "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae",
     "latin_PP-OCRv5_rec_mobile_infer.onnx": "b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a",
 }
 _OCR_USE_CLS = False
@@ -43,9 +43,21 @@ _FORMATO_CACHE = 2
 
 
 def version_extractor() -> str:
-    """Identidad estable de los recursos y opciones que producen el texto."""
+    """Identidad estable de los recursos y opciones que producen el texto.
+
+    Incluye la version de rapidocr: los modelos pueden ser los mismos y aun asi
+    la libreria cambiar el preproceso o el postproceso, y entonces el texto
+    cambia. Si no estuviera en la llave, la cache seguiria devolviendo el texto
+    del motor anterior tras una actualizacion. No se incluye onnxruntime: no
+    altera el texto y su version sube a menudo, lo que invalidaria la cache sin
+    motivo.
+    """
     identidad = json.dumps(
-        {"modelos": sorted(_OCR_FILES.items()), "use_cls": _OCR_USE_CLS},
+        {
+            "modelos": sorted(_OCR_FILES.items()),
+            "use_cls": _OCR_USE_CLS,
+            "rapidocr": importlib.metadata.version("rapidocr"),
+        },
         separators=(",", ":"),
     ).encode()
     return hashlib.sha256(identidad).hexdigest()
@@ -67,7 +79,7 @@ def _ocr():
         params={
             "Global.use_cls": _OCR_USE_CLS,
             "Global.log_level": "error",
-            "Det.model_path": str(paths["ch_PP-OCRv4_det_infer.onnx"]),
+            "Det.model_path": str(paths["ch_PP-OCRv5_mobile_det.onnx"]),
             "Rec.model_path": str(paths["latin_PP-OCRv5_rec_mobile_infer.onnx"]),
         }
     )

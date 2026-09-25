@@ -73,15 +73,18 @@ de clientes. Genera el DOCX como ZIP/XML, la imagen con las fuentes incorporadas
 de PyMuPDF y el XLSX con openpyxl. Orden, fechas, permisos ZIP y metadatos son
 fijos; los PDF no incorporan identificadores aleatorios.
 
-RapidOCR 3.4.3 y onnxruntime 1.23.2 usan los modelos PP-OCRv4 de
-`https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0/onnx/PP-OCRv4/`:
-`det/ch_PP-OCRv4_det_infer.onnx`, `rec/ch_PP-OCRv4_rec_infer.onnx` y
-`cls/ch_ppocr_mobile_v2.0_cls_infer.onnx`. Sus SHA-256 coinciden con el manifiesto
-`default_models.yaml` del paquete. El diccionario es_PE se fija al commit
+El OCR predeterminado usa el detector `ch_PP-OCRv5_mobile_det.onnx` de
+`https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0/onnx/PP-OCRv5/det/ch_PP-OCRv5_mobile_det.onnx`
+(SHA-256 `4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae`)
+y el reconocedor `latin_PP-OCRv5_rec_mobile_infer.onnx` de
+`https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.4.0/onnx/PP-OCRv5/rec/latin_PP-OCRv5_rec_mobile_infer.onnx`
+(SHA-256 `b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a`).
+Ambos se descargan y verifican en el paso `Verify public test resources` del CI;
+la ejecución del ERP solo usa los archivos locales. El diccionario es_PE se fija al commit
 `32b006a2c22a4ac7e8ed3f03346f7b3d85a970a4` de LibreOffice/dictionaries.
 Antes de los tests, ejecutar el paso `Verify public test resources` de
 `.github/workflows/ci.yml`, que aprovisiona únicamente esos recursos públicos y
-comprueba sus cinco SHA-256. Después:
+comprueba los SHA-256 de ambos modelos y del diccionario. Después:
 
 ```bash
 python scripts/generar_fixtures.py
