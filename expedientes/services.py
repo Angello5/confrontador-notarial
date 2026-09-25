@@ -31,6 +31,11 @@ ESTADOS_VISIBLES = {
 
 _UMBRAL_PARRAFO = 88
 _CAMPOS_CATALOGO = ("NOMBRE", "DNI", "PARTIDA", "MONTO")
+_ESTADOS_PERSONA = {
+    "CONFIRMADA": "Confirmada",
+    "SIN_DOCUMENTO": "Sin documento",
+    "REVISION_MANUAL": "Revisión manual",
+}
 
 _RE_OBSERVACION_CAMPO = re.compile(
     r"^\[(?P<campo>[^]]+)\]\s+«(?P<hallado>[^»]*)»\s+(?P<resto>.*)$"
@@ -391,6 +396,7 @@ def _resultado_no_disponible(mensaje):
     return {
         "estado": "NO_DISPONIBLE",
         "mensaje": mensaje,
+        "personas": [],
         "regla": [],
         "ortografia": [],
     }
@@ -400,22 +406,92 @@ def _catalogo_legible(catalogo):
     return {campo: sorted(catalogo.get(campo, ())) for campo in _CAMPOS_CATALOGO}
 
 
+def _procedencias_legibles(procedencias):
+    return [
+        {
+            "archivo": Path(procedencia.fuente).name,
+            "pagina": procedencia.pagina,
+        }
+        for procedencia in procedencias
+    ]
+
+
+def _personas_legibles(catalogo):
+    if not isinstance(catalogo, verificar.Catalogo):
+        return []
+    return [
+        {
+            "nombre": persona.nombre or "No identificado",
+            "documento": persona.documento or "Sin documento",
+            "procedencias": _procedencias_legibles(persona.procedencias),
+            "estado": _ESTADOS_PERSONA.get(persona.estado, "Revisión manual"),
+        }
+        for persona in catalogo.personas
+    ]
+
+
+def _paginas_legibles(paginas):
+    return [
+        {
+            "archivo": Path(pagina.fuente).name,
+            "pagina": pagina.pagina,
+            "tipo": pagina.tipo,
+        }
+        for pagina in paginas
+    ]
+
+
 def _resumen_extraccion(fuentes_documentos, catalogo):
     documentos = []
     for documento in fuentes_documentos:
         texto = documento.texto_extraido.texto
-        aporte = _catalogo_legible(
-            verificar.catalogo({documento.nombre_original: texto})
-        )
-        documentos.append(
-            {
-                "nombre": documento.nombre_original,
-                "caracteres": len(texto),
-                "catalogo": aporte,
-                "aporta": any(aporte.values()),
-            }
-        )
-    return {"catalogo": _catalogo_legible(catalogo), "documentos": documentos}
+        aporte_catalogo = verificar.catalogo({documento.nombre_original: texto})
+        aporte = _catalogo_legible(aporte_catalogo)
+        fila = {
+            "nombre": documento.nombre_original,
+            "caracteres": len(texto),
+            "catalogo": aporte,
+            "aporta": any(aporte.values())
+            or bool(
+                aporte_catalogo.personas
+                if isinstance(aporte_catalogo, verificar.Catalogo)
+                else ()
+            ),
+        }
+        if isinstance(aporte_catalogo, verificar.Catalogo):
+            fila["personas"] = _personas_legibles(aporte_catalogo)
+        documentos.append(fila)
+    return {
+        "catalogo": _catalogo_legible(catalogo),
+        "personas": _personas_legibles(catalogo),
+        "paginas_descartadas": _paginas_legibles(catalogo.paginas_descartadas)
+        if isinstance(catalogo, verificar.Catalogo)
+        else [],
+        "paginas_no_clasificadas": _paginas_legibles(catalogo.paginas_no_clasificadas)
+        if isinstance(catalogo, verificar.Catalogo)
+        else [],
+        "documentos": documentos,
+    }
+
+
+def _observaciones_personas_legibles(observaciones, texto_borrador):
+    return [
+        {
+            "formato": "persona",
+            "tipo": observacion["tipo"],
+            "nombre": observacion["nombre"] or "No identificado",
+            "hallado": observacion["documento_hallado"],
+            "esperado": observacion["documento_esperado"] or "Sin documento conocido",
+            "motivo": (
+                "El documento pertenece a otra persona según las fuentes."
+                if observacion["tipo"] == "DOCUMENTO_CRUZADO"
+                else "El documento no pertenece a una persona conocida en las fuentes."
+            ),
+            "procedencias": _procedencias_legibles(observacion["procedencias"]),
+            "ubicacion": ubicar_valor(texto_borrador, observacion["documento_hallado"]),
+        }
+        for observacion in observaciones
+    ]
 
 
 def _normalizar_ubicacion(texto):
@@ -632,11 +708,17 @@ def confrontar_borrador(expediente, borrador):
         return {
             "estado": "ADVERTENCIA_CORRESPONDENCIA",
             "mensaje": aviso,
+            "personas": [],
             "extraccion": extraccion,
             "regla": [],
             "ortografia": [],
         }
 
+    observaciones_personas = (
+        verificar.comparar_personas(catalogo, texto_borrador)
+        if isinstance(catalogo, verificar.Catalogo)
+        else ()
+    )
     reglas = verificar.revisar(catalogo, texto_borrador, _UMBRAL_PARRAFO)
     minutas = [
         documento.texto_extraido.texto
@@ -661,6 +743,9 @@ def confrontar_borrador(expediente, borrador):
     return {
         "estado": "RESULTADO",
         "mensaje": "",
+        "personas": _observaciones_personas_legibles(
+            observaciones_personas, texto_borrador
+        ),
         "extraccion": extraccion,
         "regla": adaptar_observaciones_regla(reglas, texto_borrador),
         "ortografia": adaptar_observaciones_ortografia(faltas, texto_borrador),
