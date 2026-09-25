@@ -755,8 +755,54 @@ def _paginas(fuentes: Mapping[str, str]) -> list[Pagina]:
     ]
 
 
+_TIPOS_ANCLA = {"RENIEC", "BIOMETRICA"}
+
+
+def _pegar(anclas, registros) -> tuple[tuple[Persona, ...], tuple[Persona, ...]]:
+    """Adjunta cada registro no oficial a un ancla única o lo deja como mención.
+
+    Documento exacto o, sin documento, clave de nombre exacta. Un registro con
+    documento ajeno a las anclas nunca se pega por nombre (research D4).
+    """
+    anclas = list(anclas)
+    adjuntos = [[] for _ in anclas]
+    menciones = []
+    for registro in registros:
+        clave = _nombre_clave(registro.nombre)
+        indices = [
+            indice
+            for indice, ancla in enumerate(anclas)
+            if (
+                ancla.documento == registro.documento
+                if registro.documento
+                else clave and _nombre_clave(ancla.nombre) == clave
+            )
+        ]
+        if len(indices) != 1:
+            menciones.append(registro)
+            continue
+        indice = indices[0]
+        adjuntos[indice].append(registro)
+        if registro.conyuge and not anclas[indice].conyuge:
+            anclas[indice] = anclas[indice]._replace(
+                conyuge=registro.conyuge,
+                procedencia_conyuge=registro.procedencia_conyuge,
+            )
+    return (
+        tuple(
+            ancla._replace(adjuntos=tuple(propios) or None)
+            for ancla, propios in zip(anclas, adjuntos)
+        ),
+        tuple(
+            mencion._replace(estado="SIN_FICHA")
+            for mencion in unificar_personas(menciones)
+        ),
+    )
+
+
 def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
-    personas = []
+    anclas = []
+    resto = []
     partidas = set()
     montos = set()
     descartadas = []
@@ -772,13 +818,17 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         personas_pagina = _personas_de_pagina(pagina, tipo)
         if tipo == "DESCONOCIDA" and personas_pagina:
             no_clasificadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
-        personas.extend(personas_pagina)
+        for persona in personas_pagina:
+            es_ancla = tipo in _TIPOS_ANCLA and persona.nombre and persona.documento
+            (anclas if es_ancla else resto).append(persona)
+    personas, menciones = _pegar(unificar_personas(anclas), resto)
     return Catalogo(
-        unificar_personas(personas),
+        personas,
         frozenset(partidas),
         frozenset(montos),
         tuple(descartadas),
         tuple(no_clasificadas),
+        menciones,
     )
 
 
