@@ -34,3 +34,14 @@ def test_cambiar_use_cls_cambia_identidad(monkeypatch):
     monkeypatch.setattr(extraccion, "_OCR_USE_CLS", not extraccion._OCR_USE_CLS)
 
     assert extraccion.version_extractor() != primera
+
+
+def test_cambiar_version_de_rapidocr_cambia_identidad(monkeypatch):
+    from adaptadores import extraccion
+
+    primera = extraccion.version_extractor()
+    monkeypatch.setattr(
+        extraccion.importlib.metadata, "version", lambda _: "0.0.0-ficticia"
+    )
+
+    assert extraccion.version_extractor() != primera
