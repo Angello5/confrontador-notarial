@@ -155,20 +155,26 @@ def test_catalogo_no_descarta_paginas_identitarias_por_confusion_de_tipo():
     assert len(resultado.menciones) >= 1
 
 
+_INTERCAMBIADOS = (
+    "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000022\n"
+    "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000011"
+)
+
+
 def test_comparar_personas_detecta_documentos_intercambiados():
     fuentes = catalogo(
         {
-            "cliente-ficticio.txt": (
-                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011\f"
-                "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000022"
+            "fichas-ficticias.txt": (
+                "INFORMACION PERSONAL\n"
+                "PRIMER APELLIDO  ZAFIRO  SEGUNDO APELLIDO  LUMARIA\n"
+                "NOMBRES  ALBA\nDNI 90000011\f"
+                "INFORMACION PERSONAL\n"
+                "PRIMER APELLIDO  TELURIO  SEGUNDO APELLIDO  NEBULOSA\n"
+                "NOMBRES  BRUNO\nDNI 90000022"
             )
         }
     )
-    observaciones = comparar_personas(
-        fuentes,
-        "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000022\n"
-        "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000011",
-    )
+    observaciones = comparar_personas(fuentes, _INTERCAMBIADOS)
 
     assert [observacion["tipo"] for observacion in observaciones] == [
         "DOCUMENTO_CRUZADO",
@@ -177,6 +183,39 @@ def test_comparar_personas_detecta_documentos_intercambiados():
     assert observaciones[0]["nombre"] == "ALBA ZAFIRO LUMARIA"
     assert observaciones[0]["documento_hallado"] == "90000022"
     assert observaciones[0]["documento_esperado"] == "90000011"
+    assert observaciones[0]["procedencias"] == (Procedencia("fichas-ficticias.txt", 1),)
+
+
+def test_comparecientes_sin_ficha_intercambiados_no_dan_documento_cruzado():
+    # Consecuencia aceptada de F13: el documento cruzado exige titular con ficha.
+    fuentes = catalogo(
+        {
+            "cliente-ficticio.txt": (
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011\f"
+                "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000022"
+            )
+        }
+    )
+
+    assert comparar_personas(fuentes, _INTERCAMBIADOS) == ()
+
+
+def test_documento_de_la_minuta_sin_ficha_tiene_titular():
+    fuentes = catalogo(
+        {
+            "reniec-ficticio.pdf": _reniec("90000011", "ALBA", "LUMARIA", "ZAFIRO"),
+            "minuta-ficticia.txt": (
+                "CLARA FICTELIA SOLARIA, DE NACIONALIDAD PERUANA. DNI 90000033"
+            ),
+        }
+    )
+
+    assert (
+        comparar_personas(
+            fuentes, "CLARA FICTELIA SOLARIA, DE NACIONALIDAD PERUANA. DNI 90000033"
+        )
+        == ()
+    )
 
 
 def test_comparar_personas_detecta_documento_sin_titular():

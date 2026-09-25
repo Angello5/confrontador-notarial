@@ -480,9 +480,11 @@ def test_confrontacion_detecta_documentos_intercambiados_en_personas(
     crear_documento_listo(
         expediente_confrontacion,
         Documento.CLIENTE,
-        "fuente-personas-ficticia.txt",
-        "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011\f"
-        "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000022",
+        "fichas-personas-ficticias.txt",
+        "INFORMACION PERSONAL\nPRIMER APELLIDO  ZAFIRO  SEGUNDO APELLIDO  LUMARIA\n"
+        "NOMBRES  ALBA\nDNI 90000011\f"
+        "INFORMACION PERSONAL\nPRIMER APELLIDO  TELURIO  SEGUNDO APELLIDO  NEBULOSA\n"
+        "NOMBRES  BRUNO\nDNI 90000022",
     )
     crear_documento_listo(
         expediente_confrontacion,

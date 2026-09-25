@@ -604,17 +604,16 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
     if not isinstance(fuente, Catalogo):
         raise TypeError("fuente debe ser Catalogo")
     destino = _catalogo_borrador(borrador)
+    # Titular = ancla; pertenencia del documento = cualquier fuente (research D8).
     por_nombre = {}
-    por_documento = {}
     for persona in fuente.personas:
         if persona.nombre:
             por_nombre.setdefault(_nombre_clave(persona.nombre), []).append(persona)
-        if persona.documento:
-            por_documento.setdefault(persona.documento, []).append(persona)
+    documentos = fuente["DNI"]
 
     observaciones = []
     vistos = set()
-    for persona in destino.personas:
+    for persona in destino._registros():
         if not persona.documento:
             continue
         nombre_clave = _nombre_clave(persona.nombre)
@@ -625,7 +624,7 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
             titular
             and esperado
             and esperado != persona.documento
-            and persona.documento in por_documento
+            and persona.documento in documentos
         ):
             observacion = {
                 "tipo": "DOCUMENTO_CRUZADO",
@@ -634,7 +633,7 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
                 "documento_esperado": esperado,
                 "procedencias": titular.procedencias,
             }
-        elif persona.documento not in por_documento:
+        elif persona.documento not in documentos:
             observacion = {
                 "tipo": "DOCUMENTO_SIN_TITULAR",
                 "nombre": persona.nombre,
