@@ -63,6 +63,7 @@ Como notario, quiero que el sistema avise cuando un documento de identidad se as
 **Acceptance Scenarios**:
 
 1. **Given** dos comparecientes con su documento en las fuentes, **When** el borrador intercambia los documentos entre ellos, **Then** el sistema lo señala indicando qué persona tiene qué documento según las fuentes.
+   *Nota:* desde F13 requiere ficha del titular (RENIEC o biométrica); ver `specs/008-anclaje-fichas/spec.md`.
 2. **Given** un compareciente cuyo documento coincide con el de las fuentes, **When** se confronta, **Then** no se genera observación.
 3. **Given** un borrador que menciona un documento que no pertenece a ninguna persona de las fuentes, **When** se confronta, **Then** se señala como documento sin titular conocido.
 

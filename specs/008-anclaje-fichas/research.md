@@ -113,14 +113,14 @@ con procedencia y sus adjuntos con procedencia. El sondeo JSON no cambia.
   debe medirse antes y después: si alguno de los 8 errores se detectaba por un
   titular de prosa, F13 lo perdería.
 
-## Aclaraciones pendientes
+## Aclaraciones (resueltas por el propietario el 2026-09-25: se adopta el defecto propuesto)
 
-- [NEEDS CLARIFICATION] Cónyuge de una declaración jurada cuyo declarante no
+- [RESUELTO] Cónyuge de una declaración jurada cuyo declarante no
   queda identificado (cero o varios nombres, o no se pega a ningún ancla).
   Por defecto propuesto: queda en la mención del declarante o, si no hay
   declarante, como mención propia; nunca se descarta, porque FR-008 exige que
   siga en la proyección.
-- [NEEDS CLARIFICATION] Dos declaraciones juradas pegadas al mismo ancla con
+- [RESUELTO] Dos declaraciones juradas pegadas al mismo ancla con
   cónyuges distintos. FR-004 prohíbe marcar revisión fuera de las anclas. Por
   defecto propuesto: el ancla muestra el primero por orden de página y cada
   adjunto muestra el suyo, sin marca.

@@ -52,3 +52,5 @@ Medidos con el mismo guion sobre los mismos 10 expedientes (barrido crudo local)
 - `docs/catalogo-datos.md` (orden de confianza) y `docs/catalogo-fuentes.md` son la referencia.
 - Las 6 fichas oficiales que hoy no producen persona (3 solo documento, 3 solo nombre) son un problema de lectura OCR y quedan fuera de esta fase, anotadas como deuda.
 - El guion de medición vive fuera del repositorio porque usa expedientes reales; el spec fija los números, no el guion.
+- Consecuencia aceptada por el propietario (2026-09-25): dos comparecientes **sin ficha** con los documentos intercambiados ya no producen `DOCUMENTO_CRUZADO`, porque el titular de esa regla debe ser un ancla. La capa de campos tampoco lo señala, ya que ambos documentos están en las fuentes.
+- Cónyuge (aclaraciones del propietario, 2026-09-25): si el declarante no queda identificado, el cónyuge se queda en la mención del declarante o, si no hay declarante, en una mención propia `SIN_FICHA` sin nombre; nunca se descarta. Si dos declaraciones con cónyuges distintos se pegan al mismo ancla, el ancla muestra el primero por orden de página, cada adjunto conserva el suyo y no hay marca de revisión.
