@@ -51,7 +51,7 @@ ninguna tarea está marcada como completada.
 - [X] T010 [P] Crear prueba roja de `leer_paginas()` para un PDF ficticio de dos
   páginas; criterio: cada página queda separada y `leer()` conserva la cadena
   plana compatible. Los formatos de una página mantienen la cobertura existente.
-- [ ] T011 [P] Probar que PDF con texto y PDF escaneado no ejecutan OCR dos veces
+- [x] T011 [P] Probar que PDF con texto y PDF escaneado no ejecutan OCR dos veces
   por página y que la clave de cache usa la versión de recursos existente.
 - [X] T012 [P] Resolver que no habrá campo de páginas ni migración: la cadena
   plana usa `\f` como separador y conserva el texto histórico.
@@ -96,7 +96,7 @@ ninguna tarea está marcada como completada.
 
 ## Phase 6 — servicio y UI
 
-- [ ] T027 [P] Escribir pruebas rojas del servicio F5 para que las fuentes
+- [x] T027 [P] Escribir pruebas rojas del servicio F5 para que las fuentes
   entreguen páginas, el borrador conserve su texto plano y el catálogo de
   personas se construya por documento/página, no por legajo concatenado.
 - [X] T028 [P] Escribir prueba roja de documento cruzado con dos personas y
@@ -117,9 +117,9 @@ ninguna tarea está marcada como completada.
 - [X] T032 Ejecutar pruebas F11 y la suite existente con cobertura; criterio:
   ningún marker privado se ejecuta por defecto y la paridad de F5 queda
   documentada con fixtures ficticios.
-- [ ] T033 Ejecutar `python -m ruff check .`, `python -m ruff format --check .`
+- [x] T033 Ejecutar `python -m ruff check .`, `python -m ruff format --check .`
   y `git diff --check`; criterio: solo se modifican archivos previstos.
-- [ ] T034 Ejecutar Django check, `makemigrations --check`, `pip-audit --strict`
+- [x] T034 Ejecutar Django check, `makemigrations --check`, `pip-audit --strict`
   y gitleaks; F11 no crea migraciones.
 - [X] T035 Revisar diff por privacidad: ningún DNI, nombre, domicilio,
   fragmento real, secreto, ruta temporal o contenido de expediente.
