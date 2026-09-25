@@ -19,6 +19,7 @@ from experimental.ocr_benchmark import (
     accuracy_rate,
     benchmark,
     dependency_status,
+    make_engine_runner,
     read_reference,
     render_pages,
 )
@@ -86,6 +87,17 @@ if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
         with tempfile.TemporaryDirectory(prefix="ocr-benchmark-") as temporal:
             temporal_path = Path(temporal)
             texto_referencia = ""
+            total_trabajos = len(archivos) * len(seleccionados)
+            trabajos_completados = 0
+            progreso = st.progress(0.0, text="Preparando benchmark...")
+            runners = {}
+
+            def shared_factory(engine_id):
+                if engine_id not in runners:
+                    runners[engine_id] = make_engine_runner(engine_id)
+                runner = runners[engine_id]
+                return lambda path: runner(path)
+
             if referencia is not None:
                 referencia_suffix = Path(referencia.name).suffix.lower()
                 referencia_path = temporal_path / f"reference{referencia_suffix}"
@@ -102,36 +114,64 @@ if st.button("Ejecutar benchmark", type="primary", disabled=not archivos):
                         st.warning("La referencia está vacía.")
                 except Exception as exc:
                     st.error(f"No se pudo leer la referencia {referencia.name}: {exc}")
-            for indice, archivo in enumerate(archivos, 1):
-                nombre = Path(archivo.name).name
-                origen = temporal_path / f"{indice:03d}-{nombre}"
-                origen.write_bytes(archivo.getvalue())
-                try:
-                    paginas = render_pages(
-                        origen, temporal_path / f"pages-{indice:03d}"
-                    )
-                    documentos.append(
-                        {
-                            "nombre": nombre,
-                            "referencia": (
-                                referencia.name
-                                if referencia is not None
-                                else "Sin referencia"
-                            ),
-                            "referencia_caracteres": len(texto_referencia),
-                            "resultados": benchmark(
-                                paginas,
-                                seleccionados,
-                                referencia=texto_referencia,
-                                nombre_fuente=nombre,
-                            ),
-                            "error": None,
-                        }
-                    )
-                except Exception as exc:
-                    documentos.append(
-                        {"nombre": nombre, "resultados": (), "error": str(exc)}
-                    )
+            try:
+                for indice, archivo in enumerate(archivos, 1):
+                    nombre = Path(archivo.name).name
+                    origen = temporal_path / f"{indice:03d}-{nombre}"
+                    origen.write_bytes(archivo.getvalue())
+                    try:
+                        progreso.progress(
+                            trabajos_completados / total_trabajos,
+                            text=f"Procesando {nombre}...",
+                        )
+                        paginas = render_pages(
+                            origen, temporal_path / f"pages-{indice:03d}"
+                        )
+                        documentos.append(
+                            {
+                                "nombre": nombre,
+                                "referencia": (
+                                    referencia.name
+                                    if referencia is not None
+                                    else "Sin referencia"
+                                ),
+                                "referencia_caracteres": len(texto_referencia),
+                                "resultados": benchmark(
+                                    paginas,
+                                    seleccionados,
+                                    factory=shared_factory,
+                                    referencia=texto_referencia,
+                                    nombre_fuente=nombre,
+                                ),
+                                "error": None,
+                            }
+                        )
+                    except Exception as exc:
+                        documentos.append(
+                            {
+                                "nombre": nombre,
+                                "referencia": (
+                                    referencia.name
+                                    if referencia is not None
+                                    else "Sin referencia"
+                                ),
+                                "referencia_caracteres": len(texto_referencia),
+                                "resultados": (),
+                                "error": str(exc),
+                            }
+                        )
+                    finally:
+                        trabajos_completados += len(seleccionados)
+                        progreso.progress(
+                            trabajos_completados / total_trabajos,
+                            text=f"Completado: {nombre}",
+                        )
+            finally:
+                for runner in runners.values():
+                    close = getattr(runner, "close", None)
+                    if close is not None:
+                        close()
+                progreso.empty()
         st.session_state.ocr_benchmarks = documentos
 
 
