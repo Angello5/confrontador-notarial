@@ -22,12 +22,12 @@ identidad en general. Los nombres de archivo se muestran escapados, sin ruta.
 Una fecha dudosa y un campo sin etiqueta fiable se muestran como ausencia, sin
 OCR crudo. Los valores vienen **solo de RENIEC**; biométrica, pie legal y
 `DISTRITO DE NACIMIENTO` no los rellenan. Si dos consultas RENIEC discrepan,
-la prioridad por fecha de emisión y el aviso de conflicto quedan pendientes de
-la ronda siguiente.
+se conserva el valor de la emisión más reciente y la persona se muestra en
+«Revisión manual».
 
-## Observaciones de regla: ronda siguiente
+## Observaciones de regla
 
-Las tres reglas nuevas se añadirán a la sección «Regla» después de las
+Las tres reglas nuevas se añaden a la sección «Regla» después de las
 históricas, sin alterar las secciones «Personas» y «Ortografía». El núcleo
 emitirá datos estructurados y la aplicación los adaptará a mensajes con
 persona, valor esperado, hallazgo en borrador, archivo/página y ubicación
@@ -37,8 +37,7 @@ segura. Tipos previstos: `ESTADO_CIVIL_DISCREPANTE`,
 US1 mira la cláusula de la persona en el **borrador**, según la frontera del
 spec. US2 usa la fecha de hoy y muestra la fecha exacta de referencia. US3
 compara las equivalencias aprobadas del spec sin puntos, tildes ni orden del
-número. La implementación de estas reglas y del conflicto RENIEC queda para
-la siguiente ronda; este corte conserva las observaciones históricas idénticas.
+número. Las observaciones históricas conservan su contenido y orden.
 
 ## Privacidad y estados
 

@@ -13,6 +13,7 @@ from nucleo.verificar import (
     clasificar_pagina,
     comparar_personas,
     revisar,
+    revisar_persona_ampliada,
     unificar_personas,
 )
 
@@ -648,3 +649,161 @@ def test_observaciones_historicas_identicas_con_misma_entrada_ficticia():
     assert revisar_parrafos([minuta], otro_borrador, 88) == [
         "[PARRAFO] falta o alterado (79.22%): ESTE PARRAFO DE MINUTA FICTICIA ES SUFICIENTEMENTE EXTENSO Y CONTIENE TEXTO NOTARIAL INVENTADO PARA …"
     ]
+
+
+def test_conflicto_reniec_elige_emision_reciente_y_exige_revision():
+    antigua = _RENIEC_F12.replace("ESTADO CIVIL  CASADA", "ESTADO CIVIL  SOLTERA")
+    antigua += "\nFECHA DE EMISION  01/02/2024"
+    reciente = _RENIEC_F12 + "\nFECHA DE EMISION  03/04/2025"
+    for paginas in ((antigua, reciente), (reciente, antigua)):
+        persona = catalogo({"reniec-ficticio.pdf": "\f".join(paginas)}).personas[0]
+        assert persona.estado_civil == "CASADO"
+        assert persona.estado == "REVISION_MANUAL"
+        assert persona.procedencia_estado_civil.pagina == paginas.index(reciente) + 1
+
+
+def test_emision_reciente_del_mismo_valor_no_se_pierde_en_tercera_ficha():
+    primera = _RENIEC_F12 + "\nFECHA DE EMISION  01/02/2020"
+    reciente = _RENIEC_F12 + "\nFECHA DE EMISION  01/02/2025"
+    intermedia = (
+        _RENIEC_F12.replace("CASADA", "SOLTERA") + "\nFECHA DE EMISION  01/02/2023"
+    )
+    persona = catalogo(
+        {"reniec-ficticio.pdf": "\f".join((primera, reciente, intermedia))}
+    ).personas[0]
+    assert persona.estado_civil == "CASADO"
+    assert persona.procedencia_estado_civil.pagina == 2
+    assert persona.estado == "REVISION_MANUAL"
+
+
+@pytest.mark.parametrize(
+    ("civil", "frase", "tipos"),
+    [
+        (
+            "CASADO",
+            "ALBA LUMARIA ZAFIRO, peruana y propietaria.",
+            ["CONYUGE_NO_MENCIONADO"],
+        ),
+        ("CASADO", "ALBA LUMARIA ZAFIRO, casada con BRUNO TELURIO NEBULOSA.", []),
+        (
+            "SOLTERO",
+            "ALBA LUMARIA ZAFIRO, casada con BRUNO TELURIO NEBULOSA.",
+            ["ESTADO_CIVIL_DISCREPANTE"],
+        ),
+        (None, "ALBA LUMARIA ZAFIRO, casada con BRUNO TELURIO NEBULOSA.", []),
+    ],
+)
+def test_estado_civil_se_limita_a_clausula_personal(civil, frase, tipos):
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        estado_civil=civil,
+        procedencia_estado_civil=origen if civil else None,
+    )
+    borrador = frase + "\nOTRA PERSONA, casada con alguien."
+    obs = revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1))
+    assert [fila["tipo"] for fila in obs] == tipos
+    if obs:
+        assert obs[0]["nombre"] == persona.nombre
+        assert obs[0]["procedencia"] == origen
+
+
+def test_persona_sin_documento_no_activa_regla_civil():
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        None,
+        (origen,),
+        "SIN_DOCUMENTO",
+        estado_civil="CASADO",
+        procedencia_estado_civil=origen,
+    )
+    assert (
+        revisar_persona_ampliada(
+            Catalogo((persona,)), "ALBA LUMARIA ZAFIRO, soltera.", date(2025, 1, 1)
+        )
+        == ()
+    )
+
+
+def test_edad_cumplida_a_fecha_inyectada():
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    for hoy, esperado in ((date(2025, 7, 2), 17), (date(2025, 7, 3), None)):
+        persona = Persona(
+            "ALBA LUMARIA ZAFIRO",
+            "90000011",
+            (origen,),
+            fecha_nacimiento=date(2007, 7, 3),
+            procedencia_fecha_nacimiento=origen,
+        )
+        obs = revisar_persona_ampliada(Catalogo((persona,)), "ALBA LUMARIA ZAFIRO", hoy)
+        edades = [fila for fila in obs if fila["tipo"] == "MENOR_DE_EDAD"]
+        assert [fila["edad"] for fila in edades] == ([esperado] if esperado else [])
+        if edades:
+            assert edades[0]["fecha_referencia"] == hoy
+
+
+def test_domicilio_equivalente_y_ausente():
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio="Av. Lúna N° 12 Mz. A Lt. 3",
+        procedencia_domicilio=origen,
+    )
+    fuente = Catalogo((persona,))
+    presente = "ALBA LUMARIA ZAFIRO vive en Avenida Luna Manzana A Lote 3 Numero 12."
+    ausente = "ALBA LUMARIA ZAFIRO vive en Calle Sol 8."
+    assert revisar_persona_ampliada(fuente, presente, date(2025, 1, 1)) == ()
+    obs = revisar_persona_ampliada(fuente, ausente, date(2025, 1, 1))
+    assert [fila["tipo"] for fila in obs] == ["DOMICILIO_NO_ENCONTRADO"]
+    assert obs[0]["procedencia"] == origen
+
+
+@pytest.mark.parametrize(
+    ("abreviado", "extendido"),
+    [
+        ("Av.", "Avenida"),
+        ("Jr.", "Jirón"),
+        ("Ca.", "Calle"),
+        ("Psj.", "Pasaje"),
+        ("Mz.", "Manzana"),
+        ("Lt.", "Lote"),
+        ("Urb.", "Urbanización"),
+        ("AAHH", "Asentamiento Humano"),
+        ("Dpto.", "Departamento"),
+        ("Int.", "Interior"),
+        ("N°", "Número"),
+        ("S/N", "Sin Número"),
+    ],
+)
+def test_domicilio_admite_equivalencias_cerradas(abreviado, extendido):
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio=f"{abreviado} Luna 12",
+        procedencia_domicilio=origen,
+    )
+    borrador = f"ALBA LUMARIA ZAFIRO vive en {extendido} Luna 12."
+    assert (
+        revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1)) == ()
+    )
+
+
+def test_domicilio_de_otra_persona_no_satisface_fuente():
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio="Av. Luna 12",
+        procedencia_domicilio=origen,
+    )
+    borrador = "ALBA LUMARIA ZAFIRO vive en Calle Sol 8.\nBRUNO TELURIO NEBULOSA vive en Av. Luna 12."
+    obs = revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1))
+    assert [fila["tipo"] for fila in obs] == ["DOMICILIO_NO_ENCONTRADO"]

@@ -6,10 +6,9 @@
 
 ## Summary and scope
 
-Esta ronda amplía `Persona` en memoria, extrae los cuatro campos solo de RENIEC
-y los presenta con procedencia en la tabla existente. Las tres reglas de
-confrontación de US1–US3 quedan para la ronda siguiente por instrucción del
-propietario. No hay migración, dependencia nueva, red ni cambio del sondeo JSON.
+F12 amplía `Persona` en memoria, extrae los cuatro campos solo de RENIEC,
+resuelve discrepancias por fecha de emisión y añade US1–US3 a la confrontación.
+No hay migración, dependencia nueva, red ni cambio del sondeo JSON.
 
 ## Technical context
 
@@ -37,7 +36,8 @@ acepta `dd/mm/aaaa` y `dd-mm-aaaa` con dígitos ASCII y calendario válido.
 Persona(nombre, documento, procedencias, estado="CONFIRMADA",
         estado_civil=None, fecha_nacimiento=None, domicilio=None, distrito=None,
         procedencia_estado_civil=None, procedencia_fecha_nacimiento=None,
-        procedencia_domicilio=None, procedencia_distrito=None)
+        procedencia_domicilio=None, procedencia_distrito=None,
+        fecha_emision=None, emisiones_campos=None)
 ```
 
 Las cuatro posiciones iniciales no cambian. Las procedencias nuevas reutilizan
@@ -49,9 +49,10 @@ columna: `ESTADO CIVIL`, `FECHA DE NACIMIENTO`, `DIRECCIÓN`, `DISTRITO DE
 DOMICILIO`. No busca en biométrica, nacimiento, pie, operador o prosa.
 
 `unificar_personas()` conserva cada par valor/procedencia durante ambas
-reconstrucciones. En este corte, la primera lectura RENIEC no vacía permanece
-si hay dos valores distintos; el conflicto y la prioridad por fecha de emisión
-son trabajo pendiente de la ronda de reglas, sin afirmar que se resolvió.
+reconstrucciones. Si dos valores difieren, elige el de fecha de emisión más
+reciente cuando es legible y marca `REVISION_MANUAL`; sin fecha fiable,
+conserva el primero y también exige revisión. Las fechas de emisión se guardan
+por campo para que la selección no dependa del orden de lectura.
 
 `_personas_legibles()` convierte la fecha a ISO y deja solo el nombre del
 archivo. La tabla de `templates/expedientes/confrontacion.html` muestra los
@@ -59,7 +60,7 @@ cuatro valores con su archivo y página, o ausencia. `expediente_estado()` no
 cambia. `comparar_personas()`, `revisar()` y `revisar_parrafos()` mantienen
 contenido y orden de sus observaciones para las mismas entradas ficticias.
 
-## Ronda siguiente: reglas ya definidas en el spec
+## Reglas de confrontación
 
 - US1 compara estado civil con la **cláusula de la persona en el borrador**;
   una mención de cónyuge en otra cláusula no cuenta.
@@ -67,8 +68,8 @@ contenido y orden de sus observaciones para las mismas entradas ficticias.
   servicio pasa la fecha explícita al núcleo puro.
 - US3 compara domicilio con la lista cerrada del spec, sin puntos, tildes ni
   orden del número. No usa emparejamiento difuso.
-- Dos consultas RENIEC discordantes requieren capturar y comparar la fecha de
-  emisión antes de elegir una; se marca conflicto para revisión manual.
+- Dos consultas RENIEC discordantes se comparan por fecha de emisión y se marca
+  conflicto para revisión manual.
 
 ## Verificación y entrega
 
@@ -81,5 +82,6 @@ revisión de privacidad. Commit local sin push ni PR. Quality Gate remoto y
 
 ## Complexity Tracking
 
-No se añade abstracción ni paquete. Los ocho campos nuevos pertenecen al
-contrato de `Persona`; un lector estricto de rótulos evita heurísticas de OCR.
+No se añade abstracción ni paquete. Los ocho campos visibles y dos metadatos
+de emisión pertenecen al contrato de `Persona`; un lector estricto de rótulos
+evita heurísticas de OCR.

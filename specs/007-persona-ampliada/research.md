@@ -33,10 +33,11 @@
   AAHH/ASENTAMIENTO HUMANO, DPTO/DEPARTAMENTO, INT/INTERIOR,
   N°/NÚMERO y S/N; ignora puntos, tildes y orden del número.
 
-## Contrato mínimo de esta ronda
+## Contrato F12
 
 Se conservan las cuatro posiciones históricas de `Persona` y se añaden al final
-cuatro valores opcionales y cuatro procedencias opcionales. La procedencia
+cuatro valores opcionales, cuatro procedencias opcionales y dos metadatos de
+emisión para el desempate. La procedencia
 histórica `Procedencia(fuente, pagina)` basta porque los campos F12 solo salen
 de RENIEC. Cada valor se fusiona con **su** procedencia; una ausencia no hereda
 la de otro campo. La captura se aplica solo si la página RENIEC produce una
@@ -47,12 +48,13 @@ La tabla de extracción HTML autorizada muestra los cuatro pares. El sondeo JSON
 logs y errores no reciben sus valores. `comparar_personas()`, `revisar()` y
 `revisar_parrafos()` mantienen sus observaciones históricas para la misma
 entrada ficticia. Las reglas civil, edad y domicilio y el manejo de dos RENIEC
-discordantes se implementan en la siguiente ronda; la decisión de prioridad
-por fecha de emisión requiere capturar esa fecha de manera fiable.
+discordantes se implementaron en esta ronda con la fecha de emisión leída por
+rótulo al inicio de línea.
 
 ## Deuda deliberada
 
-Reglas US1–US3, conflicto entre consultas RENIEC, cónyuge manuscrito de
-declaración jurada, personas jurídicas, fecha del acto y persistencia F6.
+Cónyuge manuscrito de declaración jurada, personas jurídicas, fecha del acto y
+persistencia F6. La búsqueda de domicilio por línea del compareciente puede
+marcar domicilios partidos en varias líneas; ampliar solo con evidencia medida.
 La medición privada `local_reference` queda a cargo del propietario antes de
 integrar el cambio al núcleo.

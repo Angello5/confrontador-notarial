@@ -30,6 +30,80 @@ def test_persona_ampliada_se_presenta_con_procedencia_sin_ruta():
     assert "/srv/privado" not in str(fila)
 
 
+def test_observaciones_f12_se_adaptan_a_regla_con_procedencia_segura():
+    from datetime import date
+
+    from expedientes.services import _observaciones_f12_legibles
+    from nucleo.verificar import Procedencia
+
+    observaciones = (
+        {
+            "tipo": "MENOR_DE_EDAD",
+            "nombre": "ALBA LUMARIA ZAFIRO",
+            "edad": 17,
+            "fecha_referencia": date(2025, 7, 2),
+            "esperado": date(2007, 7, 3),
+            "hallado": "Menor de edad",
+            "procedencia": Procedencia("/srv/privado/reniec-ficticio.pdf", 2),
+        },
+    )
+    filas = _observaciones_f12_legibles(observaciones, "ALBA LUMARIA ZAFIRO")
+    assert filas[0]["campo"] == "MENOR_DE_EDAD"
+    assert "ALBA LUMARIA ZAFIRO" in filas[0]["hallado"]
+    assert "17" in filas[0]["hallado"]
+    assert "2025-07-02" in filas[0]["hallado"]
+    assert "reniec-ficticio.pdf, página 2" in filas[0]["motivo"]
+    assert "/srv/privado" not in str(filas)
+
+
+def test_confrontacion_agrega_reglas_f12_solo_al_resultado_autorizado(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    from datetime import date
+
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    reniec = (
+        "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA\n"
+        "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA\n"
+        "ESTADO CIVIL  CASADA\nFECHA DE NACIMIENTO  03/07/2007\n"
+        "DIRECCION  Av. Luna 12"
+    )
+    crear_documento_listo(
+        expediente_confrontacion, Documento.CLIENTE, "reniec-ficticio.pdf", reniec
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.txt",
+        "ALBA LUMARIA ZAFIRO",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-ficticio.txt",
+        "ALBA LUMARIA ZAFIRO, soltera, domiciliada en Calle Sol 8. DNI 90000011",
+    )
+    monkeypatch.setattr(
+        "expedientes.services.timezone.localdate", lambda: date(2025, 7, 2)
+    )
+    monkeypatch.setattr(
+        "expedientes.services.diccionario.diccionario", lambda: ({}, {})
+    )
+    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
+    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+    assert resultado["estado"] == "RESULTADO"
+    assert {fila["campo"] for fila in resultado["regla"]} >= {
+        "ESTADO_CIVIL_DISCREPANTE",
+        "MENOR_DE_EDAD",
+        "DOMICILIO_NO_ENCONTRADO",
+    }
+    assert "17 años al 2025-07-02" in str(resultado["regla"])
+
+
 @pytest.fixture
 def expediente_confrontacion(usuario_ficticio):
     from expedientes.models import Expediente

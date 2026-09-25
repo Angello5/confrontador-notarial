@@ -2,7 +2,7 @@
 
 import re
 import unicodedata
-from collections import namedtuple
+from collections import Counter, namedtuple
 from collections.abc import Mapping
 from datetime import date
 
@@ -20,8 +20,9 @@ PaginaDescartada = namedtuple("PaginaDescartada", "fuente pagina tipo")
 Persona = namedtuple(
     "Persona",
     "nombre documento procedencias estado estado_civil fecha_nacimiento domicilio distrito "
-    "procedencia_estado_civil procedencia_fecha_nacimiento procedencia_domicilio procedencia_distrito",
-    defaults=("CONFIRMADA",) + (None,) * 8,
+    "procedencia_estado_civil procedencia_fecha_nacimiento procedencia_domicilio procedencia_distrito "
+    "fecha_emision emisiones_campos",
+    defaults=("CONFIRMADA",) + (None,) * 10,
 )
 
 
@@ -275,6 +276,17 @@ def _campo_reniec(raw: str, etiqueta: str) -> str | None:
     return None
 
 
+def _fecha_reniec(valor: str | None) -> date | None:
+    if not valor or not (
+        coincide := re.fullmatch(r"([0-9]{2})([/\-])([0-9]{2})\2([0-9]{4})", valor)
+    ):
+        return None
+    try:
+        return date(int(coincide[4]), int(coincide[3]), int(coincide[1]))
+    except ValueError:
+        return None
+
+
 def _campos_reniec(pagina: Pagina) -> dict:
     raw = pagina.texto
     civil = _campo_reniec(raw, "ESTADO CIVIL")
@@ -288,15 +300,8 @@ def _campos_reniec(pagina: Pagina) -> dict:
         "DIVORCIADA": "DIVORCIADO",
         "DIVORCIADO": "DIVORCIADO",
     }.get(norm(civil).rstrip(".") if civil else "")
-    nacimiento = _campo_reniec(raw, "FECHA DE NACIMIENTO")
-    fecha = None
-    if nacimiento and (
-        coincide := re.fullmatch(r"([0-9]{2})([/\-])([0-9]{2})\2([0-9]{4})", nacimiento)
-    ):
-        try:
-            fecha = date(int(coincide[4]), int(coincide[3]), int(coincide[1]))
-        except ValueError:
-            pass
+    fecha = _fecha_reniec(_campo_reniec(raw, "FECHA DE NACIMIENTO"))
+    emision = _fecha_reniec(_campo_reniec(raw, "FECHA DE EMISION"))
     valores = {
         "estado_civil": civil,
         "fecha_nacimiento": fecha,
@@ -310,6 +315,10 @@ def _campos_reniec(pagina: Pagina) -> dict:
             f"procedencia_{campo}": origen if valor is not None else None
             for campo, valor in valores.items()
         },
+        "fecha_emision": emision,
+        "emisiones_campos": tuple(
+            emision if valor is not None else None for valor in valores.values()
+        ),
     }
 
 
@@ -466,15 +475,46 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
             else "SIN_DOCUMENTO"
         )
         campos = {}
-        for campo in ("estado_civil", "fecha_nacimiento", "domicilio", "distrito"):
-            elegida = existente if getattr(existente, campo) is not None else persona
+        nombres_campos = ("estado_civil", "fecha_nacimiento", "domicilio", "distrito")
+        emisiones = []
+        conflicto = False
+        for posicion, campo in enumerate(nombres_campos):
+            anterior = getattr(existente, campo)
+            nuevo = getattr(persona, campo)
+            fecha_anterior = (
+                existente.emisiones_campos or (existente.fecha_emision,) * 4
+            )[posicion]
+            fecha_nueva = (persona.emisiones_campos or (persona.fecha_emision,) * 4)[
+                posicion
+            ]
+            conflicto |= (
+                anterior is not None and nuevo is not None and anterior != nuevo
+            )
+            usar_nueva = anterior is None or (
+                nuevo is not None
+                and fecha_nueva is not None
+                and (fecha_anterior is None or fecha_nueva > fecha_anterior)
+            )
+            elegida = persona if usar_nueva else existente
             campos[campo] = getattr(elegida, campo)
             campos[f"procedencia_{campo}"] = getattr(elegida, f"procedencia_{campo}")
+            emisiones.append(fecha_nueva if usar_nueva else fecha_anterior)
         unificadas[fusion] = existente._replace(
             nombre=existente.nombre or persona.nombre,
             documento=existente.documento or persona.documento,
             procedencias=procedencias,
-            estado=estado,
+            estado="REVISION_MANUAL"
+            if conflicto or "REVISION_MANUAL" in (existente.estado, persona.estado)
+            else estado,
+            fecha_emision=max(
+                (
+                    fecha
+                    for fecha in (existente.fecha_emision, persona.fecha_emision)
+                    if fecha
+                ),
+                default=None,
+            ),
+            emisiones_campos=tuple(emisiones) if any(emisiones) else None,
             **campos,
         )
     documentos = {}
@@ -555,6 +595,141 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
         if clave not in vistos:
             observaciones.append(observacion)
             vistos.add(clave)
+    return tuple(observaciones)
+
+
+_CIVIL_BORRADOR = re.compile(
+    r"\b(CASAD[AO]\s+CON|SOLTER[AO]|VIUD[AO]|DIVORCIAD[AO]|CONVIVIENTE)\b"
+)
+_VIAS = {
+    "AV": "AVENIDA",
+    "JR": "JIRON",
+    "CA": "CALLE",
+    "PSJ": "PASAJE",
+    "MZ": "MANZANA",
+    "LT": "LOTE",
+    "URB": "URBANIZACION",
+    "AAHH": "ASENTAMIENTO HUMANO",
+    "DPTO": "DEPARTAMENTO",
+    "INT": "INTERIOR",
+    "N": "NUMERO",
+    "Nº": "NUMERO",
+    "N°": "NUMERO",
+    "SN": "SIN NUMERO",
+}
+
+
+def _clausula_persona(texto: str, nombre: str) -> str | None:
+    t = "\n".join(norm(linea) for linea in texto.splitlines())
+    match = re.search(rf"(?<![A-ZÑ]){re.escape(_nombre_clave(nombre))}(?![A-ZÑ])", t)
+    if not match:
+        return None
+    limites = list(re.finditer(r"\.\s+|\n", t[: match.start()]))
+    inicio = limites[-1].end() if limites else 0
+    if not t[inicio : match.start()].strip() and limites:
+        inicio = limites[-2].end() if len(limites) > 1 else 0
+    fin = re.search(r"\.\s+|\n", t[match.end() :])
+    return t[inicio : match.end() + fin.start() if fin else len(t)]
+
+
+def _direccion_tokens(texto: str) -> Counter:
+    sin_tildes = "".join(
+        c
+        for c in unicodedata.normalize("NFKD", texto.upper())
+        if not unicodedata.combining(c)
+    )
+    sin_tildes = re.sub(r"\bS\s*/\s*N\b", " SN ", sin_tildes)
+    sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes)
+    tokens = re.findall(r"[A-Z0-9]+", sin_tildes)
+    return Counter(
+        palabra for token in tokens for palabra in _VIAS.get(token, token).split()
+    )
+
+
+def revisar_persona_ampliada(
+    cat: Catalogo, borrador: str, hoy: date | None = None
+) -> tuple[dict, ...]:
+    """Observaciones F12 puras: la fecha de referencia siempre llega del llamador."""
+    observaciones = []
+    for persona in cat.personas:
+        if (
+            persona.estado != "CONFIRMADA"
+            or not persona.documento
+            or not persona.nombre
+        ):
+            continue
+        clausula = _clausula_persona(borrador, persona.nombre)
+        if clausula is None:
+            continue
+        base = {"nombre": persona.nombre}
+        if persona.estado_civil:
+            marcadores = _CIVIL_BORRADOR.findall(clausula)
+            hallado = marcadores[0] if marcadores else "Sin marcador de estado civil"
+            if persona.estado_civil == "CASADO" and (
+                not marcadores or any(m.startswith("SOLTER") for m in marcadores)
+            ):
+                tipo = (
+                    "ESTADO_CIVIL_DISCREPANTE"
+                    if marcadores
+                    else "CONYUGE_NO_MENCIONADO"
+                )
+            elif persona.estado_civil == "SOLTERO" and any(
+                m.startswith("CASAD") for m in marcadores
+            ):
+                tipo = "ESTADO_CIVIL_DISCREPANTE"
+            else:
+                tipo = None
+            if tipo:
+                observaciones.append(
+                    {
+                        **base,
+                        "tipo": tipo,
+                        "esperado": persona.estado_civil,
+                        "hallado": hallado,
+                        "procedencia": persona.procedencia_estado_civil,
+                    }
+                )
+        if persona.fecha_nacimiento and hoy is not None:
+            edad = (
+                hoy.year
+                - persona.fecha_nacimiento.year
+                - (
+                    (hoy.month, hoy.day)
+                    < (persona.fecha_nacimiento.month, persona.fecha_nacimiento.day)
+                )
+            )
+            if 0 <= edad < 18:
+                observaciones.append(
+                    {
+                        **base,
+                        "tipo": "MENOR_DE_EDAD",
+                        "edad": edad,
+                        "fecha_referencia": hoy,
+                        "esperado": persona.fecha_nacimiento,
+                        "hallado": "Menor de edad",
+                        "procedencia": persona.procedencia_fecha_nacimiento,
+                    }
+                )
+        if persona.domicilio:
+            direccion = _direccion_tokens(persona.domicilio)
+            # ponytail: busca en la línea del compareciente; ampliar al párrafo si hay domicilios multilínea.
+            oraciones = [
+                linea
+                for linea in borrador.splitlines()
+                if _nombre_clave(persona.nombre) in norm(linea)
+            ]
+            if not any(
+                direccion <= _direccion_tokens(oracion) for oracion in oraciones
+            ):
+                observaciones.append(
+                    {
+                        **base,
+                        "tipo": "DOMICILIO_NO_ENCONTRADO",
+                        "esperado": persona.domicilio,
+                        "hallado": "No aparece en el borrador",
+                        "procedencia": persona.procedencia_domicilio,
+                    }
+                )
     return tuple(observaciones)
 
 

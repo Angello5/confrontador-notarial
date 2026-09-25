@@ -636,6 +636,37 @@ def adaptar_observaciones_regla(salidas, texto_borrador):
     ]
 
 
+def _observaciones_f12_legibles(observaciones, texto_borrador):
+    filas = []
+    for observacion in observaciones:
+        tipo = observacion["tipo"]
+        nombre = observacion["nombre"]
+        origen = observacion["procedencia"]
+        archivo = Path(origen.fuente).name if origen else "No ubicado"
+        pagina = f", página {origen.pagina}" if origen else ""
+        if tipo == "MENOR_DE_EDAD":
+            hallado = (
+                f"{nombre}: {observacion['edad']} años al "
+                f"{observacion['fecha_referencia'].isoformat()}"
+            )
+            esperado = f"Fecha de nacimiento: {observacion['esperado'].isoformat()}"
+        else:
+            hallado = f"{nombre}: {observacion['hallado']}"
+            esperado = f"RENIEC: {observacion['esperado']}"
+        filas.append(
+            {
+                "formato": "regla",
+                "campo": tipo,
+                "hallado": hallado,
+                "esperado": esperado,
+                "motivo": f"Fuente: {archivo}{pagina}",
+                "porcentaje": "",
+                "ubicacion": ubicar_valor(texto_borrador, nombre),
+            }
+        )
+    return filas
+
+
 def adaptar_observaciones_ortografia(salidas, texto_borrador):
     return [
         {
@@ -757,6 +788,16 @@ def confrontar_borrador(expediente, borrador):
         diccionario.lista_casa(),
         propios,
     )
+    observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
+    if isinstance(catalogo, verificar.Catalogo):
+        observaciones_regla.extend(
+            _observaciones_f12_legibles(
+                verificar.revisar_persona_ampliada(
+                    catalogo, texto_borrador, timezone.localdate()
+                ),
+                texto_borrador,
+            )
+        )
     return {
         "estado": "RESULTADO",
         "mensaje": "",
@@ -764,7 +805,7 @@ def confrontar_borrador(expediente, borrador):
             observaciones_personas, texto_borrador
         ),
         "extraccion": extraccion,
-        "regla": adaptar_observaciones_regla(reglas, texto_borrador),
+        "regla": observaciones_regla,
         "ortografia": adaptar_observaciones_ortografia(faltas, texto_borrador),
     }
 

@@ -1,10 +1,8 @@
 # Tasks: F12 · Persona ampliada
 
 **Fuentes**: `spec.md`, `research.md`, `plan.md`, `contracts/ui.md`.
-**Ronda actual**: contrato de persona, cuatro capturas RENIEC y tabla de
-extracción. Las reglas US1–US3 se ejecutan en la siguiente ronda por instrucción
-del propietario. `[X]` indica evidencia ya producida; gates pendientes no se
-marcan por anticipado.
+**Ronda actual**: reglas US1–US3 y conflicto RENIEC. `[X]` indica evidencia
+ya producida; gates pendientes no se marcan por anticipado.
 
 ## Phase 1 — decisiones documentales
 
@@ -42,14 +40,13 @@ marcan por anticipado.
 - [X] T020 Ejecutar `git diff --check`, revisar diff por privacidad y confirmar ausencia de migraciones/dependencias.
 - [X] T021 Commit local en `feature/f12-persona-ampliada`, sin push ni PR; separar evidencia local, Quality Gate remoto y medición privada pendiente.
 
-## Phase 6 — siguiente ronda: reglas de confrontación
+## Phase 6 — reglas de confrontación
 
-- [ ] T022 TDD de estado civil frente a la cláusula de la persona en el borrador; incluir soltero/casado, cónyuge en otra cláusula, dato ausente y persona sin documento.
-- [ ] T023 TDD de minoría de edad con cumpleaños cumplido/no cumplido y fecha de hoy pasada por el servicio al núcleo.
-- [ ] T024 TDD de domicilio con toda la lista cerrada de equivalencias, orden del número y atribución segura por persona.
-- [ ] T025 Capturar fecha de emisión de dos consultas RENIEC antes de elegir el estado civil más reciente; marcar conflicto para revisión manual.
-- [ ] T026 Adaptar las nuevas observaciones estructuradas a la sección Regla y completar UI, privacidad y paridad F5.
+- [X] T022 TDD de estado civil frente a la cláusula de la persona en el borrador; incluir soltero/casado, cónyuge en otra cláusula, dato ausente y persona sin documento.
+- [X] T023 TDD de minoría de edad con cumpleaños cumplido/no cumplido y fecha de hoy pasada por el servicio al núcleo.
+- [X] T024 TDD de domicilio con toda la lista cerrada de equivalencias, orden del número y atribución segura por persona.
+- [X] T025 Capturar fecha de emisión de dos consultas RENIEC antes de elegir el estado civil más reciente; marcar conflicto para revisión manual.
+- [X] T026 Adaptar las nuevas observaciones estructuradas a la sección Regla y completar UI, privacidad y paridad F5.
 - [ ] T027 Ejecutar medición privada `local_reference` fuera de CI antes de integrar; gate del propietario.
 
-No se usan datos reales en pruebas, fixtures, código ni commit. La fase 6 no
-forma parte del commit de esta ronda.
+No se usan datos reales en pruebas, fixtures, código ni commit.
