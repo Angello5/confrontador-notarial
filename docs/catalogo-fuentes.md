@@ -3,7 +3,7 @@
 Qué documentos llegan a la confrontación, cómo se presenta en cada uno la
 identidad de las personas, y qué datos **no** son de los comparecientes.
 
-Salió de examinar 11 expedientes reales de la notaría: 75 archivos y **las 435
+Salió de examinar 10 expedientes reales de la notaría: 75 archivos y **las 435
 páginas** de todos los PDF, pasadas por OCR y agrupadas por forma. Todos los
 ejemplos de este documento son **ficticios**: reproducen la disposición y las
 etiquetas de los documentos reales, con nombres inventados y números de
