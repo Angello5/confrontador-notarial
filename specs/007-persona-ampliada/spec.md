@@ -4,9 +4,9 @@
 
 **Created**: 2026-09-25
 
-**Status**: Draft
+**Status**: In Progress
 
-**Input**: `docs/catalogo-datos.md` midió sobre 435 páginas reales que la consulta RENIEC y la ficha biométrica entregan estado civil, fecha de nacimiento y domicilio con fiabilidad del 89–100 %, y que el ERP los descarta. Decisión del propietario: incorporarlos a la persona y usarlos en la confrontación.
+**Input**: `docs/catalogo-datos.md` midió sobre 435 páginas que solo la consulta RENIEC aporta estado civil, fecha de nacimiento, domicilio y distrito de domicilio con las coberturas documentadas, y que el ERP los descarta. Decisión del propietario: incorporarlos a la persona y usarlos en la confrontación.
 
 ## Clarifications
 
@@ -22,11 +22,11 @@
 
 ### User Story 1 - Estado civil que no cuadra (Priority: P1)
 
-Como notario, quiero que el sistema avise cuando la fuente oficial dice que un compareciente es casado y la minuta lo presenta como soltero, o al revés, para no autorizar un acto de disposición sin el cónyuge.
+Como notario, quiero que el sistema avise cuando la fuente oficial dice que un compareciente es casado y el borrador lo presenta como soltero, o al revés, para no autorizar un acto de disposición sin el cónyuge.
 
 **Why this priority**: Es el error de fondo más caro de una escritura: un bien social vendido por uno solo de los cónyuges.
 
-**Independent Test**: Una ficha ficticia con `Estado Civil: CASADO` y una minuta ficticia que lo llama soltero producen una observación; si la minuta dice "casado con …", no.
+**Independent Test**: Una consulta RENIEC ficticia con `Estado Civil: CASADO` y un borrador ficticio que lo llama soltero producen una observación; si el borrador dice "casado con …", no.
 
 **Acceptance Scenarios**:
 
@@ -59,7 +59,7 @@ Decisión del propietario (2026-09-25): equivalencias de vía peruanas habituale
 
 ### User Story 4 - Ver los campos nuevos (Priority: P2)
 
-Como notario, quiero ver estado civil, fecha de nacimiento y domicilio de cada persona en la tabla de extracción, con su procedencia, para verificar una observación sin releer el legajo.
+Como notario, quiero ver estado civil, fecha de nacimiento, domicilio y distrito de cada persona en la tabla de extracción, con su procedencia, para verificar una observación sin releer el legajo.
 
 ### Edge Cases
 
@@ -97,7 +97,7 @@ Como notario, quiero ver estado civil, fecha de nacimiento y domicilio de cada p
 ## Success Criteria *(mandatory)*
 
 - **SC-001**: Ficha RENIEC ficticia → persona con los cuatro campos y su procedencia.
-- **SC-002**: Casado en fuente + soltero en minuta → una observación; casado con cónyuge → ninguna.
+- **SC-002**: Casado en fuente + soltero en borrador → una observación; casado con cónyuge → ninguna.
 - **SC-003**: Fecha que implica 17 años → observación con la edad.
 - **SC-004**: Domicilio con abreviaturas equivalentes → ninguna observación; ausente → una.
 - **SC-005**: Sobre las mismas entradas ficticias, todas las observaciones previas a la fase son idénticas.

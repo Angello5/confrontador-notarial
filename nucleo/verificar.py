@@ -4,6 +4,7 @@ import re
 import unicodedata
 from collections import namedtuple
 from collections.abc import Mapping
+from datetime import date
 
 from rapidfuzz import fuzz, process
 
@@ -16,11 +17,12 @@ Pagina = namedtuple("Pagina", "fuente numero texto")
 PaginaDescartada = namedtuple("PaginaDescartada", "fuente pagina tipo")
 
 
-class Persona(namedtuple("PersonaBase", "nombre documento procedencias estado")):
-    __slots__ = ()
-
-    def __new__(cls, nombre, documento, procedencias, estado="CONFIRMADA"):
-        return super().__new__(cls, nombre, documento, procedencias, estado)
+Persona = namedtuple(
+    "Persona",
+    "nombre documento procedencias estado estado_civil fecha_nacimiento domicilio distrito "
+    "procedencia_estado_civil procedencia_fecha_nacimiento procedencia_domicilio procedencia_distrito",
+    defaults=("CONFIRMADA",) + (None,) * 8,
+)
 
 
 class Catalogo(Mapping[str, frozenset[str]]):
@@ -260,6 +262,68 @@ def _linea_etiquetada(raw: str, etiqueta: str) -> str | None:
     return None
 
 
+def _campo_reniec(raw: str, etiqueta: str) -> str | None:
+    """Lee solo un rótulo al inicio de línea y su propia celda."""
+    for linea in raw.splitlines():
+        celdas = re.split(r"\s{2,}", linea.strip())
+        primera = celdas[0]
+        rotulo, _, valor = primera.partition(":")
+        if norm(rotulo) != etiqueta:
+            continue
+        valor = valor.strip() or (celdas[1].strip() if len(celdas) > 1 else "")
+        return valor or None
+    return None
+
+
+def _campos_reniec(pagina: Pagina) -> dict:
+    raw = pagina.texto
+    civil = _campo_reniec(raw, "ESTADO CIVIL")
+    civil = {
+        "SOLTERA": "SOLTERO",
+        "SOLTERO": "SOLTERO",
+        "CASADA": "CASADO",
+        "CASADO": "CASADO",
+        "VIUDA": "VIUDO",
+        "VIUDO": "VIUDO",
+        "DIVORCIADA": "DIVORCIADO",
+        "DIVORCIADO": "DIVORCIADO",
+    }.get(norm(civil).rstrip(".") if civil else "")
+    nacimiento = _campo_reniec(raw, "FECHA DE NACIMIENTO")
+    fecha = None
+    if nacimiento and (
+        coincide := re.fullmatch(r"([0-9]{2})([/\-])([0-9]{2})\2([0-9]{4})", nacimiento)
+    ):
+        try:
+            fecha = date(int(coincide[4]), int(coincide[3]), int(coincide[1]))
+        except ValueError:
+            pass
+    valores = {
+        "estado_civil": civil,
+        "fecha_nacimiento": fecha,
+        "domicilio": _campo_reniec(raw, "DIRECCION"),
+        "distrito": _campo_reniec(raw, "DISTRITO DE DOMICILIO"),
+    }
+    origen = Procedencia(pagina.fuente, pagina.numero)
+    return {
+        **valores,
+        **{
+            f"procedencia_{campo}": origen if valor is not None else None
+            for campo, valor in valores.items()
+        },
+    }
+
+
+def _anotar_reniec(personas: list[Persona], pagina: Pagina, tipo: str) -> list[Persona]:
+    if (
+        tipo == "RENIEC"
+        and len(personas) == 1
+        and personas[0].nombre
+        and personas[0].documento
+    ):
+        return [personas[0]._replace(**_campos_reniec(pagina))]
+    return personas
+
+
 def _nombres_de_pagina(
     raw: str, tipo: str, es_pdf: bool, es_img: bool = False
 ) -> list[str]:
@@ -331,11 +395,13 @@ def _personas_de_pagina(pagina: Pagina, tipo: str) -> list[Persona]:
                 Persona(nombres_linea[0], documentos_linea[0], procedencia)
             )
     if asociados:
-        return asociados
+        return _anotar_reniec(asociados, pagina, tipo)
     nombres_pagina = _nombres_de_pagina(pagina.texto, tipo, sufijo == ".pdf", es_img)
     documentos = _documentos_de_pagina(pagina.texto, tipo, es_img)
     if len(nombres_pagina) == 1 and len(documentos) == 1:
-        return [Persona(nombres_pagina[0], documentos[0], procedencia)]
+        return _anotar_reniec(
+            [Persona(nombres_pagina[0], documentos[0], procedencia)], pagina, tipo
+        )
     personas = [
         Persona(nombre, None, procedencia, "SIN_DOCUMENTO") for nombre in nombres_pagina
     ]
@@ -399,11 +465,17 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
             if existente.documento or persona.documento
             else "SIN_DOCUMENTO"
         )
-        unificadas[fusion] = Persona(
-            existente.nombre or persona.nombre,
-            existente.documento or persona.documento,
-            procedencias,
-            estado,
+        campos = {}
+        for campo in ("estado_civil", "fecha_nacimiento", "domicilio", "distrito"):
+            elegida = existente if getattr(existente, campo) is not None else persona
+            campos[campo] = getattr(elegida, campo)
+            campos[f"procedencia_{campo}"] = getattr(elegida, f"procedencia_{campo}")
+        unificadas[fusion] = existente._replace(
+            nombre=existente.nombre or persona.nombre,
+            documento=existente.documento or persona.documento,
+            procedencias=procedencias,
+            estado=estado,
+            **campos,
         )
     documentos = {}
     for persona in unificadas:
@@ -412,11 +484,8 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
                 _nombre_clave(persona.nombre)
             )
     return tuple(
-        Persona(
-            persona.nombre,
-            persona.documento,
-            persona.procedencias,
-            "REVISION_MANUAL"
+        persona._replace(
+            estado="REVISION_MANUAL"
             if persona.documento and len(documentos.get(persona.documento, ())) > 1
             else persona.estado,
         )

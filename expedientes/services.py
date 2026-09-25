@@ -425,6 +425,23 @@ def _personas_legibles(catalogo):
             "documento": persona.documento or "Sin documento",
             "procedencias": _procedencias_legibles(persona.procedencias),
             "estado": _ESTADOS_PERSONA.get(persona.estado, "Revisión manual"),
+            "estado_civil": persona.estado_civil,
+            "fecha_nacimiento": persona.fecha_nacimiento.isoformat()
+            if persona.fecha_nacimiento
+            else None,
+            "domicilio": persona.domicilio,
+            "distrito": persona.distrito,
+            **{
+                f"procedencia_{campo}": _procedencias_legibles((origen,))[0]
+                if (origen := getattr(persona, f"procedencia_{campo}"))
+                else None
+                for campo in (
+                    "estado_civil",
+                    "fecha_nacimiento",
+                    "domicilio",
+                    "distrito",
+                )
+            },
         }
         for persona in catalogo.personas
     ]

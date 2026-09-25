@@ -1,67 +1,37 @@
 # Implementation Plan: F12 · Persona ampliada
 
-**Branch**: `feature/f12-persona-ampliada` | **Date**: 2026-09-25 | **Spec**:
-[spec.md](spec.md)
+**Branch**: `feature/f12-persona-ampliada` | **Date**: 2026-09-25 |
+**Sources**: [spec.md](spec.md), [research.md](research.md),
+`docs/catalogo-datos.md`, `docs/catalogo-fuentes.md`.
 
-**Input**: `spec.md` aprobado, [research.md](research.md),
-`docs/catalogo-datos.md`, `docs/catalogo-fuentes.md` y F11.
+## Summary and scope
 
-## Summary
+Esta ronda amplía `Persona` en memoria, extrae los cuatro campos solo de RENIEC
+y los presenta con procedencia en la tabla existente. Las tres reglas de
+confrontación de US1–US3 quedan para la ronda siguiente por instrucción del
+propietario. No hay migración, dependencia nueva, red ni cambio del sondeo JSON.
 
-Extender la estructura `Persona` en memoria con cuatro valores opcionales y
-su procedencia por campo. Extraerlos solo de formularios reconocidos y
-asociados a la persona de la página. Incorporar las tres reglas a
-`comparar_personas()` como observaciones estructuradas de regla, manteniendo
-la salida histórica de `revisar()` y la salida previa de identidad. Mostrar
-campos y observaciones en la vista de confrontación existente, sin migración,
-persistencia ni cambio del sondeo JSON.
+## Technical context
 
-La implementación de edad, equivalencias de domicilio y alcance civil queda
-condicionada a las preguntas de [research.md](research.md). Los rótulos no
-documentados deben añadirse al catálogo con decisión del propietario antes
-de codificar su captura; el plan no los presupone.
-
-## Technical Context
-
-**Language/Version**: Python 3.13.
-
-**Dependencies**: biblioteca estándar y dependencias ya instaladas; no se
-añaden paquetes. `date` representa nacimiento y referencia; `norm()` y
-`_linea_etiquetada()` se reutilizan.
-
-**Storage**: `Persona` y `Catalogo` viven durante la confrontación. Texto F4
-continúa en `TextoExtraido` conforme a la constitución 1.6.0; no hay esquema,
-entidad ORM, migración ni nueva copia persistida de estos campos.
-
-**Testing**: pruebas rojas con datos ficticios para extracción, normalización,
-procedencias, prioridad de fuente, reglas, paridad exacta de observaciones
-anteriores, UI/autorización y ausencia en sondeo/logs. La medición privada
-`local_reference` es solo del propietario y no se ejecuta en CI.
-
-**Project Type**: monolito Django con núcleo puro y adaptadores existentes.
-
-**Constraints**: determinismo, una persona por página oficial reconocida,
-sin extrapolación de etiquetas no catalogadas, sin fuzzy matching de identidad,
-sin modelos/red, y cambio mínimo.
+Python 3.13, Django existente, núcleo puro. `date` representa nacimiento,
+`norm()` normaliza rótulos y enum civil, y la frontera de dos espacios de OCR
+separa columnas. Se conserva el texto de dirección y distrito. La fecha solo
+acepta `dd/mm/aaaa` y `dd-mm-aaaa` con dígitos ASCII y calendario válido.
 
 ## Constitution Check
 
-| Principio | Comprobación del diseño | Estado |
-|---|---|---|
-| I. Determinismo | Normalización cerrada y fecha de referencia inyectada; no reloj dentro del núcleo ni IA. | PASS sujeto a aclaración de edad |
-| II. Núcleo puro | `Persona`, lectura y reglas solo reciben texto/estructuras; Django adapta presentación. | PASS |
-| III. Tests primero | Cada rama nueva se abre con prueba roja ficticia y paridad de F11/F5. | Pendiente de implementación |
-| IV. Privacidad | Valores en UI autorizada; sin datos en logs, error o sondeo; texto F4 sigue su política. | PASS de diseño |
-| V. Simplicidad | Se reutilizan `_linea_etiquetada()`, `comparar_personas()` y la tabla; no se crea una tercera ruta. | PASS |
-| VI. Seguridad | Se conserva POST, CSRF, permisos por rol y expediente visible. | PASS de diseño |
-| VII. DevSecOps | Gates locales y remotos existentes; sin dependencia ni migración. | Pendiente de ejecución |
-| VIII. Usabilidad | Procedencia por campo, observaciones claras, estado de conflicto y tabla accesible. | PASS de diseño |
+| Principio | Comprobación |
+|---|---|
+| I. Determinismo | Parser cerrado; sin reloj en el núcleo. La fecha de hoy entra desde el servicio cuando se haga US2. |
+| II. Núcleo puro | Captura y unificación solo usan texto y estructuras; Django solo presenta. |
+| III. Tests primero | Regresiones rojas ficticias antes de modificar núcleo y UI. |
+| IV. Privacidad | Valores solo en HTML autorizado; el sondeo, errores y logs no los reciben. |
+| V. Simplicidad | Mismo `Persona`, `Catalogo`, `Procedencia` y tabla; sin abstracción de campos ni dependencia. |
+| VI. Seguridad | Se mantienen control de acceso, POST y CSRF de la vista actual. |
+| VII. DevSecOps | Suite, Ruff, comprobación de migraciones y revisión del diff local; Quality Gate remoto pendiente sin push. |
+| VIII. Usabilidad | Valor y archivo/página juntos, ausencia explícita y encabezados accesibles. |
 
-**Gate de diseño**: no se implementan las reglas indeterminadas ni las
-etiquetas ausentes hasta que el propietario cierre lo indicado en research;
-no se sustituye esa decisión con heurísticas del agente.
-
-## Contract and compatibility design
+## Contrato y flujo
 
 ```text
 Persona(nombre, documento, procedencias, estado="CONFIRMADA",
@@ -70,101 +40,46 @@ Persona(nombre, documento, procedencias, estado="CONFIRMADA",
         procedencia_domicilio=None, procedencia_distrito=None)
 ```
 
-Los cuatro primeros campos y sus posiciones se conservan. El constructor
-admite todas las llamadas posicionales existentes. Cada procedencia de campo
-incluye fuente, página y tipo de formulario para decidir la prioridad sin
-depender del orden de archivos. `Procedencia` histórica de F11 no cambia.
-`unificar_personas()` conserva cada par valor/procedencia y usa RENIEC para
-estado civil en conflicto con BIOMETRICA; la persona queda marcada para
-revisión manual mediante `estado="REVISION_MANUAL_ESTADO_CIVIL"`, sin perder su
-documento/nombre. Se prueba que ambos caminos que reconstruyen `Persona` no
-pierden campos ni el estado de conflicto.
+Las cuatro posiciones iniciales no cambian. Las procedencias nuevas reutilizan
+`Procedencia(fuente, pagina)`; el tipo de página queda garantizado por capturar
+solo tras `clasificar_pagina() == "RENIEC"`. `_personas_de_pagina()` anota valores
+solo si encuentra una persona con nombre y documento inequívocos en esa página.
+El lector exige etiqueta completa al comienzo de línea y toma únicamente su
+columna: `ESTADO CIVIL`, `FECHA DE NACIMIENTO`, `DIRECCIÓN`, `DISTRITO DE
+DOMICILIO`. No busca en biométrica, nacimiento, pie, operador o prosa.
 
-`comparar_personas()` conserva la firma de dos argumentos y el mismo prefijo
-de observaciones de documento cruzado/sin titular. Parámetros con nombre
-aportarán el contexto adicional que el propietario apruebe (texto de minuta
-si corresponde y fecha explícita). Las observaciones nuevas son diccionarios
-con `tipo`, persona, valor en fuente, valor hallado o ausencia, procedencia
-del campo y un valor para ubicar en borrador; no contienen HTML ni ruta del
-servidor. Solo se producen para una asociación inequívoca. Edad se calcula
-por cumpleaños transcurrido, sin aproximar días/365, una vez definida la fecha
-de referencia. Falta de lectura o ambigüedad da ausencia de observación, no
-un valor inventado.
+`unificar_personas()` conserva cada par valor/procedencia durante ambas
+reconstrucciones. En este corte, la primera lectura RENIEC no vacía permanece
+si hay dos valores distintos; el conflicto y la prioridad por fecha de emisión
+son trabajo pendiente de la ronda de reglas, sin afirmar que se resolvió.
 
-La proyección `Catalogo["NOMBRE"|"DNI"|"PARTIDA"|"MONTO"]`, `revisar()`,
-`revisar_parrafos()`, `diagnostico()` y las observaciones F11 ya emitidas
-mantienen valores y orden con las mismas entradas ficticias. En
-`confrontar_borrador()`, las nuevas observaciones pasan por un adaptador
-estructurado pequeño de aplicación y se añaden a `resultado["regla"]` tras
-`adaptar_observaciones_regla()`; no se cambia el parser de cadenas históricas.
-Las observaciones nuevas incluyen procedencia visible solo en HTML autorizado.
+`_personas_legibles()` convierte la fecha a ISO y deja solo el nombre del
+archivo. La tabla de `templates/expedientes/confrontacion.html` muestra los
+cuatro valores con su archivo y página, o ausencia. `expediente_estado()` no
+cambia. `comparar_personas()`, `revisar()` y `revisar_parrafos()` mantienen
+contenido y orden de sus observaciones para las mismas entradas ficticias.
 
-## Project Structure
+## Ronda siguiente: reglas ya definidas en el spec
 
-### Documentación de F12
+- US1 compara estado civil con la **cláusula de la persona en el borrador**;
+  una mención de cónyuge en otra cláusula no cuenta.
+- US2 calcula edad cumplida **a la fecha de hoy** y muestra esa fecha. El
+  servicio pasa la fecha explícita al núcleo puro.
+- US3 compara domicilio con la lista cerrada del spec, sin puntos, tildes ni
+  orden del número. No usa emparejamiento difuso.
+- Dos consultas RENIEC discordantes requieren capturar y comparar la fecha de
+  emisión antes de elegir una; se marca conflicto para revisión manual.
 
-```text
-specs/007-persona-ampliada/
-├── spec.md                 # aprobado; intacto
-├── research.md
-├── plan.md
-├── contracts/ui.md
-├── tasks.md
-└── checklists/
-    ├── requirements.md
-    └── ux.md
-```
+## Verificación y entrega
 
-### Archivos previstos para implementación posterior
-
-```text
-nucleo/verificar.py                  # Persona, extracción, unificación y regla
-expedientes/services.py              # adaptación segura y resumen de extracción
-templates/expedientes/confrontacion.html  # tabla y observaciones
-tests/test_personas.py               # contrato puro, normalización, reglas, paridad
-tests/test_expedientes_confrontacion.py     # servicio y privacidad
-tests/test_expedientes_confrontacion_ui.py  # autorización y presentación
-```
-
-No se prevén cambios en `views.py`, modelos, migraciones, adaptador OCR,
-dependencias ni endpoint de sondeo. Si las pruebas demuestran que el contrato
-vigente necesita uno, se documenta antes de ampliar el alcance.
-
-## Implementation phases
-
-1. **Cierre documental**: el propietario aclara fecha, abreviaturas, alcance
-   minuta/borrador y rótulos ausentes; se corrige el catálogo/spec por el
-   cauce correspondiente. Esta planificación deja las preguntas abiertas.
-2. **Pruebas rojas del núcleo**: compatibilidad posicional, captura etiquetada,
-   rechazo OCR dudoso, procedencias, conflicto RENIEC/biométrica, reglas y
-   paridad exacta F11/F5.
-3. **Núcleo mínimo**: ampliar la tupla, conservar pares campo/procedencia en
-   extracción y unificación; ampliar `comparar_personas()` sin tocar `revisar()`.
-4. **Aplicación y UI**: adaptar observaciones estructuradas a Regla; ampliar
-   `_personas_legibles()`/`_resumen_extraccion()` y tabla de extracción con
-   procedencia por campo; mantener `resumen_documento()`/`expediente_estado()`.
-5. **Gates**: tests, cobertura, Ruff, Django checks, migraciones sin cambios,
-   auditoría y revisión de diff por privacidad. Separar Quality Gate remoto y
-   medición privada de la evidencia local; commit local, sin push/PR.
-
-## Risks and rollback
-
-- Si un rótulo o una columna es ambiguo, dejar el campo vacío y mostrar
-  revisión manual cuando corresponda; no tomar una celda próxima por intuición.
-- Si la unificación pierde procedencia o cruza personas, mantener las
-  apariciones separadas y volver al contrato F11 hasta corregir la regla.
-- Si una nueva regla altera una observación previa, revertir esa rama y
-  conservar el resultado histórico; no actualizar la prueba para aceptar
-  regresión.
-- Si falta respuesta del propietario, la fase permanece planificada. No se
-  interpreta «hoy», «sin cónyuge» ni abreviaturas por defecto.
+Pruebas directas de RENIEC ficticia a dos columnas, pie biométrico, enum civil,
+fecha dudosa, unificación, paridad literal de observaciones previas y HTML/sondeo
+se ejecutan antes de la suite completa. Después: fixtures, pytest con
+cobertura, Ruff check y format, `makemigrations --check`, `git diff --check` y
+revisión de privacidad. Commit local sin push ni PR. Quality Gate remoto y
+`local_reference` privado permanecen pendientes.
 
 ## Complexity Tracking
 
-| Elemento | Motivo | Límite |
-|---|---|
-| Procedencia por valor con tipo de fuente | FR-001 y prioridad RENIEC ante conflicto biométrico necesitan saber de qué página salió el valor. | Solo cuatro pares nuevos, sin registro genérico de campos. |
-| Observaciones estructuradas nuevas en `comparar_personas()` | Mantienen las cadenas de `revisar()` y la comparación ligada F11 en un único camino. | Un adaptador de presentación; sin tercer comparador. |
-
-No se añade abstracción para cónyuge, normalizador libre de domicilios,
-persistencia, segmentador de OCR ni dependencia nueva.
+No se añade abstracción ni paquete. Los ocho campos nuevos pertenecen al
+contrato de `Persona`; un lector estricto de rótulos evita heurísticas de OCR.

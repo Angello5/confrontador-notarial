@@ -1,5 +1,7 @@
 """Contrato puro de personas con datos enteramente ficticios."""
 
+from datetime import date
+
 import pytest
 
 from nucleo.verificar import (
@@ -454,3 +456,195 @@ def test_pagina_desconocida_sin_identidad_no_se_lista_para_revision():
     resultado = catalogo({"anexo-ficticio.txt": "SELLO FICTICIO SIN DATOS"})
 
     assert resultado.paginas_no_clasificadas == ()
+
+
+_RENIEC_F12 = (
+    "CUI: 90000011 - 5\n"
+    "APELLIDO PATERNO  LUMARIA  APELLIDO MATERNO  ZAFIRO\n"
+    "NOMBRES  ALBA\n"
+    "DISTRITO DE NACIMIENTO  CERRO FICTICIO  PROVINCIA  OTRA\n"
+    "ESTADO CIVIL  CASADA  SEXO  FEMENINO\n"
+    "FECHA DE NACIMIENTO  03/07/1990  OTRO DATO  01/01/2000\n"
+    "DIRECCIÓN  Av. Luna 12  PROVINCIA DE DOMICILIO  PROVINCIA FICTICIA\n"
+    "DISTRITO DE DOMICILIO  Miraflores  DEPARTAMENTO DE DOMICILIO  LIMA"
+)
+
+
+def test_persona_f12_mantiene_constructor_posicional_y_campos_opcionales():
+    origen = (Procedencia("ficticio.pdf", 2),)
+    anterior = Persona("ALBA LUMARIA ZAFIRO", "90000011", origen)
+    assert anterior.estado == "CONFIRMADA"
+    assert (
+        anterior.estado_civil,
+        anterior.fecha_nacimiento,
+        anterior.domicilio,
+        anterior.distrito,
+    ) == (
+        None,
+        None,
+        None,
+        None,
+    )
+    assert (
+        Persona("ALBA LUMARIA ZAFIRO", "90000011", origen, "REVISION_MANUAL").estado
+        == "REVISION_MANUAL"
+    )
+    ampliada = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        origen,
+        "CONFIRMADA",
+        "CASADO",
+        date(1990, 7, 3),
+        "Av. Luna 12",
+        "Miraflores",
+        origen[0],
+        origen[0],
+        origen[0],
+        origen[0],
+    )
+    assert ampliada.procedencia_estado_civil == origen[0]
+    assert ampliada.procedencia_fecha_nacimiento == origen[0]
+    assert ampliada.procedencia_domicilio == origen[0]
+    assert ampliada.procedencia_distrito == origen[0]
+
+
+def test_reniec_ficticia_dos_columnas_aporta_cuatro_campos_con_procedencia():
+    persona = catalogo({"reniec-ficticio.pdf": _RENIEC_F12}).personas[0]
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    assert (
+        persona.estado_civil,
+        persona.fecha_nacimiento,
+        persona.domicilio,
+        persona.distrito,
+    ) == (
+        "CASADO",
+        date(1990, 7, 3),
+        "Av. Luna 12",
+        "Miraflores",
+    )
+    assert (
+        persona.procedencia_estado_civil,
+        persona.procedencia_fecha_nacimiento,
+        persona.procedencia_domicilio,
+        persona.procedencia_distrito,
+    ) == (origen,) * 4
+
+
+def test_pie_biometrico_no_es_estado_civil():
+    pagina = (
+        "INFORMACION PERSONAL\nPRIMER APELLIDO  LUMARIA\n"
+        "SEGUNDO APELLIDO  ZAFIRO\nNOMBRES  ALBA\nDNI 90000011\n"
+        "REGISTRO NACIONAL DE IDENTIFICACION Y ESTADO CIVIL"
+    )
+    assert (
+        catalogo({"biometrica-ficticia.txt": pagina}).personas[0].estado_civil is None
+    )
+
+
+def test_campos_f12_no_se_leen_de_biometrica_ni_de_segunda_columna():
+    biometrica = (
+        "INFORMACION PERSONAL\nPRIMER APELLIDO  LUMARIA\n"
+        "SEGUNDO APELLIDO  ZAFIRO\nNOMBRES  ALBA\nDNI 90000011\n"
+        "ESTADO CIVIL  CASADA\nFECHA DE NACIMIENTO  03/07/1990\n"
+        "DIRECCION  Av. Luna 12\nDISTRITO DE DOMICILIO  Miraflores"
+    )
+    persona = catalogo({"biometrica-ficticia.txt": biometrica}).personas[0]
+    assert (
+        persona.estado_civil,
+        persona.fecha_nacimiento,
+        persona.domicilio,
+        persona.distrito,
+    ) == (
+        None,
+        None,
+        None,
+        None,
+    )
+    segunda_columna = _RENIEC_F12.replace(
+        "ESTADO CIVIL  CASADA  SEXO  FEMENINO",
+        "OTRO CAMPO  ALGO  ESTADO CIVIL  CASADA",
+    ).replace(
+        "DISTRITO DE DOMICILIO  Miraflores",
+        "OTRO CAMPO  ALGO  DISTRITO DE DOMICILIO  Miraflores",
+    )
+    persona = catalogo({"reniec-ficticio.pdf": segunda_columna}).personas[0]
+    assert persona.estado_civil is None
+    assert persona.distrito is None
+
+
+def test_rotulo_reniec_con_dos_puntos_y_valor_en_celda_siguiente():
+    pagina = _RENIEC_F12.replace("ESTADO CIVIL  CASADA", "ESTADO CIVIL:  CASADA")
+    assert (
+        catalogo({"reniec-ficticio.pdf": pagina}).personas[0].estado_civil == "CASADO"
+    )
+
+
+@pytest.mark.parametrize("valor", ["CASADA", "casado", "CASADO."])
+def test_estado_civil_reniec_normaliza_genero_y_puntuacion(valor):
+    pagina = _RENIEC_F12.replace("CASADA  SEXO", f"{valor}  SEXO")
+    assert (
+        catalogo({"reniec-ficticio.pdf": pagina}).personas[0].estado_civil == "CASADO"
+    )
+
+
+@pytest.mark.parametrize(
+    "valor, esperado",
+    [
+        ("03/07/1990", date(1990, 7, 3)),
+        ("03-07-1990", date(1990, 7, 3)),
+        ("03/07/197б", None),
+        ("31/02/1990", None),
+    ],
+)
+def test_fecha_reniec_acepta_solo_lectura_inequivoca(valor, esperado):
+    pagina = _RENIEC_F12.replace("03/07/1990  OTRO", f"{valor}  OTRO")
+    persona = catalogo({"reniec-ficticio.pdf": pagina}).personas[0]
+    assert persona.fecha_nacimiento == esperado
+    assert (persona.procedencia_fecha_nacimiento is not None) == (esperado is not None)
+
+
+def test_unificacion_conserva_cada_valor_y_su_procedencia():
+    primera = catalogo({"reniec-ficticio.pdf": _RENIEC_F12}).personas[0]
+    segunda = Persona(
+        "ALBA LUMARIA ZAFIRO", "90000011", (Procedencia("anexo-ficticio.txt", 1),)
+    )
+    for orden in ((primera, segunda), (segunda, primera)):
+        persona = unificar_personas(orden)[0]
+        for campo in ("estado_civil", "fecha_nacimiento", "domicilio", "distrito"):
+            assert getattr(persona, campo) == getattr(primera, campo)
+            assert getattr(persona, f"procedencia_{campo}") == getattr(
+                primera, f"procedencia_{campo}"
+            )
+
+
+def test_observaciones_historicas_identicas_con_misma_entrada_ficticia():
+    fuentes = {"reniec-ficticio.pdf": _RENIEC_F12}
+    borrador = "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA. DNI 90000022"
+    cat = catalogo(fuentes)
+    assert comparar_personas(cat, borrador) == (
+        {
+            "tipo": "DOCUMENTO_SIN_TITULAR",
+            "nombre": "ALBA LUMARIA ZAFIRO",
+            "documento_hallado": "90000022",
+            "documento_esperado": None,
+            "procedencias": (),
+        },
+    )
+    assert revisar(cat, borrador, 88) == [
+        "[DNI] «90000022» debe decir «90000011»   …ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA. DNI 90000022",
+        "[DNI] FALTA: «90000011» esta en las fuentes y no aparece en el destino",
+    ]
+    from nucleo.verificar import revisar_parrafos
+
+    minuta = (
+        "Este párrafo de minuta ficticia es suficientemente extenso y contiene "
+        "texto notarial inventado para forzar una observación de comparación."
+    )
+    otro_borrador = (
+        "Este párrafo de borrador ficticio es suficientemente extenso y contiene "
+        "contenido notarial alternativo para forzar una diferencia visible."
+    )
+    assert revisar_parrafos([minuta], otro_borrador, 88) == [
+        "[PARRAFO] falta o alterado (79.22%): ESTE PARRAFO DE MINUTA FICTICIA ES SUFICIENTEMENTE EXTENSO Y CONTIENE TEXTO NOTARIAL INVENTADO PARA …"
+    ]

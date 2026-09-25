@@ -6,6 +6,30 @@ from django.utils import timezone
 pytestmark = pytest.mark.django_db
 
 
+def test_persona_ampliada_se_presenta_con_procedencia_sin_ruta():
+    from expedientes.services import _personas_legibles
+    from nucleo.verificar import catalogo
+
+    pagina = (
+        "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA\n"
+        "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA\n"
+        "ESTADO CIVIL  CASADA\nFECHA DE NACIMIENTO  03/07/1990\n"
+        "DIRECCION  Av. Luna 12\nDISTRITO DE DOMICILIO  Miraflores"
+    )
+    filas = _personas_legibles(catalogo({"/srv/privado/reniec-ficticio.pdf": pagina}))
+    fila = filas[0]
+    assert fila["estado_civil"] == "CASADO"
+    assert fila["fecha_nacimiento"] == "1990-07-03"
+    assert fila["domicilio"] == "Av. Luna 12"
+    assert fila["distrito"] == "Miraflores"
+    for campo in ("estado_civil", "fecha_nacimiento", "domicilio", "distrito"):
+        assert fila[f"procedencia_{campo}"] == {
+            "archivo": "reniec-ficticio.pdf",
+            "pagina": 1,
+        }
+    assert "/srv/privado" not in str(fila)
+
+
 @pytest.fixture
 def expediente_confrontacion(usuario_ficticio):
     from expedientes.models import Expediente

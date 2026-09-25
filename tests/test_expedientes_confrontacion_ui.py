@@ -266,6 +266,26 @@ def test_resultado_muestra_personas_una_vez_con_procedencia_segura(
                         "nombre": "ALBA ZAFIRO LUMARIA",
                         "documento": "90000011",
                         "estado": "CONFIRMADA",
+                        "estado_civil": "CASADO",
+                        "fecha_nacimiento": "1990-07-03",
+                        "domicilio": "Av. Luna 12",
+                        "distrito": "Miraflores",
+                        "procedencia_estado_civil": {
+                            "archivo": "reniec-ficticio.pdf",
+                            "pagina": 2,
+                        },
+                        "procedencia_fecha_nacimiento": {
+                            "archivo": "reniec-ficticio.pdf",
+                            "pagina": 2,
+                        },
+                        "procedencia_domicilio": {
+                            "archivo": "reniec-ficticio.pdf",
+                            "pagina": 2,
+                        },
+                        "procedencia_distrito": {
+                            "archivo": "reniec-ficticio.pdf",
+                            "pagina": 2,
+                        },
                         "procedencias": [
                             {"archivo": "biometrica-ficticia.pdf", "pagina": 2},
                             {"archivo": "sunarp-ficticio.pdf", "pagina": 4},
@@ -290,6 +310,11 @@ def test_resultado_muestra_personas_una_vez_con_procedencia_segura(
     assert contenido.count("ALBA ZAFIRO LUMARIA") == 2
     assert "biometrica-ficticia.pdf" in contenido
     assert "sunarp-ficticio.pdf" in contenido
+    assert "CASADO" in contenido
+    assert "1990-07-03" in contenido
+    assert "Av. Luna 12" in contenido
+    assert "Miraflores" in contenido
+    assert contenido.count("reniec-ficticio.pdf, página 2") == 4
     assert "/srv/privado" not in contenido
     assert "sha256" not in contenido.lower()
     assert "texto completo ficticio" not in contenido
@@ -301,7 +326,14 @@ def test_sondeo_no_expone_resumen_de_extraccion(client, usuario_ficticio):
     expediente = Expediente.objects.create(
         codigo="EXP-FICTICIO-SONDEO", creado_por=usuario_ficticio
     )
-    _documentos(expediente, usuario_ficticio)
+    fuente, _ = _documentos(expediente, usuario_ficticio)
+    fuente.texto_extraido.texto = (
+        "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA\n"
+        "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA\n"
+        "ESTADO CIVIL  CASADA\nFECHA DE NACIMIENTO  03/07/1990\n"
+        "DIRECCION  Av. Luna 12\nDISTRITO DE DOMICILIO  Miraflores"
+    )
+    fuente.texto_extraido.save(update_fields=("texto",))
     client.force_login(usuario_ficticio)
 
     respuesta = client.get(f"/expedientes/{expediente.pk}/estado/")
@@ -311,6 +343,8 @@ def test_sondeo_no_expone_resumen_de_extraccion(client, usuario_ficticio):
     assert "extraccion" not in datos
     assert "catalogo" not in datos
     assert "texto completo ficticio" not in str(datos)
+    for privado in ("CASADA", "1990", "Luna", "Miraflores"):
+        assert privado not in str(datos)
 
 
 def test_tabla_de_regla_no_muestra_columnas_vacias(
