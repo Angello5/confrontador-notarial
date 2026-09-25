@@ -15,6 +15,7 @@
 - Q: ¿Qué campos entran? → A: `estado_civil`, `fecha_nacimiento`, `domicilio` y `distrito`. El cónyuge de la declaración jurada queda para otra fase.
 - Q: ¿De qué documentos se leen? → A: Solo de plantillas reconocidas con fiabilidad alta: consulta RENIEC y ficha biométrica. La declaración jurada (manuscrita) y el DNI escaneado no aportan estos campos en esta fase.
 - Q: ¿Qué gana la confrontación? → A: Tres reglas nuevas, en la capa de regla: (1) compareciente casado según la fuente que la minuta presenta como soltero o sin cónyuge; (2) compareciente menor de edad; (3) domicilio de la fuente que no aparece en el borrador.
+- Q: US1, ¿se compara contra la minuta, el borrador o ambos? → A: Contra el **borrador**, que es lo que se confronta; la minuta es una fuente más. "Sin mención de cónyuge" significa: en el borrador, la cláusula donde aparece el nombre de la persona (desde el nombre hasta el siguiente punto y seguido o salto de línea, ampliada a la anterior si el nombre abre la cláusula) no contiene ningún marcador de estado civil (`CASAD[AO] CON`, `SOLTER[AO]`, `VIUD[AO]`, `DIVORCIAD[AO]`, `CONVIVIENTE`). Un cónyuge mencionado en otra cláusula no cuenta: la observación es por persona, no por documento.
 - Q: ¿Cambia la persistencia? → A: No en esta fase. La persona ampliada se calcula al confrontar, como el resto del catálogo; la persistencia es F6.
 
 ## User Scenarios & Testing *(mandatory)*
