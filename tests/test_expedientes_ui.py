@@ -160,3 +160,30 @@ def test_eliminar_sin_confirmacion_conserva_documento_y_temporal(
     assert Documento.objects.filter(pk=documento.pk).exists()
     assert ruta.exists()
     assert b"Confirme la eliminaci\xc3\xb3n" in respuesta.content
+
+
+def test_ninguna_pantalla_filtra_marcas_de_plantilla(client, usuario_ficticio):
+    """Un comentario `{# #}` partido en dos líneas se renderiza como texto.
+
+    Django solo admite la forma corta en una línea. El HTML sigue siendo válido,
+    así que ni el lint ni el CI lo detectan: el fallo solo se ve en pantalla.
+    """
+    from expedientes.models import Documento, Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-MARCAS", creado_por=usuario_ficticio
+    )
+    Documento.objects.create(
+        expediente=expediente,
+        rol=Documento.CLIENTE,
+        nombre_original="fuente-ficticia.txt",
+        hash_archivo="e" * 64,
+        tamano_bytes=10,
+        subido_por=usuario_ficticio,
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = client.get(f"/expedientes/{expediente.pk}/").content.decode()
+
+    for marca in ("{#", "#}", "{% comment", "{% endcomment", "{{", "{%"):
+        assert marca not in contenido, f"la pantalla filtra la marca {marca!r}"

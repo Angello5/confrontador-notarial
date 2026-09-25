@@ -1,5 +1,10 @@
-{# Zona de carga de una categoria de documentos. La usan las dos columnas: sin
-   esto, el mismo bloque estaba copiado en la izquierda y en la derecha. #}
+{% comment %}
+Zona de carga de una categoría de documentos. La usan las dos columnas: sin
+esto, el mismo bloque estaba copiado en la izquierda y en la derecha.
+
+Comentario de bloque, no la forma corta: esa solo admite una línea y, si se
+parte en dos, Django renderiza el resto como texto visible al usuario.
+{% endcomment %}
 <section class="card card-outline card-primary" aria-labelledby="zona-{{ zona.rol|lower }}">
   <div class="card-header d-flex justify-content-between align-items-start gap-3">
     <div>
