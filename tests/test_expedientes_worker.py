@@ -2,12 +2,15 @@
 
 from datetime import timedelta
 from io import StringIO
+from pathlib import Path
 
 import pytest
 from django.core.management import call_command
 from django.utils import timezone
 
 pytestmark = pytest.mark.django_db
+
+FORMATOS = Path(__file__).parent / "fixtures" / "formatos"
 
 
 def test_worker_transiciona_documento_y_borra_temporal(usuario_ficticio, tmp_path):
@@ -36,6 +39,63 @@ def test_worker_transiciona_documento_y_borra_temporal(usuario_ficticio, tmp_pat
     assert not ruta.exists()
 
 
+@pytest.mark.parametrize(
+    ("nombre", "esperado"),
+    [
+        ("tabla.docx", "90000004"),
+        ("texto.pdf", "DOCUMENTO FICTICIO PARA PRUEBAS DE EXTRACCION"),
+        ("datos.xlsx", "90000004"),
+    ],
+)
+def test_worker_extrae_formatos_binarios_desde_temporal_real(
+    usuario_ficticio, tmp_path, nombre, esperado
+):
+    from expedientes.models import Documento, Expediente
+    from expedientes.services import calcular_hash, crear_temporal, procesar_documento
+
+    origen = FORMATOS / nombre
+    temporal = crear_temporal(origen, origen.name, tmp_path)
+    expediente = Expediente.objects.create(
+        codigo=f"EXP-FICTICIO-FORMATO-{origen.suffix[1:].upper()}",
+        creado_por=usuario_ficticio,
+    )
+    documento = Documento.objects.create(
+        expediente=expediente,
+        rol="FUENTE",
+        nombre_original=origen.name,
+        hash_archivo=calcular_hash(temporal),
+        tamano_bytes=origen.stat().st_size,
+        ruta_temporal=str(temporal),
+        subido_por=usuario_ficticio,
+    )
+
+    procesar_documento(documento.pk)
+    documento.refresh_from_db()
+
+    assert temporal.suffix == origen.suffix
+    assert documento.estado == Documento.LISTO
+    texto = documento.texto_extraido.texto
+    assert esperado in texto
+    assert "\x00" not in texto, (
+        "El texto extraído contiene bytes 0x00: el extractor no reconoció el formato."
+    )
+    assert not temporal.exists()
+
+
+def test_extraccion_binaria_no_devuelve_bytes_nulos(tmp_path):
+    from adaptadores import extraccion
+    from expedientes.services import crear_temporal
+
+    origen = FORMATOS / "tabla.docx"
+    temporal = crear_temporal(origen, origen.name, tmp_path)
+
+    texto = extraccion.leer(temporal)
+
+    assert "\x00" not in texto, (
+        "El texto extraído contiene bytes 0x00: el extractor no reconoció el formato."
+    )
+
+
 def test_worker_recupera_procesando_vencido_y_no_toma_dos_veces(
     usuario_ficticio,
 ):
@@ -47,7 +107,7 @@ def test_worker_recupera_procesando_vencido_y_no_toma_dos_veces(
     )
     documento = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="pendiente-ficticio.txt",
         hash_archivo="1" * 64,
         tamano_bytes=4,
@@ -78,7 +138,7 @@ def test_comando_procesa_dos_pendientes_borra_temporales_e_informa(
         documentos.append(
             Documento.objects.create(
                 expediente=expediente,
-                rol="FUENTE" if indice == 0 else "BORRADOR",
+                rol="CLIENTE" if indice == 0 else "BORRADOR",
                 nombre_original=f"documento-{indice}.txt",
                 hash_archivo=str(indice + 2) * 64,
                 tamano_bytes=ruta.stat().st_size,
@@ -129,7 +189,7 @@ def test_comando_recupera_vencido_al_arrancar_y_lo_procesa(
     ruta.write_bytes(b"contenido vencido ficticio")
     documento = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="vencido-ficticio.txt",
         hash_archivo="7" * 64,
         tamano_bytes=ruta.stat().st_size,

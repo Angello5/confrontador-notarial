@@ -142,7 +142,7 @@ def test_registrar_documento_borra_temporal_si_la_fila_no_se_crea(
     hash_archivo = hashlib.sha256(contenido).hexdigest()
     Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="anterior-ficticio.txt",
         hash_archivo=hash_archivo,
         tamano_bytes=len(contenido),
@@ -153,7 +153,7 @@ def test_registrar_documento_borra_temporal_si_la_fila_no_se_crea(
         registrar_documento(
             expediente,
             SimpleUploadedFile("duplicado-ficticio.txt", contenido),
-            "FUENTE",
+            "CLIENTE",
             usuario_ficticio,
         )
 
@@ -198,7 +198,7 @@ def test_eliminar_documento_conserva_texto_extraido_compartido(usuario_ficticio)
     )
     documento = Documento.objects.create(
         expediente=expediente,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="eliminar-ficticio.txt",
         hash_archivo="5" * 64,
         tamano_bytes=5,
@@ -211,3 +211,15 @@ def test_eliminar_documento_conserva_texto_extraido_compartido(usuario_ficticio)
 
     assert not Documento.objects.filter(pk=documento.pk).exists()
     assert TextoExtraido.objects.get(pk=texto.pk).texto == "texto que sigue disponible"
+
+
+def test_temporal_deduce_la_extension_del_origen_sin_nombre_explicito(tmp_path):
+    """Sin la extension, extraccion.leer() lee el binario como texto plano."""
+    from expedientes.services import crear_temporal
+
+    origen = Path(__file__).parent / "fixtures" / "formatos" / "tabla.docx"
+
+    ruta = crear_temporal(origen, destino=tmp_path)
+
+    assert ruta.suffix == ".docx"
+    assert ruta.stem != origen.stem

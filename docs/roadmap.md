@@ -10,8 +10,10 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F1 · terminada** | Base DevSecOps | Cada PR corre tests, SonarQube y escaneos de seguridad; `main` protegida | — | SonarQube Cloud privado, análisis desde CI |
 | **F2 · terminada (PR #16)** | Esqueleto del ERP | Login, menú lateral según rol, AdminLTE 4 | F1 | Roles |
 | **F3 · terminada (PR #17)** | Migración del código actual | extraer, verificar, léxico y ortografía como núcleo puro con pytest; mismo resultado medido; T028 depende del CI remoto | F1 | — |
-| **F4 · lista para PR** | Expedientes | Subir archivos desde la PC, extracción en segundo plano, borrado del archivo al terminar | F2, F3 | Retención del texto extraído: **indefinida**, con supresión a solicitud (constitución 1.6.0) |
-| **F5** | Confrontación | Observaciones en pantalla, agrupadas por capa | F4 | — |
+| **F4 · terminada (PR #20)** | Expedientes | Subir archivos desde la PC, extracción en segundo plano, borrado del archivo al terminar | F2, F3 | Retención del texto extraído: **indefinida**, con supresión a solicitud (constitución 1.6.0) |
+| **F5 · lista para PR** | Confrontación | Observaciones en pantalla, agrupadas por capa | F4 | Capas incluidas: regla y ortografía; el léxico se aplaza |
+| **F11 · en curso** | Extracción por personas | El sistema deja de cruzar documentos entre comparecientes | F5 | Alcance: personas naturales; las jurídicas quedan fuera |
+| **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
 | **F7** | Informe exportable | Descargar o imprimir las observaciones | F5 | Formato |
 | **F8** | Despliegue | Funciona en el Windows Server, con respaldo diario | F5 | VM + Docker o nativo |
@@ -21,8 +23,11 @@ F1 terminó con el [PR #8](https://github.com/Angello5/confrontador-notarial/pul
 y el [PR #14](https://github.com/Angello5/confrontador-notarial/pull/14): Quality
 Gate y protección de `main` verificados. F2 terminó con el
 [PR #16](https://github.com/Angello5/confrontador-notarial/pull/16). F3 terminó con el
-[PR #17](https://github.com/Angello5/confrontador-notarial/pull/17). F4 queda lista
-para PR: implementación completa, suite en verde y quickstart operativo.
+[PR #17](https://github.com/Angello5/confrontador-notarial/pull/17). F4 terminó con el
+[PR #20](https://github.com/Angello5/confrontador-notarial/pull/20), que enmendó la
+constitución a 1.6.0. F5 deja fuera la capa de léxico: necesita un corpus de
+escrituras firmadas y todavía no está decidido de dónde sale, así que pasa a ser
+la fase F10.
 
 Criterio de MVP (del README): medir cobertura sobre 10 expedientes cerrados.
 

@@ -26,11 +26,26 @@ AGUDA = dict(zip(VOCALES, "áéíóú"))
 
 def plano(t: str) -> str:
     d = unicodedata.normalize("NFKD", t)
-    return "".join(c for c in d if not unicodedata.combining(c)).lower()
+    sin_combinantes = []
+    for c in d:
+        if (
+            c == "\N{COMBINING TILDE}"
+            and sin_combinantes
+            and sin_combinantes[-1] in "Nn"
+        ):
+            sin_combinantes[-1] = "Ñ"
+        elif not unicodedata.combining(c):
+            sin_combinantes.append(c)
+    return "".join(sin_combinantes).lower()
 
 
 def tildada(w: str) -> bool:
-    return any(unicodedata.combining(c) for c in unicodedata.normalize("NFKD", w))
+    d = unicodedata.normalize("NFKD", w)
+    return any(
+        unicodedata.combining(c)
+        and not (c == "\N{COMBINING TILDE}" and i and d[i - 1] in "Nn")
+        for i, c in enumerate(d)
+    )
 
 
 def revisar(

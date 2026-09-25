@@ -12,10 +12,12 @@
 
 ### Session 2026-09-20
 
+- Q: ¿Cómo se separan los documentos del cliente de la minuta? → A: `Documento.rol` tiene tres valores reales: `CLIENTE`, `MINUTA` y `BORRADOR`. Las filas antiguas `FUENTE` se migran a `CLIENTE` y la migración puede revertirse.
+- Q: ¿Se pueden cargar varios archivos y qué ocurre si uno falla? → A: Cada zona acepta múltiples archivos en un envío. Cada archivo se valida por separado; los válidos se registran y cada inválido se muestra con su nombre y motivo.
 - Q: ¿Se conserva el texto extraído? → A: Sí, de forma indefinida. Resuelve TODO(RETENCION_TEXTO); la constitución se enmienda a 1.6.0 en esta misma rama. Debe existir un comando de administración que borre el texto de un expediente a solicitud.
 - Q: ¿Cómo se evita repetir el OCR del mismo archivo? → A: El texto se guarda indexado por `(hash SHA-256 del archivo, versión del extractor)`. Si ya existe una entrada con esa llave, se reutiliza y no se ejecuta el OCR.
 - Q: ¿De dónde sale el código del expediente? → A: Lo digita el usuario al crear el expediente. Es único en todo el sistema; el sistema no lo genera ni lo autocompleta.
-- Q: ¿Qué roles de documento existen? → A: Dos, `FUENTE` y `BORRADOR`. La minuta y los documentos del cliente son ambos `FUENTE`, porque el núcleo (`nucleo.verificar.catalogo`) ya los trata como un único conjunto de fuentes frente a un destino.
+- Q: ¿Qué roles de documento existen? → A (2026-09-20): `CLIENTE`, `MINUTA` y `BORRADOR`. Son tres roles reales; `CLIENTE` y `MINUTA` alimentan el catálogo y la migración reversible convierte las filas históricas `FUENTE` en `CLIENTE`.
 - Q: ¿Qué pasa al suprimir el texto de un expediente si ese texto es compartido con otro? → A: Se vacía para todos. El dato personal desaparece de verdad; los demás expedientes conservan hash y fechas, y si vuelven a necesitar el texto el archivo se reprocesa.
 - Q: ¿F4 incluye cerrar el expediente? → A: No, y el estado `CERRADO` se retira del modelo. La notaría no sabe cuándo se cierra un expediente: puede pasar un mes o un año. El expediente no tiene estado propio almacenado; se deriva del estado de sus documentos.
 - Q: ¿F4 incluye eliminar un documento del expediente? → A: Sí. El usuario puede quitar, con confirmación, un archivo que subió por error.
@@ -38,7 +40,7 @@ Como usuario de la notaría, quiero crear un expediente con su código y subir d
 
 1. **Given** un usuario autenticado, **When** crea un expediente con un código no usado, **Then** el expediente queda registrado a su nombre y sin documentos.
 2. **Given** un usuario autenticado, **When** intenta crear un expediente con un código ya existente, **Then** se rechaza con un mensaje claro y no se crea nada.
-3. **Given** un expediente abierto, **When** el usuario sube un archivo de un formato admitido indicando su rol (`FUENTE` o `BORRADOR`), **Then** el documento queda registrado con su nombre original, su hash y estado `PENDIENTE`.
+3. **Given** un expediente abierto, **When** el usuario carga uno o varios archivos de un formato admitido en una zona (`CLIENTE`, `MINUTA` o `BORRADOR`), **Then** cada documento queda registrado con su nombre original, su hash y estado `PENDIENTE`.
 4. **Given** un expediente abierto, **When** el usuario sube un archivo de formato no admitido o que excede el tamaño máximo, **Then** se rechaza antes de guardarlo y se explica el motivo.
 5. **Given** un expediente ajeno, **When** un usuario que no es su creador ni Administrador intenta abrirlo o subirle documentos, **Then** se deniega el acceso.
 
@@ -111,7 +113,7 @@ Como administrador del servidor, quiero poder borrar el texto extraído de un ex
 ### Functional Requirements
 
 - **FR-001**: El sistema DEBE permitir crear un expediente con un código digitado por el usuario, único en todo el sistema.
-- **FR-002**: El sistema DEBE permitir subir archivos a un expediente indicando su rol: `FUENTE` o `BORRADOR`.
+- **FR-002**: El sistema DEBE permitir cargar múltiples archivos por envío en cada rol: `CLIENTE`, `MINUTA` o `BORRADOR`.
 - **FR-003**: El sistema DEBE calcular el hash SHA-256 de cada archivo subido y registrarlo junto al nombre original y el tamaño.
 - **FR-004**: El sistema DEBE guardar el archivo subido únicamente en un directorio temporal, y borrarlo al terminar el procesamiento, tanto si terminó bien como si falló.
 - **FR-005**: El sistema DEBE extraer el texto fuera del ciclo de la petición, tomando los documentos en estado `PENDIENTE` desde la base de datos.

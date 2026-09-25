@@ -36,9 +36,15 @@ class TextoExtraido(models.Model):
 
 
 class Documento(models.Model):
-    FUENTE = "FUENTE"
+    CLIENTE = "CLIENTE"
+    MINUTA = "MINUTA"
     BORRADOR = "BORRADOR"
-    ROLES = ((FUENTE, "Fuente"), (BORRADOR, "Borrador"))
+    ROLES_FUENTE = (CLIENTE, MINUTA)
+    ROLES = (
+        (CLIENTE, "Documentos del cliente"),
+        (MINUTA, "Minuta"),
+        (BORRADOR, "Proyecto (borrador)"),
+    )
 
     PENDIENTE = "PENDIENTE"
     PROCESANDO = "PROCESANDO"

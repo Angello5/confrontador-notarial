@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import DocumentoUploadForm, ExpedienteForm, formatos_admitidos
-from .models import Expediente
+from .models import Documento, Expediente
 from .services import (
     DocumentoDuplicado,
     eliminar_documento,
@@ -16,6 +18,8 @@ from .services import (
     registrar_documento,
     resumen_documento,
     resumen_expediente,
+    estado_confrontacion,
+    confrontar_borrador,
     usuario_puede_ver_expediente,
 )
 
@@ -47,13 +51,54 @@ def _navegacion_contexto(request):
 
 
 def _render_detalle(request, expediente, upload_form=None, status=200):
-    documentos = expediente.documentos.order_by("subido_el", "pk")
+    documentos = list(expediente.documentos.order_by("subido_el", "pk"))
+    fuentes = [
+        documento for documento in documentos if documento.rol in Documento.ROLES_FUENTE
+    ]
+    borradores = [
+        documento for documento in documentos if documento.rol == Documento.BORRADOR
+    ]
+    for documento in documentos:
+        if documento.rol == Documento.BORRADOR:
+            documento.confrontacion_estado = estado_confrontacion(
+                expediente, documento, fuentes
+            )
+    estado_general = estado_confrontacion(expediente, None, fuentes)
+    formularios = {
+        rol: DocumentoUploadForm(expected_role=rol) for rol, _ in Documento.ROLES
+    }
+    if upload_form is not None:
+        rol = upload_form.expected_role or upload_form.data.get("rol")
+        formularios[rol if rol in formularios else Documento.CLIENTE] = upload_form
+    etiquetas = dict(Documento.ROLES)
+    descripciones = {
+        Documento.CLIENTE: "DNI, partidas y otros documentos del cliente.",
+        Documento.MINUTA: "Documento del encargo, normalmente Word.",
+        Documento.BORRADOR: "Documento elaborado que se comparará con las fuentes.",
+    }
+    por_rol = {Documento.BORRADOR: borradores}
+    zonas = [
+        {
+            "rol": rol,
+            "titulo": etiquetas[rol],
+            "descripcion": descripciones[rol],
+            "documentos": por_rol.get(rol, [d for d in documentos if d.rol == rol]),
+            "form": formularios[rol],
+        }
+        for rol, _ in Documento.ROLES
+    ]
     contexto = {
         "expediente": expediente,
         "documentos": documentos,
+        "borradores": borradores,
+        "borradores_estado": [
+            {"id": borrador.pk, **borrador.confrontacion_estado}
+            for borrador in borradores
+        ],
+        "estado_general": estado_general,
+        "zonas": zonas,
         "documentos_estado": [resumen_documento(documento) for documento in documentos],
         "resumen": resumen_expediente(expediente),
-        "upload_form": upload_form or DocumentoUploadForm(),
         "formatos_admitidos": formatos_admitidos(),
         "max_file_size_mb": settings.EXPEDIENTES_MAX_FILE_SIZE / (1024 * 1024),
     }
@@ -111,25 +156,39 @@ def expediente_detalle(request, pk):
 def documento_subir(request, pk):
     _requiere_rol(request)
     expediente = _expediente_visible(request, pk)
-    form = DocumentoUploadForm(request.POST, request.FILES)
+    form = DocumentoUploadForm(
+        request.POST,
+        request.FILES,
+        expected_role=request.POST.get("rol"),
+    )
     if not form.is_valid():
         return _render_detalle(request, expediente, form, status=400)
 
-    try:
-        registrar_documento(
-            expediente,
-            form.cleaned_data["archivo"],
-            form.cleaned_data["rol"],
-            request.user,
-        )
-    except DocumentoDuplicado:
-        form.add_error(
-            "archivo", "Ese archivo ya está registrado con este rol en el expediente."
-        )
+    registrados = 0
+    for nombre, motivo in form.errores_archivos:
+        messages.error(request, f"No se cargó {nombre}: {motivo}")
+    for archivo in form.cleaned_data["archivos"]:
+        try:
+            registrar_documento(
+                expediente,
+                archivo,
+                form.cleaned_data["rol"],
+                request.user,
+            )
+        except DocumentoDuplicado:
+            messages.error(
+                request,
+                f"No se cargó {Path(archivo.name).name}: ya está registrado con este rol.",
+            )
+        else:
+            registrados += 1
+    if not registrados:
         return _render_detalle(request, expediente, form, status=400)
-    messages.success(
-        request, "Documento recibido. Quedó en cola para extraer su texto."
-    )
+    if registrados == 1:
+        mensaje = "Documento recibido. Quedó en cola para extraer su texto."
+    else:
+        mensaje = f"{registrados} documentos recibidos. Quedaron en cola para extraer su texto."
+    messages.success(request, mensaje)
     return redirect("expediente_detalle", pk=expediente.pk)
 
 
@@ -139,15 +198,25 @@ def expediente_estado(request, pk):
     _requiere_rol(request)
     expediente = _expediente_visible(request, pk)
     resumen = resumen_expediente(expediente)
-    documentos = [
-        resumen_documento(documento) for documento in expediente.documentos.all()
+    documentos = list(expediente.documentos.all())
+    fuentes = [
+        documento for documento in documentos if documento.rol in Documento.ROLES_FUENTE
+    ]
+    borradores = [
+        {
+            "id": documento.pk,
+            **estado_confrontacion(expediente, documento, fuentes),
+        }
+        for documento in documentos
+        if documento.rol == Documento.BORRADOR
     ]
     return JsonResponse(
         {
             "expediente_id": expediente.pk,
             "estado": resumen["estado"],
             "resumen": resumen,
-            "documentos": documentos,
+            "documentos": [resumen_documento(documento) for documento in documentos],
+            "borradores": borradores,
             "polling": bool(resumen["pendientes"] or resumen["procesando"]),
         }
     )
@@ -169,3 +238,29 @@ def documento_eliminar(request, pk, doc_id):
     eliminar_documento(documento, confirmado=True)
     messages.success(request, "Documento eliminado.")
     return redirect("expediente_detalle", pk=expediente.pk)
+
+
+@login_required
+@require_POST
+def documento_confrontar(request, pk, doc_id):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    borrador = get_object_or_404(
+        expediente.documentos, pk=doc_id, rol=Documento.BORRADOR
+    )
+    try:
+        resultado = confrontar_borrador(expediente, borrador)
+    except Exception:
+        resultado = {
+            "estado": "ERROR_SEGURO",
+            "mensaje": "No se pudo completar la confrontación. Intente nuevamente.",
+            "regla": [],
+            "ortografia": [],
+        }
+    contexto = {
+        "expediente": expediente,
+        "borrador": borrador,
+        "resultado": resultado,
+    }
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/confrontacion.html", contexto)

@@ -13,7 +13,7 @@ escrituras.
 | `/expedientes/` GET | Usuario o Administrador | Listado de expedientes visibles; el Usuario ve los propios y el Administrador todos. Incluye resumen derivado y cantidad agregada de documentos pendientes. |
 | `/expedientes/` POST | Usuario o Administrador | Valida el código digitado, crea el expediente y vuelve a la pantalla de detalle/listado con confirmación. Código vacío o repetido permanece en pantalla con explicación. |
 | `/expedientes/<id>/` GET | Creador o Administrador | Detalle del expediente, formulario de subida, formatos admitidos, tamaño máximo configurado, estados y resumen. No muestra texto extraído. |
-| `/expedientes/<id>/documentos/` POST | Creador o Administrador | Valida rol, formato, contenido y tamaño en servidor; registra hash y metadatos y encola `PENDIENTE`. Un duplicado del mismo hash y rol se rechaza sin duplicar. |
+| `/expedientes/<id>/documentos/` POST | Creador o Administrador | Valida `CLIENTE`, `MINUTA` o `BORRADOR`, formato, contenido y tamaño en servidor; acepta múltiples archivos, registra cada válido y encola `PENDIENTE`. Un duplicado del mismo hash y rol se rechaza sin duplicar. |
 | `/expedientes/<id>/estado/` GET | Creador o Administrador | JSON mínimo para Alpine: resumen derivado, documentos visibles con identificador interno, rol, estado, error seguro y fechas/contadores necesarios para pintar avance. Nunca incluye texto extraído, ruta temporal ni contenido. |
 | `/expedientes/<id>/documentos/<doc_id>/eliminar/` POST | Creador o Administrador | Exige confirmación explícita; elimina el documento y su temporal si existe, pero conserva `TextoExtraido` para otros documentos. |
 
@@ -35,15 +35,19 @@ el expediente de otra persona existe.
 
 ### Detalle y subida
 
-- El formulario muestra dos opciones de rol: «Fuente» y «Borrador»; la ayuda
-  explica que minuta y documentos del cliente son fuentes.
-- Antes de enviar se indican extensiones admitidas y el límite de tamaño
+- La pantalla separa tres zonas obligatorias: «Documentos del cliente»
+  (`CLIENTE`), «Minuta» (`MINUTA`) y «Proyecto (borrador)» (`BORRADOR`). Cada
+  formulario acepta múltiples archivos en una sola carga.
+- Antes de enviar cada zona indica extensiones admitidas y el límite de tamaño
   vigente, sin sustituir la validación server-side.
 - Mientras no haya documentos: «Este expediente aún no tiene documentos.»
-- Éxito: «Documento recibido. Quedó en cola para extraer su texto.»
-- Formato/tamaño/contenido inválido: mensaje en lenguaje claro que indica qué
-  revisar, sin nombre original, ruta, hash, traceback ni fragmento documental.
-- Duplicado: «Ese archivo ya está registrado con este rol en el expediente.»
+- Éxito: «Documento recibido. Quedó en cola para extraer su texto.»; si son
+  varios, se informa la cantidad registrada.
+- Formato/tamaño/contenido inválido: cada archivo se valida por separado y el
+  mensaje muestra su nombre base y el motivo, sin usar ese nombre para crear
+  rutas ni mostrar ruta, hash, traceback o fragmento documental.
+- Duplicado: se identifica el nombre base y se indica que ya está registrado
+  con ese rol en el expediente.
 - Eliminación: antes de enviar se muestra «¿Confirma eliminar este documento?»;
   tras confirmar: «Documento eliminado.» La cancelación no cambia nada.
 

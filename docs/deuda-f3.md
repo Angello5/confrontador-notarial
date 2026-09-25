@@ -19,6 +19,66 @@ descartó. En palabras (SEÑORA, NÚÑEZ, MUÑOZ, ESPAÑA, ÑANDÚ) se lee bien;
 descarta dentro de un nombre, se genera una observación. T014 sigue siendo el
 gate de la medición privada.
 
+### Eñe significativa en la capa de regla
+
+Desde F5, `nucleo.verificar.norm()` conserva `Ñ`/`ñ` como `Ñ` y sigue
+ignorando las tildes de las vocales. Así, una eñe omitida en el borrador se
+señala como diferencia de nombre y no se pierde por normalización. El riesgo
+residual es un falso positivo cuando una foto de DNI hace que el OCR descarte
+una eñe aislada: la fuente puede conservar la eñe y el texto extraído del
+borrador no. Si aparece, debe diagnosticarse junto con la calidad del OCR y no
+confundirse con un cambio de la regla. T014 sigue siendo el gate de la medición
+privada.
+
+### Eñe coherente en el núcleo
+
+`nucleo.lexico.sin_tilde()` y `nucleo.ortografia.plano()` aplican ahora el
+mismo criterio que `norm()`: las vocales pierden sus combinantes, pero la
+virgulilla que sigue a `N`/`n` recompone `Ñ`/`ñ`. `TILDE_IMPOSIBLE` y
+`ACENTO_CORRECTO` no incluyen la eñe como error ni la convierten. El vocabulario
+léxico y las sugerencias ortográficas distinguen `MUÑOZ` de `MUNOZ`; la lista de
+la casa conserva ambas formas si se reciben explícitamente. Las tres funciones
+repiten deliberadamente el pequeño bucle porque `nucleo/` mantiene módulos
+puros independientes; si la regla crece, conviene extraer una función común
+de normalización en `nucleo` sin mezclar adaptadores.
+
+La medición contra el expediente de referencia queda pendiente del usuario.
+Debe ejecutarse desde el repositorio saneado, con los recursos privados
+aprovisionados, exactamente en este orden:
+
+```bash
+python -m pytest -o addopts= -m local_reference --tb=no
+```
+
+### Apellidos compuestos y deduplicación de carátula
+
+`nucleo.verificar.nombres()` conserva las partículas de `STOP` que aparecen
+entre palabras del nombre y solo elimina ruido en sus extremos. El límite es de
+7 palabras: cubre nombres con dos partículas compuestas sin ampliar más de lo
+necesario la heurística de carátula. `catalogo()`, `correspondencia()` y
+`revisar()` reciben así el nombre completo; la carátula registra una sola
+observación por candidato repetido.
+
+### Formularios de cliente en PDF
+
+La capa de regla se diseñó para la prosa notarial, pero los documentos del
+cliente suelen ser formularios con campos etiquetados. Esta ronda cubre esa
+disposición de RENIEC en fuentes `.pdf`: `catalogo()` conserva la vía de prosa
+(`nombres()`) y además intenta `nombre_reniec()`, uniendo los resultados en el
+conjunto de nombres sin duplicarlos. Las imágenes mantienen su vía existente
+de `RE_CUI` y `nombre_reniec()`.
+
+Los demás formatos no se amplían todavía a la vía RENIEC: el hallazgo verificado
+corresponde a formularios escaneados en PDF y no hay fixtures ficticios que
+representen formularios en `.docx`, `.doc`, `.rtf`, `.odt`, `.xlsx`, `.txt` o
+`.csv`; por ahora siguen usando la vía de prosa. Las partidas registrales y
+otros formularios tampoco están cubiertos todavía.
+
+`RE_DNI_DOC` captura únicamente números de exactamente 8 dígitos y exige que no
+formen parte de una secuencia numérica mayor. `RE_CUI` conserva el formato de
+las imágenes: 8 dígitos, guion y dígito verificador. Esto evita que partidas,
+asientos o trámites numerados contaminen el diagnóstico de correspondencia.
+
 Los diez code smells del análisis inicial de SonarCloud sobre `main` (`4cb625e`)
 se registran para la migración del núcleo en F3; no se corrigen en F1.
 

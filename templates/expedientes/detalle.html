@@ -11,11 +11,13 @@
   </nav>
 
   {{ documentos_estado|json_script:"documentos-estado" }}
+  {{ borradores_estado|json_script:"borradores-estado" }}
   <div
     x-data="{
       estado: '{{ resumen.estado }}',
       resumen: { total: {{ resumen.total }}, pendientes: {{ resumen.pendientes }}, procesando: {{ resumen.procesando }}, listos: {{ resumen.listos }}, errores: {{ resumen.errores }} },
       documentos: JSON.parse(document.getElementById('documentos-estado').textContent),
+      confrontaciones: JSON.parse(document.getElementById('borradores-estado').textContent).reduce((resultado, item) => { resultado[item.id] = item; return resultado; }, {}),
       mensaje: '',
       temporizador: null,
       async actualizar() {
@@ -26,6 +28,7 @@
           this.estado = datos.estado;
           this.resumen = datos.resumen;
           this.documentos = datos.documentos;
+          this.confrontaciones = datos.borradores.reduce((resultado, item) => { resultado[item.id] = item; return resultado; }, {});
           this.mensaje = '';
           if (!datos.polling && this.temporizador) {
             clearInterval(this.temporizador);
@@ -57,65 +60,25 @@
     </div>
   </section>
 
-  <section class="card card-outline card-primary mb-3" aria-labelledby="subir-documento">
-    <div class="card-header"><h2 id="subir-documento" class="h5 mb-0">Cargar documento</h2></div>
-    <div class="card-body">
-      <p>Formatos admitidos: {{ formatos_admitidos }}. Tamaño máximo: {{ max_file_size_mb|floatformat:0 }} MB.</p>
-      <form method="post" enctype="multipart/form-data" action="{% url 'documento_subir' expediente.pk %}" novalidate>
-        {% csrf_token %}
-        <div class="mb-3">
-          <label class="form-label" for="{{ upload_form.rol.id_for_label }}">{{ upload_form.rol.label }}</label>
-          {{ upload_form.rol }}
-          <div class="form-text">{{ upload_form.rol.help_text }}</div>
-          {% for error in upload_form.rol.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
-        </div>
-        <div class="mb-3">
-          <label class="form-label" for="{{ upload_form.archivo.id_for_label }}">{{ upload_form.archivo.label }}</label>
-          {{ upload_form.archivo }}
-          <div class="form-text">{{ upload_form.archivo.help_text }}</div>
-          {% for error in upload_form.archivo.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
-        </div>
-        <button class="btn btn-primary" type="submit">Cargar documento</button>
-      </form>
+  <div class="row g-4">
+    <div class="col-12 col-xl-7">
+      <div class="mb-4">
+        <h2 class="h4">Minuta y documentos del cliente</h2>
+        <p class="text-body-secondary">Cargue las fuentes que se usarán para revisar el proyecto.</p>
+      </div>
+      <div class="row g-4">
+        {% for zona in zonas|slice:":2" %}
+          <div class="col-12">
+            {% include "expedientes/_zona_carga.html" %}
+          </div>
+        {% endfor %}
+      </div>
     </div>
-  </section>
-
-  <section class="card" aria-labelledby="documentos-expediente">
-    <div class="card-header"><h2 id="documentos-expediente" class="h5 mb-0">Documentos</h2></div>
-    <div class="card-body">
-      {% if documentos %}
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <caption class="visually-hidden">Documentos y estado de extracción</caption>
-            <thead><tr><th scope="col">Archivo</th><th scope="col">Rol</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
-            <tbody>
-              {% for documento in documentos %}
-                <tr>
-                  <th scope="row">{{ documento.nombre_original }}</th>
-                  <td>{% if documento.rol == "FUENTE" %}Fuente{% else %}Borrador{% endif %}</td>
-                  <td>
-                    <span x-text="documentos.find(item => item.id === {{ documento.pk }})?.estado_texto">{% if documento.estado == "PENDIENTE" %}Pendiente{% elif documento.estado == "PROCESANDO" %}Procesando{% elif documento.estado == "LISTO" %}Listo{% else %}No se pudo procesar{% endif %}</span>
-                    <div class="small" x-show="documentos.find(item => item.id === {{ documento.pk }})?.estado === 'ERROR'">
-                      Motivo: <span x-text="documentos.find(item => item.id === {{ documento.pk }})?.error">No se pudo procesar el archivo.</span>
-                      Elimine el documento y vuelva a subirlo.
-                    </div>
-                  </td>
-                  <td>
-                    <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');" class="d-inline">
-                      {% csrf_token %}
-                      <input type="hidden" name="confirmado" value="1">
-                      <button class="btn btn-outline-danger btn-sm" type="submit">Eliminar</button>
-                    </form>
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p class="alert alert-info mb-0" role="status">Este expediente aún no tiene documentos.</p>
-      {% endif %}
+    <div class="col-12 col-xl-5">
+      {% with zona=zonas|last %}
+        {% include "expedientes/_zona_carga.html" with destacada=True con_confrontacion=True %}
+      {% endwith %}
     </div>
-  </section>
+  </div>
   </div>
 {% endblock %}

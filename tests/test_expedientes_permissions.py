@@ -30,7 +30,7 @@ def test_usuario_no_puede_consultar_estado_ni_eliminar_ajeno(
     )
     documento = Documento.objects.create(
         expediente=propio,
-        rol="FUENTE",
+        rol="CLIENTE",
         nombre_original="fuente-ajena.txt",
         hash_archivo="c" * 64,
         tamano_bytes=8,
