@@ -43,9 +43,21 @@ _FORMATO_CACHE = 2
 
 
 def version_extractor() -> str:
-    """Identidad estable de los recursos y opciones que producen el texto."""
+    """Identidad estable de los recursos y opciones que producen el texto.
+
+    Incluye la version de rapidocr: los modelos pueden ser los mismos y aun asi
+    la libreria cambiar el preproceso o el postproceso, y entonces el texto
+    cambia. Si no estuviera en la llave, la cache seguiria devolviendo el texto
+    del motor anterior tras una actualizacion. No se incluye onnxruntime: no
+    altera el texto y su version sube a menudo, lo que invalidaria la cache sin
+    motivo.
+    """
     identidad = json.dumps(
-        {"modelos": sorted(_OCR_FILES.items()), "use_cls": _OCR_USE_CLS},
+        {
+            "modelos": sorted(_OCR_FILES.items()),
+            "use_cls": _OCR_USE_CLS,
+            "rapidocr": importlib.metadata.version("rapidocr"),
+        },
         separators=(",", ":"),
     ).encode()
     return hashlib.sha256(identidad).hexdigest()

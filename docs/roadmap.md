@@ -11,8 +11,8 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F2 · terminada (PR #16)** | Esqueleto del ERP | Login, menú lateral según rol, AdminLTE 4 | F1 | Roles |
 | **F3 · terminada (PR #17)** | Migración del código actual | extraer, verificar, léxico y ortografía como núcleo puro con pytest; mismo resultado medido; T028 depende del CI remoto | F1 | — |
 | **F4 · terminada (PR #20)** | Expedientes | Subir archivos desde la PC, extracción en segundo plano, borrado del archivo al terminar | F2, F3 | Retención del texto extraído: **indefinida**, con supresión a solicitud (constitución 1.6.0) |
-| **F5 · lista para PR** | Confrontación | Observaciones en pantalla, agrupadas por capa | F4 | Capas incluidas: regla y ortografía; el léxico se aplaza |
-| **F11 · en curso** | Extracción por personas | El sistema deja de cruzar documentos entre comparecientes | F5 | Alcance: personas naturales; las jurídicas quedan fuera |
+| **F5 · terminada (PR #22)** | Confrontación | Observaciones en pantalla, agrupadas por capa | F4 | Capas incluidas: regla y ortografía; el léxico se aplaza |
+| **F11 · terminada (PR #31)** | Extracción por personas | El sistema deja de cruzar documentos entre comparecientes | F5 | Alcance: personas naturales; las jurídicas quedan fuera |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
 | **F7** | Informe exportable | Descargar o imprimir las observaciones | F5 | Formato |
