@@ -48,18 +48,21 @@ Porcentaje de páginas del tipo en que la etiqueta lleva un valor legible.
 | `apellido_materno` | **100** | **100** | (junto) | — |
 | `nombres` | **93** | **93** | 33 | — |
 | `documento` | **100** | **100** | 57 | 7 |
-| `estado_civil` | **100** | 89 | 36 | 40 |
+| `estado_civil` | **100** | — | casilla marcada, no texto | 40 |
 | `fecha_nacimiento` | **96** | — | 25 | — |
 | `sexo` | 82 | — | — | — |
-| `domicilio` | **96** | — | 67 | — |
-| `distrito` | **100** | — | 57 | 13 |
+| `domicilio` | **79** | — | 67 (manuscrito) | — |
+| `distrito` | 64 | — | 57 (manuscrito) | 13 |
 | `conyuge` | — | — | **35** | — |
 
 Lecturas:
 
-- **La consulta RENIEC y la ficha biométrica son fuentes completas y
-  homogéneas.** Nombre, documento y estado civil al 89–100 %; la RENIEC añade
-  fecha de nacimiento, sexo y domicilio. Son la columna vertebral del esquema.
+- **La consulta RENIEC y la ficha biométrica son las fuentes fiables de
+  identidad.** Nombre y documento al 93–100 % en las dos. Solo la RENIEC añade
+  estado civil (100 %), fecha de nacimiento (96 %), domicilio (79 %) y distrito
+  de domicilio (64 %). La biométrica **no trae estado civil**: una primera
+  medición se lo atribuía por el pie "Registro Nacional de Identificación y
+  Estado Civil", y se corrigió midiendo la etiqueta al inicio de línea.
 - **El DNI escaneado es una fuente pobre**: documento legible en el 7 % de las
   páginas. Existe en el legajo, pero no hay que apoyarse en él: la misma
   persona aparece en su ficha RENIEC o biométrica con calidad total.
@@ -91,12 +94,21 @@ sí sirven para confrontar:
 
 | Campo | Para qué serviría en la confrontación |
 |---|---|
-| `estado_civil` | Contrastar con "CASADO CON …" / "SOLTERO" de la minuta. Un casado que comparece solo es un error que hoy no se detecta. |
+| `estado_civil` | Contrastar con "CASADO CON …" / "SOLTERO" del borrador. Un casado que comparece solo es un error que hoy no se detecta. Solo lo da la consulta RENIEC. |
 | `fecha_nacimiento` | Detectar minoría de edad y confirmar identidad cuando dos personas comparten nombre. |
 | `domicilio` / `distrito` | Contrastar con "con domicilio en …" de la escritura. |
 
 Y `conyuge`, que la declaración jurada da al 35 %, permite comprobar que el
 cónyuge nombrado en la minuta es el declarado.
+
+## Cómo se midió, y una corrección
+
+Primera pasada: etiqueta en cualquier punto de la línea. Segunda, para los
+campos que F12 va a usar: etiqueta **al inicio de línea** y valor en su
+columna. La segunda es más estricta y es la que manda para RENIEC. Atrapó dos
+errores de la primera: el "estado civil" de la biométrica (venía del pie) y el
+"distrito" de RENIEC, que mezclaba `DISTRITO DE NACIMIENTO` (100 %) con
+`DISTRITO DE DOMICILIO` (64 %).
 
 ## Reglas que salen de la muestra
 

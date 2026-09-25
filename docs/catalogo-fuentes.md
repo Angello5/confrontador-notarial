@@ -100,8 +100,14 @@ Estado Civil:        CASADO
 - El documento aparece como **CUI**: 8 dígitos, espacio, guion, dígito de
   control. **No** lleva la etiqueta `DNI`.
 - El DNI puede **empezar por cero**.
+- Etiquetas medidas al inicio de línea sobre 28 fichas: `ESTADO CIVIL`
+  (28), `DIRECCIÓN` (28), `DISTRITO DE NACIMIENTO` (28), `PROVINCIA DE
+  DOMICILIO` (26), `DISTRITO DE DOMICILIO` (18), `DEPARTAMENTO DE DOMICILIO`
+  (16). **`DISTRITO DE NACIMIENTO` no es el distrito de domicilio.**
 - Contaminantes: marca de agua con el operador, cabecera del notario, pie de
-  consulta.
+  consulta, y el pie "Registro Nacional de Identificación y Estado Civil", que
+  contiene la cadena `ESTADO CIVIL` sin ser un campo. Ese mismo pie aparece en
+  la ficha biométrica, que **no** trae estado civil.
 
 ### 2. Ficha de autenticación biométrica de la notaría
 
