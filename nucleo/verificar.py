@@ -21,8 +21,8 @@ Persona = namedtuple(
     "Persona",
     "nombre documento procedencias estado estado_civil fecha_nacimiento domicilio distrito "
     "procedencia_estado_civil procedencia_fecha_nacimiento procedencia_domicilio procedencia_distrito "
-    "fecha_emision emisiones_campos",
-    defaults=("CONFIRMADA",) + (None,) * 10,
+    "fecha_emision emisiones_campos adjuntos conyuge procedencia_conyuge",
+    defaults=("CONFIRMADA",) + (None,) * 13,
 )
 
 
@@ -35,6 +35,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         "montos",
         "paginas_descartadas",
         "paginas_no_clasificadas",
+        "menciones",
         "_fijo",
     )
 
@@ -45,6 +46,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         montos=frozenset(),
         paginas_descartadas=(),
         paginas_no_clasificadas=(),
+        menciones=(),
     ):
         object.__setattr__(self, "personas", tuple(personas))
         object.__setattr__(self, "partidas", frozenset(partidas))
@@ -53,6 +55,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         object.__setattr__(
             self, "paginas_no_clasificadas", tuple(paginas_no_clasificadas)
         )
+        object.__setattr__(self, "menciones", tuple(menciones))
         object.__setattr__(self, "_fijo", True)
 
     def __setattr__(self, campo, valor):
@@ -60,11 +63,22 @@ class Catalogo(Mapping[str, frozenset[str]]):
             raise AttributeError("Catalogo es de solo lectura")
         object.__setattr__(self, campo, valor)
 
+    def _registros(self):
+        for persona in self.personas:
+            yield persona
+            yield from persona.adjuntos or ()
+        yield from self.menciones
+
     def __getitem__(self, campo: str) -> frozenset[str]:
         if campo == "NOMBRE":
-            return frozenset(p.nombre for p in self.personas if p.nombre)
+            return frozenset(
+                nombre
+                for p in self._registros()
+                for nombre in (p.nombre, p.conyuge)
+                if nombre
+            )
         if campo == "DNI":
-            return frozenset(p.documento for p in self.personas if p.documento)
+            return frozenset(p.documento for p in self._registros() if p.documento)
         if campo == "PARTIDA":
             return self.partidas
         if campo == "MONTO":
@@ -362,9 +376,6 @@ def _nombres_de_pagina(
         nombres_campo = _linea_etiquetada(raw, "NOMBRES")
         if apellidos and nombres_campo:
             out.append(f"{nombres_campo} {apellidos}")
-        conyuge = _linea_etiquetada(raw, "NOMBRES Y APELLIDOS DEL CONYUGE")
-        if conyuge:
-            out.append(conyuge)
     if es_pdf and (reniec := nombre_reniec(raw)):
         out.append(reniec)
     return list(dict.fromkeys(out))
@@ -388,16 +399,54 @@ def _documentos_de_pagina(raw: str, tipo: str, es_img: bool) -> list[str]:
 
 
 def _personas_de_pagina(pagina: Pagina, tipo: str) -> list[Persona]:
+    """Registros de la página; el cónyuge de la declaración jurada no es uno."""
+    conyuge = (
+        _linea_etiquetada(pagina.texto, "NOMBRES Y APELLIDOS DEL CONYUGE")
+        if tipo == "DECLARACION_JURADA"
+        else None
+    )
+    personas = _registros_de_pagina(pagina, tipo, _nombre_clave(conyuge))
+    if not conyuge:
+        return personas
+    origen = Procedencia(pagina.fuente, pagina.numero)
+    declarantes = [indice for indice, p in enumerate(personas) if p.nombre]
+    if len(declarantes) == 1:
+        personas[declarantes[0]] = personas[declarantes[0]]._replace(
+            conyuge=conyuge, procedencia_conyuge=origen
+        )
+    else:
+        personas.append(
+            Persona(
+                None,
+                None,
+                (origen,),
+                "SIN_FICHA",
+                conyuge=conyuge,
+                procedencia_conyuge=origen,
+            )
+        )
+    return personas
+
+
+def _registros_de_pagina(pagina: Pagina, tipo: str, excluido: str) -> list[Persona]:
     sufijo = _sufijo(pagina.fuente.rsplit("/", 1)[-1])
     es_img = bool(sufijo and sufijo in IMGS)
     procedencia = (Procedencia(pagina.fuente, pagina.numero),)
+
+    def nombres_sin_excluido(raw):
+        return [
+            nombre
+            for nombre in _nombres_de_pagina(raw, tipo, sufijo == ".pdf", es_img)
+            if not excluido or _nombre_clave(nombre) != excluido
+        ]
+
     # Una línea con nombre y documento es una frontera verificable. La usamos
     # primero para no cruzar a dos comparecientes de la misma página; los
     # formularios RENIEC/biométricos caen al bloque completo porque sus campos
     # viven en líneas distintas.
     asociados = []
     for linea in pagina.texto.splitlines():
-        nombres_linea = _nombres_de_pagina(linea, tipo, sufijo == ".pdf", es_img)
+        nombres_linea = nombres_sin_excluido(linea)
         documentos_linea = _documentos_de_pagina(linea, tipo, es_img)
         if len(nombres_linea) == 1 and len(documentos_linea) == 1:
             asociados.append(
@@ -405,7 +454,7 @@ def _personas_de_pagina(pagina: Pagina, tipo: str) -> list[Persona]:
             )
     if asociados:
         return _anotar_reniec(asociados, pagina, tipo)
-    nombres_pagina = _nombres_de_pagina(pagina.texto, tipo, sufijo == ".pdf", es_img)
+    nombres_pagina = nombres_sin_excluido(pagina.texto)
     documentos = _documentos_de_pagina(pagina.texto, tipo, es_img)
     if len(nombres_pagina) == 1 and len(documentos) == 1:
         return _anotar_reniec(
@@ -445,6 +494,12 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
         clave_nombre = _nombre_clave(persona.nombre)
         fusion = None
         for indice, existente in enumerate(unificadas):
+            if (
+                persona.conyuge
+                and existente.conyuge
+                and _nombre_clave(persona.conyuge) != _nombre_clave(existente.conyuge)
+            ):
+                continue
             mismo_documento = (
                 persona.documento
                 and existente.documento
@@ -503,6 +558,9 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
             nombre=existente.nombre or persona.nombre,
             documento=existente.documento or persona.documento,
             procedencias=procedencias,
+            conyuge=existente.conyuge or persona.conyuge,
+            procedencia_conyuge=existente.procedencia_conyuge
+            or persona.procedencia_conyuge,
             estado="REVISION_MANUAL"
             if conflicto or "REVISION_MANUAL" in (existente.estado, persona.estado)
             else estado,
@@ -546,17 +604,16 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
     if not isinstance(fuente, Catalogo):
         raise TypeError("fuente debe ser Catalogo")
     destino = _catalogo_borrador(borrador)
+    # Titular = ancla; pertenencia del documento = cualquier fuente (research D8).
     por_nombre = {}
-    por_documento = {}
     for persona in fuente.personas:
         if persona.nombre:
             por_nombre.setdefault(_nombre_clave(persona.nombre), []).append(persona)
-        if persona.documento:
-            por_documento.setdefault(persona.documento, []).append(persona)
+    documentos = fuente["DNI"]
 
     observaciones = []
     vistos = set()
-    for persona in destino.personas:
+    for persona in destino._registros():
         if not persona.documento:
             continue
         nombre_clave = _nombre_clave(persona.nombre)
@@ -567,7 +624,7 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
             titular
             and esperado
             and esperado != persona.documento
-            and persona.documento in por_documento
+            and persona.documento in documentos
         ):
             observacion = {
                 "tipo": "DOCUMENTO_CRUZADO",
@@ -576,7 +633,7 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
                 "documento_esperado": esperado,
                 "procedencias": titular.procedencias,
             }
-        elif persona.documento not in por_documento:
+        elif persona.documento not in documentos:
             observacion = {
                 "tipo": "DOCUMENTO_SIN_TITULAR",
                 "nombre": persona.nombre,
@@ -741,8 +798,54 @@ def _paginas(fuentes: Mapping[str, str]) -> list[Pagina]:
     ]
 
 
+_TIPOS_ANCLA = {"RENIEC", "BIOMETRICA"}
+
+
+def _pegar(anclas, registros) -> tuple[tuple[Persona, ...], tuple[Persona, ...]]:
+    """Adjunta cada registro no oficial a un ancla única o lo deja como mención.
+
+    Documento exacto o, sin documento, clave de nombre exacta. Un registro con
+    documento ajeno a las anclas nunca se pega por nombre (research D4).
+    """
+    anclas = list(anclas)
+    adjuntos = [[] for _ in anclas]
+    menciones = []
+    for registro in registros:
+        clave = _nombre_clave(registro.nombre)
+        indices = [
+            indice
+            for indice, ancla in enumerate(anclas)
+            if (
+                ancla.documento == registro.documento
+                if registro.documento
+                else clave and _nombre_clave(ancla.nombre) == clave
+            )
+        ]
+        if len(indices) != 1:
+            menciones.append(registro)
+            continue
+        indice = indices[0]
+        adjuntos[indice].append(registro)
+        if registro.conyuge and not anclas[indice].conyuge:
+            anclas[indice] = anclas[indice]._replace(
+                conyuge=registro.conyuge,
+                procedencia_conyuge=registro.procedencia_conyuge,
+            )
+    return (
+        tuple(
+            ancla._replace(adjuntos=tuple(propios) or None)
+            for ancla, propios in zip(anclas, adjuntos)
+        ),
+        tuple(
+            mencion._replace(estado="SIN_FICHA")
+            for mencion in unificar_personas(menciones)
+        ),
+    )
+
+
 def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
-    personas = []
+    anclas = []
+    resto = []
     partidas = set()
     montos = set()
     descartadas = []
@@ -758,13 +861,17 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         personas_pagina = _personas_de_pagina(pagina, tipo)
         if tipo == "DESCONOCIDA" and personas_pagina:
             no_clasificadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
-        personas.extend(personas_pagina)
+        for persona in personas_pagina:
+            es_ancla = tipo in _TIPOS_ANCLA and persona.nombre and persona.documento
+            (anclas if es_ancla else resto).append(persona)
+    personas, menciones = _pegar(unificar_personas(anclas), resto)
     return Catalogo(
-        unificar_personas(personas),
+        personas,
         frozenset(partidas),
         frozenset(montos),
         tuple(descartadas),
         tuple(no_clasificadas),
+        menciones,
     )
 
 

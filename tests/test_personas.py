@@ -30,16 +30,19 @@ def test_catalogo_liga_persona_documento_y_procedencia_por_pagina():
     )
 
     assert isinstance(resultado, Catalogo)
-    assert resultado.personas == (
+    assert resultado.personas == ()
+    assert resultado.menciones == (
         Persona(
             "ALBA ZAFIRO LUMARIA",
             "90000011",
             (Procedencia("legajo-ficticio.txt", 1),),
+            "SIN_FICHA",
         ),
         Persona(
             "BRUNO TELURIO NEBULOSA",
             "90000022",
             (Procedencia("legajo-ficticio.txt", 2),),
+            "SIN_FICHA",
         ),
     )
 
@@ -149,23 +152,29 @@ def test_catalogo_no_descarta_paginas_identitarias_por_confusion_de_tipo():
     )
 
     assert resultado.paginas_descartadas == ()
-    assert len(resultado.personas) >= 1
+    assert len(resultado.menciones) >= 1
+
+
+_INTERCAMBIADOS = (
+    "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000022\n"
+    "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000011"
+)
 
 
 def test_comparar_personas_detecta_documentos_intercambiados():
     fuentes = catalogo(
         {
-            "cliente-ficticio.txt": (
-                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011\f"
-                "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000022"
+            "fichas-ficticias.txt": (
+                "INFORMACION PERSONAL\n"
+                "PRIMER APELLIDO  ZAFIRO  SEGUNDO APELLIDO  LUMARIA\n"
+                "NOMBRES  ALBA\nDNI 90000011\f"
+                "INFORMACION PERSONAL\n"
+                "PRIMER APELLIDO  TELURIO  SEGUNDO APELLIDO  NEBULOSA\n"
+                "NOMBRES  BRUNO\nDNI 90000022"
             )
         }
     )
-    observaciones = comparar_personas(
-        fuentes,
-        "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000022\n"
-        "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000011",
-    )
+    observaciones = comparar_personas(fuentes, _INTERCAMBIADOS)
 
     assert [observacion["tipo"] for observacion in observaciones] == [
         "DOCUMENTO_CRUZADO",
@@ -174,6 +183,39 @@ def test_comparar_personas_detecta_documentos_intercambiados():
     assert observaciones[0]["nombre"] == "ALBA ZAFIRO LUMARIA"
     assert observaciones[0]["documento_hallado"] == "90000022"
     assert observaciones[0]["documento_esperado"] == "90000011"
+    assert observaciones[0]["procedencias"] == (Procedencia("fichas-ficticias.txt", 1),)
+
+
+def test_comparecientes_sin_ficha_intercambiados_no_dan_documento_cruzado():
+    # Consecuencia aceptada de F13: el documento cruzado exige titular con ficha.
+    fuentes = catalogo(
+        {
+            "cliente-ficticio.txt": (
+                "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011\f"
+                "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA. DNI 90000022"
+            )
+        }
+    )
+
+    assert comparar_personas(fuentes, _INTERCAMBIADOS) == ()
+
+
+def test_documento_de_la_minuta_sin_ficha_tiene_titular():
+    fuentes = catalogo(
+        {
+            "reniec-ficticio.pdf": _reniec("90000011", "ALBA", "LUMARIA", "ZAFIRO"),
+            "minuta-ficticia.txt": (
+                "CLARA FICTELIA SOLARIA, DE NACIONALIDAD PERUANA. DNI 90000033"
+            ),
+        }
+    )
+
+    assert (
+        comparar_personas(
+            fuentes, "CLARA FICTELIA SOLARIA, DE NACIONALIDAD PERUANA. DNI 90000033"
+        )
+        == ()
+    )
 
 
 def test_comparar_personas_detecta_documento_sin_titular():
@@ -261,9 +303,9 @@ def test_catalogo_unifica_apellidos_nombres_explicitos_con_mismo_documento():
         }
     )
 
-    assert len(resultado.personas) == 1
-    assert resultado.personas[0].nombre == "ALBA ZAFIRO LUMARIA"
-    assert len(resultado.personas[0].procedencias) == 2
+    assert len(resultado.menciones) == 1
+    assert resultado.menciones[0].nombre == "ALBA ZAFIRO LUMARIA"
+    assert len(resultado.menciones[0].procedencias) == 2
 
 
 def test_etiqueta_dni_corrompida_por_ocr_se_acepta_solo_en_forma_cerrada():
@@ -355,7 +397,7 @@ def test_nombre_incompatible_con_mismo_documento_no_se_unifica():
     assert {persona.estado for persona in resultado} == {"REVISION_MANUAL"}
 
 
-def test_persona_con_nombre_sin_documento_se_conserva_sin_observacion_documental():
+def test_declarante_sin_ficha_es_mencion_con_su_conyuge():
     resultado = catalogo(
         {
             "declaracion-ficticia.txt": (
@@ -367,15 +409,19 @@ def test_persona_con_nombre_sin_documento_se_conserva_sin_observacion_documental
         }
     )
 
-    assert (
+    origen = Procedencia("declaracion-ficticia.txt", 1)
+    assert resultado.personas == ()
+    assert resultado.menciones == (
         Persona(
-            "BRUNO TELURIO NEBULOSA",
+            "ALBA LUMARIA ZAFIRO",
             None,
-            (Procedencia("declaracion-ficticia.txt", 1),),
-            "SIN_DOCUMENTO",
-        )
-        in resultado.personas
+            (origen,),
+            "SIN_FICHA",
+            conyuge="BRUNO TELURIO NEBULOSA",
+            procedencia_conyuge=origen,
+        ),
     )
+    assert "BRUNO TELURIO NEBULOSA" in resultado["NOMBRE"]
 
 
 @pytest.mark.parametrize(
@@ -807,3 +853,403 @@ def test_domicilio_de_otra_persona_no_satisface_fuente():
     borrador = "ALBA LUMARIA ZAFIRO vive en Calle Sol 8.\nBRUNO TELURIO NEBULOSA vive en Av. Luna 12."
     obs = revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1))
     assert [fila["tipo"] for fila in obs] == ["DOMICILIO_NO_ENCONTRADO"]
+
+
+# Paridad F13 (SC-005): salida capturada con el código previo a F13 sobre un
+# legajo ficticio con ficha RENIEC, biométrica, declaración jurada con cónyuge,
+# prosa, SUNARP y un documento suelto. No debe cambiar.
+_LEGAJO_MINUTA = (
+    "COMPARECEN ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, CON DNI 90000011, Y "
+    "CLARA FICTELIA SOLARIA, DE NACIONALIDAD PERUANA, CON DNI 90000033, SOBRE LA "
+    "PARTIDA N° 80000001 POR S/ 1,500.00\n"
+    "DIANA ROCIO VENTORIA, DE NACIONALIDAD PERUANA, SIN DOCUMENTO A LA VISTA.\n"
+    "LA VENDEDORA DECLARA QUE EL INMUEBLE FICTICIO SE ENTREGA LIBRE DE CARGAS, "
+    "GRAVAMENES Y MEDIDAS JUDICIALES."
+)
+_LEGAJO = {
+    "reniec-ficticio.pdf": (
+        "CUI: 90000011 - 5\n"
+        "APELLIDO PATERNO  LUMARIA  APELLIDO MATERNO  ZAFIRO\n"
+        "NOMBRES  ALBA\n"
+        "ESTADO CIVIL  CASADA  SEXO  FEMENINO\n"
+        "\f"
+        "INFORMACION PERSONAL\nPRIMER APELLIDO  TELURIO  SEGUNDO APELLIDO  NEBULOSA\n"
+        "NOMBRES  BRUNO\nDNI 90000022"
+    ),
+    "declaracion-ficticia.txt": (
+        "DECLARACION JURADA\nAPELLIDOS: LUMARIA ZAFIRO\nNOMBRES: ALBA\nDNI: 90000011\n"
+        "NOMBRES Y APELLIDOS DEL CONYUGE: EMILIO SOLANO QUIMERA"
+    ),
+    "minuta-ficticia.txt": _LEGAJO_MINUTA,
+    "sunarp-ficticio.txt": (
+        "PARTIDA ELECTRONICA N° 80000001\nASIENTO B00001\n"
+        "TELURIO NEBULOSA, BRUNO DE NACIONALIDAD PERUANA"
+    ),
+    "suelto-ficticio.txt": "DNI 90000044",
+}
+_LEGAJO_BORRADOR = (
+    "ALBA LUMARIA ZAFIRA\nBRUNO TELURIO NEBULOSA\n"
+    "COMPARECEN ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, CON DNI 90000011, Y "
+    "CLARA FICTELIA SOLARIO, DE NACIONALIDAD PERUANA, CON DNI 90000039, SOBRE LA "
+    "PARTIDA N° 80000002 POR S/ 1,500.00\n"
+    "EMILIO SOLANO QUIMERA, DE NACIONALIDAD PERUANA, CONYUGE."
+)
+
+
+def test_paridad_capa_de_campos_con_legajo_ficticio():
+    from nucleo.verificar import correspondencia, diagnostico, revisar_parrafos
+
+    cat = catalogo(_LEGAJO)
+    assert cat["NOMBRE"] == {
+        "ALBA LUMARIA ZAFIRO",
+        "BRUNO TELURIO NEBULOSA",
+        "CLARA FICTELIA SOLARIA",
+        "COMPARECEN ALBA LUMARIA ZAFIRO",
+        "DIANA ROCIO VENTORIA",
+        "EMILIO SOLANO QUIMERA",
+    }
+    assert cat["DNI"] == {"90000011", "90000022", "90000033", "90000044"}
+    assert revisar(cat, _LEGAJO_BORRADOR, 88) == [
+        "[NOMBRE] «CLARA FICTELIA SOLARIO» debe decir «CLARA FICTELIA SOLARIA»",
+        "[NOMBRE] «ALBA LUMARIA ZAFIRA» debe decir «ALBA LUMARIA ZAFIRO»   (caratula)",
+        "[DNI] «90000039» debe decir «90000033»   …Y CLARA FICTELIA SOLARIO, DE NACIONALIDAD PERUANA, CON DNI 90000039",
+        "[PARTIDA] «80000002» debe decir «80000001»",
+        "[NOMBRE] FALTA: «BRUNO TELURIO NEBULOSA» esta en las fuentes y no aparece en el destino",
+        "[NOMBRE] FALTA: «CLARA FICTELIA SOLARIA» esta en las fuentes y no aparece en el destino",
+        "[NOMBRE] FALTA: «COMPARECEN ALBA LUMARIA ZAFIRO» esta en las fuentes y no aparece en el destino",
+        "[NOMBRE] FALTA: «DIANA ROCIO VENTORIA» esta en las fuentes y no aparece en el destino",
+        "[DNI] FALTA: «90000022» esta en las fuentes y no aparece en el destino",
+        "[DNI] FALTA: «90000033» esta en las fuentes y no aparece en el destino",
+        "[DNI] FALTA: «90000044» esta en las fuentes y no aparece en el destino",
+        "[PARTIDA] FALTA: «80000001» esta en las fuentes y no aparece en el destino",
+    ]
+    assert correspondencia(cat, _LEGAJO_BORRADOR) == (0.5, 1)
+    assert diagnostico(_LEGAJO, _LEGAJO_BORRADOR) is None
+    assert diagnostico(_LEGAJO, "SIN DATOS DNI 90000098 DNI 90000099") == (
+        "El borrador no corresponde a estas fuentes: no comparte ningun dato "
+        "identificatorio y trae 2 DNI distintos. Parece otro expediente o una "
+        "plantilla."
+    )
+    assert revisar_parrafos([_LEGAJO_MINUTA], _LEGAJO_BORRADOR, 88) == [
+        "[PARRAFO] falta o alterado (38.19%): LA VENDEDORA DECLARA QUE EL INMUEBLE "
+        "FICTICIO SE ENTREGA LIBRE DE CARGAS, GRAVAMENES Y MEDIDAS JUDIC…"
+    ]
+
+
+def test_persona_f13_anade_campos_al_final_y_catalogo_menciones_vacias():
+    origen = (Procedencia("ficticio.pdf", 1),)
+    persona = Persona("ALBA LUMARIA ZAFIRO", "90000011", origen)
+    assert persona == Persona("ALBA LUMARIA ZAFIRO", "90000011", origen, "CONFIRMADA")
+    assert Persona._fields[-3:] == ("adjuntos", "conyuge", "procedencia_conyuge")
+    assert (persona.adjuntos, persona.conyuge, persona.procedencia_conyuge) == (
+        None,
+        None,
+        None,
+    )
+    assert Catalogo((persona,)).menciones == ()
+
+
+def test_proyeccion_incluye_anclas_adjuntos_menciones_y_conyuges():
+    origen = (Procedencia("ficticio.pdf", 1),)
+    adjunto = Persona(
+        "ALBA LUMARIA ZAFIRA", "90000011", origen, conyuge="EMILIO SOLANO"
+    )
+    ancla = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        origen,
+        adjuntos=(adjunto,),
+        conyuge="EMILIO SOLANO QUIMERA",
+    )
+    mencion = Persona("DIANA ROCIO VENTORIA", "90000044", origen, "SIN_FICHA")
+    cat = Catalogo((ancla,), menciones=(mencion,))
+    assert cat["NOMBRE"] == {
+        "ALBA LUMARIA ZAFIRO",
+        "ALBA LUMARIA ZAFIRA",
+        "EMILIO SOLANO",
+        "EMILIO SOLANO QUIMERA",
+        "DIANA ROCIO VENTORIA",
+    }
+    assert cat["DNI"] == {"90000011", "90000044"}
+
+
+def _reniec(documento, nombres, paterno, materno):
+    return (
+        f"CUI: {documento} - 5\n"
+        f"APELLIDO PATERNO  {paterno}  APELLIDO MATERNO  {materno}\n"
+        f"NOMBRES  {nombres}"
+    )
+
+
+def _biometrica(documento, nombres, primero, segundo):
+    return (
+        "INFORMACION PERSONAL\n"
+        f"PRIMER APELLIDO  {primero}  SEGUNDO APELLIDO  {segundo}\n"
+        f"NOMBRES  {nombres}\nDNI {documento}"
+    )
+
+
+_ALBA = _reniec("90000011", "ALBA", "LUMARIA", "ZAFIRO")
+
+
+def test_prosa_sola_no_crea_persona_sino_mencion_sin_ficha():
+    resultado = catalogo(
+        {
+            "minuta-ficticia.txt": "ALBA ZAFIRO LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000011"
+        }
+    )
+
+    assert resultado.personas == ()
+    assert resultado.menciones == (
+        Persona(
+            "ALBA ZAFIRO LUMARIA",
+            "90000011",
+            (Procedencia("minuta-ficticia.txt", 1),),
+            "SIN_FICHA",
+        ),
+    )
+    assert resultado["NOMBRE"] == {"ALBA ZAFIRO LUMARIA"}
+
+
+def test_reniec_y_biometrica_de_la_misma_persona_son_un_ancla():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "biometrica-ficticia.txt": _biometrica(
+                "90000011", "ALBA", "LUMARIA", "ZAFIRO"
+            ),
+        }
+    )
+
+    assert [(p.nombre, p.documento, p.estado) for p in resultado.personas] == [
+        ("ALBA LUMARIA ZAFIRO", "90000011", "CONFIRMADA")
+    ]
+    assert len(resultado.personas[0].procedencias) == 2
+    assert resultado.menciones == ()
+
+
+def test_prosa_con_documento_del_ancla_se_adjunta_sin_conflicto():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "minuta-ficticia.txt": "ALBA LUMARIA ZAFIRA, DE NACIONALIDAD PERUANA. DNI 90000011",
+        }
+    )
+
+    (ancla,) = resultado.personas
+    assert ancla.estado == "CONFIRMADA"
+    assert ancla.nombre == "ALBA LUMARIA ZAFIRO"
+    assert ancla.adjuntos == (
+        Persona(
+            "ALBA LUMARIA ZAFIRA",
+            "90000011",
+            (Procedencia("minuta-ficticia.txt", 1),),
+        ),
+    )
+    assert resultado.menciones == ()
+    assert {"ALBA LUMARIA ZAFIRO", "ALBA LUMARIA ZAFIRA"} <= resultado["NOMBRE"]
+
+
+def test_nombre_solo_se_adjunta_a_ancla_unica_con_la_misma_clave():
+    prosa = "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA."
+    unica = catalogo({"reniec-ficticio.pdf": _ALBA, "minuta-ficticia.txt": prosa})
+    assert [a.nombre for a in unica.personas[0].adjuntos] == ["ALBA LUMARIA ZAFIRO"]
+    assert unica.menciones == ()
+
+    homonimas = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA
+            + "\f"
+            + _reniec("90000022", "ALBA", "LUMARIA", "ZAFIRO"),
+            "minuta-ficticia.txt": prosa,
+        }
+    )
+    assert len(homonimas.personas) == 2
+    assert all(p.adjuntos is None for p in homonimas.personas)
+    assert [(m.nombre, m.estado) for m in homonimas.menciones] == [
+        ("ALBA LUMARIA ZAFIRO", "SIN_FICHA")
+    ]
+
+
+def test_documento_sin_ancla_nunca_se_pega_por_nombre():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "minuta-ficticia.txt": "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA. DNI 90000099",
+        }
+    )
+
+    assert resultado.personas[0].adjuntos is None
+    assert [(m.nombre, m.documento, m.estado) for m in resultado.menciones] == [
+        ("ALBA LUMARIA ZAFIRO", "90000099", "SIN_FICHA")
+    ]
+
+
+def test_conflictos_solo_entre_anclas():
+    distintos = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA
+            + "\f"
+            + _reniec("90000022", "ALBA", "LUMARIA", "ZAFIRO")
+        }
+    )
+    assert [(p.documento, p.estado) for p in distintos.personas] == [
+        ("90000011", "CONFIRMADA"),
+        ("90000022", "CONFIRMADA"),
+    ]
+
+    cruzados = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA
+            + "\f"
+            + _reniec("90000011", "BRUNO", "TELURIO", "NEBULOSA")
+        }
+    )
+    assert [p.estado for p in cruzados.personas] == ["REVISION_MANUAL"] * 2
+
+    antigua = (
+        _RENIEC_F12.replace("CASADA", "SOLTERA") + "\nFECHA DE EMISION  01/02/2024"
+    )
+    reciente = _RENIEC_F12 + "\nFECHA DE EMISION  03/04/2025"
+    (ancla,) = catalogo({"reniec-ficticio.pdf": f"{antigua}\f{reciente}"}).personas
+    assert (ancla.estado_civil, ancla.estado) == ("CASADO", "REVISION_MANUAL")
+
+
+def test_mencion_con_documento_de_dos_anclas_no_elige_titular():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA
+            + "\f"
+            + _reniec("90000011", "BRUNO", "TELURIO", "NEBULOSA"),
+            "suelto-ficticio.txt": "DNI 90000011",
+        }
+    )
+
+    assert all(p.adjuntos is None for p in resultado.personas)
+    assert [(m.documento, m.estado) for m in resultado.menciones] == [
+        ("90000011", "SIN_FICHA")
+    ]
+
+
+def test_ficha_reniec_sin_documento_legible_es_mencion():
+    ilegible = _ALBA.replace("CUI: 90000011 - 5", "CUI: 9000O011")
+    resultado = catalogo({"reniec-ficticio.pdf": ilegible})
+
+    assert resultado.personas == ()
+    assert [(m.nombre, m.documento, m.estado) for m in resultado.menciones] == [
+        ("ALBA LUMARIA ZAFIRO", None, "SIN_FICHA")
+    ]
+
+
+def _declaracion(conyuge, documento="90000011"):
+    dni = f"DNI: {documento}\n" if documento else ""
+    return (
+        "DECLARACION JURADA\nAPELLIDOS: LUMARIA ZAFIRO\nNOMBRES: ALBA\n"
+        f"{dni}NOMBRES Y APELLIDOS DEL CONYUGE: {conyuge}"
+    )
+
+
+def test_conyuge_de_declaracion_jurada_se_adjunta_al_ancla():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "declaracion-ficticia.txt": _declaracion("EMILIO SOLANO QUIMERA"),
+        }
+    )
+
+    origen = Procedencia("declaracion-ficticia.txt", 1)
+    (ancla,) = resultado.personas
+    assert (ancla.conyuge, ancla.procedencia_conyuge) == (
+        "EMILIO SOLANO QUIMERA",
+        origen,
+    )
+    assert ancla.adjuntos == (
+        Persona(
+            "ALBA LUMARIA ZAFIRO",
+            "90000011",
+            (origen,),
+            conyuge="EMILIO SOLANO QUIMERA",
+            procedencia_conyuge=origen,
+        ),
+    )
+    assert ancla.estado == "CONFIRMADA"
+    assert resultado.menciones == ()
+    assert "EMILIO SOLANO QUIMERA" in resultado["NOMBRE"]
+
+
+def test_declarante_sin_documento_se_pega_por_nombre_unico():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "declaracion-ficticia.txt": _declaracion("EMILIO SOLANO QUIMERA", None),
+        }
+    )
+
+    (ancla,) = resultado.personas
+    assert ancla.conyuge == "EMILIO SOLANO QUIMERA"
+    assert [(a.nombre, a.documento) for a in ancla.adjuntos] == [
+        ("ALBA LUMARIA ZAFIRO", None)
+    ]
+    assert resultado.menciones == ()
+
+
+def test_menciones_del_mismo_declarante_con_conyuges_distintos_no_se_fusionan():
+    resultado = catalogo(
+        {
+            "declaracion-ficticia.txt": _declaracion("EMILIO SOLANO QUIMERA")
+            + "\f"
+            + _declaracion("FABIO RIVORIA TELMO")
+        }
+    )
+
+    assert [m.conyuge for m in resultado.menciones] == [
+        "EMILIO SOLANO QUIMERA",
+        "FABIO RIVORIA TELMO",
+    ]
+    assert {m.estado for m in resultado.menciones} == {"SIN_FICHA"}
+
+
+def test_dos_declaraciones_con_conyuges_distintos_en_el_mismo_ancla():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _ALBA,
+            "declaracion-ficticia.txt": _declaracion("EMILIO SOLANO QUIMERA")
+            + "\f"
+            + _declaracion("FABIO RIVORIA TELMO"),
+        }
+    )
+
+    (ancla,) = resultado.personas
+    assert ancla.estado == "CONFIRMADA"
+    assert ancla.conyuge == "EMILIO SOLANO QUIMERA"
+    assert ancla.procedencia_conyuge == Procedencia("declaracion-ficticia.txt", 1)
+    assert [a.conyuge for a in ancla.adjuntos] == [
+        "EMILIO SOLANO QUIMERA",
+        "FABIO RIVORIA TELMO",
+    ]
+    assert {"EMILIO SOLANO QUIMERA", "FABIO RIVORIA TELMO"} <= resultado["NOMBRE"]
+
+
+def test_conyuge_sin_declarante_identificado_es_mencion_propia():
+    resultado = catalogo(
+        {
+            "declaracion-ficticia.txt": (
+                "DECLARACION JURADA\n"
+                "NOMBRES Y APELLIDOS DEL CONYUGE: EMILIO SOLANO QUIMERA"
+            )
+        }
+    )
+
+    origen = Procedencia("declaracion-ficticia.txt", 1)
+    assert resultado.personas == ()
+    assert resultado.menciones == (
+        Persona(
+            None,
+            None,
+            (origen,),
+            "SIN_FICHA",
+            conyuge="EMILIO SOLANO QUIMERA",
+            procedencia_conyuge=origen,
+        ),
+    )
+    assert resultado["NOMBRE"] == {"EMILIO SOLANO QUIMERA"}
