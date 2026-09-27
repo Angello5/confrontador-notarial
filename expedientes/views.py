@@ -14,7 +14,7 @@ from .models import Documento, Expediente
 from .services import (
     DocumentoDuplicado,
     eliminar_documento,
-    expedientes_visibles,
+    expedientes_con_resumen,
     registrar_documento,
     resumen_documento,
     resumen_expediente,
@@ -133,9 +133,7 @@ def expediente_lista(request):
                 return redirect("expediente_detalle", pk=expediente.pk)
     else:
         form = ExpedienteForm()
-    expedientes = expedientes_visibles(request.user).order_by("-actualizado_el", "-pk")
-    filas = [(expediente, resumen_expediente(expediente)) for expediente in expedientes]
-    contexto = {"form": form, "expedientes": filas}
+    contexto = {"form": form, "expedientes": expedientes_con_resumen(request.user)}
     contexto.update(_navegacion_contexto(request))
     return render(
         request,

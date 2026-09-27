@@ -124,3 +124,144 @@ def test_pending_user_does_not_see_brand_or_navigation(client):
     assert 'class="app-footer"' not in content
     assert "Migas de pan" not in content
     assert "clave temporal" in content
+
+
+# F14 · Rediseño de interfaz
+
+
+def _crear_expediente(codigo, usuario, *estados):
+    from expedientes.models import Documento, Expediente
+
+    expediente = Expediente.objects.create(codigo=codigo, creado_por=usuario)
+    for indice, estado in enumerate(estados):
+        Documento.objects.create(
+            expediente=expediente,
+            rol=Documento.CLIENTE,
+            nombre_original=f"ficticio-{indice}.txt",
+            hash_archivo=f"{codigo}{indice}".lower().ljust(64, "0")[:64],
+            tamano_bytes=4,
+            estado=estado,
+            subido_por=usuario,
+        )
+    return expediente
+
+
+def test_erp_css_es_local_y_lo_cargan_base_y_login(client, usuario_ficticio):
+    assert finders.find("css/erp.css")
+    client.force_login(usuario_ficticio)
+    assert b"/static/css/erp.css" in client.get(reverse("home")).content
+    client.logout()
+    assert b"/static/css/erp.css" in client.get(reverse("login")).content
+
+
+def test_shell_de_usuario_muestra_marca_pie_y_activo(client, usuario_ficticio):
+    client.force_login(usuario_ficticio)
+
+    content = client.get(reverse("home")).content.decode()
+
+    assert "CONFRONTADOR" in content
+    assert "ERP NOTARIAL" in content
+    assert re.search(r'href="/"[^>]*aria-current="page"', content)
+    assert not re.search(r'href="/expedientes/"[^>]*aria-current', content)
+    assert "usuario_ficticio" in content
+    assert "Usuario</" in content
+    assert ">US<" in content
+    assert ':aria-expanded="menuAbierto"' in content
+    assert "Usuarios y permisos" not in content
+
+
+def test_shell_marca_expedientes_activo_en_lista_y_detalle(client, usuario_ficticio):
+    expediente = _crear_expediente("EXP-FICTICIO-ACTIVO", usuario_ficticio)
+    client.force_login(usuario_ficticio)
+
+    for ruta in (reverse("expediente_lista"), f"/expedientes/{expediente.pk}/"):
+        content = client.get(ruta).content.decode()
+        assert re.search(r'href="/expedientes/"[^>]*aria-current="page"', content)
+        assert not re.search(r'href="/"[^>]*aria-current', content)
+
+
+def test_shell_de_administrador_muestra_seccion_administracion(
+    client, administrador_ficticio
+):
+    client.force_login(administrador_ficticio)
+
+    content = client.get(reverse("home")).content.decode()
+
+    assert "Usuarios y permisos" in content
+    assert "Administrador</" in content
+
+
+def test_inicio_calcula_metricas_con_la_visibilidad_de_la_lista(
+    client, usuario_ficticio, administrador_ficticio
+):
+    _crear_expediente("EXP-FICTICIO-M1", usuario_ficticio)
+    _crear_expediente("EXP-FICTICIO-M2", usuario_ficticio, "PENDIENTE", "LISTO")
+    _crear_expediente("EXP-FICTICIO-M3", usuario_ficticio, "LISTO")
+    _crear_expediente("EXP-FICTICIO-M4", usuario_ficticio, "ERROR")
+    _crear_expediente("EXP-FICTICIO-AJENO", administrador_ficticio, "LISTO")
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.get(reverse("home"))
+
+    assert respuesta.context["metricas"] == {
+        "total": 4,
+        "procesando": 1,
+        "listos": 1,
+        "errores": 1,
+    }
+    content = respuesta.content.decode()
+    assert "EXP-FICTICIO-AJENO" not in content
+    assert "Listos para confrontar" in content
+    assert 'data-estado="ERROR"' in content
+
+    client.force_login(administrador_ficticio)
+    assert client.get(reverse("home")).context["metricas"]["total"] == 5
+
+
+def test_inicio_lista_los_cinco_mas_recientes_sin_datos_sensibles(
+    client, usuario_ficticio
+):
+    for numero in range(7):
+        _crear_expediente(f"EXP-FICTICIO-U{numero}", usuario_ficticio, "LISTO")
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.get(reverse("home"))
+
+    codigos = [expediente.codigo for expediente, _ in respuesta.context["ultimos"]]
+    assert codigos == [f"EXP-FICTICIO-U{numero}" for numero in range(6, 1, -1)]
+    content = respuesta.content.decode()
+    assert "EXP-FICTICIO-U1<" not in content
+    assert "hash" not in content.lower()
+    assert "ficticio-0.txt" not in content
+    assert "<caption" in content
+    assert "Nueva confrontación" in content
+    assert "Control administrativo" not in content
+
+
+def test_inicio_vacio_ofrece_crear_el_primero(client, usuario_ficticio):
+    client.force_login(usuario_ficticio)
+
+    content = client.get(reverse("home")).content.decode()
+
+    assert "<table" not in content
+    assert 'href="/expedientes/"' in content
+    assert "primer expediente" in content
+
+
+def test_inicio_de_administrador_ofrece_control_administrativo(
+    client, administrador_ficticio
+):
+    client.force_login(administrador_ficticio)
+
+    content = client.get(reverse("home")).content.decode()
+
+    assert "Control administrativo" in content
+    assert "Administrar" in content
+
+
+def test_plantillas_no_mencionan_ia():
+    from pathlib import Path
+
+    for plantilla in Path("templates").rglob("*.html"):
+        texto = plantilla.read_text(encoding="utf-8")
+        assert not re.search(r"\b(IA|AI)\b", texto), plantilla

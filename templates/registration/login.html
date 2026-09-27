@@ -6,16 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ingresar · ERP Notarial</title>
     <link rel="stylesheet" href="{% static 'vendor/adminlte/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/erp.css' %}">
   </head>
-  <body class="login-page bg-body-secondary">
+  <body class="login-page">
     <main class="login-box" aria-labelledby="titulo-login">
-      <div class="card card-outline card-primary">
-        <div class="card-header text-center">
-          <span class="h2">ERP Notarial</span>
-        </div>
-        <div class="card-body login-card-body">
-          <h1 id="titulo-login" class="h4">Ingresar</h1>
-          <p class="login-box-msg">Use la cuenta que le asignó la notaría.</p>
+      <div class="marca">
+        <span class="marca-sello" aria-hidden="true">CN</span>
+        <span><span class="marca-nombre">CONFRONTADOR</span><span class="marca-sub">ERP NOTARIAL</span></span>
+      </div>
+      <div class="card">
+        <div class="card-body login-card-body p-4">
+          <h1 id="titulo-login" class="h4 fw-bold">Ingresar</h1>
+          <p class="text-body-secondary">Use la cuenta que le asignó la notaría.</p>
           <p class="form-text">Los campos marcados con * son obligatorios.</p>
           {% for message in messages %}
             <div class="alert alert-{{ message.tags }}" role="status">{{ message }}</div>

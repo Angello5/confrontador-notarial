@@ -34,7 +34,7 @@
 | `--erp-surface` | `#FFFFFF` | Tarjetas |
 | `--erp-border` | `#C3C9D9` | Borde de tarjetas y separadores |
 | `--erp-ink` | `#00112C` | Texto principal |
-| `--erp-muted` | gris medio de Bootstrap (`#6C757D`) | Texto secundario, migas, etiquetas «eyebrow» |
+| `--erp-muted` | `#5C6470` (el `#6C757D` de Bootstrap no llega a AA sobre `--erp-bg`) | Texto secundario, migas |
 | `--erp-success-bg` | `#E5FAED` | Chip «Conforme/Listo», fila de archivo procesado, aviso de privacidad |
 | Rojo de Bootstrap (`danger`) | — | Chip «Revisión/Error» sobre fondo rosado claro |
 
@@ -84,7 +84,7 @@ Como usuario, quiero que Inicio resuma mis expedientes con las tarjetas del dise
 **Acceptance Scenarios**:
 
 1. **Given** un expediente, **When** se abre, **Then** la cabecera muestra el código, el riel «Fuentes → Borrador → Procesamiento → Resultado» con el paso actual derivado del estado (sin documentos → Fuentes; falta borrador o falta cliente/minuta → el que falte; pendientes o procesando → Procesamiento; todo listo → Resultado), el panel izquierdo «Documentos del expediente» con las zonas de arrastre de cliente y minuta, el panel derecho «Borrador a confrontar», la línea de privacidad («los archivos se procesan localmente y se eliminan al terminar; el texto extraído se conserva») y el botón navy «Confrontar borrador» por borrador, habilitado solo cuando el sondeo lo permite, como hoy.
-2. **Given** archivos cargados, **When** se muestran, **Then** cada fila lleva ✓ verde y chip «Procesado», «Pendiente», «Procesando» o «Error», y el botón «Eliminar» con confirmación, como hoy.
+2. **Given** archivos cargados, **When** se muestran, **Then** cada fila lleva chip con el texto de estado actual («Pendiente», «Procesando», «Listo» o «No se pudo procesar», FR-005) y ✓ verde cuando está lista, y el botón «Eliminar» con confirmación, como hoy.
 3. **Given** el sondeo de estado, **When** cambia el estado, **Then** el riel y los chips se actualizan sin recargar, con la misma respuesta JSON de hoy (sin campos nuevos).
 
 ### User Story 5 - Resultado de la confrontación (Priority: P2)

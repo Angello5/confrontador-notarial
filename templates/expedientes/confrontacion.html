@@ -1,16 +1,16 @@
 {% extends "core/base.html" %}
 
 {% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
-{% block heading %}Confrontación del borrador{% endblock %}
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Confrontación</li>
+{% endblock %}
+{% block eyebrow %}Expedientes / Confrontación{% endblock %}
+{% block heading %}Resultado de la confrontación{% endblock %}
+{% block subtitle %}{{ expediente.codigo }} · {{ borrador.nombre_original }}{% endblock %}
+{% block actions %}<a class="btn btn-outline-primary" href="{% url 'expediente_detalle' expediente.pk %}">Volver al expediente</a>{% endblock %}
 {% block content %}
-  <nav aria-label="Migas de pan">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Confrontación</li>
-    </ol>
-  </nav>
-
   {% if resultado.estado == "ADVERTENCIA_CORRESPONDENCIA" %}
     <section class="alert alert-warning" role="alert" aria-live="polite">
       <h2 class="h5">Revise los documentos</h2>
@@ -28,8 +28,13 @@
       <p class="mb-0">No se pudo completar la confrontación. Intente nuevamente.</p>
     </section>
   {% elif resultado.estado == "RESULTADO" %}
-    <section class="card card-outline card-primary mb-3" aria-labelledby="resultado-titulo">
-      <div class="card-header"><h2 id="resultado-titulo" class="h5 mb-0">Resultado de la confrontación</h2></div>
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Personas" valor=resultado.personas|length apoyo="Observaciones de identidad" tono="rojo" %}</div>
+      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Regla" valor=resultado.regla|length apoyo="Datos que no coinciden con las fuentes" tono="rojo" %}</div>
+      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Ortografía" valor=resultado.ortografia|length apoyo="Palabras para revisar" %}</div>
+    </div>
+    <section class="card mb-3 border-0" aria-labelledby="resultado-titulo">
+      <h2 id="resultado-titulo" class="visually-hidden">Resumen</h2>
       <div class="card-body" role="status" aria-live="polite">
         {% if resultado.personas or resultado.regla or resultado.ortografia %}
           <p class="mb-0">Se encontraron observaciones para revisar.</p>
@@ -164,7 +169,7 @@
 
     {% if resultado.personas %}
     <section class="card mb-3" aria-labelledby="personas-titulo">
-      <div class="card-header"><h2 id="personas-titulo" class="h5 mb-0">Personas <span class="badge text-bg-secondary">{{ resultado.personas|length }}</span></h2></div>
+      <div class="card-header"><h2 id="personas-titulo" class="h5 fw-bold mb-0">Personas {% if resultado.personas %}{% include "core/_chip.html" with estado="REVISION" texto=resultado.personas|length %}{% else %}{% include "core/_chip.html" with estado="LISTO" texto="0" %}{% endif %}</h2></div>
       <div class="card-body">
         {% if resultado.personas %}
           <div class="table-responsive">
@@ -199,7 +204,7 @@
     {% endif %}
 
     <section class="card mb-3" aria-labelledby="regla-titulo">
-      <div class="card-header"><h2 id="regla-titulo" class="h5 mb-0">Regla <span class="badge text-bg-secondary">{{ resultado.regla|length }}</span></h2></div>
+      <div class="card-header"><h2 id="regla-titulo" class="h5 fw-bold mb-0">Regla {% if resultado.regla %}{% include "core/_chip.html" with estado="REVISION" texto=resultado.regla|length %}{% else %}{% include "core/_chip.html" with estado="LISTO" texto="0" %}{% endif %}</h2></div>
       <div class="card-body">
         {% if resultado.regla %}
           <div class="table-responsive">
@@ -233,7 +238,7 @@
     </section>
 
     <section class="card mb-3" aria-labelledby="ortografia-titulo">
-      <div class="card-header"><h2 id="ortografia-titulo" class="h5 mb-0">Ortografía <span class="badge text-bg-secondary">{{ resultado.ortografia|length }}</span></h2></div>
+      <div class="card-header"><h2 id="ortografia-titulo" class="h5 fw-bold mb-0">Ortografía {% if resultado.ortografia %}{% include "core/_chip.html" with estado="REVISION" texto=resultado.ortografia|length %}{% else %}{% include "core/_chip.html" with estado="LISTO" texto="0" %}{% endif %}</h2></div>
       <div class="card-body">
         {% if resultado.ortografia %}
           <div class="table-responsive">

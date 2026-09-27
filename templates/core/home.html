@@ -1,14 +1,67 @@
 {% extends "core/base.html" %}
 
 {% block title %}Inicio · ERP Notarial{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active" aria-current="page">Inicio</li>{% endblock %}
+{% block eyebrow %}Inicio{% endblock %}
+{% block heading %}Resumen general{% endblock %}
+{% block subtitle %}Estado de sus expedientes y accesos rápidos para su rol.{% endblock %}
 {% block content %}
-  <nav aria-label="Migas de pan">
-    <ol class="breadcrumb"><li class="breadcrumb-item active" aria-current="page">Inicio</li></ol>
-  </nav>
-  <section class="card card-outline card-primary" aria-labelledby="inicio-titulo">
-    <div class="card-body">
-      <h2 id="inicio-titulo" class="h4">Bienvenido al ERP Notarial</h2>
-      <p>No hay módulos disponibles por ahora. Las funciones aparecerán aquí cuando estén habilitadas.</p>
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">{% include "core/_metrica.html" with etiqueta="Expedientes" valor=metricas.total apoyo="Visibles para usted" %}</div>
+    <div class="col-6 col-xl-3">{% include "core/_metrica.html" with etiqueta="Procesando" valor=metricas.procesando apoyo="Documentos en cola o en extracción" %}</div>
+    <div class="col-6 col-xl-3">{% include "core/_metrica.html" with etiqueta="Listos para confrontar" valor=metricas.listos apoyo="Todos sus documentos listos" tono="verde" %}</div>
+    <div class="col-6 col-xl-3">{% include "core/_metrica.html" with etiqueta="Con error" valor=metricas.errores apoyo="Algún documento no se pudo procesar" tono="rojo" %}</div>
+  </div>
+  <div class="row g-3">
+    <div class="col-12 col-xl-8">
+      <section class="card h-100" aria-labelledby="ultimos-titulo">
+        <div class="card-body p-3 p-md-4">
+          <h2 id="ultimos-titulo" class="h5 fw-bold">Últimos expedientes</h2>
+          <p class="text-body-secondary small">Los cinco actualizados más recientemente.</p>
+          {% if ultimos %}
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <caption class="visually-hidden">Últimos expedientes y su estado</caption>
+                <thead><tr><th scope="col">Expediente</th><th scope="col">Estado</th><th scope="col" class="d-none d-md-table-cell">Actualizado</th><th scope="col"><span class="visually-hidden">Acción</span></th></tr></thead>
+                <tbody>
+                  {% for expediente, resumen in ultimos %}
+                    <tr>
+                      <th scope="row" class="text-nowrap">{{ expediente.codigo }}</th>
+                      <td>{% include "core/_chip.html" with estado=resumen.estado %}</td>
+                      <td class="d-none d-md-table-cell">{{ expediente.actualizado_el|date:"d/m/Y H:i" }}</td>
+                      <td class="text-end"><a class="btn btn-outline-primary btn-sm" href="{% url 'expediente_detalle' expediente.pk %}">Abrir</a></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <a class="d-inline-block mt-3 fw-semibold" href="{% url 'expediente_lista' %}">Ver todos los expedientes →</a>
+          {% else %}
+            <p class="mb-0">Aún no hay expedientes. <a href="{% url 'expediente_lista' %}">Cree su primer expediente</a> para cargar documentos.</p>
+          {% endif %}
+        </div>
+      </section>
     </div>
-  </section>
+    <div class="col-12 col-xl-4">
+      <section class="card acceso" aria-labelledby="acceso-titulo">
+        <div class="card-body p-3 p-md-4">
+          <p class="eyebrow">Acceso rápido</p>
+          {% if es_administrador %}
+            <h2 id="acceso-titulo" class="h4 fw-bold my-3">Control administrativo</h2>
+            <p>Administre cuentas, roles y permisos.</p>
+            <a class="btn btn-verde w-100 mt-3" href="{% url 'admin:index' %}">Administrar</a>
+          {% else %}
+            <h2 id="acceso-titulo" class="h4 fw-bold my-3">Nueva confrontación</h2>
+            <p>Compare el borrador de escritura con la minuta y los documentos del cliente.</p>
+            <ol>
+              <li>Sube los documentos</li>
+              <li>Procesa el expediente</li>
+              <li>Revisa las observaciones</li>
+            </ol>
+            <a class="btn btn-verde w-100" href="{% url 'expediente_lista' %}">Comenzar</a>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+  </div>
 {% endblock %}

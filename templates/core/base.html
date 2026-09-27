@@ -6,28 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}ERP Notarial{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'vendor/adminlte/adminlte.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/erp.css' %}">
     <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
   </head>
-  <body class="layout-fixed sidebar-expand-lg bg-body-tertiary" x-data="{ menuAbierto: false }" :class="{ 'sidebar-open': menuAbierto }">
+  <body class="layout-fixed sidebar-expand-lg" x-data="{ menuAbierto: false }" :class="{ 'sidebar-open': menuAbierto }" @keydown.escape.window="menuAbierto = false">
     <div class="app-wrapper">
-      <header class="app-header navbar navbar-expand bg-body">
-        <div class="container-fluid">
+      <header class="app-header navbar navbar-expand">
+        <div class="container-fluid gap-2">
           {% if not user.force_password_change %}
             <button class="btn btn-link d-lg-none" type="button" @click="menuAbierto = !menuAbierto" :aria-expanded="menuAbierto" aria-controls="menu-principal">
               <span class="visually-hidden">Abrir o cerrar navegación</span>
               <span aria-hidden="true">☰</span>
             </button>
+            <nav aria-label="Migas de pan" class="d-none d-sm-block">
+              <ol class="breadcrumb">{% block breadcrumb %}{% endblock %}</ol>
+            </nav>
           {% endif %}
-          {% if not user.force_password_change %}<a class="navbar-brand" href="{% url 'home' %}">ERP Notarial</a>{% endif %}
-          <form method="post" action="{% url 'logout' %}" class="ms-auto">
-            {% csrf_token %}
-            <button class="btn btn-outline-secondary" type="submit">Cerrar sesión</button>
-          </form>
+          <div class="ms-auto d-flex align-items-center gap-2">
+            <span class="avatar" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
+            <form method="post" action="{% url 'logout' %}">
+              {% csrf_token %}
+              <button class="btn btn-outline-secondary btn-sm" type="submit">Cerrar sesión</button>
+            </form>
+          </div>
         </div>
       </header>
       {% if not user.force_password_change %}
-      <aside id="menu-principal" class="app-sidebar bg-body-secondary">
-        <nav class="mt-2" aria-label="Navegación principal">
+      <aside id="menu-principal" class="app-sidebar" data-bs-theme="dark">
+        <a class="marca navbar-brand" href="{% url 'home' %}">
+          <span class="marca-sello" aria-hidden="true">CN</span>
+          <span><span class="marca-nombre">CONFRONTADOR</span><span class="marca-sub">ERP NOTARIAL</span></span>
+        </a>
+        <nav aria-label="Navegación principal">
+          <p class="menu-seccion">Menú principal</p>
           <ul class="nav sidebar-menu flex-column">
             <li class="nav-item">
               <a class="nav-link" href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>
@@ -37,34 +48,48 @@
             </li>
             {% if es_administrador or es_usuario %}
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'expediente_lista' %}"{% if request.resolver_match.namespace == '' and request.resolver_match.url_name == 'expediente_lista' %} aria-current="page"{% endif %}>
+                <a class="nav-link" href="{% url 'expediente_lista' %}"{% if request.resolver_match.route|slice:":12" == "expedientes/" %} aria-current="page"{% endif %}>
                   <span class="nav-icon" aria-hidden="true">▣</span>
                   <span>Expedientes</span>
                 </a>
               </li>
             {% endif %}
-            {% if es_administrador %}
+          </ul>
+          {% if es_administrador %}
+            <p class="menu-seccion">Administración</p>
+            <ul class="nav sidebar-menu flex-column">
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'admin:index' %}"{% if request.resolver_match.namespace == 'admin' and request.resolver_match.url_name == 'index' %} aria-current="page"{% endif %}>
+                <a class="nav-link" href="{% url 'admin:index' %}">
                   <span class="nav-icon" aria-hidden="true">⚙</span>
-                  <span>Administración</span>
+                  <span>Usuarios y permisos</span>
                 </a>
               </li>
-            {% endif %}
-          </ul>
+            </ul>
+          {% endif %}
         </nav>
+        <div class="menu-pie">
+          <strong>{{ user.username }}</strong>
+          <small>{% if es_administrador %}Administrador{% elif es_usuario %}Usuario{% endif %}</small>
+        </div>
       </aside>
+      <div class="sidebar-overlay" @click="menuAbierto = false"></div>
       {% endif %}
       <main class="app-main">
-        <div class="app-content-header"><div class="container-fluid"><h1 class="h3">{% block heading %}Inicio{% endblock %}</h1></div></div>
-        <div class="app-content"><div class="container-fluid">
+        <div class="container-fluid px-3 px-lg-4">
+          <div class="cabecera">
+            <div>
+              <p class="eyebrow">{% block eyebrow %}{% endblock %}</p>
+              <h1>{% block heading %}Inicio{% endblock %}</h1>
+              <p class="subtitulo">{% block subtitle %}{% endblock %}</p>
+            </div>
+            {% block actions %}{% endblock %}
+          </div>
           {% for message in messages %}
             <div class="alert alert-{{ message.tags }}" role="status">{{ message }}</div>
           {% endfor %}
           {% block content %}{% endblock %}
-        </div></div>
+        </div>
       </main>
-      {% if not user.force_password_change %}<footer class="app-footer"><span>ERP Notarial</span></footer>{% endif %}
     </div>
   </body>
 </html>

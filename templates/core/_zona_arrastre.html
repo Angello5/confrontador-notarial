@@ -1,0 +1,13 @@
+{% comment %}
+Zona de arrastre: el `campo` de archivos real cubre el recuadro, así que se
+puede soltar o pulsar; teclado y lector de pantalla usan el input nativo.
+La ayuda usa `formatos_admitidos` y `max_file_size_mb` del contexto.
+{% endcomment %}
+<div class="zona-arrastre" x-data="{ elegidos: '' }">
+  <span class="zona-mas" aria-hidden="true">+</span>
+  <span>
+    <span class="zona-titulo" x-text="elegidos || '{{ titulo|escapejs }}'">{{ titulo }}</span>
+    <span class="zona-ayuda">Formatos: {{ formatos_admitidos }} · máximo {{ max_file_size_mb|floatformat:0 }} MB por archivo</span>
+  </span>
+  <span @change="elegidos = Array.from($event.target.files).map(archivo => archivo.name).join(', ')">{{ campo }}</span>
+</div>

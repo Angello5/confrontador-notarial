@@ -620,3 +620,43 @@ def test_extraccion_sin_fichas_avisa_y_muestra_catalogo(
     assert "Ninguna ficha RENIEC o biométrica en el legajo." in contenido
     assert "Catálogo agregado" in contenido
     assert "Menciones sin ficha" not in contenido
+
+
+def test_resultado_muestra_cabecera_y_metricas_por_capa(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-METRICAS", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    ubicacion = {"linea": None, "fragmento": ""}
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda expediente, documento: {
+            "estado": "RESULTADO",
+            "regla": [
+                {
+                    "campo": "DNI",
+                    "hallado": "1",
+                    "esperado": "2",
+                    "ubicacion": ubicacion,
+                }
+            ]
+            * 2,
+            "ortografia": [],
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+    assert "<h1>Resultado de la confrontación</h1>" in contenido
+    assert "EXP-FICTICIO-METRICAS · borrador-ficticio.txt" in contenido
+    assert contenido.count('class="card metrica"') == 3
+    assert '<p class="metrica-valor">2</p>' in contenido
+    assert 'class="chip" data-estado="REVISION">2</span>' in contenido
+    assert 'class="chip" data-estado="LISTO">0</span>' in contenido

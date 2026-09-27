@@ -1,0 +1,9 @@
+{% comment %}
+Tarjeta de métrica: etiqueta con punto de color (`tono`: navy por defecto,
+verde o rojo), número grande y línea de apoyo opcional.
+{% endcomment %}
+<div class="card metrica" data-tono="{{ tono }}">
+  <p class="metrica-etiqueta">{{ etiqueta }}</p>
+  <p class="metrica-valor">{{ valor }}</p>
+  {% if apoyo %}<p class="metrica-apoyo">{{ apoyo }}</p>{% endif %}
+</div>
