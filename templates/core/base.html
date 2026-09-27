@@ -72,7 +72,7 @@
           <small>{% if es_administrador %}Administrador{% elif es_usuario %}Usuario{% endif %}</small>
         </div>
       </aside>
-      <div class="sidebar-overlay" @click="menuAbierto = false"></div>
+      <button type="button" class="sidebar-overlay" aria-label="Cerrar navegación" @click="menuAbierto = false"></button>
       {% endif %}
       <main class="app-main">
         <div class="container-fluid px-3 px-lg-4">

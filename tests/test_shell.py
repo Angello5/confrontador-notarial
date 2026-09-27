@@ -265,3 +265,16 @@ def test_plantillas_no_mencionan_ia():
     for plantilla in Path("templates").rglob("*.html"):
         texto = plantilla.read_text(encoding="utf-8")
         assert not re.search(r"\b(IA|AI)\b", texto), plantilla
+
+
+def test_mobile_overlay_is_a_keyboard_accessible_button(client, usuario_ficticio):
+    client.force_login(usuario_ficticio)
+
+    html = client.get(reverse("home")).content.decode()
+
+    assert re.search(
+        r'<button type="button" class="sidebar-overlay" aria-label="Cerrar navegación"'
+        r' @click="menuAbierto = false"></button>',
+        html,
+    )
+    assert '<div class="sidebar-overlay"' not in html
