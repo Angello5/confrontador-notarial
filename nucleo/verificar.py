@@ -121,6 +121,11 @@ RE_DNI_DOC = re.compile(
     r"\s*(?:(?:N[O°]?|NUMERO)\s*)?(?:[:,.]\s*)?(?<!\d)(\d{8})(?!\d)"
 )
 # En documentos el DNI viene rotulado y siempre tiene exactamente 8 digitos.
+RE_DNI_BORRADOR = re.compile(
+    r"(?:DNI|IDENTIDAD|D[.]N[.]I[.]?|D[.]N[.]1[,.;]?)"
+    r"\s*(?:(?:N[O°]?|NUMERO|NRO[.]?)\s*)?(?:[:,.]\s*)?(?<!\d)(\d{6,10})(?!\d)"
+)
+# F19: en el borrador el rótulo basta; la longitud incorrecta es el error.
 
 RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
 # La forma corta PARTIDA N° también es valida en algunos actos.
@@ -1052,6 +1057,127 @@ def nombres_exigibles(cat: Catalogo, textos) -> frozenset[str]:
     }
 
 
+_NUMEROS = {
+    **{
+        w: i
+        for i, w in enumerate(
+            "CERO UNO DOS TRES CUATRO CINCO SEIS SIETE OCHO NUEVE DIEZ ONCE DOCE "
+            "TRECE CATORCE QUINCE DIECISEIS DIECISIETE DIECIOCHO DIECINUEVE VEINTE "
+            "VEINTIUNO VEINTIDOS VEINTITRES VEINTICUATRO VEINTICINCO VEINTISEIS "
+            "VEINTISIETE VEINTIOCHO VEINTINUEVE".split()
+        )
+    },
+    **{
+        w: 30 + 10 * i
+        for i, w in enumerate(
+            "TREINTA CUARENTA CINCUENTA SESENTA SETENTA OCHENTA NOVENTA".split()
+        )
+    },
+    **{
+        w: 100 * (i + 1)
+        for i, w in enumerate(
+            "CIENTO DOSCIENTOS TRESCIENTOS CUATROCIENTOS QUINIENTOS SEISCIENTOS "
+            "SETECIENTOS OCHOCIENTOS NOVECIENTOS".split()
+        )
+        for w in {w, w[:-2] + "AS"}
+    },
+    "UN": 1,
+    "UNA": 1,
+    "VEINTIUN": 21,
+    "VEINTIUNA": 21,
+    "CIEN": 100,
+    "MIL": 1000,
+}
+RE_CIFRA_PARENTESIS = re.compile(r"\(\s*(?:S/\s*)?(\d[\d,]*)(?:\.(\d{2}))?\s*\)")
+
+
+def numero_en_letras(palabras) -> int | None:
+    """Valor de un número en letras (0-999 999); None si una palabra no es numérica."""
+    total = actual = 0
+    for w in palabras:
+        if w == "Y":
+            continue
+        if w not in _NUMEROS:
+            return None
+        if w == "MIL":
+            total += (actual or 1) * 1000
+            actual = 0
+        else:
+            actual += _NUMEROS[w]
+    return total + actual
+
+
+def _numeros_en_letras(d: str) -> list[str]:
+    """F19: letras seguidas de su cifra entre paréntesis que no valen lo mismo."""
+    obs = []
+    for m in RE_CIFRA_PARENTESIS.finditer(d):
+        base = max(0, m.start() - 300)  # el número en letras más largo cabe
+        antes = d[base : m.start()].rstrip()
+        centimos = re.search(r"\s(?:Y|CON) (\d{2})/100$", antes)
+        palabras = list(
+            re.finditer(r"\S+", antes[: centimos.start()] if centimos else antes)
+        )
+        inicio = len(palabras)
+        # ponytail: una palabra mal escrita se reconoce por similitud >= 75; si
+        # entra ruido, subir el umbral o exigirla entre dos palabras numericas.
+        while inicio and (
+            (w := palabras[inicio - 1].group()) == "Y"
+            or w in _NUMEROS
+            or (
+                len(w) >= 3
+                and process.extractOne(
+                    w, _NUMEROS.keys(), scorer=fuzz.ratio, score_cutoff=75
+                )
+            )
+        ):
+            inicio -= 1
+        while inicio < len(palabras) and palabras[inicio].group() == "Y":
+            inicio += 1
+        span = [p.group() for p in palabras[inicio:]]
+        if not any(w in _NUMEROS for w in span):
+            continue
+        valor = numero_en_letras(span)
+        cifra = (int(m.group(1).replace(",", "")), m.group(2) or "00")
+        if valor is None or (valor, centimos.group(1) if centimos else "00") != cifra:
+            hallado = d[base + palabras[inicio].start() : m.end()]
+            esperado = m.group(1) + (f".{m.group(2)}" if m.group(2) else "")
+            obs.append(f"[NUMERO_EN_LETRAS] «{hallado}» debe decir «{esperado}»")
+    return obs
+
+
+def _nombres_por_ventana(conocidos, d: str, ya_vistos) -> list[str]:
+    """F19: la ventana del borrador más parecida a cada nombre de las fuentes."""
+    # Solo letras: un signo que arrastra el OCR («NOMBRE:») no es una diferencia.
+    conocidos = {" ".join(re.findall(r"[A-ZÑ]+", norm(n))) for n in conocidos} - {""}
+    tokens = re.findall(r"[A-ZÑ]+", d)
+    ventanas = {}
+    for n in conocidos:
+        k = len(n.split())
+        ventanas.setdefault(
+            k, [" ".join(tokens[i : i + k]) for i in range(len(tokens) - k + 1)]
+        )
+    exactos = {
+        j
+        for n in conocidos
+        for i, v in enumerate(ventanas[len(n.split())])
+        if v == n
+        for j in range(i, i + len(n.split()))
+    }
+    obs = []
+    for n in sorted(conocidos):
+        k = len(n.split())
+        libres = {
+            i: v
+            for i, v in enumerate(ventanas[k])
+            if exactos.isdisjoint(range(i, i + k))
+        }
+        m = process.extractOne(n, libres, scorer=fuzz.ratio, score_cutoff=85)
+        if m and m[0] not in ya_vistos:
+            ya_vistos.add(m[0])
+            obs.append(f"[NOMBRE] «{m[0]}» debe decir «{n}»")
+    return obs
+
+
 def revisar(
     cat: dict[str, set[str]], destino: str, umbral: int, exigibles=None
 ) -> list[str]:
@@ -1090,12 +1216,28 @@ def revisar(
             obs.append(f"[NOMBRE] «{cand}» debe decir «{m[0]}»   (caratula)")
             vistos_caratula.add(cand)
             vistos["NOMBRE"].add(m[0])
-    for m in RE_DNI_DOC.finditer(d):
-        check("DNI", m.group(1), f"   …{d[max(0, m.start() - 55) : m.end()][-70:]}")
+    obs += _nombres_por_ventana(cat["NOMBRE"], d, vistos["NOMBRE"] | vistos_caratula)
+    for m in RE_DNI_BORRADOR.finditer(d):
+        v, ctx = m.group(1), f"   …{d[max(0, m.start() - 55) : m.end()][-70:]}"
+        if len(v) == 8:
+            check("DNI", v, ctx)
+            continue
+        cercano = min(
+            sorted(cat["DNI"]),
+            key=lambda dni: Levenshtein.distance(v, dni),
+            default=None,
+        )
+        esperado = (
+            f"debe decir «{cercano}»"
+            if cercano and Levenshtein.distance(v, cercano) <= 2
+            else "no coincide con ninguna fuente"
+        )
+        obs.append(f"[DNI] «{v}» {esperado}{ctx}")
     for v in RE_PARTIDA.findall(d):
         check("PARTIDA", v)
     for v in RE_MONTO.findall(d):
         check("MONTO", v)
+    obs += _numeros_en_letras(d)
 
     for campo, vals in cat.items():
         if campo == "NOMBRE" and exigibles is not None:
