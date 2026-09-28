@@ -9,6 +9,10 @@ valor comparable, `_montos_por_posicion()` y el parámetro `minutas` de
 `revisar()`. `expedientes/services.py`: pasa la minuta por archivo y separa
 `concepto` y `fuente` del sufijo. Sin migraciones, dependencias ni plantillas.
 
+Ronda 2: `adaptadores/extraccion.py` (`_docx` por filas de tabla y
+`_FORMATO_TEXTO` en `version_extractor()`) y el comando
+`expedientes/management/commands/reextraer_expediente.py`. Sin migraciones.
+
 ## Contrato
 
 ```text
