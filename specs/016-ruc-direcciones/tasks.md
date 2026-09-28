@@ -15,3 +15,8 @@
 - [X] T006 Implementación en `nucleo/verificar.py`; adaptador de `services.py` sin cambios (prueba de adaptación).
 - [X] T007 Fixtures, suite con cobertura, Ruff, `check`, `makemigrations --check`, `git diff --check`; commits locales sin push.
 - [ ] T008 Medir SC-001, SC-002 (revisor, fuera del repositorio).
+
+## Ronda 2 — falsos positivos de DIRECCION (medición del revisor)
+
+- [ ] T009 Pruebas rojas: abreviatura desarrollada + `#` interior, distrito añadido, `NRO.`/`INT.`, ruido OCR de la fuente → nada; número 1444→1454 y calle LAS ARTES→LAS ARTAS con fuente confirmada → `[DIRECCION]` con la fuente (FR-005a, FR-005b).
+- [ ] T010 Implementación en `nucleo/verificar.py` (vocabulario de las fuentes en `Catalogo`); verificaciones de T007.

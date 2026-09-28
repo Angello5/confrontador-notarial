@@ -14,7 +14,8 @@ de la minuta en `nombres_exigibles()` y la supresión del duplicado en
 ```text
 RE_RUC_DOC / RE_RUC_BORRADOR   rótulo de RUC + (\d{11}) / (\d{9,13})
 _direcciones(texto, rotulo)    tramos tras el rótulo hasta fin de cláusula
-_direcciones_observadas(fuente, borrador) -> [(hallado, esperado)]
+_direcciones_observadas(fuente, borrador, vocabulario) -> [(hallado, esperado)]
+Catalogo.vocabulario          Counter de palabras de las páginas fuente (ronda 2)
 revisar(...)                   añade [RUC] por aparición, [RUC] FALTA y [DIRECCION]
 ```
 
@@ -22,7 +23,7 @@ revisar(...)                   añade [RUC] por aparición, [RUC] FALTA y [DIREC
 
 | Principio | Comprobación |
 |---|---|
-| I. Determinismo | Regex, rapidfuzz y Levenshtein con desempate fijo. |
+| I. Determinismo | Regex, inclusión de palabras y Levenshtein con desempate fijo. |
 | II. Núcleo puro | Todo en `nucleo/verificar.py`; sin Django ni E/S. |
 | III. Tests primero | Pruebas rojas ficticias con casos positivos y negativos. |
 | IV. Privacidad | Solo datos ficticios. |
