@@ -17,12 +17,8 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from adaptadores import extraccion
-
-# Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando.
-# from adaptadores import diccionario
-# from nucleo import ortografia
-from nucleo import verificar
+from adaptadores import diccionario, extraccion
+from nucleo import ortografia, verificar
 
 from .models import Corrida, Documento, Expediente, TextoExtraido
 
@@ -809,21 +805,6 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
         verificar.montos_exigibles(minutas),
     )
     reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
-    # Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando.
-    # try:
-    #     dic, lemas = diccionario.diccionario()
-    # except diccionario.DiccionarioNoAprovisionado:
-    #     return _resultado_no_disponible(
-    #         "Falta aprovisionar el diccionario es_PE antes de iniciar el servicio."
-    #     )
-    # propios = {palabra for nombre in catalogo["NOMBRE"] for palabra in nombre.split()}
-    # faltas = ortografia.revisar(
-    #     texto_borrador,
-    #     dic,
-    #     lemas,
-    #     diccionario.lista_casa(),
-    #     propios,
-    # )
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     if isinstance(catalogo, verificar.Catalogo):
         observaciones_regla.extend(
@@ -832,19 +813,53 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
                 texto_borrador,
             )
         )
+    personas = _observaciones_personas_legibles(observaciones_personas, texto_borrador)
+    linguistico, aviso = _capa_linguistica(
+        catalogo, observaciones_regla + personas, texto_borrador, fuentes.values()
+    )
     return {
         "estado": "RESULTADO",
         "mensaje": "",
         "fecha_referencia": fecha,
-        "personas": _observaciones_personas_legibles(
-            observaciones_personas, texto_borrador
-        ),
+        "personas": personas,
         "extraccion": extraccion,
         "regla": observaciones_regla,
-        # Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando:
-        # "ortografia": adaptar_observaciones_ortografia(faltas, texto_borrador),
-        "ortografia": [],
+        # clave historica: lleva toda la capa linguistica (F23), solo se muestra
+        "ortografia": linguistico,
+        "linguistico_aviso": aviso,
     }
+
+
+def _capa_linguistica(catalogo, observaciones, texto_borrador, textos_fuente):
+    """F23: ortografia, tildes y redaccion sin autoridad sobre los datos del A.3."""
+    protegidos = {v for campo in _CAMPOS_CATALOGO for v in catalogo.get(campo, ())}
+    if isinstance(catalogo, verificar.Catalogo):
+        protegidos |= {
+            valor
+            for registro in catalogo._registros()
+            for valor in (registro.domicilio, registro.distrito)
+            if valor
+        }
+    protegidos |= {
+        fila["hallado"]
+        for fila in observaciones
+        if fila.get("campo") != "PARRAFO" and isinstance(fila.get("hallado"), str)
+    }
+    faltas = []
+    aviso = ""
+    try:
+        dic, lemas = diccionario.diccionario()
+    except diccionario.DiccionarioNoAprovisionado:
+        aviso = "Ortografía y tildes no disponibles: falta aprovisionar el diccionario es_PE."
+    else:
+        propios = {p for valor in protegidos for p in re.findall(r"[^\W\d_]+", valor)}
+        # FR-002b: el vocabulario literal del legajo se da por conocido
+        propios |= {p for t in textos_fuente for p in re.findall(r"[^\W\d_]{3,}", t)}
+        faltas = ortografia.revisar(
+            texto_borrador, dic, lemas, diccionario.lista_casa(), propios
+        )
+    faltas += ortografia.redaccion(texto_borrador, protegidos)
+    return adaptar_observaciones_ortografia(faltas, texto_borrador), aviso
 
 
 def usuario_puede_ver_expediente(usuario, expediente):

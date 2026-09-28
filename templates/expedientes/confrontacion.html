@@ -32,9 +32,7 @@
       <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Personas con ficha" valor=resultado.extraccion.personas|length apoyo="Fichas RENIEC o biométricas en el legajo" %}</div>
       <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Identidad" valor=resultado.personas|length apoyo="Documento cruzado o sin titular" tono="rojo" %}</div>
       <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Regla" valor=resultado.regla|length apoyo="Datos que no coinciden con las fuentes" tono="rojo" %}</div>
-      {% comment %}Ortografía oculta a pedido del propietario (2026-09-27); reactivar descomentando.
-      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Ortografía" valor=resultado.ortografia|length apoyo="Palabras para revisar" %}</div>
-      {% endcomment %}
+      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Lingüístico" valor=resultado.ortografia|length apoyo="Ortografía, tildes y redacción" %}</div>
     </div>
     <section class="card mb-3 border-0" aria-labelledby="resultado-titulo">
       <h2 id="resultado-titulo" class="visually-hidden">Resumen</h2>
@@ -242,15 +240,16 @@
       </div>
     </section>
 
-    {% comment %}Ortografía oculta a pedido del propietario (2026-09-27); reactivar descomentando.
     <section class="card mb-3" aria-labelledby="ortografia-titulo">
-      <div class="card-header"><h2 id="ortografia-titulo" class="h5 fw-bold mb-0">Ortografía {% if resultado.ortografia %}{% include "core/_chip.html" with estado="REVISION" texto=resultado.ortografia|length %}{% else %}{% include "core/_chip.html" with estado="LISTO" texto="0" %}{% endif %}</h2></div>
+      <div class="card-header"><h2 id="ortografia-titulo" class="h5 fw-bold mb-0">Lingüístico {% if resultado.ortografia %}{% include "core/_chip.html" with estado="REVISION" texto=resultado.ortografia|length %}{% else %}{% include "core/_chip.html" with estado="LISTO" texto="0" %}{% endif %}</h2></div>
       <div class="card-body">
+        <p class="small text-body-secondary">Solo informa: no corrige el documento ni decide sobre nombres, documentos, montos ni domicilios.</p>
+        {% if resultado.linguistico_aviso %}<p class="alert alert-info py-2" role="status">{{ resultado.linguistico_aviso }}</p>{% endif %}
         {% if resultado.ortografia %}
           <div class="table-responsive">
             <table class="table table-striped" aria-describedby="ortografia-titulo">
               <thead><tr>
-                <th scope="col">Palabra</th><th scope="col">Motivo</th>
+                <th scope="col">Texto</th><th scope="col">Motivo</th>
                 <th scope="col">Sugerencia</th><th scope="col">Ubicación</th>
               </tr></thead>
               <tbody>
@@ -269,9 +268,8 @@
               </tbody>
             </table>
           </div>
-        {% else %}<p class="mb-0">No se encontraron observaciones de ortografía.</p>{% endif %}
+        {% else %}<p class="mb-0">No se encontraron observaciones lingüísticas.</p>{% endif %}
       </div>
     </section>
-    {% endcomment %}
   {% endif %}
 {% endblock %}
