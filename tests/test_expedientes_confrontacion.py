@@ -397,8 +397,7 @@ def test_palabra_de_las_fuentes_no_se_marca_por_ortografia(
         expediente_confrontacion,
         Documento.MINUTA,
         "minuta-f23.docx",
-        "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, DNI 90000011. "
-        "FUNDO Quirvanta.",
+        "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, DNI 90000011. FUNDO Quirvanta.",
     )
     borrador = crear_documento_listo(
         expediente_confrontacion,

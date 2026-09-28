@@ -94,7 +94,6 @@ _MASCULINOS = {"CONTRATO", "INMUEBLE", "PRECIO", "PREDIO", "VENDEDOR", "COMPRADO
 _CORRECTO = {"EL": "LA", "DEL": "DE LA", "AL": "A LA", "LA": "EL"}
 _REGLAS = (
     (rf"\b({_PALABRA}{{2,}})[^\S\n]+(\1)\b", "palabra repetida"),
-    (rf"{_PALABRA}+ {{2,}}(?=({_PALABRA}+))", "doble espacio"),
     (rf"{_PALABRA}+ +(?:[,;:]|\.(?!\.))", "espacio antes de signo"),
     (rf"\b(EL|DEL|AL|LA)[^\S\n]+({_PALABRA}+)\b", "concordancia de artículo"),
 )
@@ -131,10 +130,6 @@ def redaccion(texto: str, protegidos) -> list[tuple[str, str, str]]:
             fragmento = m[0]
             if motivo == "palabra repetida":
                 sugerencia = m[1]
-            elif motivo == "doble espacio":
-                fin += len(m[1])
-                fragmento = texto[inicio:fin]
-                sugerencia = " ".join(fragmento.split())
             elif motivo == "espacio antes de signo":
                 sugerencia = fragmento.split()[0] + fragmento[-1]
             else:

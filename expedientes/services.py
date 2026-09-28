@@ -808,7 +808,7 @@ def confrontar_borrador(expediente, borrador):
         )
     personas = _observaciones_personas_legibles(observaciones_personas, texto_borrador)
     linguistico, aviso = _capa_linguistica(
-        catalogo, observaciones_regla + personas, texto_borrador
+        catalogo, observaciones_regla + personas, texto_borrador, fuentes.values()
     )
     return {
         "estado": "RESULTADO",
@@ -822,7 +822,7 @@ def confrontar_borrador(expediente, borrador):
     }
 
 
-def _capa_linguistica(catalogo, observaciones, texto_borrador):
+def _capa_linguistica(catalogo, observaciones, texto_borrador, textos_fuente):
     """F23: ortografia, tildes y redaccion sin autoridad sobre los datos del A.3."""
     protegidos = {v for campo in _CAMPOS_CATALOGO for v in catalogo.get(campo, ())}
     if isinstance(catalogo, verificar.Catalogo):
@@ -845,6 +845,8 @@ def _capa_linguistica(catalogo, observaciones, texto_borrador):
         aviso = "Ortografía y tildes no disponibles: falta aprovisionar el diccionario es_PE."
     else:
         propios = {p for valor in protegidos for p in re.findall(r"[^\W\d_]+", valor)}
+        # FR-002b: el vocabulario literal del legajo se da por conocido
+        propios |= {p for t in textos_fuente for p in re.findall(r"[^\W\d_]{3,}", t)}
         faltas = ortografia.revisar(
             texto_borrador, dic, lemas, diccionario.lista_casa(), propios
         )
