@@ -7,7 +7,8 @@ from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_POST
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .forms import DocumentoUploadForm, ExpedienteForm, formatos_admitidos
 from .models import DecisionCorreccion, Documento, Expediente
@@ -16,16 +17,19 @@ from .services import (
     CorreccionNoAplicable,
     DocumentoDuplicado,
     aplicar_correcciones,
+    confrontar_borrador,
+    corrida_vigente,
     corridas_con_resumen,
+    eliminar_documento,
+    estado_borrador,
+    estado_confrontacion,
+    expedientes_con_resumen,
     filas_corrida,
     registrar_corrida,
-    eliminar_documento,
-    expedientes_con_resumen,
     registrar_documento,
+    resultado_de_corrida,
     resumen_documento,
     resumen_expediente,
-    estado_confrontacion,
-    confrontar_borrador,
     ruta_corregido,
     usuario_puede_ver_expediente,
 )
@@ -42,7 +46,7 @@ def _requiere_rol(request):
 
 
 def _expediente_visible(request, pk):
-    expediente = get_object_or_404(Expediente, pk=pk)
+    expediente = get_object_or_404(Expediente, pk=pk, archivado_el__isnull=True)
     if not usuario_puede_ver_expediente(request.user, expediente):
         raise PermissionDenied
     return expediente
@@ -57,6 +61,18 @@ def _navegacion_contexto(request):
     }
 
 
+def _sondear(resumen, borradores):
+    """Sondeo mientras se extrae o falta la confrontación automática (F26)."""
+    return bool(
+        resumen["pendientes"]
+        or resumen["procesando"]
+        or any(
+            b["disponible"] and not b["resultado_listo"] and not b["mensaje"]
+            for b in borradores
+        )
+    )
+
+
 def _render_detalle(request, expediente, upload_form=None, status=200):
     documentos = list(expediente.documentos.order_by("subido_el", "pk"))
     fuentes = [
@@ -67,7 +83,7 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
     ]
     for documento in documentos:
         if documento.rol == Documento.BORRADOR:
-            documento.confrontacion_estado = estado_confrontacion(
+            documento.confrontacion_estado = estado_borrador(
                 expediente, documento, fuentes
             )
     estado_general = estado_confrontacion(expediente, None, fuentes)
@@ -94,18 +110,20 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
         }
         for rol, _ in Documento.ROLES
     ]
+    borradores_estado = [
+        {"id": borrador.pk, **borrador.confrontacion_estado} for borrador in borradores
+    ]
+    resumen = resumen_expediente(expediente)
     contexto = {
         "expediente": expediente,
         "documentos": documentos,
         "borradores": borradores,
-        "borradores_estado": [
-            {"id": borrador.pk, **borrador.confrontacion_estado}
-            for borrador in borradores
-        ],
+        "borradores_estado": borradores_estado,
+        "polling": _sondear(resumen, borradores_estado),
         "estado_general": estado_general,
         "zonas": zonas,
         "documentos_estado": [resumen_documento(documento) for documento in documentos],
-        "resumen": resumen_expediente(expediente),
+        "resumen": resumen,
         "formatos_admitidos": formatos_admitidos(),
         "max_file_size_mb": settings.EXPEDIENTES_MAX_FILE_SIZE / (1024 * 1024),
     }
@@ -140,8 +158,13 @@ def expediente_lista(request):
                 return redirect("expediente_detalle", pk=expediente.pk)
     else:
         form = ExpedienteForm()
-    contexto = {"form": form, "expedientes": expedientes_con_resumen(request.user)}
-    contexto.update(_navegacion_contexto(request))
+    contexto = _navegacion_contexto(request)
+    archivados = contexto["es_administrador"] and request.GET.get("archivados") == "1"
+    contexto.update(
+        form=form,
+        archivados=archivados,
+        expedientes=expedientes_con_resumen(request.user, archivados),
+    )
     return render(
         request,
         "expedientes/lista.html",
@@ -154,6 +177,64 @@ def expediente_lista(request):
 def expediente_detalle(request, pk):
     _requiere_rol(request)
     return _render_detalle(request, _expediente_visible(request, pk))
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def expediente_editar(request, pk):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    status = 200
+    if request.method == "POST":
+        form = ExpedienteForm(request.POST, instance=expediente)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    form.save()
+            except IntegrityError:
+                form.add_error(
+                    "codigo", "Ese código ya está registrado. Ingrese otro código."
+                )
+            else:
+                messages.success(request, "Expediente actualizado.")
+                return redirect("expediente_detalle", pk=expediente.pk)
+        status = 400
+        # El formulario inválido ya cambió la instancia; la cabecera usa la guardada.
+        expediente.refresh_from_db()
+    else:
+        form = ExpedienteForm(instance=expediente)
+    contexto = {"expediente": expediente, "form": form}
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/editar.html", contexto, status=status)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def expediente_eliminar(request, pk):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    if request.method == "POST":
+        expediente.archivado_el = timezone.now()
+        expediente.archivado_por = request.user
+        expediente.save(update_fields=["archivado_el", "archivado_por"])
+        messages.success(request, f"Expediente {expediente.codigo} eliminado.")
+        return redirect("expediente_lista")
+    contexto = {"expediente": expediente}
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/eliminar.html", contexto)
+
+
+@login_required
+@require_POST
+def expediente_restaurar(request, pk):
+    if not _navegacion_contexto(request)["es_administrador"]:
+        raise PermissionDenied
+    expediente = get_object_or_404(Expediente, pk=pk, archivado_el__isnull=False)
+    expediente.archivado_el = None
+    expediente.archivado_por = None
+    expediente.save(update_fields=["archivado_el", "archivado_por"])
+    messages.success(request, f"Expediente {expediente.codigo} restaurado.")
+    return redirect("expediente_detalle", pk=expediente.pk)
 
 
 @login_required
@@ -210,7 +291,7 @@ def expediente_estado(request, pk):
     borradores = [
         {
             "id": documento.pk,
-            **estado_confrontacion(expediente, documento, fuentes),
+            **estado_borrador(expediente, documento, fuentes),
         }
         for documento in documentos
         if documento.rol == Documento.BORRADOR
@@ -222,7 +303,7 @@ def expediente_estado(request, pk):
             "resumen": resumen,
             "documentos": [resumen_documento(documento) for documento in documentos],
             "borradores": borradores,
-            "polling": bool(resumen["pendientes"] or resumen["procesando"]),
+            "polling": _sondear(resumen, borradores),
         }
     )
 
@@ -348,3 +429,27 @@ def corrida_detalle(request, pk, corrida_id):
     }
     contexto.update(_navegacion_contexto(request))
     return render(request, "expedientes/corrida.html", contexto)
+
+
+@login_required
+@require_GET
+def documento_resultado(request, pk, doc_id):
+    """Resultado guardado de la corrida vigente, sin recalcular (F26)."""
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    borrador = get_object_or_404(
+        expediente.documentos, pk=doc_id, rol=Documento.BORRADOR
+    )
+    corrida = corrida_vigente(expediente, borrador)
+    if corrida is None:
+        messages.info(request, "El resultado aún no está listo.")
+        return redirect("expediente_detalle", pk=expediente.pk)
+    contexto = {
+        "expediente": expediente,
+        "borrador": borrador,
+        # F21 (vista consolidada de correcciones) usa la corrida al fusionarse.
+        "corrida": corrida,
+        "resultado": resultado_de_corrida(corrida),
+    }
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/confrontacion.html", contexto)

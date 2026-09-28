@@ -13,6 +13,15 @@ class Expediente(models.Model):
     )
     creado_el = models.DateTimeField(auto_now_add=True)
     actualizado_el = models.DateTimeField(auto_now=True)
+    # F25: "Eliminar" archiva; el manifiesto de auditoría es inmutable.
+    archivado_el = models.DateTimeField(null=True, blank=True)
+    archivado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="expedientes_archivados",
+    )
 
     def save(self, *args, **kwargs):
         self.codigo = self.codigo.strip()
@@ -136,6 +145,9 @@ class Corrida(Inmutable):
         (NO_DISPONIBLE, "No disponible"),
         (ERROR, "Error"),
     )
+    AUTOMATICA = "AUTOMATICA"
+    MANUAL = "MANUAL"
+    ORIGENES = ((AUTOMATICA, "Automática"), (MANUAL, "Manual"))
 
     expediente = models.ForeignKey(
         Expediente, on_delete=models.PROTECT, related_name="corridas"
@@ -155,6 +167,10 @@ class Corrida(Inmutable):
     estado = models.CharField(max_length=14, choices=ESTADOS)
     hallazgos = models.TextField()
     huella = models.CharField(max_length=64)
+    origen = models.CharField(max_length=10, choices=ORIGENES, default=MANUAL)
+    # Resumen de extracción y aviso lingüístico para mostrar el resultado sin
+    # recalcular; fuera de la huella.
+    presentacion = models.JSONField(default=dict)
 
 
 class DecisionCorreccion(Inmutable):
