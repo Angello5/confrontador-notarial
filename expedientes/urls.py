@@ -23,6 +23,11 @@ urlpatterns = [
         name="documento_confrontar",
     ),
     path(
+        "<int:pk>/documentos/<int:doc_id>/resultado/",
+        views.documento_resultado,
+        name="documento_resultado",
+    ),
+    path(
         "<int:pk>/documentos/<int:doc_id>/corregir/",
         views.correcciones_aplicar,
         name="correcciones_aplicar",

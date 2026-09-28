@@ -1107,7 +1107,7 @@ def _entrada_corrida(documento):
     }
 
 
-def registrar_corrida(expediente, borrador, usuario, resultado):
+def registrar_corrida(expediente, borrador, usuario, resultado, origen=Corrida.MANUAL):
     """Crea la corrida inmutable y devuelve el resultado con severidad."""
     resultado = _con_severidad(resultado)
     hallazgos = hallazgos_canonicos(resultado)
@@ -1131,8 +1131,100 @@ def registrar_corrida(expediente, borrador, usuario, resultado):
         estado=_ESTADOS_CORRIDA.get(resultado.get("estado"), Corrida.ERROR),
         hallazgos=hallazgos,
         huella=_sha256_texto(hallazgos),
+        origen=origen,
+        presentacion={
+            "extraccion": resultado.get("extraccion", {}),
+            "linguistico_aviso": resultado.get("linguistico_aviso", ""),
+        },
     )
     return {**resultado, "corrida_id": corrida.pk}
+
+
+def resultado_de_corrida(corrida):
+    """Resultado para la pantalla de confrontación, sin recalcular (F26)."""
+    return {**json.loads(corrida.hallazgos), **corrida.presentacion}
+
+
+_CAMPOS_ENTRADA = ("rol", "nombre", "hash_archivo", "version_extractor", "estado")
+
+
+def corrida_vigente(expediente, borrador):
+    """Última corrida del borrador con sus entradas actuales y el catálogo actual.
+
+    Compara metadatos sin cargar textos: el texto queda determinado por el hash
+    del archivo y la versión del extractor.
+    """
+    campos = (
+        "rol",
+        "nombre_original",
+        "hash_archivo",
+        "texto_extraido__version_extractor",
+        "estado",
+    )
+    actuales = [
+        list(fila)
+        for consulta in (
+            Documento.objects.filter(pk=borrador.pk),
+            expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE).order_by("pk"),
+        )
+        for fila in consulta.values_list(*campos)
+    ]
+    corridas = expediente.corridas.filter(
+        id_borrador=borrador.pk, version_catalogo=CATALOGO_REGLAS["version"]
+    ).order_by("-pk")
+    for corrida in corridas.only("entradas", "estado"):
+        registradas = [[e[c] for c in _CAMPOS_ENTRADA] for e in corrida.entradas]
+        if registradas == actuales:
+            return corrida
+    return None
+
+
+def estado_borrador(expediente, borrador, fuentes=None):
+    """Disponibilidad del borrador y si ya hay resultado para sus entradas (F26)."""
+    estado = estado_confrontacion(expediente, borrador, fuentes)
+    corrida = corrida_vigente(expediente, borrador) if estado["disponible"] else None
+    if corrida is not None and corrida.estado == Corrida.ERROR:
+        estado["mensaje"] = (
+            "No se pudo completar la confrontación. Vuelva a confrontar."
+        )
+    return {
+        **estado,
+        "resultado_listo": corrida is not None and corrida.estado != Corrida.ERROR,
+    }
+
+
+def confrontar_automaticamente():
+    """Confronta los borradores listos sin corrida para sus entradas (F26)."""
+    creadas = 0
+    borradores = Documento.objects.filter(
+        rol=Documento.BORRADOR,
+        estado=Documento.LISTO,
+        expediente__archivado_el__isnull=True,  # archivado: sin confrontaciones (F25)
+    ).order_by("pk")
+    for pk in borradores.values_list("pk", flat=True):
+        with transaction.atomic():
+            borrador = (
+                Documento.objects.select_for_update(skip_locked=True)
+                .filter(pk=pk)
+                .first()
+            )
+            if borrador is None:
+                continue
+            expediente = borrador.expediente
+            if corrida_vigente(expediente, borrador) is not None:
+                continue
+            if not estado_confrontacion(expediente, borrador)["disponible"]:
+                continue
+            try:
+                with transaction.atomic():
+                    resultado = confrontar_borrador(expediente, borrador)
+            except Exception:
+                resultado = RESULTADO_ERROR
+            registrar_corrida(
+                expediente, borrador, borrador.subido_por, resultado, Corrida.AUTOMATICA
+            )
+            creadas += 1
+    return creadas
 
 
 def _documento_reconstruido(corrida, entrada):
