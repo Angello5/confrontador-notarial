@@ -1553,3 +1553,11 @@ def test_clausula_solo_con_dni_si_el_nombre_no_aparece_exacto():
         Catalogo((_persona_civil("CASADO"),)), borrador, date(2025, 1, 1)
     )
     assert [fila["tipo"] for fila in obs] == ["CONYUGE_NO_MENCIONADO"]
+    assert (
+        revisar_persona_ampliada(
+            Catalogo((_persona_civil("CASADO"),)),
+            "COMPARECE ALBA LUMARA ZAFIRO CON DNI 90000012.",
+            date(2025, 1, 1),
+        )
+        == ()
+    )
