@@ -18,6 +18,11 @@ urlpatterns = [
         name="documento_confrontar",
     ),
     path(
+        "<int:pk>/documentos/<int:doc_id>/resultado/",
+        views.documento_resultado,
+        name="documento_resultado",
+    ),
+    path(
         "<int:pk>/confrontaciones/",
         views.expediente_historial,
         name="expediente_historial",

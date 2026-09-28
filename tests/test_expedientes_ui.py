@@ -61,6 +61,7 @@ def test_estado_json_actualiza_disponibilidad_por_borrador(client, usuario_ficti
             "id": documentos[-1].pk,
             "disponible": False,
             "mensaje": "Espere a que termine la extracción de los documentos.",
+            "resultado_listo": False,
         }
     ]
 
@@ -70,7 +71,12 @@ def test_estado_json_actualiza_disponibilidad_por_borrador(client, usuario_ficti
     disponible = client.get(ruta).json()
 
     assert disponible["borradores"] == [
-        {"id": documentos[-1].pk, "disponible": True, "mensaje": ""}
+        {
+            "id": documentos[-1].pk,
+            "disponible": True,
+            "mensaje": "",
+            "resultado_listo": False,
+        }
     ]
 
 

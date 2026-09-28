@@ -1,4 +1,5 @@
 """F26: confrontación automática al terminar la carga (datos ficticios)."""
+# ruff: noqa: F811  (fixtures reutilizados como parámetros)
 
 import json
 from io import StringIO
@@ -36,7 +37,7 @@ def _borrador_estado(client, usuario, expediente, borrador):
 def test_worker_confronta_al_quedar_todo_listo_y_no_duplica(
     usuario_ficticio,
     administrador_ficticio,
-    caso,  # noqa: F811
+    caso,
 ):
     from expedientes.models import Corrida
 
@@ -59,7 +60,7 @@ def test_worker_confronta_al_quedar_todo_listo_y_no_duplica(
 def test_worker_no_confronta_mientras_hay_documentos_en_proceso(
     usuario_ficticio,
     caso,
-    crear_documento_listo,  # noqa: F811
+    crear_documento_listo,
 ):
     from expedientes.models import Corrida, Documento
 
@@ -79,7 +80,7 @@ def test_worker_no_confronta_mientras_hay_documentos_en_proceso(
 def test_worker_reconfronta_al_subir_o_eliminar_un_documento(
     usuario_ficticio,
     caso,
-    crear_documento_listo,  # noqa: F811
+    crear_documento_listo,
 ):
     from expedientes.models import Corrida, Documento
     from expedientes.services import eliminar_documento
@@ -93,18 +94,46 @@ def test_worker_reconfronta_al_subir_o_eliminar_un_documento(
     assert Corrida.objects.count() == 2
     assert len(Corrida.objects.order_by("-pk").first().entradas) == 4
 
+    crear_documento_listo(
+        expediente, Documento.CLIENTE, "anexo-2-ficticio.pdf", "ALBA LUMARIA ZAFIRO"
+    )
+    _worker()
+    assert Corrida.objects.count() == 3
+
     eliminar_documento(nuevo, confirmado=True)
     _worker()
-    assert Corrida.objects.count() == 3
-    assert len(Corrida.objects.order_by("-pk").first().entradas) == 3
+    assert Corrida.objects.count() == 4
+    assert len(Corrida.objects.order_by("-pk").first().entradas) == 4
     _worker()
-    assert Corrida.objects.count() == 3
+    assert Corrida.objects.count() == 4
+
+
+def test_volver_a_entradas_ya_confrontadas_reutiliza_la_corrida(
+    usuario_ficticio,
+    caso,
+    crear_documento_listo,
+):
+    from expedientes.models import Corrida, Documento
+    from expedientes.services import corrida_vigente, eliminar_documento
+
+    expediente, borrador = caso
+    _worker()
+    primera = Corrida.objects.get()
+    nuevo = crear_documento_listo(
+        expediente, Documento.CLIENTE, "anexo-ficticio.pdf", "ALBA LUMARIA ZAFIRO"
+    )
+    _worker()
+    eliminar_documento(nuevo, confirmado=True)
+    _worker()
+
+    assert Corrida.objects.count() == 2
+    assert corrida_vigente(expediente, borrador) == primera
 
 
 def test_boton_confrontando_hasta_que_existe_la_corrida(
     client,
     usuario_ficticio,
-    caso,  # noqa: F811
+    caso,
 ):
     expediente, borrador = caso
 
@@ -133,7 +162,7 @@ def test_boton_en_proceso_no_esta_listo(
     client,
     usuario_ficticio,
     caso,
-    crear_documento_listo,  # noqa: F811
+    crear_documento_listo,
 ):
     from expedientes.models import Documento
 
@@ -155,7 +184,7 @@ def test_boton_en_proceso_no_esta_listo(
 def test_sondeo_json_solo_agrega_resultado_listo(
     client,
     usuario_ficticio,
-    caso,  # noqa: F811
+    caso,
 ):
     expediente, borrador = caso
     _worker()
@@ -173,7 +202,7 @@ def test_ver_resultado_muestra_la_corrida_sin_recalcular(
     client,
     usuario_ficticio,
     caso,
-    monkeypatch,  # noqa: F811
+    monkeypatch,
 ):
     from expedientes.models import Corrida
 
@@ -206,7 +235,7 @@ def test_ver_resultado_muestra_la_corrida_sin_recalcular(
 def test_ver_resultado_sin_corrida_vuelve_al_expediente(
     client,
     usuario_ficticio,
-    caso,  # noqa: F811
+    caso,
 ):
     expediente, borrador = caso
     client.force_login(usuario_ficticio)
@@ -219,7 +248,7 @@ def test_ver_resultado_sin_corrida_vuelve_al_expediente(
     assert respuesta.url == f"/expedientes/{expediente.pk}/"
 
 
-def test_ver_resultado_exige_rol(client, caso):  # noqa: F811
+def test_ver_resultado_exige_rol(client, caso):
     from django.contrib.auth import get_user_model
 
     expediente, borrador = caso
@@ -235,7 +264,7 @@ def test_ver_resultado_exige_rol(client, caso):  # noqa: F811
 def test_volver_a_confrontar_registra_corrida_manual(
     client,
     usuario_ficticio,
-    caso,  # noqa: F811
+    caso,
 ):
     from expedientes.models import Corrida
 
@@ -258,7 +287,7 @@ def test_error_automatico_deja_corrida_error_y_permite_reintentar(
     client,
     usuario_ficticio,
     caso,
-    monkeypatch,  # noqa: F811
+    monkeypatch,
 ):
     from expedientes.models import Corrida
 

@@ -16,7 +16,7 @@
 
 - **FR-001 (worker)**: Al final de cada vuelta de `procesar_documentos`, cada borrador `LISTO` cuya confrontación esté disponible (`estado_confrontacion`) y que no tenga corrida para sus entradas actuales se confronta y registra una `Corrida` con `origen = AUTOMATICA` y `usuario = Documento.subido_por` del borrador.
 - **FR-002 (entradas actuales)**: Una corrida corresponde a las entradas actuales si es del mismo borrador, con la versión actual del catálogo y las mismas entradas (rol, nombre, hash del archivo, `version_extractor`, estado, en el orden de `registrar_corrida`). El hash del texto no se recalcula para esta comparación: el texto queda determinado por hash del archivo + `version_extractor`.
-- **FR-003 (no repetir)**: Si ya existe una corrida (de cualquier origen y estado) para las entradas actuales, el worker no confronta. Si se sube o elimina un documento, las entradas cambian y la siguiente vuelta vuelve a confrontar.
+- **FR-003 (no repetir)**: Si ya existe una corrida (de cualquier origen y estado) para las entradas actuales, el worker no confronta. Si se sube o elimina un documento, las entradas cambian y la siguiente vuelta vuelve a confrontar; si vuelven a ser idénticas a las de una corrida anterior, esa corrida se reutiliza (misma entrada, mismo resultado; Principio I).
 - **FR-004 (origen)**: `Corrida.origen` (`AUTOMATICA` / `MANUAL`, por defecto `MANUAL`) con migración. La corrida sigue inmutable; la huella no cambia (sigue cubriendo solo los hallazgos).
 - **FR-005 (presentación)**: `Corrida.presentacion` (JSON) guarda el resumen de extracción y el aviso lingüístico para mostrar el resultado sin recalcular. No forma parte de la huella ni de la reconstrucción.
 - **FR-006 (botón)**: En la pantalla del expediente, por borrador:

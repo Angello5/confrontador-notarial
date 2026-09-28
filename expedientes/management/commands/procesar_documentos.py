@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from expedientes.services import (
+    confrontar_automaticamente,
     procesar_documento,
     recuperar_documentos_vencidos,
     tomar_pendiente,
@@ -17,3 +18,4 @@ class Command(BaseCommand):
             procesar_documento(documento)
             procesados += 1
         self.stdout.write(f"Documentos procesados: {procesados}")
+        confrontar_automaticamente()

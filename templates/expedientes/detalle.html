@@ -7,7 +7,7 @@
 </ol>{% endblock %}
 {% block eyebrow %}Expediente{% endblock %}
 {% block heading %}{{ expediente.codigo }}{% endblock %}
-{% block subtitle %}Cargue las fuentes y el borrador; confronte cuando todo esté listo.{% endblock %}
+{% block subtitle %}Cargue las fuentes y el borrador; la confrontación se hace al terminar la carga.{% endblock %}
 {% block actions %}<a class="btn btn-outline-primary" href="{% url 'expediente_historial' expediente.pk %}">Historial de confrontaciones</a>{% endblock %}
 {% block content %}
   {{ documentos_estado|json_script:"documentos-estado" }}
@@ -39,7 +39,7 @@
         }
       },
       iniciar() {
-        if ({{ resumen.pendientes|add:resumen.procesando }} > 0) {
+        if ({{ polling|yesno:"true,false" }}) {
           this.temporizador = setInterval(() => this.actualizar(), 2000);
         }
       }
@@ -88,14 +88,18 @@
           <div class="border-top pt-3">
             {% if borradores %}
               {% for borrador in borradores %}
-                <form x-show="confrontaciones[{{ borrador.pk }}]?.disponible" method="post" action="{% url 'documento_confrontar' expediente.pk borrador.pk %}" onsubmit="this.querySelector('button').textContent='Confrontando el borrador…'; this.querySelector('button').disabled=true;">
-                  {% csrf_token %}<button class="btn btn-primary w-100 mb-2" type="submit">Confrontar borrador</button>
-                </form>
-                <button x-show="!confrontaciones[{{ borrador.pk }}]?.disponible" class="btn btn-primary w-100" type="button" disabled>Confrontar borrador</button>
-                <p x-show="!confrontaciones[{{ borrador.pk }}]?.disponible" x-text="confrontaciones[{{ borrador.pk }}]?.mensaje" class="small text-body-secondary mt-2 mb-0">{{ borrador.confrontacion_estado.mensaje }}</p>
+                <div x-data="{ get c() { return confrontaciones[{{ borrador.pk }}] || {}; }, get confrontando() { return !this.c.resultado_listo && (this.c.disponible ? !this.c.mensaje : estado === 'PROCESANDO'); } }">
+                  <a x-show="c.resultado_listo" x-cloak class="btn btn-primary w-100 mb-2" href="{% url 'documento_resultado' expediente.pk borrador.pk %}">Ver resultado</a>
+                  <button x-show="confrontando" x-cloak class="btn btn-secondary w-100 mb-2" type="button" disabled>Confrontando…</button>
+                  <button x-show="!c.resultado_listo && !confrontando && !c.disponible" x-cloak class="btn btn-secondary w-100 mb-2" type="button" disabled>Confrontar borrador</button>
+                  <form x-show="c.disponible && (c.resultado_listo || c.mensaje)" x-cloak method="post" action="{% url 'documento_confrontar' expediente.pk borrador.pk %}" onsubmit="this.querySelector('button').textContent='Confrontando…'; this.querySelector('button').disabled=true;">
+                    {% csrf_token %}<button class="btn btn-outline-secondary w-100 mb-2" type="submit">Volver a confrontar</button>
+                  </form>
+                  <p x-show="c.mensaje" x-text="c.mensaje" class="small text-body-secondary mt-2 mb-0">{{ borrador.confrontacion_estado.mensaje }}</p>
+                </div>
               {% endfor %}
             {% else %}
-              <button class="btn btn-primary w-100" type="button" disabled>Confrontar borrador</button>
+              <button class="btn btn-secondary w-100" type="button" disabled>Confrontar borrador</button>
               <p class="small text-body-secondary mt-2 mb-0">{{ estado_general.mensaje }}</p>
             {% endif %}
           </div>
