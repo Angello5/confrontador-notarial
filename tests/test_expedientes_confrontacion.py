@@ -272,7 +272,7 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar",
-        lambda cat, texto, umbral, exigibles=None: (
+        lambda cat, texto, umbral, exigibles=None, montos_exigibles=None: (
             llamadas["revisar"].append(umbral)
             or ["[DNI] «90000002» no coincide con ninguna fuente"]
         ),
@@ -1164,3 +1164,37 @@ def test_confrontacion_solo_exige_nombres_de_fichas_y_minuta(
     texto = str(resultado["regla"])
     assert "IRMA CELESTE PORTOLA" in texto
     assert "HUGO BERNAL TIRSO" not in texto
+
+
+_F24_PERSONA = "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.\n"
+
+
+def test_confrontacion_solo_exige_montos_de_la_minuta(
+    expediente_confrontacion, crear_documento_listo
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "liquidacion-ficticia.txt",
+        "TASA REGISTRAL S/ 45.50. DERECHOS S/ 1,230.00.",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.txt",
+        _F24_PERSONA + "PRECIO DE VENTA S/ 150,000.00. ARRAS S/ 5,000.00.",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-ficticio.txt",
+        _F24_PERSONA + "PRECIO DE VENTA S/ 150,000.00. TASA S/ 45.50.",
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+    assert resultado["estado"] == "RESULTADO"
+    montos = [o for o in resultado["regla"] if o["campo"] == "MONTO"]
+    assert [o["esperado"] for o in montos] == ["5,000.00"]
