@@ -1124,7 +1124,7 @@ def _numeros_en_letras(d: str) -> list[str]:
             (w := palabras[inicio - 1].group()) == "Y"
             or w in _NUMEROS
             or (
-                len(w) > 3
+                len(w) >= 3
                 and process.extractOne(
                     w, _NUMEROS.keys(), scorer=fuzz.ratio, score_cutoff=75
                 )
@@ -1147,6 +1147,8 @@ def _numeros_en_letras(d: str) -> list[str]:
 
 def _nombres_por_ventana(conocidos, d: str, ya_vistos) -> list[str]:
     """F19: la ventana del borrador más parecida a cada nombre de las fuentes."""
+    # Solo letras: un signo que arrastra el OCR («NOMBRE:») no es una diferencia.
+    conocidos = {" ".join(re.findall(r"[A-ZÑ]+", norm(n))) for n in conocidos} - {""}
     tokens = re.findall(r"[A-ZÑ]+", d)
     ventanas = {}
     for n in conocidos:

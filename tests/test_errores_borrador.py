@@ -114,6 +114,21 @@ def test_palabra_numerica_mal_escrita():
     ) == ["[NUMERO_EN_LETRAS] «TREINTA Y SEIZ (36)» debe decir «36»"]
 
 
+def test_palabra_numerica_corta_mal_escrita():
+    assert _discrepancias(
+        _VACIO, "EN EL PLAZO DE TREINTA Y SES (36) MESES.", "NUMERO_EN_LETRAS"
+    ) == ["[NUMERO_EN_LETRAS] «TREINTA Y SES (36)» debe decir «36»"]
+
+
+def test_palabras_cortas_comunes_no_se_toman_por_numeros():
+    assert (
+        _discrepancias(
+            _VACIO, "A LOS DIAS DEL MES (12) Y SUS ANEXOS (3).", "NUMERO_EN_LETRAS"
+        )
+        == []
+    )
+
+
 def test_centimos_distintos():
     assert _discrepancias(
         _VACIO, "LA SUMA DE MIL QUINIENTOS Y 50/100 (S/ 1,500.00).", "NUMERO_EN_LETRAS"
@@ -143,3 +158,9 @@ def test_adaptador_interpreta_las_nuevas_observaciones():
         "36",
     )
     assert fila["ubicacion"]["linea"] == 2
+
+
+def test_signos_del_ocr_en_el_nombre_de_la_fuente_no_son_error():
+    cat = Catalogo((Persona("ALBA LUMARIA ZAFIRO:", "90000011", _ORIGEN),))
+    borrador = "COMPARECE ALBA LUMARIA ZAFIRO, CON DNI N° 90000011."
+    assert _discrepancias(cat, borrador, "NOMBRE") == []
