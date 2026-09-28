@@ -8,7 +8,11 @@
 {% block eyebrow %}Expediente{% endblock %}
 {% block heading %}{{ expediente.codigo }}{% endblock %}
 {% block subtitle %}Cargue las fuentes y el borrador; confronte cuando todo esté listo.{% endblock %}
-{% block actions %}<a class="btn btn-outline-primary" href="{% url 'expediente_historial' expediente.pk %}">Historial de confrontaciones</a>{% endblock %}
+{% block actions %}<div class="d-flex flex-wrap gap-2">
+  <a class="btn btn-outline-primary" href="{% url 'expediente_historial' expediente.pk %}">Historial de confrontaciones</a>
+  <a class="btn btn-outline-secondary" href="{% url 'expediente_editar' expediente.pk %}"><span aria-hidden="true">✎</span> Editar</a>
+  <a class="btn btn-outline-danger" href="{% url 'expediente_eliminar' expediente.pk %}"><span aria-hidden="true">✕</span> Eliminar</a>
+</div>{% endblock %}
 {% block content %}
   {{ documentos_estado|json_script:"documentos-estado" }}
   {{ borradores_estado|json_script:"borradores-estado" }}
