@@ -159,8 +159,7 @@ def test_shell_de_usuario_muestra_marca_pie_y_activo(client, usuario_ficticio):
 
     content = client.get(reverse("home")).content.decode()
 
-    assert "CONFRONTADOR" in content
-    assert "ERP NOTARIAL" in content
+    assert '<span class="marca-nombre">ERP Notarial</span>' in content
     assert re.search(r'href="/"[^>]*aria-current="page"', content)
     assert not re.search(r'href="/expedientes/"[^>]*aria-current', content)
     assert "usuario_ficticio" in content
