@@ -159,7 +159,22 @@ RE_RUC_BORRADOR = re.compile(_ROTULO_RUC + r"(\d{9,13})(?!\d)")
 RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
 # La forma corta PARTIDA N° también es valida en algunos actos.
 
-RE_MONTO = re.compile(r"S/\s*(\d[\d,]*\.\d{2})")
+RE_MONTO = re.compile(
+    r"(US\$|S/\.?|\$|(?<![A-ZÑ])(?:SOLES|DOLARES(?: AMERICANOS)?))\s*(\d[\d,]*\.\d{2})"
+    r"|(\d[\d,]*\.\d{2})\s*(US\$|SOLES|DOLARES(?: AMERICANOS)?)"
+)
+# F27: moneda antes o después de la cifra. [NEEDS CLARIFICATION] "$" = dólares.
+
+
+def _monto(m: re.Match) -> str:
+    """Valor comparable: los soles solo con la cifra (formato previo), el resto US$."""
+    moneda, importe = m.group(1) or m.group(4), m.group(2) or m.group(3)
+    return importe if moneda.startswith("S") else f"US$ {importe}"
+
+
+def montos_de(t: str) -> list[str]:
+    return [_monto(m) for m in RE_MONTO.finditer(t)]
+
 
 RE_NOMBRE = re.compile(
     r"([A-ZÑ][A-ZÑ ]{8,60}?)[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
@@ -1093,7 +1108,7 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
     for pagina in _paginas(fuentes):
         t = norm(pagina.texto)
         partidas.update(RE_PARTIDA.findall(t))
-        montos.update(RE_MONTO.findall(t))
+        montos.update(montos_de(t))
         tipo = clasificar_pagina(pagina.texto)
         if tipo in _TIPOS_DESCARTADOS:
             descartadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
@@ -1210,7 +1225,7 @@ def nombres_exigibles(cat: Catalogo, textos) -> frozenset[str]:
 
 def montos_exigibles(textos) -> frozenset[str]:
     """F24: montos de los textos dados (la minuta, según el llamador)."""
-    return frozenset(m for texto in textos for m in RE_MONTO.findall(norm(texto)))
+    return frozenset(m for texto in textos for m in montos_de(norm(texto)))
 
 
 _NUMEROS = {
@@ -1344,15 +1359,81 @@ def _esperado_cercano(valor: str, fuente) -> str:
     return "no coincide con ninguna fuente"
 
 
+_RE_CUOTA = re.compile(r"(?:CUOTA\s*(?:N[O°]?\.?\s*)?)?(\d{1,3})(?![\d.,/])")
+_RE_FECHA = re.compile(r"\b\d{2}/\d{2}/\d{4}\b")
+
+
+def _rotulo_fila(linea: str, importes: int) -> str | None:
+    """F27: fila de cronograma = varios importes y numero de cuota o fecha."""
+    if importes < 2:
+        return None
+    if m := _RE_CUOTA.match(linea):
+        return f"CUOTA {int(m.group(1))}"
+    if m := _RE_FECHA.search(linea):
+        return f"CUOTA DEL {m.group()}"
+    return None
+
+
+def _montos_por_posicion(minutas: Mapping[str, str], destino: str, umbral: int):
+    """F27: por cada importe del borrador, en orden, (esperado, sufijo) del
+    importe en la misma posicion de su linea par en la minuta, o None.
+
+    Par: la fila de cronograma con el mismo rotulo o, si no, el parrafo
+    (> 80 caracteres, como ``parrafos``) de mayor ``partial_ratio`` >= umbral.
+    Con distinto numero de importes no hay par: una insercion no desplaza todo.
+    """
+    fuente = [
+        (linea, ms, pagina)
+        for pagina in _paginas(minutas)
+        for linea in map(norm, pagina.texto.splitlines())
+        if (ms := list(RE_MONTO.finditer(linea)))
+    ]
+    pares = []
+    for linea in map(norm, destino.splitlines()):
+        if not (ms := list(RE_MONTO.finditer(linea))):
+            continue
+        rotulo = _rotulo_fila(linea, len(ms))
+        candidatas = [
+            f for f in fuente if rotulo and _rotulo_fila(f[0], len(f[1])) == rotulo
+        ]
+        par = max(candidatas, key=lambda f: fuzz.ratio(linea, f[0]), default=None)
+        if par is None and len(linea) > 80:
+            par = max(
+                (f for f in fuente if len(f[0]) > 80),
+                key=lambda f: fuzz.partial_ratio(linea, f[0]),
+                default=None,
+            )
+            if par and fuzz.partial_ratio(linea, par[0]) < umbral:
+                par = None
+        if par is None or len(par[1]) != len(ms):
+            pares += [None] * len(ms)
+            continue
+        texto, esperados, pagina = par
+        for m in esperados:
+            concepto = _rotulo_fila(texto, len(esperados)) or " ".join(
+                re.findall(r"[\w/]+", RE_MONTO.sub(" ", texto[: m.start()]))[-6:]
+            )
+            pares.append(
+                (
+                    _monto(m),
+                    f"   (concepto: {concepto}; fuente: {pagina.fuente}, "
+                    f"p. {pagina.numero})",
+                )
+            )
+    return pares
+
+
 def revisar(
     cat: dict[str, set[str]],
     destino: str,
     umbral: int,
     exigibles=None,
     montos_exigibles=None,
+    minutas=None,
 ) -> list[str]:
     """``exigibles`` y ``montos_exigibles`` limitan el FALTA de NOMBRE (F16) y
-    de MONTO (F24); ``None`` exige todos."""
+    de MONTO (F24); ``None`` exige todos. ``minutas`` ({archivo: texto}) activa
+    la verificacion de montos por posicion (F27)."""
     d = norm(destino)
     obs, vistos = [], {k: set() for k in cat}
 
@@ -1396,8 +1477,19 @@ def revisar(
         obs.append(f"[DNI] «{v}» {_esperado_cercano(v, cat['DNI'])}{ctx}")
     for v in RE_PARTIDA.findall(d):
         check("PARTIDA", v)
-    for v in RE_MONTO.findall(d):
-        check("MONTO", v)
+    valores = montos_de(d)
+    pares = _montos_por_posicion(minutas or {}, destino, umbral)
+    if len(pares) != len(valores):  # un importe partido entre dos lineas
+        pares = [None] * len(valores)
+    for v, par in zip(valores, pares):
+        if par is None:
+            check("MONTO", v)
+            continue
+        vistos["MONTO"].add(v)
+        if v != par[0]:
+            # el esperado ya queda dicho aqui: no se repite como FALTA
+            vistos["MONTO"].add(par[0])
+            obs.append(f"[MONTO] «{v}» debe decir «{par[0]}»{par[1]}")
     # F22: cada aparición; el dict legado de cuatro campos no trae RUC ni DIRECCION.
     rucs = cat.get("RUC", frozenset())
     for v in RE_RUC_BORRADOR.findall(d):

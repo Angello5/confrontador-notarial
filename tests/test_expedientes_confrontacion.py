@@ -272,7 +272,7 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar",
-        lambda cat, texto, umbral, exigibles=None, montos_exigibles=None: (
+        lambda cat, texto, umbral, *_: (
             llamadas["revisar"].append(umbral)
             or ["[DNI] «90000002» no coincide con ninguna fuente"]
         ),
@@ -1305,3 +1305,41 @@ def test_confrontacion_solo_exige_montos_de_la_minuta(
     assert resultado["estado"] == "RESULTADO"
     montos = [o for o in resultado["regla"] if o["campo"] == "MONTO"]
     assert [o["esperado"] for o in montos] == ["5,000.00"]
+
+
+def test_confrontacion_monto_por_posicion_lleva_concepto_y_fuente(
+    expediente_confrontacion, crear_documento_listo
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    cronograma = (
+        "CUOTA 1 15/01/2027 S/ 1,000.00 S/ 1,050.00\n"
+        "CUOTA 2 15/02/2027 S/ 1,000.00 S/ 1,045.00\n"
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "declaracion-ficticia.txt",
+        _F24_PERSONA,
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.txt",
+        _F24_PERSONA + cronograma,
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-ficticio.txt",
+        _F24_PERSONA + cronograma.replace("S/ 1,045.00", "S/ 1,050.00"),
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+    (monto,) = [o for o in resultado["regla"] if o["campo"] == "MONTO"]
+    assert monto["hallado"] == "1,050.00"
+    assert monto["esperado"] == "1,045.00"
+    assert monto["concepto"] == "CUOTA 2"
+    assert monto["fuente"] == {"archivo": "minuta-ficticia.txt", "pagina": 1}
+    assert monto["motivo"] == "CUOTA 2 · minuta-ficticia.txt, página 1"

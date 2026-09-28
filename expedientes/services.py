@@ -56,6 +56,9 @@ _RE_DEBE_DECIR = re.compile(
     r"^debe decir\s+«(?P<esperado>[^»]*)»(?P<resto>.*)$", re.IGNORECASE
 )
 _RE_MOTIVO_CARATULA = re.compile(r"\s+(?P<motivo>\(caratula\))\s*$", re.IGNORECASE)
+_RE_MOTIVO_MONTO = re.compile(
+    r"\s+\(concepto: (?P<concepto>[^;]*); fuente: (?P<archivo>.*), p\. (?P<pagina>\d+)\)\s*$"
+)
 
 
 class DocumentoDuplicado(ValueError):
@@ -656,6 +659,20 @@ def parsear_observacion_regla(salida, texto_borrador):
         resto = coincidencia.group("resto")
         debe_decir = _RE_DEBE_DECIR.match(resto)
         if debe_decir:
+            monto = _RE_MOTIVO_MONTO.match(debe_decir.group("resto"))
+            if monto:
+                fuente = {
+                    "archivo": Path(monto.group("archivo")).name,
+                    "pagina": int(monto.group("pagina")),
+                }
+                return _observacion_regla(
+                    campo,
+                    hallado,
+                    debe_decir.group("esperado"),
+                    f"{monto.group('concepto')} · {fuente['archivo']}, "
+                    f"página {fuente['pagina']}",
+                    texto_borrador,
+                ) | {"concepto": monto.group("concepto"), "fuente": fuente}
             motivo = _RE_MOTIVO_CARATULA.search(debe_decir.group("resto"))
             return _observacion_regla(
                 campo,
@@ -853,6 +870,11 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
         if isinstance(catalogo, verificar.Catalogo)
         else None,
         verificar.montos_exigibles(minutas),
+        {
+            documento.nombre_original: documento.texto_extraido.texto
+            for documento in fuentes_documentos
+            if documento.rol == Documento.MINUTA
+        },
     )
     reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
