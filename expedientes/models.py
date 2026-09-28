@@ -170,3 +170,12 @@ class DecisionCorreccion(Inmutable):
     )
     creado_el = models.DateTimeField(auto_now_add=True)
     correcciones_excluidas = models.JSONField(default=list, blank=True)
+    # F21: {id: apariciones aplicadas} (A.3), ids no ubicados en el documento y
+    # SHA-256 del documento corregido.
+    apariciones = models.JSONField(default=dict, blank=True)
+    correcciones_no_aplicadas = models.JSONField(default=list, blank=True)
+    hash_corregido = models.CharField(max_length=64, blank=True)
+
+    @property
+    def correcciones_aplicadas(self):
+        return list(self.apariciones)
