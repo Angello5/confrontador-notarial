@@ -107,6 +107,7 @@ Como usuario, quiero entender por qué un documento no se puede confrontar cuand
 - **FR-002**: El sistema DEBE ejecutar la capa de **regla** (`nucleo.verificar`) comparando el borrador contra el catálogo construido con todas las fuentes.
 - **FR-003**: El sistema DEBE ejecutar la comparación de párrafos entre los documentos con rol `MINUTA` y el borrador. El rol, y no la extensión, identifica las minutas.
 - **FR-004**: El sistema DEBE ejecutar la capa de **ortografía** (`nucleo.ortografia`) sobre el borrador, dando por buenos los nombres propios que la capa de regla ya validó contra las fuentes.
+  - **Nota 2026-09-27**: la ortografía queda oculta a pedido del propietario. `confrontar_borrador` no carga el diccionario ni llama a `nucleo.ortografia`; el resultado lleva `"ortografia": []` y la pantalla no muestra su tarjeta ni su sección. El código queda comentado para reactivarlo descomentando; `nucleo/ortografia.py` no cambia.
 - **FR-005**: El sistema DEBE ejecutar primero el diagnóstico de correspondencia y, si indica que el borrador no pertenece al expediente, mostrar el aviso y NO listar la comparación campo por campo.
 - **FR-006**: El sistema DEBE mostrar las observaciones agrupadas por capa, con el recuento de cada grupo.
 - **FR-007**: El sistema DEBE indicar, para cada observación cuyo valor aparezca en el borrador, el número de línea y un fragmento del borrador alrededor del hallazgo.
