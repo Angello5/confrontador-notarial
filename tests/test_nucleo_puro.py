@@ -216,3 +216,63 @@ def test_los_tres_modulos_tratan_la_enie_igual():
         assert fn("PERÚ").upper() == fn("PERU").upper(), (
             f"{nombre} distingue tildes de vocales, y no debe"
         )
+
+
+_PARRAFO_A = (
+    "LA PARTE COMPRADORA FICTICIA PAGA EL PRECIO PACTADO EN EFECTIVO ANTE EL "
+    "NOTARIO FICTICIO DE ESTA CIUDAD."
+)
+_PARRAFO_B = (
+    "EL INMUEBLE FICTICIO NO REGISTRA DEUDAS DE ARBITRIOS NI IMPUESTO PREDIAL "
+    "SEGUN DECLARA LA PARTE VENDEDORA."
+)
+_PARRAFO_C = (
+    "LAS PARTES FICTICIAS RENUNCIAN A CUALQUIER ACCION DE NULIDAD O RESCISION "
+    "POR LESION SOBRE ESTE CONTRATO."
+)
+_MINUTA_PARRAFOS = f"{_PARRAFO_A}\n{_PARRAFO_B}\n{_PARRAFO_C}\nlínea corta\n"
+_BORRADOR_PARRAFOS = (
+    f"TITULO\nCLAUSULA PRIMERA: {_PARRAFO_A} Y ASI LO FIRMAN.\n"
+    f"{_PARRAFO_B.replace('PREDIAL', 'PREDIALES')}\n"
+)
+
+
+def test_revisar_parrafos_paridad_con_salida_previa_al_atajo():
+    """Salida capturada antes del atajo por subcadena exacta; no debe cambiar."""
+    from nucleo.verificar import revisar_parrafos
+    from tests.test_personas import _LEGAJO_BORRADOR, _LEGAJO_MINUTA
+
+    assert revisar_parrafos(
+        [_MINUTA_PARRAFOS, _LEGAJO_MINUTA], _BORRADOR_PARRAFOS + _LEGAJO_BORRADOR, 88
+    ) == [
+        "[PARRAFO] falta o alterado (50.96%): LAS PARTES FICTICIAS RENUNCIAN A "
+        "CUALQUIER ACCION DE NULIDAD O RESCISION POR LESION SOBRE ESTE CONTR…",
+        "[PARRAFO] falta o alterado (53.33%): LA VENDEDORA DECLARA QUE EL INMUEBLE "
+        "FICTICIO SE ENTREGA LIBRE DE CARGAS, GRAVAMENES Y MEDIDAS JUDIC…",
+    ]
+    assert revisar_parrafos([_MINUTA_PARRAFOS], "", 88) == [
+        "[PARRAFO] falta: LA PARTE COMPRADORA FICTICIA PAGA EL PRECIO PACTADO EN "
+        "EFECTIVO ANTE EL NOTARIO FICTICIO DE ESTA CIU…",
+        "[PARRAFO] falta: EL INMUEBLE FICTICIO NO REGISTRA DEUDAS DE ARBITRIOS NI "
+        "IMPUESTO PREDIAL SEGUN DECLARA LA PARTE VEND…",
+        "[PARRAFO] falta: LAS PARTES FICTICIAS RENUNCIAN A CUALQUIER ACCION DE "
+        "NULIDAD O RESCISION POR LESION SOBRE ESTE CONTR…",
+    ]
+
+
+def test_revisar_parrafos_subcadena_exacta_no_llama_a_extractone(monkeypatch):
+    from nucleo import verificar
+
+    buscados = []
+    original = verificar.process.extractOne
+
+    def espia(consulta, *args, **kwargs):
+        buscados.append(consulta)
+        return original(consulta, *args, **kwargs)
+
+    monkeypatch.setattr(verificar.process, "extractOne", espia)
+
+    assert verificar.revisar_parrafos([_PARRAFO_A], _BORRADOR_PARRAFOS, 88) == []
+    assert buscados == []
+    verificar.revisar_parrafos([_PARRAFO_B], _BORRADOR_PARRAFOS, 88)
+    assert buscados == [verificar.norm(_PARRAFO_B)]

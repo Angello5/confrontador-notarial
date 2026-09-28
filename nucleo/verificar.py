@@ -989,6 +989,10 @@ def revisar_parrafos(minutas: list[str], destino: str, umbral: int) -> list[str]
     obs = []
     for src in minutas:
         for p in parrafos(src):
+            # subcadena literal: partial_ratio daria 100 y no hay observacion;
+            # saltar extractOne evita el costo en borradores largos
+            if any(p in d for d in dp):
+                continue
             m = process.extractOne(p, dp, scorer=fuzz.partial_ratio)
             if not m or m[1] < umbral:
                 # con dos decimales: a 99.7% redondeado a 0 decimales salia "100%",
