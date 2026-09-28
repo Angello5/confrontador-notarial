@@ -8,6 +8,7 @@ NUCLEO = Path(__file__).resolve().parents[1] / "nucleo"
 IMPORTS_PERMITIDOS = {
     "collections",
     "datetime",  # date valida fechas; el núcleo no consulta el reloj.
+    "hashlib",  # F21: ids estables de corrección; sin E/S.
     "rapidfuzz",
     "re",
     "unicodedata",
