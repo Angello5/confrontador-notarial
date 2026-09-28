@@ -108,3 +108,9 @@ def test_sin_minutas_la_verificacion_es_por_conjunto():
 def test_par_con_distinto_numero_de_importes_usa_la_regla_actual():
     borrador = _PRECIO.replace(" CON ARRAS DE S/ 25,000.00", "") + "\n" + _CRONOGRAMA
     assert _montos(borrador) == []
+
+
+def test_importe_partido_entre_lineas_usa_la_regla_actual():
+    assert _montos("PRECIO US$\n80,500.00.", "PRECIO US$ 80,000.00.") == [
+        "[MONTO] «US$ 80,500.00» debe decir «US$ 80,000.00»"
+    ]

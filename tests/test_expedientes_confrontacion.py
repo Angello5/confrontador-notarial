@@ -272,7 +272,7 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar",
-        lambda cat, texto, umbral, exigibles=None, montos_exigibles=None: (
+        lambda cat, texto, umbral, *_: (
             llamadas["revisar"].append(umbral)
             or ["[DNI] «90000002» no coincide con ninguna fuente"]
         ),
@@ -1316,6 +1316,12 @@ def test_confrontacion_monto_por_posicion_lleva_concepto_y_fuente(
     cronograma = (
         "CUOTA 1 15/01/2027 S/ 1,000.00 S/ 1,050.00\n"
         "CUOTA 2 15/02/2027 S/ 1,000.00 S/ 1,045.00\n"
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "declaracion-ficticia.txt",
+        _F24_PERSONA,
     )
     crear_documento_listo(
         expediente_confrontacion,
