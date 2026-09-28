@@ -1,11 +1,11 @@
 {% extends "core/base.html" %}
 
 {% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
-{% block breadcrumb %}
+{% block breadcrumb %}<ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
   <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li class="breadcrumb-item active" aria-current="page">Confrontación</li>
-{% endblock %}
+</ol>{% endblock %}
 {% block eyebrow %}Expedientes / Confrontación{% endblock %}
 {% block heading %}Resultado de la confrontación{% endblock %}
 {% block subtitle %}{{ expediente.codigo }} · {{ borrador.nombre_original }}{% endblock %}

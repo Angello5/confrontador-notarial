@@ -1,10 +1,10 @@
 {% extends "core/base.html" %}
 
 {% block title %}{{ expediente.codigo }} · Expedientes{% endblock %}
-{% block breadcrumb %}
+{% block breadcrumb %}<ol class="breadcrumb">
   <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
   <li class="breadcrumb-item active" aria-current="page">{{ expediente.codigo }}</li>
-{% endblock %}
+</ol>{% endblock %}
 {% block eyebrow %}Expediente{% endblock %}
 {% block heading %}{{ expediente.codigo }}{% endblock %}
 {% block subtitle %}Cargue las fuentes y el borrador; confronte cuando todo esté listo.{% endblock %}
