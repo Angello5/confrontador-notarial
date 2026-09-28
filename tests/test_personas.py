@@ -1105,7 +1105,9 @@ def test_conflictos_solo_entre_anclas():
             + _reniec("90000011", "BRUNO", "TELURIO", "NEBULOSA")
         }
     )
-    assert [p.estado for p in cruzados.personas] == ["REVISION_MANUAL"] * 2
+    assert [(p.nombre, p.estado) for p in cruzados.personas] == [
+        ("ALBA LUMARIA ZAFIRO", "REVISION_MANUAL")
+    ]
 
     antigua = (
         _RENIEC_F12.replace("CASADA", "SOLTERA") + "\nFECHA DE EMISION  01/02/2024"
@@ -1115,7 +1117,7 @@ def test_conflictos_solo_entre_anclas():
     assert (ancla.estado_civil, ancla.estado) == ("CASADO", "REVISION_MANUAL")
 
 
-def test_mencion_con_documento_de_dos_anclas_no_elige_titular():
+def test_documento_suelto_se_pega_a_la_ficha_unificada():
     resultado = catalogo(
         {
             "reniec-ficticio.pdf": _ALBA
@@ -1125,10 +1127,12 @@ def test_mencion_con_documento_de_dos_anclas_no_elige_titular():
         }
     )
 
-    assert all(p.adjuntos is None for p in resultado.personas)
-    assert [(m.documento, m.estado) for m in resultado.menciones] == [
-        ("90000011", "SIN_FICHA")
+    (ancla,) = resultado.personas
+    assert [(a.nombre, a.documento) for a in ancla.adjuntos] == [
+        ("BRUNO TELURIO NEBULOSA", "90000011"),
+        (None, "90000011"),
     ]
+    assert resultado.menciones == ()
 
 
 def test_ficha_reniec_sin_documento_legible_es_mencion():
@@ -1253,3 +1257,155 @@ def test_conyuge_sin_declarante_identificado_es_mencion_propia():
         ),
     )
     assert resultado["NOMBRE"] == {"EMILIO SOLANO QUIMERA"}
+
+
+# F15: una persona por DNI entre fichas oficiales. Nombres inventados.
+_OLGA = _reniec("90000051", "OLGA MIRELA", "TARANCO", "VELIZ")
+_OLGA_MINUTA = (
+    "COMPARECE OLGA MIRELA TARANCO VELIZ CON DNI 90000051 SOBRE LA PARTIDA "
+    "N° 80000005 POR S/ 2,000.00\nLA COMPRADORA DECLARA QUE EL INMUEBLE "
+    "FICTICIO SE ENTREGA SIN CARGAS NI GRAVAMENES CONOCIDOS."
+)
+
+
+def _olga_con_biometrica(nombres, primero="TARANCO", segundo="VELIZ"):
+    return catalogo(
+        {
+            "biometrica-ficticia.txt": _biometrica(
+                "90000051", nombres, primero, segundo
+            ),
+            "reniec-ficticio.pdf": _OLGA,
+        }
+    )
+
+
+def test_paridad_capa_de_campos_con_fichas_duplicadas_por_ocr():
+    from nucleo.verificar import correspondencia, diagnostico, revisar_parrafos
+
+    legajo = {
+        "biometrica-ficticia.txt": _biometrica(
+            "90000051", "OLGAIMIRELA", "TARANCO", "VELIZ"
+        ),
+        "reniec-ficticio.pdf": _OLGA,
+        "minuta-ficticia.txt": _OLGA_MINUTA,
+    }
+    borrador = (
+        "OLGA MIRELA TARANCO VELIS\nCOMPARECE OLGA MIRELA TARANCO VELIZ CON DNI "
+        "90000015 SOBRE LA PARTIDA N° 80000005 POR S/ 2,000.00"
+    )
+    cat = catalogo(legajo)
+    assert cat["NOMBRE"] == {"OLGA MIRELA TARANCO VELIZ", "OLGAIMIRELA TARANCO VELIZ"}
+    assert cat["DNI"] == {"90000051"}
+    assert revisar(cat, borrador, 88) == [
+        "[NOMBRE] «OLGA MIRELA TARANCO VELIS» debe decir «OLGA MIRELA TARANCO VELIZ»   (caratula)",
+        "[DNI] «90000015» debe decir «90000051»   … TARANCO VELIS COMPARECE OLGA MIRELA TARANCO VELIZ CON DNI 90000015",
+        "[NOMBRE] FALTA: «OLGAIMIRELA TARANCO VELIZ» esta en las fuentes y no aparece en el destino",
+        "[DNI] FALTA: «90000051» esta en las fuentes y no aparece en el destino",
+    ]
+    assert correspondencia(cat, borrador) == (2 / 3, 1)
+    assert diagnostico(legajo, borrador) is None
+    assert revisar_parrafos([_OLGA_MINUTA], borrador, 88) == [
+        "[PARRAFO] falta o alterado (44.78%): LA COMPRADORA DECLARA QUE EL INMUEBLE "
+        "FICTICIO SE ENTREGA SIN CARGAS NI GRAVAMENES CONOCIDOS.…"
+    ]
+
+
+def test_mismo_dni_con_espacio_leido_como_letra_es_una_persona_confirmada():
+    resultado = _olga_con_biometrica("OLGAIMIRELA")
+
+    (ancla,) = resultado.personas
+    assert (ancla.nombre, ancla.documento, ancla.estado) == (
+        "OLGA MIRELA TARANCO VELIZ",
+        "90000051",
+        "CONFIRMADA",
+    )
+    assert ancla.adjuntos == (
+        Persona(
+            "OLGAIMIRELA TARANCO VELIZ",
+            "90000051",
+            (Procedencia("biometrica-ficticia.txt", 1),),
+        ),
+    )
+    assert set(ancla.procedencias) == {
+        Procedencia("biometrica-ficticia.txt", 1),
+        Procedencia("reniec-ficticio.pdf", 1),
+    }
+    assert resultado["NOMBRE"] == {
+        "OLGA MIRELA TARANCO VELIZ",
+        "OLGAIMIRELA TARANCO VELIZ",
+    }
+
+
+def test_variante_de_ficha_sigue_atrayendo_prosa_sin_documento():
+    resultado = catalogo(
+        {
+            "biometrica-ficticia.txt": _biometrica(
+                "90000051", "OLGAIMIRELA", "TARANCO", "VELIZ"
+            ),
+            "reniec-ficticio.pdf": _OLGA,
+            "minuta-ficticia.txt": "OLGAIMIRELA TARANCO VELIZ, DE NACIONALIDAD PERUANA.",
+        }
+    )
+
+    (ancla,) = resultado.personas
+    assert [a.procedencias[0].fuente for a in ancla.adjuntos] == [
+        "biometrica-ficticia.txt",
+        "minuta-ficticia.txt",
+    ]
+    assert resultado.menciones == ()
+
+
+@pytest.mark.parametrize(
+    ("nombres", "primero", "segundo", "estado"),
+    [
+        ("OLGA MIRELA", "TARANKO", "VELIS", "CONFIRMADA"),
+        ("OLGA MIRELO", "TARANKO", "VELIS", "REVISION_MANUAL"),
+        ("OLGA MIRELA", "TARANCO", "VEL", "REVISION_MANUAL"),
+    ],
+    ids=["dos-ediciones", "tres-ediciones", "truncado"],
+)
+def test_mismo_dni_decide_estado_por_distancia_del_nombre(
+    nombres, primero, segundo, estado
+):
+    (ancla,) = _olga_con_biometrica(nombres, primero, segundo).personas
+    assert (ancla.nombre, ancla.estado) == ("OLGA MIRELA TARANCO VELIZ", estado)
+    assert [a.nombre for a in ancla.adjuntos] == [f"{nombres} {primero} {segundo}"]
+
+
+def test_dos_reniec_mismo_dni_manda_la_emision_mas_reciente():
+    antigua = _OLGA + "\nFECHA DE EMISION  01/02/2024"
+    reciente = (
+        _reniec("90000051", "OLGA MIRELA", "TARANKO", "VELIZ")
+        + "\nFECHA DE EMISION  03/04/2025"
+    )
+    for paginas in ((antigua, reciente), (reciente, antigua)):
+        (ancla,) = catalogo({"reniec-ficticio.pdf": "\f".join(paginas)}).personas
+        assert (ancla.nombre, ancla.estado) == (
+            "OLGA MIRELA TARANKO VELIZ",
+            "CONFIRMADA",
+        )
+        assert [a.nombre for a in ancla.adjuntos] == ["OLGA MIRELA TARANCO VELIZ"]
+
+
+def test_dos_reniec_mismo_dni_sin_fecha_manda_la_primera_pagina():
+    otra = _reniec("90000051", "OLGA MIRELA", "TARANKO", "VELIZ")
+    (ancla,) = catalogo({"reniec-ficticio.pdf": f"{otra}\f{_OLGA}"}).personas
+    assert ancla.nombre == "OLGA MIRELA TARANKO VELIZ"
+    assert [a.procedencias for a in ancla.adjuntos] == [
+        (Procedencia("reniec-ficticio.pdf", 2),)
+    ]
+
+
+def test_dni_distinto_y_mismo_nombre_siguen_siendo_dos_anclas():
+    resultado = catalogo(
+        {
+            "reniec-ficticio.pdf": _OLGA,
+            "biometrica-ficticia.txt": _biometrica(
+                "90000062", "OLGA MIRELA", "TARANCO", "VELIZ"
+            ),
+        }
+    )
+    assert [(p.documento, p.estado, p.adjuntos) for p in resultado.personas] == [
+        ("90000051", "CONFIRMADA", None),
+        ("90000062", "CONFIRMADA", None),
+    ]
