@@ -274,5 +274,26 @@ def test_revisar_parrafos_subcadena_exacta_no_llama_a_extractone(monkeypatch):
 
     assert verificar.revisar_parrafos([_PARRAFO_A], _BORRADOR_PARRAFOS, 88) == []
     assert buscados == []
-    verificar.revisar_parrafos([_PARRAFO_B], _BORRADOR_PARRAFOS, 88)
-    assert buscados == [verificar.norm(_PARRAFO_B)]
+    assert verificar.revisar_parrafos([_PARRAFO_B], _BORRADOR_PARRAFOS, 88) == []
+    assert buscados == []
+
+
+def test_revisar_parrafos_solo_calcula_la_puntuacion_de_los_que_fallan(monkeypatch):
+    """Un parrafo parecido sobre el umbral no necesita la busqueda completa."""
+    from nucleo import verificar
+
+    buscados = []
+    original = verificar.process.extractOne
+
+    def espia(consulta, *args, **kwargs):
+        buscados.append(consulta)
+        return original(consulta, *args, **kwargs)
+
+    monkeypatch.setattr(verificar.process, "extractOne", espia)
+
+    salida = verificar.revisar_parrafos(
+        [f"{_PARRAFO_B}\n{_PARRAFO_C}"], _BORRADOR_PARRAFOS, 88
+    )
+
+    assert buscados == [verificar.norm(_PARRAFO_C)]
+    assert len(salida) == 1 and salida[0].startswith("[PARRAFO] falta o alterado (")
