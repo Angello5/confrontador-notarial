@@ -17,6 +17,7 @@
           {% if resultado.corregible %}<th scope="col">Aplicar</th>{% endif %}
           <th scope="col">Valor erróneo</th><th scope="col">Valor correcto</th>
           <th scope="col">Documento fuente</th>
+          {% if resultado.corregible %}<th scope="col">Apariciones</th>{% endif %}
         </tr></thead>
         <tbody>
           {% for correccion in resultado.correcciones %}
@@ -28,6 +29,7 @@
               <td>{{ correccion.erroneo }}</td>
               <td>{{ correccion.correcto }}</td>
               <td>{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}</td>
+              {% if resultado.corregible %}<td>{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:"ón,ones" }}</td>{% endif %}
             </tr>
           {% endfor %}
         </tbody>

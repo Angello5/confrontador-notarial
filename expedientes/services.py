@@ -865,6 +865,11 @@ def confrontar_borrador(expediente, borrador):
     # )
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     correcciones = correccion.correcciones(reglas, fuentes)
+    original = ruta_original(borrador)
+    if original.is_file():
+        cuenta = docx_corregido.apariciones(original, correcciones)
+        for propuesta in correcciones:
+            propuesta["apariciones"] = cuenta.get(propuesta["id"], 0)
     if isinstance(catalogo, verificar.Catalogo):
         observaciones_regla.extend(
             _observaciones_f12_legibles(
@@ -887,7 +892,7 @@ def confrontar_borrador(expediente, borrador):
         "ortografia": [],
         "correcciones": correcciones,
         "huella": huella_corrida(borrador, fuentes_documentos, correcciones),
-        "corregible": ruta_original(borrador).is_file(),
+        "corregible": original.is_file(),
     }
 
 
@@ -919,7 +924,7 @@ def aplicar_correcciones(expediente, borrador, huella, ids, usuario):
     propuestas = resultado["correcciones"]
     temporal = original.with_name(f"corregido-{secrets.token_hex(8)}.tmp")
     try:
-        aplicadas, no_aplicadas = docx_corregido.aplicar(
+        apariciones, no_aplicadas = docx_corregido.aplicar(
             original, temporal, [p for p in propuestas if p["id"] in ids]
         )
         corregido_hash = calcular_hash(temporal)
@@ -932,7 +937,8 @@ def aplicar_correcciones(expediente, borrador, huella, ids, usuario):
         borrador=borrador,
         huella_corrida=huella,
         confirmado_por=usuario,
-        aplicadas=aplicadas,
+        aplicadas=list(apariciones),
+        apariciones=apariciones,
         excluidas=[p["id"] for p in propuestas if p["id"] not in ids],
         no_aplicadas=no_aplicadas,
         corregido_hash=corregido_hash,

@@ -24,7 +24,7 @@
         <ul>
           <li>Aplicadas: {{ aplicacion.aplicadas|length }}</li>
           <li>Excluidas por usted: {{ aplicacion.excluidas|length }}</li>
-          <li>No aplicadas (no se ubicaron en el documento): {{ aplicacion.no_aplicadas|length }}</li>
+          <li>No aplicadas (no se ubicaron en el documento o competían con otra corrección): {{ aplicacion.no_aplicadas|length }}</li>
         </ul>
         <a class="btn btn-primary" href="{% url 'correccion_descargar' expediente.pk aplicacion.pk %}">Descargar documento corregido</a>
       </div>

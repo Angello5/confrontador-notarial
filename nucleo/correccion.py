@@ -3,7 +3,6 @@
 import hashlib
 import re
 import unicodedata
-from collections import Counter
 
 SEPARADOR_PAGINA = "\f"  # el mismo de nucleo.verificar; la pureza prohíbe importarlo
 _RE_DEBE_DECIR = re.compile(
@@ -58,15 +57,16 @@ def correcciones(salidas, fuentes) -> list[dict]:
         for nombre, texto in fuentes.items()
         for numero, pagina in enumerate(texto.split(SEPARADOR_PAGINA), 1)
     ]
-    carga, vistos = [], Counter()
+    carga, vistos = [], set()
     for salida in salidas:
         m = _RE_DEBE_DECIR.match(salida) if isinstance(salida, str) else None
         if not m or m["campo"] in _SIN_TEXTO_CORRECTO:
             continue
         campo, erroneo, correcto = m["campo"], m["erroneo"], m["correcto"]
-        plano_erroneo = _plano(erroneo)[0].strip()
+        par = (_plano(erroneo)[0].strip(), _plano(correcto)[0].strip())
         # Igual (P-03) o prefijo propio: el reemplazo truncaría el texto.
-        if plano_erroneo.startswith(_plano(correcto)[0].strip()):
+        # Un par repetido es una sola fila: se aplica a todas las apariciones.
+        if par[0].startswith(par[1]) or par in vistos:
             continue
         buscado = _palabras(correcto)
         fuente = next(
@@ -79,9 +79,8 @@ def correcciones(salidas, fuentes) -> list[dict]:
         )
         if fuente is None:
             continue
-        ocurrencia = vistos[plano_erroneo]
-        vistos[plano_erroneo] += 1
-        clave = f"{campo}|{erroneo}|{correcto}|{ocurrencia}".encode()
+        vistos.add(par)
+        clave = f"{campo}|{erroneo}|{correcto}".encode()
         carga.append(
             {
                 "id": hashlib.sha256(clave).hexdigest()[:12],
@@ -89,7 +88,6 @@ def correcciones(salidas, fuentes) -> list[dict]:
                 "erroneo": erroneo,
                 "correcto": correcto,
                 "fuente": fuente,
-                "ocurrencia": ocurrencia,
             }
         )
     return carga

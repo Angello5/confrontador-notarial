@@ -17,6 +17,6 @@
 
 ## Phase 3 — ronda 2: todas las apariciones (A.3)
 
-- [ ] T008 Pruebas rojas: erróneo repetido 3 veces → 3 corregidas y resto intacto (conteo); «9000011» junto a «90000111» solo con límite de palabra; competencia → ninguna en el tramo; par repetido = una fila; conteo en la vista y en el registro (FR-008, FR-008a, SC-005).
-- [ ] T009 Núcleo sin `ocurrencia`, adaptador `apariciones()`/`aplicar()` sobre todas las apariciones, campo `apariciones` (migración 0004), vista «N apariciones».
-- [ ] T010 Verificaciones de T007; commit local sin push.
+- [X] T008 Pruebas rojas: erróneo repetido 3 veces → 3 corregidas y resto intacto (conteo); «9000011» junto a «90000111» solo con límite de palabra; competencia → ninguna en el tramo; par repetido = una fila; conteo en la vista y en el registro (FR-008, FR-008a, SC-005).
+- [X] T009 Núcleo sin `ocurrencia`, adaptador `apariciones()`/`aplicar()` sobre todas las apariciones, campo `apariciones` (migración 0004), vista «N apariciones».
+- [X] T010 Verificaciones de T007; commit local sin push.

@@ -118,6 +118,8 @@ class AplicacionCorreccion(models.Model):
     aplicadas = models.JSONField(default=list)
     excluidas = models.JSONField(default=list)
     no_aplicadas = models.JSONField(default=list)
+    # {id: apariciones aplicadas}: cada corrección alcanza todas (A.3).
+    apariciones = models.JSONField(default=dict)
     corregido_hash = models.CharField(max_length=64)
 
     def save(self, *args, **kwargs):
