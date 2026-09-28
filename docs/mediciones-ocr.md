@@ -106,6 +106,21 @@ documento y leer sus campos por posición. Orden de confianza:
 `zxing-cpp` no está en el ERP: es una dependencia nueva y su incorporación
 requiere justificarla en la fase que la use.
 
+## Resolución de las fichas RENIEC y biométricas
+
+Medido el 2026-09-27 sobre las 55 fichas oficiales de los 10 expedientes (28 RENIEC, 27 biométricas), con el mismo OCR y el mismo núcleo, cambiando solo los puntos por pulgada al rasterizar. Solo recuentos.
+
+| Medida | 150 | **200 (actual)** | 250 | 300 | 400 |
+|---|---:|---:|---:|---:|---:|
+| Fichas con persona completa | 44 | **49** | 44 | 45 | 41 |
+| RENIEC con estado civil | 19 | **23** | 18 | 19 | 17 |
+| RENIEC con fecha de nacimiento | 16 | **21** | 16 | 17 | 15 |
+| RENIEC con domicilio | 16 | **18** | 18 | 18 | 16 |
+| DNI con 2+ fichas y nombres idénticos | 15 | **15** | 12 | 10 | 10 |
+| Segundos por página | 1,9 | ≈2 | 2,2 | 2,4 | 2,8 |
+
+**Decisión:** se mantiene 200 ppp. Subir o bajar la resolución empeora la lectura: los modelos PP-OCR están ajustados a ese tamaño de letra y a más resolución el detector parte o pierde líneas. Mejorar la calidad pasa por el origen del documento (consulta RENIEC guardada como PDF digital, con capa de texto) y no por la resolución.
+
 ## Lecciones de método
 
 Dos veces se estuvo a punto de concluir en falso por medir con un instrumento

@@ -723,9 +723,19 @@ _VIAS = {
 }
 
 
-def _clausula_persona(texto: str, nombre: str) -> str | None:
-    t = "\n".join(norm(linea) for linea in texto.splitlines())
-    match = re.search(rf"(?<![A-ZÑ]){re.escape(_nombre_clave(nombre))}(?![A-ZÑ])", t)
+def _clausula_persona(texto: str, nombre: str, documento: str) -> str | None:
+    lineas = [norm(linea) for linea in texto.splitlines()]
+    t = "\n".join(lineas)
+    nombre_exacto = rf"(?<![A-ZÑ]){re.escape(_nombre_clave(nombre))}(?![A-ZÑ])"
+    dni = rf"(?<!\d){re.escape(documento)}(?!\d)"
+    # La carátula repite el nombre: primero la línea de comparecencia.
+    for patron, con_civil in ((dni, True), (nombre_exacto, True), (dni, False)):
+        for linea in lineas:
+            if re.search(patron, linea) and (
+                not con_civil or _CIVIL_BORRADOR.search(linea)
+            ):
+                return linea
+    match = re.search(nombre_exacto, t)
     if not match:
         return None
     limites = list(re.finditer(r"\.\s+|\n", t[: match.start()]))
@@ -762,7 +772,7 @@ def revisar_persona_ampliada(
             or not persona.nombre
         ):
             continue
-        clausula = _clausula_persona(borrador, persona.nombre)
+        clausula = _clausula_persona(borrador, persona.nombre, persona.documento)
         if clausula is None:
             continue
         base = {"nombre": persona.nombre}
