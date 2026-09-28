@@ -1,12 +1,15 @@
 import hashlib
 import io
+import json
 import logging
 import os
 import re
 import secrets
 import shutil
+import tomllib
 import unicodedata
 import zipfile
+from collections import Counter
 from datetime import timedelta
 from pathlib import Path
 
@@ -21,7 +24,7 @@ from adaptadores import extraccion
 # from nucleo import ortografia
 from nucleo import verificar
 
-from .models import Documento, Expediente, TextoExtraido
+from .models import Corrida, Documento, Expediente, TextoExtraido
 
 logger = logging.getLogger(__name__)
 
@@ -748,14 +751,19 @@ def estado_confrontacion(expediente, borrador, fuentes=None):
     return {"disponible": True, "mensaje": ""}
 
 
-def confrontar_borrador(expediente, borrador):
-    """Ejecuta la regla sobre un borrador listo, sin persistir."""
+def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=None):
+    """Ejecuta la regla sobre un borrador listo, sin persistir.
+
+    `fecha` y `fuentes_documentos` explícitos reconstruyen una corrida.
+    """
+    fecha = fecha or timezone.localdate()
     if borrador.expediente_id != expediente.pk or borrador.rol != Documento.BORRADOR:
         raise ValueError("El documento no es un borrador de este expediente.")
 
-    fuentes_documentos = list(
-        expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE).order_by("pk")
-    )
+    if fuentes_documentos is None:
+        fuentes_documentos = list(
+            expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE).order_by("pk")
+        )
     disponibilidad = estado_confrontacion(expediente, borrador, fuentes_documentos)
     if not disponibilidad["disponible"]:
         return _resultado_no_disponible(disponibilidad["mensaje"])
@@ -820,15 +828,14 @@ def confrontar_borrador(expediente, borrador):
     if isinstance(catalogo, verificar.Catalogo):
         observaciones_regla.extend(
             _observaciones_f12_legibles(
-                verificar.revisar_persona_ampliada(
-                    catalogo, texto_borrador, timezone.localdate()
-                ),
+                verificar.revisar_persona_ampliada(catalogo, texto_borrador, fecha),
                 texto_borrador,
             )
         )
     return {
         "estado": "RESULTADO",
         "mensaje": "",
+        "fecha_referencia": fecha,
         "personas": _observaciones_personas_legibles(
             observaciones_personas, texto_borrador
         ),
@@ -862,3 +869,188 @@ def expedientes_con_resumen(usuario):
     """Expedientes visibles, del más reciente al más antiguo, con su resumen."""
     expedientes = expedientes_visibles(usuario).order_by("-actualizado_el", "-pk")
     return [(expediente, resumen_expediente(expediente)) for expediente in expedientes]
+
+
+# Catálogo de reglas versionado (Anexo A, capas 5 y 6). El núcleo no lee
+# archivos: el adaptador lo carga una vez.
+CATALOGO_REGLAS = tomllib.loads(
+    (Path(__file__).resolve().parents[1] / "nucleo" / "catalogo_reglas.toml").read_text(
+        encoding="utf-8"
+    )
+)
+RESULTADO_ERROR = {
+    "estado": "ERROR_SEGURO",
+    "mensaje": "No se pudo completar la confrontación. Intente nuevamente.",
+    "regla": [],
+    "ortografia": [],
+}
+_ESTADOS_CORRIDA = {
+    "RESULTADO": Corrida.RESULTADO,
+    "ADVERTENCIA_CORRESPONDENCIA": Corrida.ADVERTENCIA,
+    "NO_DISPONIBLE": Corrida.NO_DISPONIBLE,
+}
+
+
+class CorridaNoReconstruible(ValueError):
+    """Falta un texto de entrada o cambió desde la corrida."""
+
+
+def severidad(campo):
+    regla = CATALOGO_REGLAS["reglas"].get(campo)
+    return regla["severidad"] if regla else CATALOGO_REGLAS["default_severidad"]
+
+
+def _con_severidad(resultado):
+    """Resultado con la severidad del catálogo en cada observación."""
+    return {
+        **resultado,
+        "personas": [
+            {**fila, "severidad": severidad(fila.get("tipo"))}
+            for fila in resultado.get("personas", [])
+        ],
+        "regla": [
+            {**fila, "severidad": severidad(fila.get("campo"))}
+            for fila in resultado.get("regla", [])
+        ],
+        "ortografia": [
+            {**fila, "severidad": severidad("ORTOGRAFIA")}
+            for fila in resultado.get("ortografia", [])
+        ],
+    }
+
+
+def hallazgos_canonicos(resultado):
+    """JSON canónico de los hallazgos: claves ordenadas, sin espacios."""
+    hallazgos = {
+        clave: resultado.get(clave, []) for clave in ("personas", "regla", "ortografia")
+    }
+    hallazgos["estado"] = resultado.get("estado", "")
+    hallazgos["mensaje"] = resultado.get("mensaje", "")
+    return json.dumps(
+        hallazgos, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    )
+
+
+def _sha256_texto(texto):
+    return hashlib.sha256(texto.encode("utf-8")).hexdigest()
+
+
+def _entrada_corrida(documento):
+    texto = documento.texto_extraido
+    return {
+        "rol": documento.rol,
+        "nombre": documento.nombre_original,
+        "hash_archivo": documento.hash_archivo,
+        "version_extractor": texto.version_extractor if texto else None,
+        "hash_texto": _sha256_texto(texto.texto) if texto else None,
+        "estado": documento.estado,
+    }
+
+
+def registrar_corrida(expediente, borrador, usuario, resultado):
+    """Crea la corrida inmutable y devuelve el resultado con severidad."""
+    resultado = _con_severidad(resultado)
+    hallazgos = hallazgos_canonicos(resultado)
+    fuentes = expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE)
+    Corrida.objects.create(
+        expediente=expediente,
+        id_borrador=borrador.pk,
+        hash_borrador=borrador.hash_archivo,
+        entradas=[
+            _entrada_corrida(documento)
+            for documento in (
+                borrador,
+                *fuentes.select_related("texto_extraido").order_by("pk"),
+            )
+        ],
+        version_catalogo=CATALOGO_REGLAS["version"],
+        version_software=settings.ERP_VERSION,
+        usuario=usuario,
+        # ponytail: sin fecha en el resultado (no llegó a las reglas) se usa la de hoy.
+        fecha_referencia=resultado.get("fecha_referencia") or timezone.localdate(),
+        estado=_ESTADOS_CORRIDA.get(resultado.get("estado"), Corrida.ERROR),
+        hallazgos=hallazgos,
+        huella=_sha256_texto(hallazgos),
+    )
+    return resultado
+
+
+def _documento_reconstruido(corrida, entrada):
+    texto = None
+    if entrada["hash_texto"] is not None:
+        texto = TextoExtraido.objects.filter(
+            hash_archivo=entrada["hash_archivo"],
+            version_extractor=entrada["version_extractor"],
+        ).first()
+        if texto is None or _sha256_texto(texto.texto) != entrada["hash_texto"]:
+            raise CorridaNoReconstruible(
+                f"El texto de {entrada['rol']} {entrada['hash_archivo'][:12]} "
+                "no está disponible o cambió (¿suprimido?)."
+            )
+    return Documento(
+        expediente=corrida.expediente,
+        rol=entrada["rol"],
+        nombre_original=entrada["nombre"],
+        hash_archivo=entrada["hash_archivo"],
+        estado=entrada["estado"],
+        texto_extraido=texto,
+    )
+
+
+def reconstruir_corrida(corrida):
+    """Repite la confrontación con las entradas registradas (Anexo B, P-08)."""
+    avisos = []
+    if corrida.version_catalogo != CATALOGO_REGLAS["version"]:
+        avisos.append(
+            f"Catálogo de reglas registrado {corrida.version_catalogo}, actual "
+            f"{CATALOGO_REGLAS['version']}: se aplica el actual."
+        )
+    borrador, *fuentes = [
+        _documento_reconstruido(corrida, entrada) for entrada in corrida.entradas
+    ]
+    try:
+        resultado = confrontar_borrador(
+            corrida.expediente, borrador, corrida.fecha_referencia, fuentes
+        )
+    except Exception:
+        resultado = RESULTADO_ERROR
+    hallazgos = hallazgos_canonicos(_con_severidad(resultado))
+    huella = _sha256_texto(hallazgos)
+    return {
+        "conforme": huella == corrida.huella,
+        "huella": huella,
+        "total": len(filas_corrida(hallazgos)),
+        "avisos": avisos,
+    }
+
+
+def filas_corrida(hallazgos):
+    """Observaciones de una corrida en una sola tabla de solo lectura."""
+    datos = json.loads(hallazgos)
+    filas = [
+        {**fila, "campo": fila.get("tipo"), "motivo": fila.get("motivo", "")}
+        for fila in datos["personas"]
+    ]
+    filas.extend(datos["regla"])
+    filas.extend(
+        {
+            **fila,
+            "campo": "ORTOGRAFIA",
+            "hallado": fila.get("palabra"),
+            "esperado": fila.get("sugerencia"),
+        }
+        for fila in datos["ortografia"]
+    )
+    return filas
+
+
+def corridas_con_resumen(expediente):
+    """Corridas del expediente, de la más reciente, con hallazgos por severidad."""
+    corridas = list(
+        expediente.corridas.select_related("usuario").order_by("-creado_el", "-pk")
+    )
+    for corrida in corridas:
+        corrida.severidades = Counter(
+            fila.get("severidad") for fila in filas_corrida(corrida.hallazgos)
+        )
+    return corridas
