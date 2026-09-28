@@ -302,39 +302,103 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     assert Documento.objects.count() == documentos_antes
 
 
-def test_confrontacion_oculta_ortografia_sin_cargar_diccionario(
+class _DiccionarioFicticio:
+    """Solo conoce el castellano común de los borradores ficticios."""
+
+    COMUNES = {"dni", "compareciente", "nacionalidad", "peruana", "domicilio", "contrato"}
+
+    def lookup(self, palabra):
+        return palabra.lower() in self.COMUNES
+
+
+_RENIEC_F23 = (
+    "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA\n"
+    "APELLIDO MATERNO  ZAFIRO\nNOMBRES  ALBA\n"
+    "DIRECCION  Av. Lunaria 12\nDISTRITO DE DOMICILIO  Olmedal"
+)
+_BORRADOR_F23 = (
+    "COMPARECIENTE ALBA LUMARIO ZAFIRO, DE NACIONALIDAD PERUANA, DNI 90000011,\n"
+    "DOMICILIO Av. Lunaria 12, Olmedal.\n"
+    "LA CONTRATO DE DE CONTRATO palabraerrada"
+)
+
+
+def _expediente_f23(expediente, crear_documento_listo):
+    from expedientes.models import Documento
+
+    crear_documento_listo(expediente, Documento.CLIENTE, "reniec-f23.pdf", _RENIEC_F23)
+    crear_documento_listo(
+        expediente,
+        Documento.MINUTA,
+        "minuta-f23.docx",
+        "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, DNI 90000011.",
+    )
+    return crear_documento_listo(
+        expediente, Documento.BORRADOR, "borrador-f23.txt", _BORRADOR_F23
+    )
+
+
+def test_capa_linguistica_informa_sin_tocar_datos_del_a3(
     expediente_confrontacion, crear_documento_listo, monkeypatch
 ):
-    """Ortografía oculta a pedido del propietario (2026-09-27)."""
-    from expedientes.models import Documento
+    """F23 FR-001, FR-002, FR-004, FR-005."""
     from expedientes.services import confrontar_borrador
 
-    texto = "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001."
-    crear_documento_listo(
-        expediente_confrontacion, Documento.CLIENTE, "cliente-ficticio.txt", texto
-    )
-    crear_documento_listo(
-        expediente_confrontacion, Documento.MINUTA, "minuta-ficticia.docx", texto
-    )
-    borrador = crear_documento_listo(
-        expediente_confrontacion,
-        Documento.BORRADOR,
-        "borrador-ficticio.txt",
-        texto + " palabraficticiaerrada",
-    )
+    borrador = _expediente_f23(expediente_confrontacion, crear_documento_listo)
     monkeypatch.setattr(
-        "adaptadores.diccionario.diccionario",
-        lambda: pytest.fail("la ortografía está oculta: no se carga el diccionario"),
+        "expedientes.services.diccionario.diccionario",
+        lambda: (_DiccionarioFicticio(), ["palabra"]),
     )
-    monkeypatch.setattr(
-        "nucleo.ortografia.revisar",
-        lambda *_: pytest.fail("la ortografía está oculta: no se revisa"),
-    )
+    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", set)
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
     assert resultado["estado"] == "RESULTADO"
-    assert resultado["ortografia"] == []
+    assert resultado["linguistico_aviso"] == ""
+    assert any("LUMARIO" in fila["hallado"] for fila in resultado["regla"])
+    filas = [(f["palabra"], f["motivo"]) for f in resultado["ortografia"]]
+    # ni el nombre (ni su forma errada, que ya observa la regla) ni el domicilio
+    assert filas == [
+        ("palabraerrada", "no existe en castellano"),
+        ("LA CONTRATO", "concordancia de artículo"),
+        ("DE DE", "palabra repetida"),
+    ]
+    assert resultado["ortografia"][1]["ubicacion"]["linea"] == 3
+    textos_regla = str(resultado["regla"]) + str(resultado["personas"])
+    assert "palabraerrada" not in textos_regla
+    assert "concordancia" not in textos_regla
+
+    # paridad: regla y personas no dependen de la capa lingüística
+    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
+    monkeypatch.setattr("expedientes.services.ortografia.redaccion", lambda *_: [])
+    sin_capa = confrontar_borrador(expediente_confrontacion, borrador)
+    assert sin_capa["regla"] == resultado["regla"]
+    assert sin_capa["personas"] == resultado["personas"]
+
+
+def test_sin_diccionario_la_confrontacion_sigue_con_aviso(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    """F23 FR-003."""
+    from adaptadores.diccionario import DiccionarioNoAprovisionado
+    from expedientes.services import confrontar_borrador
+
+    borrador = _expediente_f23(expediente_confrontacion, crear_documento_listo)
+
+    def ausente():
+        raise DiccionarioNoAprovisionado("falta")
+
+    monkeypatch.setattr("expedientes.services.diccionario.diccionario", ausente)
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    assert resultado["estado"] == "RESULTADO"
+    assert "no disponibles" in resultado["linguistico_aviso"]
+    assert resultado["regla"]
+    assert [f["motivo"] for f in resultado["ortografia"]] == [
+        "concordancia de artículo",
+        "palabra repetida",
+    ]
 
 
 def test_confrontacion_devuelve_catalogo_y_aporte_por_documento(

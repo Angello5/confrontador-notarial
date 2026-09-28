@@ -161,10 +161,41 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     assert "<table" in contenido
     assert '<th scope="col">Campo</th>' in contenido
     assert "Línea 1" in contenido
-    # Ortografía oculta a pedido del propietario (2026-09-27).
-    assert "palabraficticia" not in contenido
-    assert "ortografia-titulo" not in contenido
+    assert "palabraficticia" in contenido
+    assert "Lingüístico" in contenido
+    assert "ortografia-titulo" in contenido
     assert "[DNI]" not in contenido
+
+
+def test_resultado_muestra_aviso_linguistico_sin_bloquear(
+    client, usuario_ficticio, monkeypatch
+):
+    """F23 FR-003 y FR-006."""
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F23", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.views.confrontar_borrador",
+        lambda *_: {
+            "estado": "RESULTADO",
+            "mensaje": "",
+            "regla": [],
+            "ortografia": [],
+            "linguistico_aviso": "Ortografía y tildes no disponibles: aviso ficticio.",
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = client.post(
+        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+    assert "Lingüístico" in contenido
+    assert "aviso ficticio" in contenido
+    assert "Regla" in contenido
 
 
 def test_resultado_muestra_verificacion_de_extraccion_sin_texto_completo(
