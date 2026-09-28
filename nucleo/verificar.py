@@ -37,6 +37,9 @@ class Catalogo(Mapping[str, frozenset[str]]):
         "paginas_descartadas",
         "paginas_no_clasificadas",
         "menciones",
+        "rucs",
+        "direcciones",
+        "vocabulario",
         "_fijo",
     )
 
@@ -48,6 +51,9 @@ class Catalogo(Mapping[str, frozenset[str]]):
         paginas_descartadas=(),
         paginas_no_clasificadas=(),
         menciones=(),
+        rucs=frozenset(),
+        direcciones=frozenset(),
+        vocabulario=(),
     ):
         object.__setattr__(self, "personas", tuple(personas))
         object.__setattr__(self, "partidas", frozenset(partidas))
@@ -57,6 +63,16 @@ class Catalogo(Mapping[str, frozenset[str]]):
             self, "paginas_no_clasificadas", tuple(paginas_no_clasificadas)
         )
         object.__setattr__(self, "menciones", tuple(menciones))
+        object.__setattr__(self, "rucs", frozenset(rucs))
+        # F22: más los domicilios RENIEC ya leídos de las personas.
+        object.__setattr__(
+            self,
+            "direcciones",
+            frozenset(direcciones)
+            | {norm(p.domicilio) for p in self._registros() if p.domicilio},
+        )
+        # F22 ronda 2: palabras de las fuentes, para distinguir el ruido OCR.
+        object.__setattr__(self, "vocabulario", Counter(vocabulario))
         object.__setattr__(self, "_fijo", True)
 
     def __setattr__(self, campo, valor):
@@ -84,13 +100,17 @@ class Catalogo(Mapping[str, frozenset[str]]):
             return self.partidas
         if campo == "MONTO":
             return self.montos
+        if campo == "RUC":
+            return self.rucs
+        if campo == "DIRECCION":
+            return self.direcciones
         raise KeyError(campo)
 
     def __iter__(self):
-        return iter(("NOMBRE", "DNI", "PARTIDA", "MONTO"))
+        return iter(("NOMBRE", "DNI", "PARTIDA", "MONTO", "RUC", "DIRECCION"))
 
     def __len__(self) -> int:
-        return 4
+        return 6
 
 
 RELLENO = re.compile(r"[=_.]{3,}|(?:-?/@/\s*)+")
@@ -126,6 +146,15 @@ RE_DNI_BORRADOR = re.compile(
     r"\s*(?:(?:N[O°]?|NUMERO|NRO[.]?)\s*)?(?:[:,.]\s*)?(?<!\d)(\d{6,10})(?!\d)"
 )
 # F19: en el borrador el rótulo basta; la longitud incorrecta es el error.
+
+_ROTULO_RUC = (
+    r"(?<![A-ZÑ])(?:R[.]?U[.]?C[.]?|REGISTRO UNICO DE CONTRIBUYENTES?)"
+    r"\s*(?:(?:N[O°]?|NUMERO|NRO[.]?)\s*)?(?:[:,.]\s*)?(?<!\d)"
+)
+# [NEEDS CLARIFICATION] prefijos válidos del RUC; por defecto 10/15/16/17/20.
+RE_RUC_DOC = re.compile(_ROTULO_RUC + r"((?:10|15|16|17|20)\d{9})(?!\d)")
+RE_RUC_BORRADOR = re.compile(_ROTULO_RUC + r"(\d{9,13})(?!\d)")
+# F22: como el DNI de F19, en el borrador el rótulo basta.
 
 RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
 # La forma corta PARTIDA N° también es valida en algunos actos.
@@ -784,18 +813,116 @@ def _clausula_persona(texto: str, nombre: str, documento: str) -> str | None:
     return t[inicio : match.end() + fin.start() if fin else len(t)]
 
 
-def _direccion_tokens(texto: str) -> Counter:
+def _direccion_palabras(texto: str) -> list[str]:
     sin_tildes = "".join(
         c
         for c in unicodedata.normalize("NFKD", texto.upper())
         if not unicodedata.combining(c)
     )
     sin_tildes = re.sub(r"\bS\s*/\s*N\b", " SN ", sin_tildes)
-    sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes)
+    sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes).replace("#", " INTERIOR ")
     tokens = re.findall(r"[A-Z0-9]+", sin_tildes)
-    return Counter(
-        palabra for token in tokens for palabra in _VIAS.get(token, token).split()
-    )
+    return [palabra for token in tokens for palabra in _VIAS.get(token, token).split()]
+
+
+def _direccion_tokens(texto: str) -> Counter:
+    return Counter(_direccion_palabras(texto))
+
+
+_ROTULO_DIRECCION_FUENTE = re.compile(
+    r"(?<![A-ZÑ])(?<!DE )(?:CON DOMICILIO(?: LEGAL| FISCAL)? EN|DOMICILIAD[AO] EN"
+    r"|DOMICILIO(?: LEGAL| FISCAL)?(?: EN)?|DIRECCION)(?![A-ZÑ])[\s:|]*"
+)
+# «DISTRITO DE DOMICILIO» y similares rotulan otra cosa: de ahí el (?<!DE ).
+_ROTULO_DIRECCION_BORRADOR = re.compile(
+    r"(?<![A-ZÑ])(?:CON DOMICILIO|DOMICILIAD[AO]|DOMICILIO LEGAL) EN(?![A-ZÑ])[\s:]*"
+)
+_PALABRAS_VIA = {via.split()[0] for via in _VIAS.values()} - {"NUMERO", "SIN"}
+
+
+def _direcciones(texto: str, rotulo: re.Pattern) -> list[str]:
+    """F22: tramos tras el rótulo hasta el fin de cláusula, línea por línea."""
+    out = []
+    for linea in texto.splitlines():
+        # Dos espacios separan celdas (``ocr_lineas``): una celda cierra el tramo.
+        t = norm(" | ".join(re.split(r"\s{2,}", linea.strip())))
+        for m in rotulo.finditer(t):
+            tramo = re.split(
+                r"\||;|,\s*(?:DISTRITO|PROVINCIA|DEPARTAMENTO)\b", t[m.end() :]
+            )[0]
+            # ponytail: un punto tras palabra de hasta 4 letras es abreviatura
+            # (AV., JR., MZ.); si una vía corta cierra la cláusula, se arrastra texto
+            # y la similitud baja: se pierde la observación, no hay falso positivo.
+            for punto in re.finditer(r"([A-ZÑ0-9]*)\.(?=\s|$)", tramo):
+                if not (punto[1].isalpha() and len(punto[1]) <= 4):
+                    tramo = tramo[: punto.end() - 1]
+                    break
+            if tramo := tramo.strip(" ,."):
+                out.append(tramo)
+    return out
+
+
+def _palabras_clave(texto: str) -> list[str]:
+    # El «N°» delante del número es opcional en la escritura.
+    return [w for w in _direccion_palabras(texto) if w not in {"NUMERO", "NO", "NRO"}]
+
+
+def _clave_direccion(texto: str) -> str:
+    return " ".join(_palabras_clave(texto))
+
+
+def _sustitucion(fuente: Counter, tramo: Counter, vocabulario) -> bool | None:
+    """F22 ronda 2: None si es otra dirección; si no, ¿hay una sustitución real?
+
+    El borrador puede agregar (interior, distrito, referencia); solo cuenta lo
+    que falta de la fuente y trae pareja en el borrador.
+    """
+    faltan = fuente - tramo
+    sobran = tramo - fuente
+    if sum(faltan.values()) > sum((fuente & tramo).values()):
+        return None
+    real = False
+    for w in sorted(faltan.elements()):
+        candidatas = sorted(v for v in sobran if v.isdigit() == w.isdigit())
+        if w.isdigit():
+            if not candidatas:
+                return None
+            pareja, real = candidatas[0], True
+        else:
+            pareja = min(
+                candidatas, key=lambda v: Levenshtein.distance(w, v), default=None
+            )
+            if len(w) < 4 or pareja is None or Levenshtein.distance(w, pareja) > 2:
+                return None
+            # [NEEDS CLARIFICATION] sin diccionario en el núcleo: la palabra de la
+            # fuente vale si se lee dos veces y la del borrador no está en fuentes.
+            real = real or (
+                vocabulario[pareja] == 0 and (vocabulario[w] >= 2 or w in _PALABRAS_VIA)
+            )
+        sobran[pareja] -= 1
+        sobran = +sobran
+    return real
+
+
+def _direcciones_observadas(
+    fuente, borrador: str, vocabulario
+) -> list[tuple[str, str]]:
+    """F22: (hallado, esperado) por cada mención con una sustitución real."""
+    claves = {}
+    for direccion in sorted(fuente):
+        claves.setdefault(_clave_direccion(direccion), direccion)
+    claves.pop("", None)
+    cuentas = {c: Counter(c.split()) for c in claves}
+    obs = []
+    for tramo in _direcciones(borrador, _ROTULO_DIRECCION_BORRADOR):
+        palabras = Counter(_palabras_clave(tramo))
+        if any(c <= palabras for c in cuentas.values()):
+            continue
+        for clave, cuenta in cuentas.items():
+            if _sustitucion(cuenta, palabras, vocabulario):
+                obs.append((tramo, claves[clave]))
+                break
+    return obs
 
 
 def revisar_persona_ampliada(
@@ -803,6 +930,13 @@ def revisar_persona_ampliada(
 ) -> tuple[dict, ...]:
     """Observaciones F12 puras: la fecha de referencia siempre llega del llamador."""
     observaciones = []
+    # F22: la aparición errónea ya sale como [DIRECCION] en revisar().
+    observadas = {
+        _clave_direccion(esperado)
+        for _, esperado in _direcciones_observadas(
+            cat["DIRECCION"], borrador, cat.vocabulario
+        )
+    }
     for persona in cat.personas:
         if (
             persona.estado != "CONFIRMADA"
@@ -874,7 +1008,7 @@ def revisar_persona_ampliada(
             ]
             if not any(
                 direccion <= _direccion_tokens(oracion) for oracion in oraciones
-            ):
+            ) and (_clave_direccion(persona.domicilio) not in observadas):
                 observaciones.append(
                     {
                         **base,
@@ -950,6 +1084,9 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
     resto = []
     partidas = set()
     montos = set()
+    rucs = set()
+    direcciones = set()
+    vocabulario = Counter()
     descartadas = []
     no_clasificadas = []
     sueltas = {}
@@ -961,6 +1098,13 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         if tipo in _TIPOS_DESCARTADOS:
             descartadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
             continue
+        rucs.update(RE_RUC_DOC.findall(t))
+        vocabulario.update(_direccion_palabras(t))
+        direcciones.update(
+            tramo
+            for tramo in _direcciones(pagina.texto, _ROTULO_DIRECCION_FUENTE)
+            if re.search(r"\d", tramo) or _PALABRAS_VIA & {*_direccion_palabras(tramo)}
+        )
         personas_pagina = _personas_de_pagina(pagina, tipo)
         if tipo == "DESCONOCIDA" and personas_pagina:
             no_clasificadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
@@ -992,6 +1136,9 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         tuple(descartadas),
         tuple(no_clasificadas),
         menciones,
+        rucs,
+        direcciones,
+        vocabulario,
     )
 
 
@@ -1051,10 +1198,19 @@ def diagnostico(fuentes: dict[str, str], destino: str) -> str | None:
 
 
 def nombres_exigibles(cat: Catalogo, textos) -> frozenset[str]:
-    """Nombres de las anclas y de los textos dados (la minuta, según el llamador)."""
+    """Nombres de las anclas y de los textos dados (la minuta, según el llamador).
+
+    F22: incluye los RUC de esos textos; un RUC nunca es un nombre.
+    """
+    propios = [catalogo({"exigible": texto}) for texto in textos]
     return frozenset(p.nombre for p in cat.personas) | {
-        n for texto in textos for n in catalogo({"exigible": texto})["NOMBRE"]
+        v for c in propios for v in c["NOMBRE"] | c["RUC"]
     }
+
+
+def montos_exigibles(textos) -> frozenset[str]:
+    """F24: montos de los textos dados (la minuta, según el llamador)."""
+    return frozenset(m for texto in textos for m in RE_MONTO.findall(norm(texto)))
 
 
 _NUMEROS = {
@@ -1178,10 +1334,25 @@ def _nombres_por_ventana(conocidos, d: str, ya_vistos) -> list[str]:
     return obs
 
 
+def _esperado_cercano(valor: str, fuente) -> str:
+    """El valor de la fuente a Levenshtein <= 2 (empate: el menor), F19/F22."""
+    cercano = min(
+        sorted(fuente), key=lambda v: Levenshtein.distance(valor, v), default=None
+    )
+    if cercano and Levenshtein.distance(valor, cercano) <= 2:
+        return f"debe decir «{cercano}»"
+    return "no coincide con ninguna fuente"
+
+
 def revisar(
-    cat: dict[str, set[str]], destino: str, umbral: int, exigibles=None
+    cat: dict[str, set[str]],
+    destino: str,
+    umbral: int,
+    exigibles=None,
+    montos_exigibles=None,
 ) -> list[str]:
-    """``exigibles`` limita el FALTA de NOMBRE; ``None`` exige todos (F16)."""
+    """``exigibles`` y ``montos_exigibles`` limitan el FALTA de NOMBRE (F16) y
+    de MONTO (F24); ``None`` exige todos."""
     d = norm(destino)
     obs, vistos = [], {k: set() for k in cat}
 
@@ -1222,26 +1393,30 @@ def revisar(
         if len(v) == 8:
             check("DNI", v, ctx)
             continue
-        cercano = min(
-            sorted(cat["DNI"]),
-            key=lambda dni: Levenshtein.distance(v, dni),
-            default=None,
-        )
-        esperado = (
-            f"debe decir «{cercano}»"
-            if cercano and Levenshtein.distance(v, cercano) <= 2
-            else "no coincide con ninguna fuente"
-        )
-        obs.append(f"[DNI] «{v}» {esperado}{ctx}")
+        obs.append(f"[DNI] «{v}» {_esperado_cercano(v, cat['DNI'])}{ctx}")
     for v in RE_PARTIDA.findall(d):
         check("PARTIDA", v)
     for v in RE_MONTO.findall(d):
         check("MONTO", v)
+    # F22: cada aparición; el dict legado de cuatro campos no trae RUC ni DIRECCION.
+    rucs = cat.get("RUC", frozenset())
+    for v in RE_RUC_BORRADOR.findall(d):
+        vistos.setdefault("RUC", set()).add(v)
+        if v not in rucs:
+            obs.append(f"[RUC] «{v}» {_esperado_cercano(v, rucs)}")
+    for hallado, esperado in _direcciones_observadas(
+        cat.get("DIRECCION", ()), destino, getattr(cat, "vocabulario", Counter())
+    ):
+        obs.append(f"[DIRECCION] «{hallado}» debe decir «{esperado}»")
     obs += _numeros_en_letras(d)
 
     for campo, vals in cat.items():
-        if campo == "NOMBRE" and exigibles is not None:
+        if campo == "DIRECCION":
+            continue
+        if campo in ("NOMBRE", "RUC") and exigibles is not None:
             vals = vals & exigibles
+        if campo == "MONTO" and montos_exigibles is not None:
+            vals = vals & montos_exigibles
         for falta in sorted(vals - vistos[campo]):
             obs.append(
                 f"[{campo}] FALTA: «{falta}» esta en las fuentes y no aparece en el destino"

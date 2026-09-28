@@ -1,0 +1,68 @@
+# Catálogo de reglas del confrontador (Anexo A, capas 5 y 6).
+# Cambiar una severidad o una regla exige incrementar `version`: cada corrida
+# registra la versión con la que se calificaron sus hallazgos.
+# Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
+# MEDIA reglas de persona y párrafos, BAJA lingüísticas.
+
+version = "2026.09.28-1"
+default_severidad = "MEDIA"
+
+[reglas.NOMBRE]
+descripcion = "Nombre del borrador distinto del nombre de las fuentes."
+severidad = "ALTA"
+
+[reglas.DNI]
+descripcion = "DNI del borrador ausente de las fuentes o de longitud incorrecta."
+severidad = "ALTA"
+
+[reglas.PARTIDA]
+descripcion = "Partida registral distinta de la de las fuentes."
+severidad = "ALTA"
+
+[reglas.MONTO]
+descripcion = "Monto distinto del de las fuentes."
+severidad = "ALTA"
+
+[reglas.NUMERO_EN_LETRAS]
+descripcion = "Número en letras distinto de su cifra entre paréntesis."
+severidad = "ALTA"
+
+[reglas.DOCUMENTO_CRUZADO]
+descripcion = "Documento de identidad que pertenece a otra persona según las fuentes."
+severidad = "ALTA"
+
+[reglas.DOCUMENTO_SIN_TITULAR]
+descripcion = "Documento de identidad que no pertenece a ninguna persona de las fuentes."
+severidad = "ALTA"
+
+[reglas.RUC]
+descripcion = "RUC distinto del de las fuentes (reservada para su fase)."
+severidad = "ALTA"
+
+[reglas.DIRECCION]
+descripcion = "Dirección distinta de la de las fuentes (reservada para su fase)."
+severidad = "ALTA"
+
+[reglas.ESTADO_CIVIL_DISCREPANTE]
+descripcion = "Estado civil del borrador distinto del de RENIEC."
+severidad = "MEDIA"
+
+[reglas.CONYUGE_NO_MENCIONADO]
+descripcion = "Cónyuge de RENIEC no mencionado en el borrador."
+severidad = "MEDIA"
+
+[reglas.MENOR_DE_EDAD]
+descripcion = "Compareciente menor de edad a la fecha de referencia."
+severidad = "MEDIA"
+
+[reglas.DOMICILIO_NO_ENCONTRADO]
+descripcion = "Domicilio de RENIEC no encontrado en el borrador."
+severidad = "MEDIA"
+
+[reglas.PARRAFO]
+descripcion = "Párrafo de la minuta ausente o alterado en el borrador."
+severidad = "MEDIA"
+
+[reglas.ORTOGRAFIA]
+descripcion = "Palabra no reconocida por el diccionario es_PE ni la lista de la casa."
+severidad = "BAJA"

@@ -86,10 +86,16 @@ def escenario(usuario_ficticio, tmp_path):
 
 
 def _propuesta(expediente, borrador):
-    from expedientes.services import confrontar_borrador
+    """Confronta y registra la corrida como la vista: (correcciones, id de corrida)."""
+    from expedientes.services import confrontar_borrador, registrar_corrida
 
-    resultado = confrontar_borrador(expediente, borrador)
-    return resultado["correcciones"], resultado["huella"]
+    resultado = registrar_corrida(
+        expediente,
+        borrador,
+        expediente.creado_por,
+        confrontar_borrador(expediente, borrador),
+    )
+    return resultado["correcciones"], resultado["corrida_id"]
 
 
 def test_solo_el_borrador_docx_se_conserva_inalterable(escenario, usuario_ficticio):
@@ -112,12 +118,12 @@ def test_solo_el_borrador_docx_se_conserva_inalterable(escenario, usuario_fictic
 
 def test_confrontacion_propone_correcciones_con_fuente(escenario):
     expediente, borrador, _ = escenario
-    correcciones, huella = _propuesta(expediente, borrador)
+    correcciones, corrida_id = _propuesta(expediente, borrador)
     pares = {(c["erroneo"], c["correcto"]) for c in correcciones}
     assert ("90000002", "90000001") in pares
     assert ("ALBA ZURBELIA LUNARIA", "ALBA ZURBELIA LUMARIA") in pares
     assert all(c["fuente"]["archivo"] == "minuta-ficticia.txt" for c in correcciones)
-    assert len(huella) == 64
+    assert corrida_id
 
 
 def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_ficticio):
@@ -134,6 +140,9 @@ def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_fi
     assert html.count("Aplicar correcciones") == 1
     assert "1 aparición" in html
     assert 'name="confirmado"' in html
+    from expedientes.models import Corrida
+
+    assert f'name="corrida" value="{Corrida.objects.get().pk}"' in html
     assert "originales" not in html
 
 
@@ -144,19 +153,19 @@ def _aplicar(client, expediente, borrador, datos):
 
 
 def test_sin_confirmacion_no_se_aplica_nada(client, escenario, usuario_ficticio):
-    from expedientes.models import AplicacionCorreccion
+    from expedientes.models import DecisionCorreccion
 
     expediente, borrador, _ = escenario
-    correcciones, huella = _propuesta(expediente, borrador)
+    correcciones, corrida_id = _propuesta(expediente, borrador)
     client.force_login(usuario_ficticio)
     respuesta = _aplicar(
         client,
         expediente,
         borrador,
-        {"huella": huella, "aplicar": [c["id"] for c in correcciones]},
+        {"corrida": corrida_id, "aplicar": [c["id"] for c in correcciones]},
     )
     assert respuesta.status_code == 400
-    assert not AplicacionCorreccion.objects.exists()
+    assert not DecisionCorreccion.objects.exists()
     assert [p.name for p in ruta_dir(borrador).iterdir()] == ["original.docx"]
 
 
@@ -166,24 +175,47 @@ def ruta_dir(borrador):
     return ruta_original(borrador).parent
 
 
-def test_huella_cambiada_no_aplica(client, escenario, usuario_ficticio):
-    from expedientes.models import AplicacionCorreccion
+@pytest.mark.parametrize("cambio", ["corrida_ajena", "fuente", "hallazgos"])
+def test_corrida_distinta_no_aplica(client, escenario, usuario_ficticio, cambio):
+    from expedientes.models import Corrida, DecisionCorreccion, Documento
 
     expediente, borrador, _ = escenario
+    correcciones, corrida_id = _propuesta(expediente, borrador)
+    if cambio == "corrida_ajena":
+        corrida_id = "abc"
+    elif cambio == "fuente":
+        Documento.objects.filter(rol=Documento.CLIENTE).update(hash_archivo="f" * 64)
+    else:
+        corrida = Corrida.objects.get()
+        corrida_id = Corrida.objects.create(
+            **{
+                campo.name: getattr(corrida, campo.name)
+                for campo in Corrida._meta.fields
+                if campo.name not in ("id", "creado_el")
+            }
+            | {"huella": "0" * 64}
+        ).pk
     client.force_login(usuario_ficticio)
     respuesta = _aplicar(
-        client, expediente, borrador, {"huella": "0" * 64, "confirmado": "1"}
+        client,
+        expediente,
+        borrador,
+        {
+            "corrida": corrida_id,
+            "confirmado": "1",
+            "aplicar": [c["id"] for c in correcciones],
+        },
     )
     assert respuesta.status_code == 400
     assert "Vuelva a confrontar" in respuesta.content.decode()
-    assert not AplicacionCorreccion.objects.exists()
+    assert not DecisionCorreccion.objects.exists()
 
 
 def test_confirmacion_aplica_registra_y_descarga(client, escenario, usuario_ficticio):
-    from expedientes.models import AplicacionCorreccion
+    from expedientes.models import DecisionCorreccion
 
     expediente, borrador, contenido = escenario
-    correcciones, huella = _propuesta(expediente, borrador)
+    correcciones, corrida_id = _propuesta(expediente, borrador)
     dni = next(c for c in correcciones if c["erroneo"] == "90000002")
     otras = sorted(c["id"] for c in correcciones if c is not dni)
     client.force_login(usuario_ficticio)
@@ -193,18 +225,18 @@ def test_confirmacion_aplica_registra_y_descarga(client, escenario, usuario_fict
         client,
         expediente,
         borrador,
-        {"huella": huella, "confirmado": "1", "aplicar": [dni["id"], "ajeno"]},
+        {"corrida": corrida_id, "confirmado": "1", "aplicar": [dni["id"], "ajeno"]},
     )
 
     assert respuesta.status_code == 200
-    aplicacion = AplicacionCorreccion.objects.get()
-    assert aplicacion.confirmado_por == usuario_ficticio
-    assert aplicacion.confirmado_el >= antes
-    assert aplicacion.aplicadas == [dni["id"]]
+    aplicacion = DecisionCorreccion.objects.get()
+    assert aplicacion.corrida_id == corrida_id
+    assert aplicacion.usuario == usuario_ficticio
+    assert aplicacion.creado_el >= antes
+    assert aplicacion.correcciones_aplicadas == [dni["id"]]
     assert aplicacion.apariciones == {dni["id"]: 1}
-    assert sorted(aplicacion.excluidas) == otras
-    assert aplicacion.no_aplicadas == []
-    assert aplicacion.huella_corrida == huella
+    assert sorted(aplicacion.correcciones_excluidas) == otras
+    assert aplicacion.correcciones_no_aplicadas == []
     from expedientes.services import ruta_original
 
     assert ruta_original(borrador).read_bytes() == contenido
@@ -216,7 +248,7 @@ def test_confirmacion_aplica_registra_y_descarga(client, escenario, usuario_fict
     assert archivo.status_code == 200
     assert "borrador-ficticio-corregido.docx" in archivo["Content-Disposition"]
     cuerpo = b"".join(archivo.streaming_content)
-    assert hashlib.sha256(cuerpo).hexdigest() == aplicacion.corregido_hash
+    assert hashlib.sha256(cuerpo).hexdigest() == aplicacion.hash_corregido
     ruta = ruta_dir(borrador) / "tmp.docx"
     ruta.write_bytes(cuerpo)
     with zipfile.ZipFile(ruta) as z:
@@ -225,21 +257,47 @@ def test_confirmacion_aplica_registra_y_descarga(client, escenario, usuario_fict
     assert "LUNARIA" in xml  # excluida
 
 
-def test_aplicacion_es_inmutable(escenario, usuario_ficticio):
-    from expedientes.models import AplicacionCorreccion
+def test_decision_en_el_detalle_de_la_corrida(client, escenario, usuario_ficticio):
+    from expedientes.models import DecisionCorreccion, RegistroInmutable
 
-    _, borrador, _ = escenario
-    aplicacion = AplicacionCorreccion.objects.create(
-        borrador=borrador,
-        huella_corrida="a" * 64,
-        confirmado_por=usuario_ficticio,
-        corregido_hash="b" * 64,
+    expediente, borrador, _ = escenario
+    correcciones, corrida_id = _propuesta(expediente, borrador)
+    client.force_login(usuario_ficticio)
+    _aplicar(
+        client,
+        expediente,
+        borrador,
+        {"corrida": corrida_id, "confirmado": "1", "aplicar": [correcciones[0]["id"]]},
     )
-    aplicacion.excluidas = ["x"]
-    with pytest.raises(ValueError):
-        aplicacion.save()
-    with pytest.raises(ValueError):
-        aplicacion.delete()
+    decision = DecisionCorreccion.objects.get()
+    with pytest.raises(RegistroInmutable):
+        decision.save()
+    html = client.get(
+        reverse("corrida_detalle", args=(expediente.pk, corrida_id))
+    ).content.decode()
+    assert "Decisión de corrección" in html
+    assert usuario_ficticio.username in html
+    assert "Aplicadas: 1" in html
+    assert f"Excluidas: {len(correcciones) - 1}" in html
+    assert reverse("correccion_descargar", args=(expediente.pk, decision.pk)) in html
+
+
+def test_reconstruir_corrida_sigue_conforme_tras_aplicar(
+    client, escenario, usuario_ficticio
+):
+    from expedientes.models import Corrida
+    from expedientes.services import reconstruir_corrida
+
+    expediente, borrador, _ = escenario
+    correcciones, corrida_id = _propuesta(expediente, borrador)
+    client.force_login(usuario_ficticio)
+    _aplicar(
+        client,
+        expediente,
+        borrador,
+        {"corrida": corrida_id, "confirmado": "1", "aplicar": [correcciones[0]["id"]]},
+    )
+    assert reconstruir_corrida(Corrida.objects.get(pk=corrida_id))["conforme"]
 
 
 def test_permisos_y_csrf(client, escenario, usuario_ficticio):
@@ -269,19 +327,19 @@ def test_descarga_ajena_prohibida(client, escenario, usuario_ficticio):
     from django.contrib.auth.models import Group
 
     expediente, borrador, _ = escenario
-    correcciones, huella = _propuesta(expediente, borrador)
+    correcciones, corrida_id = _propuesta(expediente, borrador)
     client.force_login(usuario_ficticio)
     _aplicar(
         client,
         expediente,
         borrador,
-        {"huella": huella, "confirmado": "1", "aplicar": [correcciones[0]["id"]]},
+        {"corrida": corrida_id, "confirmado": "1", "aplicar": [correcciones[0]["id"]]},
     )
-    from expedientes.models import AplicacionCorreccion
+    from expedientes.models import DecisionCorreccion
 
     descarga = reverse(
         "correccion_descargar",
-        args=(expediente.pk, AplicacionCorreccion.objects.get().pk),
+        args=(expediente.pk, DecisionCorreccion.objects.get().pk),
     )
     ajeno = get_user_model().objects.create_user(username="otro_ficticio")
     ajeno.groups.add(Group.objects.get(name="Usuario"))
@@ -306,7 +364,7 @@ def test_borrador_sin_original_no_ofrece_aplicar(client, escenario, usuario_fict
         client,
         expediente,
         borrador,
-        {"huella": _propuesta(expediente, borrador)[1], "confirmado": "1"},
+        {"corrida": _propuesta(expediente, borrador)[1], "confirmado": "1"},
     )
     assert respuesta.status_code == 400
 

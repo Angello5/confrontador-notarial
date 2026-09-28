@@ -10,11 +10,15 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import DocumentoUploadForm, ExpedienteForm, formatos_admitidos
-from .models import AplicacionCorreccion, Documento, Expediente
+from .models import DecisionCorreccion, Documento, Expediente
 from .services import (
+    RESULTADO_ERROR,
     CorreccionNoAplicable,
     DocumentoDuplicado,
     aplicar_correcciones,
+    corridas_con_resumen,
+    filas_corrida,
+    registrar_corrida,
     eliminar_documento,
     expedientes_con_resumen,
     registrar_documento,
@@ -252,12 +256,8 @@ def documento_confrontar(request, pk, doc_id):
     try:
         resultado = confrontar_borrador(expediente, borrador)
     except Exception:
-        resultado = {
-            "estado": "ERROR_SEGURO",
-            "mensaje": "No se pudo completar la confrontación. Intente nuevamente.",
-            "regla": [],
-            "ortografia": [],
-        }
+        resultado = RESULTADO_ERROR
+    resultado = registrar_corrida(expediente, borrador, request.user, resultado)
     contexto = {
         "expediente": expediente,
         "borrador": borrador,
@@ -286,7 +286,7 @@ def correcciones_aplicar(request, pk, doc_id):
         contexto["aplicacion"] = aplicar_correcciones(
             expediente,
             borrador,
-            request.POST.get("huella", ""),
+            request.POST.get("corrida", ""),
             request.POST.getlist("aplicar"),
             request.user,
         )
@@ -300,17 +300,51 @@ def correcciones_aplicar(request, pk, doc_id):
 
 @login_required
 @require_GET
-def correccion_descargar(request, pk, aplicacion_id):
+def correccion_descargar(request, pk, decision_id):
     _requiere_rol(request)
     expediente = _expediente_visible(request, pk)
-    aplicacion = get_object_or_404(
-        AplicacionCorreccion, pk=aplicacion_id, borrador__expediente=expediente
+    decision = get_object_or_404(
+        DecisionCorreccion.objects.select_related("corrida"),
+        pk=decision_id,
+        corrida__expediente=expediente,
     )
-    ruta = ruta_corregido(aplicacion)
-    if not ruta.is_file():
+    ruta = ruta_corregido(decision)
+    if not decision.hash_corregido or not ruta.is_file():
         raise Http404
+    borrador = decision.corrida.entradas[0]["nombre"]
     return FileResponse(
         ruta.open("rb"),
         as_attachment=True,
-        filename=f"{Path(aplicacion.borrador.nombre_original).stem}-corregido.docx",
+        filename=f"{Path(borrador).stem}-corregido.docx",
     )
+
+
+@login_required
+@require_GET
+def expediente_historial(request, pk):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    contexto = {
+        "expediente": expediente,
+        "corridas": corridas_con_resumen(expediente),
+    }
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/historial.html", contexto)
+
+
+@login_required
+@require_GET
+def corrida_detalle(request, pk, corrida_id):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    corrida = get_object_or_404(
+        expediente.corridas.select_related("usuario"), pk=corrida_id
+    )
+    contexto = {
+        "expediente": expediente,
+        "corrida": corrida,
+        "filas": filas_corrida(corrida.hallazgos),
+        "decisiones": corrida.decisiones.select_related("usuario").order_by("pk"),
+    }
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/corrida.html", contexto)

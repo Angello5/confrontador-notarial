@@ -22,9 +22,9 @@
         <h2 id="aplicada-titulo" class="h5">Correcciones aplicadas</h2>
         <p>Se generó un documento corregido nuevo. El borrador original se conserva sin cambios.</p>
         <ul>
-          <li>Aplicadas: {{ aplicacion.aplicadas|length }}</li>
-          <li>Excluidas por usted: {{ aplicacion.excluidas|length }}</li>
-          <li>No aplicadas (no se ubicaron en el documento o competían con otra corrección): {{ aplicacion.no_aplicadas|length }}</li>
+          <li>Aplicadas: {{ aplicacion.apariciones|length }}</li>
+          <li>Excluidas por usted: {{ aplicacion.correcciones_excluidas|length }}</li>
+          <li>No aplicadas (no se ubicaron en el documento o competían con otra corrección): {{ aplicacion.correcciones_no_aplicadas|length }}</li>
         </ul>
         <a class="btn btn-primary" href="{% url 'correccion_descargar' expediente.pk aplicacion.pk %}">Descargar documento corregido</a>
       </div>

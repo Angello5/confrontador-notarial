@@ -1,0 +1,85 @@
+{% extends "core/base.html" %}
+
+{% block title %}Corrida {{ corrida.pk }} · {{ expediente.codigo }}{% endblock %}
+{% block breadcrumb %}<ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'expediente_historial' expediente.pk %}">Historial</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Corrida {{ corrida.pk }}</li>
+</ol>{% endblock %}
+{% block eyebrow %}Expedientes / Historial{% endblock %}
+{% block heading %}Corrida {{ corrida.pk }}{% endblock %}
+{% block subtitle %}{{ corrida.creado_el|date:"d/m/Y H:i" }} · {{ corrida.usuario.username }} · {{ corrida.get_estado_display }}{% endblock %}
+{% block actions %}<a class="btn btn-outline-primary" href="{% url 'expediente_historial' expediente.pk %}">Volver al historial</a>{% endblock %}
+{% block content %}
+  <section class="card mb-3" aria-labelledby="manifiesto-titulo">
+    <div class="card-header"><h2 id="manifiesto-titulo" class="h5 fw-bold mb-0">Manifiesto</h2></div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Catálogo de reglas</dt><dd class="col-sm-9">{{ corrida.version_catalogo }}</dd>
+        <dt class="col-sm-3">Versión del ERP</dt><dd class="col-sm-9">{{ corrida.version_software }}</dd>
+        <dt class="col-sm-3">Fecha de referencia</dt><dd class="col-sm-9">{{ corrida.fecha_referencia|date:"d/m/Y" }}</dd>
+        <dt class="col-sm-3">Huella de hallazgos</dt><dd class="col-sm-9 text-break"><code>{{ corrida.huella }}</code></dd>
+      </dl>
+      <div class="table-responsive mt-3">
+        <table class="table table-sm mb-0">
+          <caption>Entradas</caption>
+          <thead><tr><th scope="col">Rol</th><th scope="col">Archivo</th><th scope="col">Hash del archivo</th><th scope="col">Extractor</th></tr></thead>
+          <tbody>
+            {% for entrada in corrida.entradas %}
+              <tr>
+                <td>{{ entrada.rol }}</td>
+                <td>{{ entrada.nombre }}</td>
+                <td class="text-break"><code>{{ entrada.hash_archivo }}</code></td>
+                <td>{{ entrada.version_extractor|default:"Sin texto" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  {% for decision in decisiones %}
+    <section class="card mb-3" aria-labelledby="decision-{{ decision.pk }}">
+      <div class="card-header"><h2 id="decision-{{ decision.pk }}" class="h5 fw-bold mb-0">Decisión de corrección</h2></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Confirmó</dt><dd class="col-sm-9">{{ decision.usuario.username }}</dd>
+          <dt class="col-sm-3">Fecha y hora</dt><dd class="col-sm-9">{{ decision.creado_el|date:"d/m/Y H:i" }}</dd>
+          <dt class="col-sm-3">Correcciones</dt><dd class="col-sm-9">Aplicadas: {{ decision.apariciones|length }} · Excluidas: {{ decision.correcciones_excluidas|length }} · No ubicadas: {{ decision.correcciones_no_aplicadas|length }}</dd>
+        </dl>
+        {% if decision.hash_corregido %}<a class="btn btn-outline-primary mt-3" href="{% url 'correccion_descargar' expediente.pk decision.pk %}">Descargar documento corregido</a>{% endif %}
+      </div>
+    </section>
+  {% endfor %}
+
+  <section class="card mb-3" aria-labelledby="hallazgos-titulo">
+    <div class="card-header"><h2 id="hallazgos-titulo" class="h5 fw-bold mb-0">Hallazgos {% include "core/_chip.html" with estado="PROCESANDO" texto=filas|length %}</h2></div>
+    <div class="card-body">
+      {% if filas %}
+        <div class="table-responsive">
+          <table class="table table-striped" aria-describedby="hallazgos-titulo">
+            <thead><tr>
+              <th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Valor hallado</th>
+              <th scope="col">Valor esperado</th><th scope="col">Ubicación</th>
+            </tr></thead>
+            <tbody>
+              {% for observacion in filas %}
+                <tr>
+                  <td>{{ observacion.campo }}</td>
+                  <td>{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad %}</td>
+                  <td>{{ observacion.hallado }}</td>
+                  <td>{{ observacion.esperado }}{% if observacion.motivo %}<div class="small text-body-secondary">{{ observacion.motivo }}</div>{% endif %}</td>
+                  <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="mb-0">{% if corrida.estado == "RESULTADO" %}Sin observaciones.{% else %}No se confrontó campo por campo.{% endif %}</p>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

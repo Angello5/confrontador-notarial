@@ -6,8 +6,8 @@
 
 - `nucleo/correccion.py` (puro): `correcciones()`, `coincidencias()`.
 - `adaptadores/docx_corregido.py`: aplica la carga útil a un `.docx` con `zipfile`.
-- `expedientes`: conservación del original del borrador, `AplicacionCorreccion`
-  (migraciones 0003 y 0004 `apariciones`), servicio `aplicar_correcciones`, vistas aplicar/descargar,
+- `expedientes`: conservación del original del borrador, campos F21 en
+  `DecisionCorreccion` (migración 0004), servicio `aplicar_correcciones`, vistas aplicar/descargar,
   parcial `_correcciones.html` incluido en `confrontacion.html`.
 - `config/settings.py`: `EXPEDIENTES_ORIGINALES_DIR`.
 - Constitución 1.6.0 → 1.7.0 (principio IV).
@@ -19,16 +19,15 @@ correcciones(salidas, fuentes) -> [{id, campo, erroneo, correcto, fuente:{archiv
 coincidencias(texto, valor) -> [(inicio, fin)]   índices del texto crudo, límites de palabra
 apariciones(origen, correcciones) -> {id: n}   apariciones aplicables (vista)
 aplicar(origen, destino, correcciones) -> ({id: n}, no_aplicadas)   todas las apariciones
-aplicar_correcciones(expediente, borrador, huella, ids, usuario) -> AplicacionCorreccion
+aplicar_correcciones(expediente, borrador, corrida_id, ids, usuario) -> DecisionCorreccion
 ```
 
 ## Integración con F20 (Corrida / DecisionCorreccion)
 
-F20 crea `Corrida` y `DecisionCorreccion` en paralelo. F21 guarda la huella de la
-corrida como texto (`AplicacionCorreccion.huella_corrida`). Al integrar, el
-revisor añade `corrida = ForeignKey(Corrida)` a `AplicacionCorreccion` (o la
-sustituye por `DecisionCorreccion`), rellenándola por huella en una migración
-de datos, y retira el campo de texto si sobra.
+`registrar_corrida` devuelve `corrida_id`, que viaja en el formulario. Al aplicar
+se comprueban entradas y huella de esa `Corrida` y se crea su `DecisionCorreccion`
+(se retiró `AplicacionCorreccion` y la huella propia). `reconstruir_corrida` no
+cambia: la decisión no altera los hallazgos.
 
 ## Constitution Check
 

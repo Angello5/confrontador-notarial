@@ -9,7 +9,7 @@
 {% block eyebrow %}Expedientes / Confrontación{% endblock %}
 {% block heading %}Resultado de la confrontación{% endblock %}
 {% block subtitle %}{{ expediente.codigo }} · {{ borrador.nombre_original }}{% endblock %}
-{% block actions %}<a class="btn btn-outline-primary" href="{% url 'expediente_detalle' expediente.pk %}">Volver al expediente</a>{% endblock %}
+{% block actions %}<div class="d-flex gap-2"><a class="btn btn-outline-primary" href="{% url 'expediente_historial' expediente.pk %}">Historial</a><a class="btn btn-outline-primary" href="{% url 'expediente_detalle' expediente.pk %}">Volver al expediente</a></div>{% endblock %}
 {% block content %}
   {% if resultado.estado == "ADVERTENCIA_CORRESPONDENCIA" %}
     <section class="alert alert-warning" role="alert" aria-live="polite">
@@ -180,7 +180,7 @@
           <div class="table-responsive">
             <table class="table table-striped" aria-describedby="personas-titulo">
               <thead><tr>
-                <th scope="col">Persona</th><th scope="col">Documento hallado</th>
+                <th scope="col">Persona</th><th scope="col">Severidad</th><th scope="col">Documento hallado</th>
                 <th scope="col">Documento esperado</th><th scope="col">Procedencia</th>
                 <th scope="col">Ubicación</th>
               </tr></thead>
@@ -188,6 +188,7 @@
                 {% for observacion in resultado.personas %}
                   <tr>
                     <td>{{ observacion.nombre }}<div class="small text-body-secondary">{{ observacion.motivo }}</div></td>
+                    <td>{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad %}</td>
                     <td>{{ observacion.hallado }}</td>
                     <td>{{ observacion.esperado }}</td>
                     <td>
@@ -215,7 +216,7 @@
           <div class="table-responsive">
             <table class="table table-striped" aria-describedby="regla-titulo">
               <thead><tr>
-                <th scope="col">Campo</th><th scope="col">Valor hallado</th>
+                <th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Valor hallado</th>
                 <th scope="col">Valor esperado</th>
                 <th scope="col">Ubicación</th>
               </tr></thead>
@@ -223,6 +224,7 @@
                 {% for observacion in resultado.regla %}
                   <tr>
                     <td>{{ observacion.campo }}</td>
+                    <td>{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad %}</td>
                     <td>{{ observacion.hallado }}</td>
                     <td>
                       {{ observacion.esperado }}

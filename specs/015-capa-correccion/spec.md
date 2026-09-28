@@ -38,13 +38,13 @@
 
 - **FR-014**: En la pantalla de resultado, una tabla «Correcciones propuestas» con valor erróneo, valor correcto, documento fuente (archivo y página), cuántas apariciones corrige en el borrador («3 apariciones», contadas sobre el `.docx` original con todas las filas marcadas) y una casilla por fila, marcada por defecto; UN botón «Aplicar correcciones» con confirmación.
 - **FR-015 (P-10)**: El POST exige CSRF, rol, permiso sobre el expediente y el campo `confirmado`; sin él no se aplica nada. La casilla desmarcada = corrección excluida.
-- **FR-016**: El servidor vuelve a confrontar y compara la huella de la corrida (SHA-256 de los hashes del borrador y de las fuentes y de los ids propuestos) con la enviada; si difiere, no aplica nada y pide volver a confrontar.
+- **FR-016**: El formulario envía la `Corrida` (F20) registrada al confrontar. El servidor exige que sea de este borrador y con estado RESULTADO, que las entradas actuales (hashes de archivo y de texto, extractor, estado) sean las registradas y que los hallazgos recalculados con su fecha de referencia den la misma `huella`; si no, no aplica nada y pide volver a confrontar.
 - **FR-017**: Tras aplicar se muestra el resumen (aplicadas, excluidas, no aplicadas) y la descarga del corregido, servida por una vista con los mismos permisos (nunca como estático).
 - **FR-018**: Sin original conservado (borrador que no es `.docx`, o subido antes de F21) la tabla se muestra sin botón y con el aviso de que el borrador no admite corrección automática.
 
 ### Registro
 
-- **FR-019**: `AplicacionCorreccion` (inmutable) guarda borrador, huella de la corrida, usuario confirmante, fecha y hora, ids aplicados, excluidos y no aplicados, `apariciones` (`{id: n}`, cuántas apariciones se aplicaron por corrección; migración 0004) y el SHA-256 del corregido.
+- **FR-019**: El registro oficial es la `DecisionCorreccion` de F20 (inmutable, FK a la `Corrida`): usuario confirmante, fecha y hora, `correcciones_excluidas`, `apariciones` (`{id: n}`; sus claves son los ids aplicados), `correcciones_no_aplicadas` y `hash_corregido` (SHA-256 del corregido); migración 0004. El detalle de la corrida (historial) muestra quién confirmó, cuándo y cuántas correcciones se aplicaron y excluyeron, con la descarga del corregido.
 
 ### Conservación del original (enmienda de la constitución 1.7.0)
 
@@ -55,13 +55,13 @@
 
 - Quién: roles Administrador y Usuario, con permiso sobre el expediente (creador o Administrador). Aplicar y descargar exigen login, rol y permiso; aplicar exige POST con CSRF.
 - Qué datos: el `.docx` del borrador (datos personales) queda en disco del servidor, fuera de `static/`, con permisos restrictivos y supresión a solicitud.
-- Qué se valida: huella de la corrida, ids contra la carga útil recalculada (un id ajeno se ignora), hash del original.
+- Qué se valida: corrida (entradas y huella de hallazgos), ids contra la carga útil recalculada (un id ajeno se ignora), hash del original.
 
 ## Requisitos de UX (principio VIII)
 
 - Casillas con etiqueta accesible por fila; confirmación antes de aplicar (acción irreversible sobre el archivo nuevo).
 - Mensajes claros: «Las fuentes o el borrador cambiaron. Vuelva a confrontar antes de aplicar.», «Confirme la aplicación de las correcciones para continuar.»
-- Sin términos técnicos: no se muestra la huella ni rutas.
+- Sin términos técnicos: no se muestran rutas.
 
 ## Success Criteria *(mandatory)*
 
@@ -73,5 +73,5 @@
 
 ## Assumptions
 
-- La vinculación de `AplicacionCorreccion` con la `Corrida` de F20 se hace al integrar (ver plan.md).
+- Integrada con F20: la decisión se enlaza a la `Corrida` de la confrontación (ver plan.md).
 - Solo se corrige `word/document.xml`; encabezados, pies y notas no.

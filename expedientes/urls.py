@@ -23,8 +23,18 @@ urlpatterns = [
         name="correcciones_aplicar",
     ),
     path(
-        "<int:pk>/correcciones/<int:aplicacion_id>/descargar/",
+        "<int:pk>/correcciones/<int:decision_id>/descargar/",
         views.correccion_descargar,
         name="correccion_descargar",
+    ),
+    path(
+        "<int:pk>/confrontaciones/",
+        views.expediente_historial,
+        name="expediente_historial",
+    ),
+    path(
+        "<int:pk>/confrontaciones/<int:corrida_id>/",
+        views.corrida_detalle,
+        name="corrida_detalle",
     ),
 ]

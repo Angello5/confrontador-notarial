@@ -96,36 +96,86 @@ class Documento(models.Model):
         ]
 
 
-class AplicacionCorreccion(models.Model):
-    """F21: registro inmutable de una confirmación de correcciones.
+class RegistroInmutable(Exception):
+    """Un registro de auditoría no se modifica ni se borra."""
 
-    ``huella_corrida`` se enlazará a la Corrida de F20 al integrar (plan.md).
-    """
 
-    borrador = models.ForeignKey(
-        Documento,
-        null=True,
-        on_delete=models.SET_NULL,
-        related_name="aplicaciones_correccion",
-    )
-    huella_corrida = models.CharField(max_length=64, db_index=True)
-    confirmado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="correcciones_confirmadas",
-    )
-    confirmado_el = models.DateTimeField(auto_now_add=True)
-    aplicadas = models.JSONField(default=list)
-    excluidas = models.JSONField(default=list)
-    no_aplicadas = models.JSONField(default=list)
-    # {id: apariciones aplicadas}: cada corrección alcanza todas (A.3).
-    apariciones = models.JSONField(default=dict)
-    corregido_hash = models.CharField(max_length=64)
+class _InmutableQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise RegistroInmutable("Registro de auditoría inmutable.")
+
+    def delete(self):
+        raise RegistroInmutable("Registro de auditoría inmutable.")
+
+
+class Inmutable(models.Model):
+    objects = _InmutableQuerySet.as_manager()
+
+    class Meta:
+        abstract = True
 
     def save(self, *args, **kwargs):
         if not self._state.adding:
-            raise ValueError("La aplicación de correcciones es inmutable.")
+            raise RegistroInmutable("Registro de auditoría inmutable.")
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        raise ValueError("La aplicación de correcciones es inmutable.")
+        raise RegistroInmutable("Registro de auditoría inmutable.")
+
+
+class Corrida(Inmutable):
+    """Manifiesto de una confrontación (Anexo A, capa 7)."""
+
+    RESULTADO = "RESULTADO"
+    ADVERTENCIA = "ADVERTENCIA"
+    NO_DISPONIBLE = "NO_DISPONIBLE"
+    ERROR = "ERROR"
+    ESTADOS = (
+        (RESULTADO, "Resultado"),
+        (ADVERTENCIA, "Advertencia"),
+        (NO_DISPONIBLE, "No disponible"),
+        (ERROR, "Error"),
+    )
+
+    expediente = models.ForeignKey(
+        Expediente, on_delete=models.PROTECT, related_name="corridas"
+    )
+    id_borrador = models.PositiveBigIntegerField()
+    hash_borrador = models.CharField(max_length=64)
+    # Borrador y fuentes en el orden usado: rol, nombre, hash_archivo,
+    # version_extractor, hash_texto y estado del documento.
+    entradas = models.JSONField()
+    version_catalogo = models.CharField(max_length=64)
+    version_software = models.CharField(max_length=32)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="corridas"
+    )
+    creado_el = models.DateTimeField(auto_now_add=True)
+    fecha_referencia = models.DateField()
+    estado = models.CharField(max_length=14, choices=ESTADOS)
+    hallazgos = models.TextField()
+    huella = models.CharField(max_length=64)
+
+
+class DecisionCorreccion(Inmutable):
+    """Decisión sobre las correcciones de una corrida (fase de corrección)."""
+
+    corrida = models.ForeignKey(
+        Corrida, on_delete=models.PROTECT, related_name="decisiones"
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="decisiones_correccion",
+    )
+    creado_el = models.DateTimeField(auto_now_add=True)
+    correcciones_excluidas = models.JSONField(default=list, blank=True)
+    # F21: {id: apariciones aplicadas} (A.3), ids no ubicados en el documento y
+    # SHA-256 del documento corregido.
+    apariciones = models.JSONField(default=dict, blank=True)
+    correcciones_no_aplicadas = models.JSONField(default=list, blank=True)
+    hash_corregido = models.CharField(max_length=64, blank=True)
+
+    @property
+    def correcciones_aplicadas(self):
+        return list(self.apariciones)
