@@ -18,7 +18,7 @@
 - **FR-002 (permisos)**: Editar, eliminar y ver exigen los permisos actuales: creador del expediente (rol Usuario) o Administrador. Otro usuario recibe 403.
 - **FR-003 (editar)**: `GET /expedientes/<pk>/editar/` muestra el formulario de creación (`ExpedienteForm`) con el código actual; `POST` con CSRF valida igual que al crear (obligatorio, sin espacios sobrantes, único) y vuelve al detalle.
 - **FR-004 (eliminar)**: `GET /expedientes/<pk>/eliminar/` pide confirmación explícita mostrando el código; `POST` con CSRF archiva el expediente.
-- **FR-005 (archivar)** [NEEDS CLARIFICATION: ¿eliminar = archivar? Opción por defecto implementada]: Archivar guarda `archivado_el` y `archivado_por` (migración `0004`). Un expediente archivado desaparece de la lista, el inicio y sus métricas; su detalle, cargas, estado, confrontaciones e historial responden 404. El manifiesto y los documentos se conservan intactos.
+- **FR-005 (archivar)** Decisión del propietario (2026-09-28): eliminar es solo lógico, nunca físico. Archivar guarda `archivado_el` y `archivado_por` (migración `0004`). Un expediente archivado desaparece de la lista, el inicio y sus métricas; su detalle, cargas, estado, confrontaciones e historial responden 404. El manifiesto y los documentos se conservan intactos.
 - **FR-006 (restaurar)**: Un Administrador ve los archivados con el filtro «Archivados» (`?archivados=1`) de la lista y los restaura con `POST /expedientes/<pk>/restaurar/` (CSRF). Otro rol recibe 403 y el filtro no le muestra archivados.
 - **FR-007**: La supresión definitiva de datos personales sigue siendo el comando `suprimir_texto_expediente`, fuera de la interfaz.
 - **FR-008**: Sin dependencias nuevas ni IA. Tests con datos ficticios.
