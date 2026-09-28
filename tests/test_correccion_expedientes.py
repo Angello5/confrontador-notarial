@@ -248,10 +248,13 @@ def test_permisos_y_csrf(client, escenario, usuario_ficticio):
     ajeno = get_user_model().objects.create_user(username="otro_ficticio")
     ajeno.groups.add(Group.objects.get(name="Usuario"))
     client.force_login(ajeno)
-    assert _aplicar(client, expediente, borrador, {"confirmado": "1"}).status_code == 403
     assert (
-        client.get(reverse("correcciones_aplicar", args=(expediente.pk, borrador.pk)))
-        .status_code
+        _aplicar(client, expediente, borrador, {"confirmado": "1"}).status_code == 403
+    )
+    assert (
+        client.get(
+            reverse("correcciones_aplicar", args=(expediente.pk, borrador.pk))
+        ).status_code
         == 405
     )
     csrf = Client(enforce_csrf_checks=True)

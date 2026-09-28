@@ -17,4 +17,14 @@ urlpatterns = [
         views.documento_confrontar,
         name="documento_confrontar",
     ),
+    path(
+        "<int:pk>/documentos/<int:doc_id>/corregir/",
+        views.correcciones_aplicar,
+        name="correcciones_aplicar",
+    ),
+    path(
+        "<int:pk>/correcciones/<int:aplicacion_id>/descargar/",
+        views.correccion_descargar,
+        name="correccion_descargar",
+    ),
 ]

@@ -1,5 +1,6 @@
 import hashlib
 import io
+import json
 import logging
 import os
 import re
@@ -14,14 +15,14 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from adaptadores import extraccion
+from adaptadores import docx_corregido, extraccion
 
 # Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando.
 # from adaptadores import diccionario
 # from nucleo import ortografia
-from nucleo import verificar
+from nucleo import correccion, verificar
 
-from .models import Documento, Expediente, TextoExtraido
+from .models import AplicacionCorreccion, Documento, Expediente, TextoExtraido
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,46 @@ _RE_MOTIVO_CARATULA = re.compile(r"\s+(?P<motivo>\(caratula\))\s*$", re.IGNORECA
 
 class DocumentoDuplicado(ValueError):
     """El hash y rol ya están registrados en el expediente."""
+
+
+class CorreccionNoAplicable(ValueError):
+    """La corrida confirmada ya no coincide o el borrador no admite corrección."""
+
+
+def _carpeta_originales(expediente_id):
+    return Path(settings.EXPEDIENTES_ORIGINALES_DIR) / str(expediente_id)
+
+
+def ruta_original(documento):
+    """Original inalterable del borrador .docx (F21); nunca se muestra."""
+    return (
+        _carpeta_originales(documento.expediente_id)
+        / str(documento.pk)
+        / "original.docx"
+    )
+
+
+def ruta_corregido(aplicacion):
+    return ruta_original(aplicacion.borrador).with_name(
+        f"corregido-{aplicacion.corregido_hash}.docx"
+    )
+
+
+def _conservar_original(documento, temporal):
+    ruta = ruta_original(documento)
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    for carpeta in (ruta.parent.parent.parent, ruta.parent.parent, ruta.parent):
+        carpeta.chmod(0o700)
+    shutil.copyfile(temporal, ruta)
+    ruta.chmod(0o400)
+
+
+def borrar_originales(expediente_id, documento_id=None):
+    """Supresión: el original y los corregidos del documento o del expediente."""
+    carpeta = _carpeta_originales(expediente_id)
+    if documento_id is not None:
+        carpeta = carpeta / str(documento_id)
+    shutil.rmtree(carpeta, ignore_errors=True)
 
 
 def calcular_hash(ruta):
@@ -110,6 +151,11 @@ def registrar_documento(expediente, archivo, rol, usuario):
                     ruta_temporal=str(temporal),
                     subido_por=usuario,
                 )
+                if (
+                    rol == Documento.BORRADOR
+                    and Path(archivo.name).suffix.lower() == ".docx"
+                ):
+                    _conservar_original(documento, temporal)
         except IntegrityError as exc:
             raise DocumentoDuplicado from exc
         persistido = True
@@ -340,8 +386,10 @@ def eliminar_documento(documento, confirmado=False):
     if not confirmado:
         raise ValueError("Se requiere confirmación para eliminar el documento.")
     ruta = documento.ruta_temporal
+    expediente_id, documento_id = documento.expediente_id, documento.pk
     documento.delete()
     _borrar_temporal(ruta)
+    borrar_originales(expediente_id, documento_id)
 
 
 def resumen_expediente(expediente):
@@ -816,6 +864,7 @@ def confrontar_borrador(expediente, borrador):
     #     propios,
     # )
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
+    correcciones = correccion.correcciones(reglas, fuentes)
     if isinstance(catalogo, verificar.Catalogo):
         observaciones_regla.extend(
             _observaciones_f12_legibles(
@@ -836,7 +885,58 @@ def confrontar_borrador(expediente, borrador):
         # Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando:
         # "ortografia": adaptar_observaciones_ortografia(faltas, texto_borrador),
         "ortografia": [],
+        "correcciones": correcciones,
+        "huella": huella_corrida(borrador, fuentes_documentos, correcciones),
+        "corregible": ruta_original(borrador).is_file(),
     }
+
+
+def huella_corrida(borrador, fuentes_documentos, correcciones):
+    """Identifica la corrida por lo que el usuario vio: archivos y propuestas."""
+    datos = [
+        borrador.hash_archivo,
+        [documento.hash_archivo for documento in fuentes_documentos],
+        [propuesta["id"] for propuesta in correcciones],
+    ]
+    return hashlib.sha256(json.dumps(datos).encode()).hexdigest()
+
+
+def aplicar_correcciones(expediente, borrador, huella, ids, usuario):
+    """Aplica las correcciones confirmadas sobre una copia del original (P-10)."""
+    resultado = confrontar_borrador(expediente, borrador)
+    if resultado["estado"] != "RESULTADO" or not secrets.compare_digest(
+        resultado["huella"], huella or ""
+    ):
+        raise CorreccionNoAplicable(
+            "Las fuentes o el borrador cambiaron. Vuelva a confrontar antes de aplicar."
+        )
+    original = ruta_original(borrador)
+    if not original.is_file() or calcular_hash(original) != borrador.hash_archivo:
+        raise CorreccionNoAplicable(
+            "Este borrador no admite corrección automática. Vuelva a subirlo en Word (.docx)."
+        )
+    ids = set(ids)
+    propuestas = resultado["correcciones"]
+    temporal = original.with_name(f"corregido-{secrets.token_hex(8)}.tmp")
+    try:
+        aplicadas, no_aplicadas = docx_corregido.aplicar(
+            original, temporal, [p for p in propuestas if p["id"] in ids]
+        )
+        corregido_hash = calcular_hash(temporal)
+        destino = original.with_name(f"corregido-{corregido_hash}.docx")
+        os.replace(temporal, destino)
+        destino.chmod(0o400)
+    finally:
+        temporal.unlink(missing_ok=True)
+    return AplicacionCorreccion.objects.create(
+        borrador=borrador,
+        huella_corrida=huella,
+        confirmado_por=usuario,
+        aplicadas=aplicadas,
+        excluidas=[p["id"] for p in propuestas if p["id"] not in ids],
+        no_aplicadas=no_aplicadas,
+        corregido_hash=corregido_hash,
+    )
 
 
 def usuario_puede_ver_expediente(usuario, expediente):

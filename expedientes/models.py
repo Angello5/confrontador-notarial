@@ -94,3 +94,36 @@ class Documento(models.Model):
                 name="documento_tamano_positivo",
             ),
         ]
+
+
+class AplicacionCorreccion(models.Model):
+    """F21: registro inmutable de una confirmación de correcciones.
+
+    ``huella_corrida`` se enlazará a la Corrida de F20 al integrar (plan.md).
+    """
+
+    borrador = models.ForeignKey(
+        Documento,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="aplicaciones_correccion",
+    )
+    huella_corrida = models.CharField(max_length=64, db_index=True)
+    confirmado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="correcciones_confirmadas",
+    )
+    confirmado_el = models.DateTimeField(auto_now_add=True)
+    aplicadas = models.JSONField(default=list)
+    excluidas = models.JSONField(default=list)
+    no_aplicadas = models.JSONField(default=list)
+    corregido_hash = models.CharField(max_length=64)
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValueError("La aplicación de correcciones es inmutable.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("La aplicación de correcciones es inmutable.")

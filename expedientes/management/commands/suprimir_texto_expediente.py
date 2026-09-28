@@ -2,10 +2,11 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from expedientes.models import Documento, Expediente, TextoExtraido
+from expedientes.services import borrar_originales
 
 
 class Command(BaseCommand):
-    help = "Suprime el texto extraído asociado a un expediente."
+    help = "Suprime el texto extraído y los borradores conservados de un expediente."
 
     def add_arguments(self, parser):
         parser.add_argument("codigo")
@@ -27,6 +28,7 @@ class Command(BaseCommand):
                 .count()
             )
             textos.update(texto="")
+        borrar_originales(expediente.pk)
         solicitado = min(afectados, 1)
         self.stdout.write(
             f"Expediente solicitado incluido: {solicitado}; "

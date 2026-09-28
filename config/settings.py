@@ -37,6 +37,17 @@ except ValueError:
     pass
 else:
     raise ImproperlyConfigured("EXPEDIENTES_TEMP_DIR cannot be served as static")
+# F21: el borrador .docx se conserva como original inalterable, fuera del repo.
+_originales_configured = Path(
+    os.environ.get("EXPEDIENTES_ORIGINALES_DIR", Path.home() / "notaria-originales")
+).expanduser()
+if not _originales_configured.is_absolute():
+    raise ImproperlyConfigured("EXPEDIENTES_ORIGINALES_DIR must be an absolute path")
+EXPEDIENTES_ORIGINALES_DIR = _originales_configured.resolve()
+if EXPEDIENTES_ORIGINALES_DIR.is_relative_to(BASE_DIR.resolve()):
+    raise ImproperlyConfigured(
+        "EXPEDIENTES_ORIGINALES_DIR must be outside the repository"
+    )
 EXPEDIENTES_MAX_FILE_SIZE = _positive_setting(
     "EXPEDIENTES_MAX_FILE_SIZE", 25 * 1024 * 1024
 )

@@ -219,3 +219,13 @@ def test_erroneo_ausente_queda_no_aplicado(tmp_path, cuerpo):
     assert aplicar(
         original, tmp_path / "c.docx", [_correccion("x", "90000002", "90000001")]
     ) == ([], ["x"])
+
+
+def test_enie_descompuesta_y_destino_distinto(tmp_path):
+    from adaptadores.docx_corregido import aplicar
+    from nucleo.correccion import coincidencias
+
+    assert coincidencias("SR. MUÑOZ", "MUÑOZ") == [(4, 10)]
+    original = crear_docx(tmp_path / "b.docx", CUERPO)
+    with pytest.raises(ValueError):
+        aplicar(original, original, [])

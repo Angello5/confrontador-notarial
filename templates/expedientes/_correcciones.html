@@ -1,0 +1,42 @@
+{% if resultado.correcciones %}
+<section class="card mb-3" aria-labelledby="correcciones-titulo">
+  <div class="card-header"><h2 id="correcciones-titulo" class="h5 fw-bold mb-0">Correcciones propuestas {% include "core/_chip.html" with estado="REVISION" texto=resultado.correcciones|length %}</h2></div>
+  <div class="card-body">
+    {% if resultado.corregible %}
+      <form method="post" action="{% url 'correcciones_aplicar' expediente.pk borrador.pk %}" onsubmit="return confirm('¿Confirma aplicar las correcciones marcadas? Se generará un documento corregido nuevo; el original no cambia.');">
+        {% csrf_token %}
+        <input type="hidden" name="huella" value="{{ resultado.huella }}">
+        <input type="hidden" name="confirmado" value="1">
+        <p class="text-body-secondary small">Todas las correcciones están marcadas. Desmarque las que no desea aplicar y confirme una sola vez.</p>
+    {% else %}
+      <p class="alert alert-info" role="status">Este borrador no admite corrección automática: solo se corrigen borradores Word (.docx) cargados con esta versión. Vuelva a subirlo en Word para corregirlo.</p>
+    {% endif %}
+    <div class="table-responsive">
+      <table class="table table-striped" aria-describedby="correcciones-titulo">
+        <thead><tr>
+          {% if resultado.corregible %}<th scope="col">Aplicar</th>{% endif %}
+          <th scope="col">Valor erróneo</th><th scope="col">Valor correcto</th>
+          <th scope="col">Documento fuente</th>
+        </tr></thead>
+        <tbody>
+          {% for correccion in resultado.correcciones %}
+            <tr>
+              {% if resultado.corregible %}
+                <td><input class="form-check-input" type="checkbox" name="aplicar" value="{{ correccion.id }}" id="correccion-{{ correccion.id }}" checked>
+                  <label class="visually-hidden" for="correccion-{{ correccion.id }}">Aplicar: {{ correccion.erroneo }} por {{ correccion.correcto }}</label></td>
+              {% endif %}
+              <td>{{ correccion.erroneo }}</td>
+              <td>{{ correccion.correcto }}</td>
+              <td>{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if resultado.corregible %}
+        <button type="submit" class="btn btn-primary">Aplicar correcciones</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
