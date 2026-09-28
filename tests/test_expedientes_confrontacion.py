@@ -90,11 +90,6 @@ def test_confrontacion_agrega_reglas_f12_solo_al_resultado_autorizado(
     monkeypatch.setattr(
         "expedientes.services.timezone.localdate", lambda: date(2025, 7, 2)
     )
-    monkeypatch.setattr(
-        "expedientes.services.diccionario.diccionario", lambda: ({}, {})
-    )
-    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
-    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
     assert resultado["estado"] == "RESULTADO"
@@ -233,11 +228,6 @@ def test_cliente_documento_de_texto_no_se_compara_como_parrafo(
         "expedientes.services.verificar.revisar_parrafos",
         lambda minutas, *_: llamadas.append(minutas) or [],
     )
-    monkeypatch.setattr(
-        "expedientes.services.diccionario.diccionario", lambda: (None, [])
-    )
-    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
-    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
 
     confrontar_borrador(expediente_confrontacion, borrador)
 
@@ -294,11 +284,6 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
             or ["[PARRAFO] falta: fragmento ficticio…"]
         ),
     )
-    monkeypatch.setattr(
-        "expedientes.services.diccionario.diccionario", lambda: (None, [])
-    )
-    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
-    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *args: [])
     documentos_antes = Documento.objects.count()
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
@@ -317,60 +302,39 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     assert Documento.objects.count() == documentos_antes
 
 
-def test_orquestacion_pasa_nombres_del_catalogo_a_ortografia(
+def test_confrontacion_oculta_ortografia_sin_cargar_diccionario(
     expediente_confrontacion, crear_documento_listo, monkeypatch
 ):
+    """Ortografía oculta a pedido del propietario (2026-09-27)."""
     from expedientes.models import Documento
     from expedientes.services import confrontar_borrador
 
+    texto = "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001."
     crear_documento_listo(
-        expediente_confrontacion,
-        Documento.CLIENTE,
-        "fuente-ficticia.txt",
-        "fuente ficticia",
+        expediente_confrontacion, Documento.CLIENTE, "cliente-ficticio.txt", texto
     )
     crear_documento_listo(
-        expediente_confrontacion,
-        Documento.MINUTA,
-        "minuta-ficticia.docx",
-        "minuta ficticia",
+        expediente_confrontacion, Documento.MINUTA, "minuta-ficticia.docx", texto
     )
     borrador = crear_documento_listo(
         expediente_confrontacion,
         Documento.BORRADOR,
         "borrador-ficticio.txt",
-        "borrador ficticio",
-    )
-    propios = []
-    cat = {"NOMBRE": {"LUCAS PEREZ"}, "DNI": set(), "PARTIDA": set(), "MONTO": set()}
-    monkeypatch.setattr("expedientes.services.verificar.catalogo", lambda _: cat)
-    monkeypatch.setattr("expedientes.services.verificar.diagnostico", lambda *_: None)
-    monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
-    monkeypatch.setattr(
-        "expedientes.services.verificar.revisar_parrafos", lambda *_: []
+        texto + " palabraficticiaerrada",
     )
     monkeypatch.setattr(
-        "expedientes.services.diccionario.diccionario", lambda: (None, [])
+        "adaptadores.diccionario.diccionario",
+        lambda: pytest.fail("la ortografía está oculta: no se carga el diccionario"),
     )
-    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
     monkeypatch.setattr(
-        "expedientes.services.ortografia.revisar",
-        lambda texto, diccionario, lemas, lista, extra: (
-            propios.append(extra) or [("palabraficticia", "motivo ficticio", "?")]
-        ),
+        "nucleo.ortografia.revisar",
+        lambda *_: pytest.fail("la ortografía está oculta: no se revisa"),
     )
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
-    assert propios == [{"LUCAS", "PEREZ"}]
-    assert resultado["ortografia"] == [
-        {
-            "palabra": "palabraficticia",
-            "motivo": "motivo ficticio",
-            "sugerencia": "Sin sugerencia",
-            "ubicacion": {"linea": None, "fragmento": "No ubicada"},
-        }
-    ]
+    assert resultado["estado"] == "RESULTADO"
+    assert resultado["ortografia"] == []
 
 
 def test_confrontacion_devuelve_catalogo_y_aporte_por_documento(
@@ -429,11 +393,6 @@ def test_confrontacion_devuelve_catalogo_y_aporte_por_documento(
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar_parrafos", lambda *_: []
     )
-    monkeypatch.setattr(
-        "expedientes.services.diccionario.diccionario", lambda: (None, [])
-    )
-    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
-    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
@@ -506,11 +465,6 @@ def test_confrontacion_detecta_documentos_intercambiados_en_personas(
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar_parrafos", lambda *_: []
     )
-    monkeypatch.setattr(
-        "expedientes.services.diccionario.diccionario", lambda: (None, [])
-    )
-    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
-    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
@@ -564,10 +518,6 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
         "expedientes.services.verificar.revisar_parrafos",
         lambda *_: llamadas.append("parrafos"),
     )
-    monkeypatch.setattr(
-        "expedientes.services.ortografia.revisar",
-        lambda *_: llamadas.append("ortografia"),
-    )
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
@@ -609,10 +559,6 @@ def test_diagnostico_real_bloquea_borrador_ajeno_antes_de_comparar(
             f"expedientes.services.verificar.{nombre}",
             lambda *_: pytest.fail("no se compara un borrador ajeno"),
         )
-    monkeypatch.setattr(
-        "expedientes.services.ortografia.revisar",
-        lambda *_: pytest.fail("no se revisa ortografía de un borrador ajeno"),
-    )
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
@@ -661,11 +607,6 @@ def test_anexo_sin_identidades_no_bloquea_diagnostico(
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar_parrafos", lambda *_: []
     )
-    monkeypatch.setattr(
-        "expedientes.services.diccionario.diccionario", lambda: (None, [])
-    )
-    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", lambda: set())
-    monkeypatch.setattr("expedientes.services.ortografia.revisar", lambda *_: [])
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
@@ -962,36 +903,6 @@ def test_contrato_parser_usa_salida_real_de_revisar_parrafos():
     assert len(observaciones) == len(salidas)
     assert all(item["formato"] == "regla" for item in observaciones)
     assert all(item["campo"] == "PARRAFO" for item in observaciones)
-
-
-def test_diccionario_no_aprovisionado_devuelve_mensaje_controlado(
-    expediente_confrontacion, crear_documento_listo, monkeypatch
-):
-    from adaptadores.diccionario import DiccionarioNoAprovisionado
-    from expedientes.models import Documento
-    from expedientes.services import confrontar_borrador
-
-    texto = "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001."
-    crear_documento_listo(
-        expediente_confrontacion, Documento.CLIENTE, "cliente-ficticio.txt", texto
-    )
-    crear_documento_listo(
-        expediente_confrontacion, Documento.MINUTA, "minuta-ficticia.docx", texto
-    )
-    borrador = crear_documento_listo(
-        expediente_confrontacion, Documento.BORRADOR, "borrador-ficticio.txt", texto
-    )
-
-    def sin_diccionario():
-        raise DiccionarioNoAprovisionado("recurso ausente")
-
-    monkeypatch.setattr("expedientes.services.diccionario.diccionario", sin_diccionario)
-
-    resultado = confrontar_borrador(expediente_confrontacion, borrador)
-
-    assert resultado["estado"] == "NO_DISPONIBLE"
-    assert "Falta aprovisionar el diccionario es_PE" in resultado["mensaje"]
-    assert "recurso ausente" not in resultado["mensaje"]
 
 
 def test_diccionario_no_aprovisionado_no_intenta_descargar(tmp_path, monkeypatch):
