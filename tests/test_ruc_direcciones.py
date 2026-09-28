@@ -156,3 +156,63 @@ def test_adaptador_interpreta_direccion():
         "AV. LOS OLIVOS FICTICIOS 123",
     )
     assert fila["ubicacion"]["linea"] == 2
+
+
+# --- DIRECCION, ronda 2: el borrador puede agregar, solo se observa sustitución --
+
+_MINUTA_ARTES = (
+    "EL VENDEDOR CON DOMICILIO EN AV. LAS ARTES FICTICIAS 1444, DISTRITO DE "
+    "SAN FICTICIO, PROVINCIA DE LIMA."
+)
+_FICHA_ARTES = "DOMICILIO: AV. LAS ARTES FICTICIAS 1444"
+
+
+def test_direccion_abreviatura_desarrollada_e_interior_agregado_no_se_observa():
+    cat = catalogo({"minuta.docx": _MINUTA_ARTES})
+    borrador = "CON DOMICILIO EN AVENIDA LAS ARTES FICTICIAS 1444, # 101; Y"
+    assert _discrepancias(cat, borrador, "DIRECCION") == []
+
+
+def test_direccion_con_distrito_agregado_no_se_observa():
+    cat = catalogo({"ficha.pdf": "DOMICILIO: CALLE LOS SAUCES FALSOS 999 URB. EL ALBA"})
+    borrador = (
+        "DOMICILIADO EN CALLE LOS SAUCES FALSOS 999 URB. EL ALBA DE SAN FICTICIO; Y"
+    )
+    assert _discrepancias(cat, borrador, "DIRECCION") == []
+
+
+def test_direccion_con_nro_e_int_abreviados_no_se_observa():
+    cat = catalogo(
+        {
+            "ficha.pdf": "DOMICILIO FISCAL: AV. PRADERA IRREAL NRO. 999 INT. 1204 (FRENTE AL PARQUE)"
+        }
+    )
+    borrador = (
+        "CON DOMICILIO EN AVENIDA PRADERA IRREAL NUMERO 999 INTERIOR 1204 "
+        "(FRENTE AL PARQUE), DISTRITO DE SAN FICTICIO."
+    )
+    assert _discrepancias(cat, borrador, "DIRECCION") == []
+
+
+def test_direccion_con_ruido_ocr_en_la_fuente_no_se_observa():
+    cat = catalogo({"ficha.pdf": "DOMICILIO: AV. LAS ARTFS FICTICIAS 1444"})
+    borrador = "CON DOMICILIO EN AVENIDA LAS ARTES FICTICIAS 1444, DISTRITO DE LIMA."
+    assert _discrepancias(cat, borrador, "DIRECCION") == []
+
+
+def test_direccion_con_numero_cambiado_se_observa():
+    cat = catalogo({"minuta.docx": _MINUTA_ARTES})
+    borrador = "CON DOMICILIO EN AVENIDA LAS ARTES FICTICIAS 1454, # 101, DISTRITO"
+    assert _discrepancias(cat, borrador, "DIRECCION") == [
+        "[DIRECCION] «AVENIDA LAS ARTES FICTICIAS 1454, # 101» debe decir "
+        "«AV. LAS ARTES FICTICIAS 1444»"
+    ]
+
+
+def test_direccion_con_calle_cambiada_y_fuente_limpia_se_observa():
+    cat = catalogo({"minuta.docx": _MINUTA_ARTES, "ficha.pdf": _FICHA_ARTES})
+    borrador = "CON DOMICILIO EN AVENIDA LAS ARTAS FICTICIAS 1444, DISTRITO DE LIMA."
+    assert _discrepancias(cat, borrador, "DIRECCION") == [
+        "[DIRECCION] «AVENIDA LAS ARTAS FICTICIAS 1444» debe decir "
+        "«AV. LAS ARTES FICTICIAS 1444»"
+    ]
