@@ -46,3 +46,6 @@ Medidos por el revisor con el mismo guion privado sobre los 10 expedientes, solo
 - La unificación ocurre dentro de `unificar_personas()` para anclas, antes del pegado de adjuntos de F13.
 - «Más de 2 letras» se mide sobre la clave sin espacios para que un espacio perdido o leído como letra cuente como una sola edición.
 - Deuda: corregir el OCR del nombre en origen; nombre truncado en la RENIEC (y completo en la biométrica) se resuelve igual que el caso inverso, con revisión manual.
+- Implementación: entre dos RENIEC del mismo documento, una con `FECHA DE EMISION` legible manda sobre otra sin fecha (misma regla que F12 para los campos).
+- Implementación: un registro no oficial sin documento se pega también por la clave exacta de la variante adjunta, como antes se pegaba al ancla duplicada; si esa clave coincide con más de un ancla, sigue siendo mención.
+- Consecuencia de FR-001: un documento suelto que antes quedaba como mención por pertenecer a dos anclas del mismo DNI ahora se adjunta a la persona unificada.

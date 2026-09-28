@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from datetime import date
 
 from rapidfuzz import fuzz, process
+from rapidfuzz.distance import Levenshtein
 
 IMGS = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"}
 SEPARADOR_PAGINA = "\f"
@@ -481,17 +482,37 @@ def _nombre_clave(nombre: str | None) -> str:
     return re.sub(r"[^A-ZÑ ]", " ", limpio).strip()
 
 
-def unificar_personas(personas) -> tuple[Persona, ...]:
+def _nombre_dudoso(uno: str, otro: str) -> bool:
+    """Más de 2 ediciones o nombre truncado, sobre la clave sin espacios (F15)."""
+    uno, otro = (_nombre_clave(n).replace(" ", "") for n in (uno, otro))
+    corta, larga = sorted((uno, otro), key=len)
+    return Levenshtein.distance(uno, otro) > 2 or (
+        len(corta) < len(larga) and corta in larga
+    )
+
+
+def _rango_ficha(persona: Persona, tipo: str) -> tuple:
+    """Menor manda: RENIEC, luego emisión más reciente; empate, orden de página."""
+    fecha = persona.fecha_emision
+    return (tipo != "RENIEC", fecha is None, -fecha.toordinal() if fecha else 0)
+
+
+def unificar_personas(personas, tipos=None) -> tuple[Persona, ...]:
     """Unifica únicamente evidencia fuerte y conserva todo lo ambiguo.
 
     El criterio deliberadamente pierde unificaciones legítimas antes que
     atribuir un documento a otra persona: documento exacto más nombre exacto
     (admitiendo ``APELLIDOS, NOMBRES``), o nombre exacto cuando ambos bloques
     carecen de documento. Nombres parecidos nunca son una identidad.
+
+    Con ``tipos`` (anclas de ``catalogo()``, F15) el documento exacto basta:
+    manda el nombre de la mejor ficha y la variante queda como adjunto.
     """
     unificadas: list[Persona] = []
-    for persona in personas:
+    rangos = []
+    for posicion, persona in enumerate(personas):
         clave_nombre = _nombre_clave(persona.nombre)
+        rango = _rango_ficha(persona, tipos[posicion]) if tipos else None
         fusion = None
         for indice, existente in enumerate(unificadas):
             if (
@@ -511,7 +532,9 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
                 and clave_nombre
                 and clave_nombre == _nombre_clave(existente.nombre)
             )
-            if mismo_documento and clave_nombre == _nombre_clave(existente.nombre):
+            if mismo_documento and (
+                tipos or clave_nombre == _nombre_clave(existente.nombre)
+            ):
                 fusion = indice
                 break
             if ambos_sin_documento:
@@ -519,8 +542,29 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
                 break
         if fusion is None:
             unificadas.append(persona)
+            rangos.append(rango)
             continue
         existente = unificadas[fusion]
+        nombre = existente.nombre or persona.nombre
+        adjuntos = existente.adjuntos
+        nombre_dudoso = False
+        if tipos and clave_nombre != _nombre_clave(existente.nombre):
+            ganadora, variante = (
+                (persona, existente) if rango < rangos[fusion] else (existente, persona)
+            )
+            ajenas = {p for a in adjuntos or () for p in a.procedencias}
+            nombre = ganadora.nombre
+            adjuntos = (
+                *(adjuntos or ()),
+                Persona(
+                    variante.nombre,
+                    variante.documento,
+                    tuple(p for p in variante.procedencias if p not in ajenas),
+                ),
+            )
+            nombre_dudoso = _nombre_dudoso(ganadora.nombre, variante.nombre)
+        if tipos:
+            rangos[fusion] = min(rango, rangos[fusion])
         procedencias = tuple(
             dict.fromkeys((*existente.procedencias, *persona.procedencias))
         )
@@ -555,14 +599,17 @@ def unificar_personas(personas) -> tuple[Persona, ...]:
             campos[f"procedencia_{campo}"] = getattr(elegida, f"procedencia_{campo}")
             emisiones.append(fecha_nueva if usar_nueva else fecha_anterior)
         unificadas[fusion] = existente._replace(
-            nombre=existente.nombre or persona.nombre,
+            nombre=nombre,
             documento=existente.documento or persona.documento,
             procedencias=procedencias,
+            adjuntos=adjuntos,
             conyuge=existente.conyuge or persona.conyuge,
             procedencia_conyuge=existente.procedencia_conyuge
             or persona.procedencia_conyuge,
             estado="REVISION_MANUAL"
-            if conflicto or "REVISION_MANUAL" in (existente.estado, persona.estado)
+            if conflicto
+            or nombre_dudoso
+            or "REVISION_MANUAL" in (existente.estado, persona.estado)
             else estado,
             fecha_emision=max(
                 (
@@ -818,7 +865,11 @@ def _pegar(anclas, registros) -> tuple[tuple[Persona, ...], tuple[Persona, ...]]
             if (
                 ancla.documento == registro.documento
                 if registro.documento
-                else clave and _nombre_clave(ancla.nombre) == clave
+                else clave
+                and any(
+                    _nombre_clave(propio.nombre) == clave
+                    for propio in (ancla, *(ancla.adjuntos or ()))
+                )
             )
         ]
         if len(indices) != 1:
@@ -833,7 +884,7 @@ def _pegar(anclas, registros) -> tuple[tuple[Persona, ...], tuple[Persona, ...]]
             )
     return (
         tuple(
-            ancla._replace(adjuntos=tuple(propios) or None)
+            ancla._replace(adjuntos=(*(ancla.adjuntos or ()), *propios) or None)
             for ancla, propios in zip(anclas, adjuntos)
         ),
         tuple(
@@ -845,6 +896,7 @@ def _pegar(anclas, registros) -> tuple[tuple[Persona, ...], tuple[Persona, ...]]
 
 def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
     anclas = []
+    tipos = []
     resto = []
     partidas = set()
     montos = set()
@@ -862,9 +914,12 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         if tipo == "DESCONOCIDA" and personas_pagina:
             no_clasificadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
         for persona in personas_pagina:
-            es_ancla = tipo in _TIPOS_ANCLA and persona.nombre and persona.documento
-            (anclas if es_ancla else resto).append(persona)
-    personas, menciones = _pegar(unificar_personas(anclas), resto)
+            if tipo in _TIPOS_ANCLA and persona.nombre and persona.documento:
+                anclas.append(persona)
+                tipos.append(tipo)
+            else:
+                resto.append(persona)
+    personas, menciones = _pegar(unificar_personas(anclas, tipos), resto)
     return Catalogo(
         personas,
         frozenset(partidas),
