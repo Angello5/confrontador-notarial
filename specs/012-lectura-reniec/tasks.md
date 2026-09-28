@@ -16,5 +16,5 @@ T006 queda para el revisor. Solo datos ficticios.
 
 ## Phase 3 — implementación y entrega
 
-- [ ] T006 **Medir SC-001..SC-003 (revisor, fuera del repositorio y de CI).**
+- [X] T006 **Medir SC-001..SC-003 (revisor, fuera del repositorio y de CI).** Resultado 2026-09-27 sobre las 55 fichas y 28 personas, solo recuentos: fichas completas 49 → 50; personas con estado civil 22 → 25, con fecha de nacimiento 21 → 24, con domicilio 18 → 21, distrito 17 sin cambio; anclas 28 y revisión 1 sin cambio; ningún valor leído contiene otro rótulo. Un número suelto tomado como dirección producía un aviso falso: se exige alguna palabra (commit de corrección).
 - [X] T007 Implementar en `nucleo/verificar.py`; fixtures, suite con cobertura, Ruff, `check`, `makemigrations --check`, `git diff --check`; commits locales sin push ni PR.
