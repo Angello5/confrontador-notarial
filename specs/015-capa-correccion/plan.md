@@ -7,7 +7,7 @@
 - `nucleo/correccion.py` (puro): `correcciones()`, `coincidencias()`.
 - `adaptadores/docx_corregido.py`: aplica la carga útil a un `.docx` con `zipfile`.
 - `expedientes`: conservación del original del borrador, `AplicacionCorreccion`
-  (migración 0003), servicio `aplicar_correcciones`, vistas aplicar/descargar,
+  (migraciones 0003 y 0004 `apariciones`), servicio `aplicar_correcciones`, vistas aplicar/descargar,
   parcial `_correcciones.html` incluido en `confrontacion.html`.
 - `config/settings.py`: `EXPEDIENTES_ORIGINALES_DIR`.
 - Constitución 1.6.0 → 1.7.0 (principio IV).
@@ -15,9 +15,10 @@
 ## Contrato
 
 ```text
-correcciones(salidas, fuentes) -> [{id, campo, erroneo, correcto, fuente:{archivo,pagina}, ocurrencia}]
+correcciones(salidas, fuentes) -> [{id, campo, erroneo, correcto, fuente:{archivo,pagina}}]   un par erróneo→correcto, una fila
 coincidencias(texto, valor) -> [(inicio, fin)]   índices del texto crudo, límites de palabra
-aplicar(origen, destino, correcciones) -> (aplicadas, no_aplicadas)
+apariciones(origen, correcciones) -> {id: n}   apariciones aplicables (vista)
+aplicar(origen, destino, correcciones) -> ({id: n}, no_aplicadas)   todas las apariciones
 aplicar_correcciones(expediente, borrador, huella, ids, usuario) -> AplicacionCorreccion
 ```
 

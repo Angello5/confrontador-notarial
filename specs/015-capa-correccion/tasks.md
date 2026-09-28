@@ -14,3 +14,9 @@
 - [X] T005 Ajuste, modelo, migración, servicio, vistas, plantilla, comando de supresión.
 - [X] T006 Enmienda de la constitución 1.7.0 y roadmap.
 - [X] T007 Fixtures, suite con cobertura, Ruff, `check`, `makemigrations --check`, `git diff --check`; commits locales sin push.
+
+## Phase 3 — ronda 2: todas las apariciones (A.3)
+
+- [ ] T008 Pruebas rojas: erróneo repetido 3 veces → 3 corregidas y resto intacto (conteo); «9000011» junto a «90000111» solo con límite de palabra; competencia → ninguna en el tramo; par repetido = una fila; conteo en la vista y en el registro (FR-008, FR-008a, SC-005).
+- [ ] T009 Núcleo sin `ocurrencia`, adaptador `apariciones()`/`aplicar()` sobre todas las apariciones, campo `apariciones` (migración 0004), vista «N apariciones».
+- [ ] T010 Verificaciones de T007; commit local sin push.
