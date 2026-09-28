@@ -138,6 +138,18 @@ RE_NOMBRE_APELLIDOS = re.compile(
 )
 
 RE_RENIEC = {"nom": "NOMBRES", "pat": "APELLIDO PATERNO", "mat": "APELLIDO MATERNO"}
+# Rótulo ``Texto:`` al inicio de línea; su valor nunca es el de otro rótulo (F18).
+_ROTULO = re.compile(r"[A-Za-zÁÉÍÓÚÑáéíóúñ .]{3,40}:")
+
+
+def _primera_celda_siguiente(lineas: list[str], indice: int) -> str:
+    """Valor que el escaneo bajó a la línea siguiente, si no es otro rótulo."""
+    if indice + 1 == len(lineas) or _ROTULO.match(
+        siguiente := lineas[indice + 1].strip()
+    ):
+        return ""
+    return re.split(r"\s{2,}", siguiente)[0]
+
 
 STOP = {
     "DE",
@@ -189,12 +201,18 @@ def nombre_reniec(raw: str) -> str | None:
     """Arma el nombre desde los rotulos del informe RENIEC (nombres + 2 apellidos).
     Lee por columnas: ocr_lineas separa celdas con dos espacios."""
     c = {}
-    for linea in raw.splitlines():
+    lineas = raw.splitlines()
+    for j, linea in enumerate(lineas):
         celdas = [norm(x).rstrip(":") for x in re.split(r"\s{2,}", linea)]
-        for i, cel in enumerate(celdas[:-1]):
+        for i, cel in enumerate(celdas):
             for k, etq in RE_RENIEC.items():
-                if cel == etq and celdas[i + 1].replace(" ", "").isalpha():
-                    c.setdefault(k, celdas[i + 1])
+                if cel != etq:
+                    continue
+                valor = celdas[i + 1] if i + 1 < len(celdas) else ""
+                if not valor.replace(" ", "").isalpha():
+                    valor = norm(_primera_celda_siguiente(lineas, j))
+                if valor.replace(" ", "").isalpha():
+                    c.setdefault(k, valor)
     return f"{c['nom']} {c['pat']} {c['mat']}" if len(c) == 3 else None
 
 
@@ -279,19 +297,34 @@ def _linea_etiquetada(raw: str, etiqueta: str) -> str | None:
 
 
 def _campo_reniec(raw: str, etiqueta: str) -> str | None:
-    """Lee solo un rótulo al inicio de línea y su propia celda."""
-    for linea in raw.splitlines():
+    """Lee solo un rótulo al inicio de línea y su propia celda.
+
+    Sin valor en la celda, lo toma de la línea siguiente (F18); una dirección
+    así leída debe tener alguna palabra y un dígito o una abreviatura de vía:
+    un número suelto es un fragmento, no una dirección.
+    """
+    lineas = raw.splitlines()
+    for indice, linea in enumerate(lineas):
         celdas = re.split(r"\s{2,}", linea.strip())
         primera = celdas[0]
         rotulo, _, valor = primera.partition(":")
         if norm(rotulo) != etiqueta:
             continue
         valor = valor.strip() or (celdas[1].strip() if len(celdas) > 1 else "")
+        if not valor:
+            valor = _primera_celda_siguiente(lineas, indice)
+            palabras = set(re.findall(r"[A-ZÑ]+", norm(valor)))
+            if etiqueta == "DIRECCION" and not (
+                palabras and (re.search(r"\d", valor) or _VIAS.keys() & palabras)
+            ):
+                valor = ""
         return valor or None
     return None
 
 
 def _fecha_reniec(valor: str | None) -> date | None:
+    # El OCR mete puntos o espacios entre dígitos: 12/05/1.978, 12/05/1 978.
+    valor = valor and re.sub(r"(?<=\d)[.\s](?=\d)", "", valor)
     if not valor or not (
         coincide := re.fullmatch(r"([0-9]{2})([/\-])([0-9]{2})\2([0-9]{4})", valor)
     ):
@@ -914,6 +947,7 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
     montos = set()
     descartadas = []
     no_clasificadas = []
+    sueltas = {}
     for pagina in _paginas(fuentes):
         t = norm(pagina.texto)
         partidas.update(RE_PARTIDA.findall(t))
@@ -931,7 +965,21 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
                 tipos.append(tipo)
             else:
                 resto.append(persona)
-    personas, menciones = _pegar(unificar_personas(anclas, tipos), resto)
+        # F18: RENIEC sin nombre legible; sus campos van al ancla de su DNI.
+        if tipo == "RENIEC" and [p.nombre for p in personas_pagina] == [None]:
+            sueltas[len(resto) - 1] = _campos_reniec(pagina)
+    anclas = list(unificar_personas(anclas, tipos))
+    por_documento = {ancla.documento: i for i, ancla in enumerate(anclas)}
+    for indice, campos in sueltas.items():
+        if (i := por_documento.get(resto[indice].documento)) is None:
+            continue
+        ficha = resto[indice]._replace(
+            nombre=anclas[i].nombre, estado=anclas[i].estado, **campos
+        )
+        (anclas[i],) = unificar_personas((anclas[i], ficha))
+        resto[indice] = None
+    resto = [registro for registro in resto if registro]
+    personas, menciones = _pegar(anclas, resto)
     return Catalogo(
         personas,
         frozenset(partidas),

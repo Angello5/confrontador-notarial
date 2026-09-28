@@ -18,6 +18,7 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F14 · terminada (PR #43)** | Rediseño de interfaz | Todas las pantallas con la paleta y disposición del diseño de Figma | F13 | Sin IA, sin fuentes remotas, sin módulos futuros en el menú |
 | **F15 · terminada (PR #45)** | Una persona por DNI entre fichas | RENIEC y biométrica del mismo DNI son una sola persona; revisión solo si el nombre difiere mucho | F13 | Mismo DNI = misma persona, nombre RENIEC |
 | **F16 · en curso** | Nombres exigibles | Solo se exigen al borrador los nombres de fichas y minuta; el domicilio se busca también por DNI | F15 | Menciones y adjuntos reconocen, no exigen |
+| **F18 · en curso** | Lectura de fichas RENIEC escaneadas | Fechas con ruido OCR, valores en la línea siguiente y fichas sin nombre legible aportan sus campos | F15 | Los datos de las personas salen de las fichas, también escaneadas |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
 | **F7** | Informe exportable | Descargar o imprimir las observaciones | F5 | Formato |
