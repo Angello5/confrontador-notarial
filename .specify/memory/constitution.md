@@ -25,6 +25,13 @@ Sync Impact Report
   reabrir un expediente; el despliegue es on-premise, en la LAN de la notaría y
   sin exposición a internet
 - Fecha: 2026-09-20
+- Version: 1.6.0 → 1.7.0 (MINOR: se añade la conservación del borrador
+  `.docx` como original inalterable)
+- Principios modificados: IV. Privacidad de datos personales (excepción a los
+  archivos temporales para el borrador `.docx`)
+- Motivo: Anexo A.3 del contrato (F21): conservar el documento original en
+  versión inalterable y generar el corregido como archivo distinto
+- Fecha: 2026-09-28
 - TODO pendientes:
   - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
 -->
@@ -81,7 +88,20 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   borran en un bloque `finally` y una tarea diaria elimina huérfanos con más de
   24 h. El directorio temporal no se respalda.
 - Persistencia mínima: resultados (observaciones), hash SHA-256 de cada archivo,
-  quién, cuándo y estado. Nunca el archivo original.
+  quién, cuándo y estado. Nunca el archivo original, salvo la excepción
+  siguiente.
+- Borrador `.docx` (Anexo A.3 del contrato): se conserva como original
+  inalterable, junto con los documentos corregidos generados a partir de él.
+  Condiciones:
+  - Solo el borrador `.docx`; los documentos del cliente y la minuta siguen
+    siendo temporales.
+  - Almacenamiento local fuera del repositorio y de `static/`, con permisos
+    restrictivos; la ruta nunca se muestra ni se registra y la descarga pasa por
+    una vista con permisos.
+  - El original no se modifica: su SHA-256 se verifica antes de generar un
+    corregido, que siempre es un archivo distinto.
+  - La supresión a solicitud (y la eliminación del documento) borra también el
+    original y los corregidos.
 - Texto extraído: SE PERSISTE de forma indefinida, indexado por el hash SHA-256
   del archivo y la versión del extractor, para no repetir el OCR. Es una caché
   de resultados, no un archivo documental: solo texto, nunca el archivo
@@ -253,4 +273,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.6.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-20
+**Version**: 1.7.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-28
