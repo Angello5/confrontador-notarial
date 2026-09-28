@@ -4,7 +4,7 @@
 
 ## Summary and scope
 
-- `expedientes/models.py`: `archivado_el`, `archivado_por` (nulos) + migración `0004`.
+- `expedientes/models.py`: `archivado_el`, `archivado_por` (nulos) + migración `0005`.
 - `expedientes/services.py`: `expedientes_visibles()` excluye archivados (lista, inicio y métricas pasan por ahí); las vistas del expediente buscan solo no archivados (404).
 - `expedientes/views.py`: `expediente_editar`, `expediente_eliminar` (GET confirma, POST archiva), `expediente_restaurar` (POST, Administrador); filtro `?archivados=1` en la lista.
 - Plantillas: botones en `lista.html` y `detalle.html`; nuevas `editar.html` y `eliminar.html`.

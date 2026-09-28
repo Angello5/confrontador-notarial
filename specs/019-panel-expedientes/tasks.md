@@ -12,5 +12,5 @@
 
 ## Phase 2 — implementación y entrega
 
-- [X] T006 Modelo + migración `0004`, servicio de visibilidad, vistas, URLs y plantillas.
+- [X] T006 Modelo + migración `0005`, servicio de visibilidad, vistas, URLs y plantillas.
 - [X] T007 Fixtures, suite con cobertura, Ruff, `check`, `makemigrations --check`, `git diff --check`; commits locales sin push.

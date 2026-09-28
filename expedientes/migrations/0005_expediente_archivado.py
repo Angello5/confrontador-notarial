@@ -7,7 +7,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("expedientes", "0003_manifiesto_auditoria"),
+        ("expedientes", "0004_decisioncorreccion_aplicacion"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
