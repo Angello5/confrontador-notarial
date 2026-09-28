@@ -13,4 +13,4 @@
 
 - [X] T005 Detectores en `revisar()` (`nucleo/verificar.py`); el adaptador de `services.py` los interpreta sin cambios (prueba de adaptación).
 - [X] T006 Fixtures, suite con cobertura, Ruff, `check`, `makemigrations --check`, `git diff --check`; commits locales sin push.
-- [ ] T007 **Medir SC-001, SC-002 (revisor, fuera del repositorio).**
+- [X] T007 **Medir SC-001, SC-002 (revisor, fuera del repositorio).** Resultado 2026-09-27, solo recuentos: caso de referencia con errores intencionados 3/8 → 8/8 contra la lista oficial del propietario. En los 9 casos sin errores intencionados aparecen 2 observaciones nuevas, ambas DNI de 6 dígitos presentes de verdad en esos borradores; ningún falso positivo tras corregir los nombres de fuente con signos del OCR y las palabras numéricas de tres letras.
