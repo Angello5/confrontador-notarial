@@ -786,12 +786,19 @@ def confrontar_borrador(expediente, borrador):
         if isinstance(catalogo, verificar.Catalogo)
         else ()
     )
-    reglas = verificar.revisar(catalogo, texto_borrador, _UMBRAL_PARRAFO)
     minutas = [
         documento.texto_extraido.texto
         for documento in fuentes_documentos
         if documento.rol == Documento.MINUTA
     ]
+    reglas = verificar.revisar(
+        catalogo,
+        texto_borrador,
+        _UMBRAL_PARRAFO,
+        verificar.nombres_exigibles(catalogo, minutas)
+        if isinstance(catalogo, verificar.Catalogo)
+        else None,
+    )
     reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
     # Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando.
     # try:

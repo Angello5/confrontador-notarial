@@ -12,6 +12,7 @@ from nucleo.verificar import (
     catalogo,
     clasificar_pagina,
     comparar_personas,
+    nombres_exigibles,
     revisar,
     revisar_persona_ampliada,
     unificar_personas,
@@ -923,6 +924,12 @@ def test_paridad_capa_de_campos_con_legajo_ficticio():
         "[DNI] FALTA: «90000044» esta en las fuentes y no aparece en el destino",
         "[PARTIDA] FALTA: «80000001» esta en las fuentes y no aparece en el destino",
     ]
+    # F16: con nombres exigibles (anclas + minuta) la salida no cambia aquí:
+    # los cuatro FALTA son de anclas o de la minuta.
+    exigibles = nombres_exigibles(cat, [_LEGAJO_MINUTA])
+    assert revisar(cat, _LEGAJO_BORRADOR, 88, exigibles) == revisar(
+        cat, _LEGAJO_BORRADOR, 88
+    )
     assert correspondencia(cat, _LEGAJO_BORRADOR) == (0.5, 1)
     assert diagnostico(_LEGAJO, _LEGAJO_BORRADOR) is None
     assert diagnostico(_LEGAJO, "SIN DATOS DNI 90000098 DNI 90000099") == (
@@ -1302,6 +1309,12 @@ def test_paridad_capa_de_campos_con_fichas_duplicadas_por_ocr():
         "[NOMBRE] FALTA: «OLGAIMIRELA TARANCO VELIZ» esta en las fuentes y no aparece en el destino",
         "[DNI] FALTA: «90000051» esta en las fuentes y no aparece en el destino",
     ]
+    # F16: la variante adjunta de la biométrica deja de exigirse.
+    assert revisar(cat, borrador, 88, nombres_exigibles(cat, [_OLGA_MINUTA])) == [
+        "[NOMBRE] «OLGA MIRELA TARANCO VELIS» debe decir «OLGA MIRELA TARANCO VELIZ»   (caratula)",
+        "[DNI] «90000015» debe decir «90000051»   … TARANCO VELIS COMPARECE OLGA MIRELA TARANCO VELIZ CON DNI 90000015",
+        "[DNI] FALTA: «90000051» esta en las fuentes y no aparece en el destino",
+    ]
     assert correspondencia(cat, borrador) == (2 / 3, 1)
     assert diagnostico(legajo, borrador) is None
     assert revisar_parrafos([_OLGA_MINUTA], borrador, 88) == [
@@ -1409,3 +1422,65 @@ def test_dni_distinto_y_mismo_nombre_siguen_siendo_dos_anclas():
         ("90000051", "CONFIRMADA", None),
         ("90000062", "CONFIRMADA", None),
     ]
+
+
+# F16: solo se exigen los nombres de las fichas y de la minuta. Datos inventados.
+_F16_MINUTA = "IRMA CELESTE PORTOLA, DE NACIONALIDAD PERUANA, CON DNI 90000077."
+_F16_LEGAJO = {
+    "reniec-ficticio.pdf": _ALBA,
+    "biometrica-ficticia.txt": _biometrica("90000011", "ALBAI", "LUMARIA", "ZAFIRO"),
+    "declaracion-ficticia.txt": "HUGO BERNAL TIRSO, DE NACIONALIDAD PERUANA.",
+    "minuta-ficticia.txt": _F16_MINUTA,
+}
+
+
+def _faltas_nombre(borrador):
+    cat = catalogo(_F16_LEGAJO)
+    exigibles = nombres_exigibles(cat, [_F16_MINUTA])
+    return [
+        o for o in revisar(cat, borrador, 88, exigibles) if o.startswith("[NOMBRE]")
+    ]
+
+
+def test_mencion_y_adjunto_ausentes_no_se_exigen():
+    borrador = (
+        "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, CON DNI 90000011.\n"
+        "IRMA CELESTE PORTOLA, DE NACIONALIDAD PERUANA, CON DNI 90000077."
+    )
+    assert _faltas_nombre(borrador) == []
+
+
+def test_nombre_de_ancla_y_de_minuta_ausentes_se_exigen():
+    assert _faltas_nombre("SIN COMPARECIENTES") == [
+        "[NOMBRE] FALTA: «ALBA LUMARIA ZAFIRO» esta en las fuentes y no aparece en el destino",
+        "[NOMBRE] FALTA: «IRMA CELESTE PORTOLA» esta en las fuentes y no aparece en el destino",
+    ]
+
+
+def test_nombre_del_borrador_igual_a_una_mencion_se_reconoce():
+    borrador = (
+        "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA.\n"
+        "IRMA CELESTE PORTOLA, DE NACIONALIDAD PERUANA.\n"
+        "HUGO BERNAL TIRSO, DE NACIONALIDAD PERUANA."
+    )
+    assert _faltas_nombre(borrador) == []
+
+
+def test_domicilio_en_clausula_del_dni_con_nombre_mal_escrito():
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio="Avenida Luna 12",
+        procedencia_domicilio=origen,
+    )
+    fuente = Catalogo((persona,))
+    borrador = (
+        "ALBA LUMARIA ZAFIRO\n"
+        "COMPARECE ALBA LUMARA ZAFIRO CON DNI 90000011, CON DOMICILIO EN AV. LUNA 12."
+    )
+    assert revisar_persona_ampliada(fuente, borrador, date(2025, 1, 1)) == ()
+    ajeno = "ALBA LUMARIA ZAFIRO\nCON DNI 900000112, CON DOMICILIO EN AV. LUNA 12."
+    obs = revisar_persona_ampliada(fuente, ajeno, date(2025, 1, 1))
+    assert [fila["tipo"] for fila in obs] == ["DOMICILIO_NO_ENCONTRADO"]

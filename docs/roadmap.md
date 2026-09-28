@@ -16,7 +16,8 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F12 · terminada (PR #40)** | Persona ampliada | Estado civil, fecha de nacimiento y domicilio entran en la confrontación | F11 | Reglas de cónyuge, minoría de edad y domicilio |
 | **F13 · terminada (PR #42)** | Anclaje por ficha oficial | Cada ficha RENIEC o biométrica es una persona; el resto solo se adjunta | F12 | — |
 | **F14 · terminada (PR #43)** | Rediseño de interfaz | Todas las pantallas con la paleta y disposición del diseño de Figma | F13 | Sin IA, sin fuentes remotas, sin módulos futuros en el menú |
-| **F15 · en PR** | Una persona por DNI entre fichas | RENIEC y biométrica del mismo DNI son una sola persona; revisión solo si el nombre difiere mucho | F13 | Mismo DNI = misma persona, nombre RENIEC |
+| **F15 · terminada (PR #45)** | Una persona por DNI entre fichas | RENIEC y biométrica del mismo DNI son una sola persona; revisión solo si el nombre difiere mucho | F13 | Mismo DNI = misma persona, nombre RENIEC |
+| **F16 · en curso** | Nombres exigibles | Solo se exigen al borrador los nombres de fichas y minuta; el domicilio se busca también por DNI | F15 | Menciones y adjuntos reconocen, no exigen |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
 | **F7** | Informe exportable | Descargar o imprimir las observaciones | F5 | Formato |

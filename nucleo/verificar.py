@@ -817,10 +817,12 @@ def revisar_persona_ampliada(
         if persona.domicilio:
             direccion = _direccion_tokens(persona.domicilio)
             # ponytail: busca en la línea del compareciente; ampliar al párrafo si hay domicilios multilínea.
+            # F16: cualquier línea con su nombre exacto o su DNI exacto.
+            dni = re.compile(rf"(?<!\d){re.escape(persona.documento)}(?!\d)")
             oraciones = [
                 linea
                 for linea in borrador.splitlines()
-                if _nombre_clave(persona.nombre) in norm(linea)
+                if _nombre_clave(persona.nombre) in norm(linea) or dni.search(linea)
             ]
             if not any(
                 direccion <= _direccion_tokens(oracion) for oracion in oraciones
@@ -985,7 +987,17 @@ def diagnostico(fuentes: dict[str, str], destino: str) -> str | None:
     )
 
 
-def revisar(cat: dict[str, set[str]], destino: str, umbral: int) -> list[str]:
+def nombres_exigibles(cat: Catalogo, textos) -> frozenset[str]:
+    """Nombres de las anclas y de los textos dados (la minuta, según el llamador)."""
+    return frozenset(p.nombre for p in cat.personas) | {
+        n for texto in textos for n in catalogo({"exigible": texto})["NOMBRE"]
+    }
+
+
+def revisar(
+    cat: dict[str, set[str]], destino: str, umbral: int, exigibles=None
+) -> list[str]:
+    """``exigibles`` limita el FALTA de NOMBRE; ``None`` exige todos (F16)."""
     d = norm(destino)
     obs, vistos = [], {k: set() for k in cat}
 
@@ -1028,6 +1040,8 @@ def revisar(cat: dict[str, set[str]], destino: str, umbral: int) -> list[str]:
         check("MONTO", v)
 
     for campo, vals in cat.items():
+        if campo == "NOMBRE" and exigibles is not None:
+            vals = vals & exigibles
         for falta in sorted(vals - vistos[campo]):
             obs.append(
                 f"[{campo}] FALTA: «{falta}» esta en las fuentes y no aparece en el destino"
