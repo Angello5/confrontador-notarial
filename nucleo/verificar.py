@@ -1208,6 +1208,11 @@ def nombres_exigibles(cat: Catalogo, textos) -> frozenset[str]:
     }
 
 
+def montos_exigibles(textos) -> frozenset[str]:
+    """F24: montos de los textos dados (la minuta, según el llamador)."""
+    return frozenset(m for texto in textos for m in RE_MONTO.findall(norm(texto)))
+
+
 _NUMEROS = {
     **{
         w: i
@@ -1340,9 +1345,14 @@ def _esperado_cercano(valor: str, fuente) -> str:
 
 
 def revisar(
-    cat: dict[str, set[str]], destino: str, umbral: int, exigibles=None
+    cat: dict[str, set[str]],
+    destino: str,
+    umbral: int,
+    exigibles=None,
+    montos_exigibles=None,
 ) -> list[str]:
-    """``exigibles`` limita el FALTA de NOMBRE; ``None`` exige todos (F16)."""
+    """``exigibles`` y ``montos_exigibles`` limitan el FALTA de NOMBRE (F16) y
+    de MONTO (F24); ``None`` exige todos."""
     d = norm(destino)
     obs, vistos = [], {k: set() for k in cat}
 
@@ -1405,6 +1415,8 @@ def revisar(
             continue
         if campo in ("NOMBRE", "RUC") and exigibles is not None:
             vals = vals & exigibles
+        if campo == "MONTO" and montos_exigibles is not None:
+            vals = vals & montos_exigibles
         for falta in sorted(vals - vistos[campo]):
             obs.append(
                 f"[{campo}] FALTA: «{falta}» esta en las fuentes y no aparece en el destino"
