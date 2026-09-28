@@ -78,6 +78,7 @@ def pytest_sessionfinish(session, exitstatus):
             "expedientes/migrations/0002_documento_roles.py",
             "expedientes/migrations/0003_manifiesto_auditoria.py",
             "expedientes/migrations/0004_decisioncorreccion_aplicacion.py",
+            "expedientes/migrations/0005_expediente_archivado.py",
             "expedientes/migrations/__init__.py",
             "expedientes/services.py",
             "expedientes/urls.py",
