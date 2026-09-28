@@ -272,7 +272,7 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     )
     monkeypatch.setattr(
         "expedientes.services.verificar.revisar",
-        lambda cat, texto, umbral: (
+        lambda cat, texto, umbral, exigibles=None: (
             llamadas["revisar"].append(umbral)
             or ["[DNI] «90000002» no coincide con ninguna fuente"]
         ),
@@ -1125,3 +1125,42 @@ def test_adjunto_sin_nombre_se_presenta_de_forma_explicita():
         }
     ]
     assert (fila["conyuge"], fila["procedencia_conyuge"]) == (None, None)
+
+
+def test_confrontacion_solo_exige_nombres_de_fichas_y_minuta(
+    expediente_confrontacion, crear_documento_listo
+):
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "reniec-ficticio.pdf",
+        "CUI: 90000011 - 5\nAPELLIDO PATERNO  LUMARIA  APELLIDO MATERNO  ZAFIRO\n"
+        "NOMBRES  ALBA",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.CLIENTE,
+        "declaracion-ficticia.txt",
+        "HUGO BERNAL TIRSO, DE NACIONALIDAD PERUANA.",
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-ficticia.txt",
+        "IRMA CELESTE PORTOLA, DE NACIONALIDAD PERUANA, CON DNI 90000077.",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-ficticio.txt",
+        "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, CON DNI 90000011.",
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+    assert resultado["estado"] == "RESULTADO"
+    texto = str(resultado["regla"])
+    assert "IRMA CELESTE PORTOLA" in texto
+    assert "HUGO BERNAL TIRSO" not in texto
