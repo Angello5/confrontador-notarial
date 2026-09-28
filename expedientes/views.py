@@ -5,16 +5,18 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .forms import DocumentoUploadForm, ExpedienteForm, formatos_admitidos
-from .models import Documento, Expediente
+from .models import DecisionCorreccion, Documento, Expediente
 from .services import (
     RESULTADO_ERROR,
+    CorreccionNoAplicable,
     DocumentoDuplicado,
+    aplicar_correcciones,
     corridas_con_resumen,
     filas_corrida,
     registrar_corrida,
@@ -25,6 +27,7 @@ from .services import (
     resumen_expediente,
     estado_confrontacion,
     confrontar_borrador,
+    ruta_corregido,
     usuario_puede_ver_expediente,
 )
 
@@ -329,6 +332,58 @@ def documento_confrontar(request, pk, doc_id):
 
 
 @login_required
+@require_POST
+def correcciones_aplicar(request, pk, doc_id):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    borrador = get_object_or_404(
+        expediente.documentos, pk=doc_id, rol=Documento.BORRADOR
+    )
+    contexto = {"expediente": expediente, "borrador": borrador}
+    contexto.update(_navegacion_contexto(request))
+    if request.POST.get("confirmado") != "1":
+        contexto["error"] = "Confirme la aplicación de las correcciones para continuar."
+        return render(
+            request, "expedientes/correccion_aplicada.html", contexto, status=400
+        )
+    try:
+        contexto["aplicacion"] = aplicar_correcciones(
+            expediente,
+            borrador,
+            request.POST.get("corrida", ""),
+            request.POST.getlist("aplicar"),
+            request.user,
+        )
+    except CorreccionNoAplicable as exc:
+        contexto["error"] = str(exc)
+        return render(
+            request, "expedientes/correccion_aplicada.html", contexto, status=400
+        )
+    return render(request, "expedientes/correccion_aplicada.html", contexto)
+
+
+@login_required
+@require_GET
+def correccion_descargar(request, pk, decision_id):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    decision = get_object_or_404(
+        DecisionCorreccion.objects.select_related("corrida"),
+        pk=decision_id,
+        corrida__expediente=expediente,
+    )
+    ruta = ruta_corregido(decision)
+    if not decision.hash_corregido or not ruta.is_file():
+        raise Http404
+    borrador = decision.corrida.entradas[0]["nombre"]
+    return FileResponse(
+        ruta.open("rb"),
+        as_attachment=True,
+        filename=f"{Path(borrador).stem}-corregido.docx",
+    )
+
+
+@login_required
 @require_GET
 def expediente_historial(request, pk):
     _requiere_rol(request)
@@ -353,6 +408,7 @@ def corrida_detalle(request, pk, corrida_id):
         "expediente": expediente,
         "corrida": corrida,
         "filas": filas_corrida(corrida.hallazgos),
+        "decisiones": corrida.decisiones.select_related("usuario").order_by("pk"),
     }
     contexto.update(_navegacion_contexto(request))
     return render(request, "expedientes/corrida.html", contexto)

@@ -1,0 +1,33 @@
+{% extends "core/base.html" %}
+
+{% block title %}Correcciones · {{ expediente.codigo }}{% endblock %}
+{% block breadcrumb %}<ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Correcciones</li>
+</ol>{% endblock %}
+{% block eyebrow %}Expedientes / Correcciones{% endblock %}
+{% block heading %}Documento corregido{% endblock %}
+{% block subtitle %}{{ expediente.codigo }} · {{ borrador.nombre_original }}{% endblock %}
+{% block actions %}<a class="btn btn-outline-primary" href="{% url 'expediente_detalle' expediente.pk %}">Volver al expediente</a>{% endblock %}
+{% block content %}
+  {% if error %}
+    <section class="alert alert-warning" role="alert" aria-live="polite">
+      <h2 class="h5">No se aplicó ninguna corrección</h2>
+      <p class="mb-0">{{ error }}</p>
+    </section>
+  {% else %}
+    <section class="card mb-3" aria-labelledby="aplicada-titulo">
+      <div class="card-body" role="status" aria-live="polite">
+        <h2 id="aplicada-titulo" class="h5">Correcciones aplicadas</h2>
+        <p>Se generó un documento corregido nuevo. El borrador original se conserva sin cambios.</p>
+        <ul>
+          <li>Aplicadas: {{ aplicacion.apariciones|length }}</li>
+          <li>Excluidas por usted: {{ aplicacion.correcciones_excluidas|length }}</li>
+          <li>No aplicadas (no se ubicaron en el documento o competían con otra corrección): {{ aplicacion.correcciones_no_aplicadas|length }}</li>
+        </ul>
+        <a class="btn btn-primary" href="{% url 'correccion_descargar' expediente.pk aplicacion.pk %}">Descargar documento corregido</a>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

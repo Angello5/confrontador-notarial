@@ -40,6 +40,20 @@
     </div>
   </section>
 
+  {% for decision in decisiones %}
+    <section class="card mb-3" aria-labelledby="decision-{{ decision.pk }}">
+      <div class="card-header"><h2 id="decision-{{ decision.pk }}" class="h5 fw-bold mb-0">Decisión de corrección</h2></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Confirmó</dt><dd class="col-sm-9">{{ decision.usuario.username }}</dd>
+          <dt class="col-sm-3">Fecha y hora</dt><dd class="col-sm-9">{{ decision.creado_el|date:"d/m/Y H:i" }}</dd>
+          <dt class="col-sm-3">Correcciones</dt><dd class="col-sm-9">Aplicadas: {{ decision.apariciones|length }} · Excluidas: {{ decision.correcciones_excluidas|length }} · No ubicadas: {{ decision.correcciones_no_aplicadas|length }}</dd>
+        </dl>
+        {% if decision.hash_corregido %}<a class="btn btn-outline-primary mt-3" href="{% url 'correccion_descargar' expediente.pk decision.pk %}">Descargar documento corregido</a>{% endif %}
+      </div>
+    </section>
+  {% endfor %}
+
   <section class="card mb-3" aria-labelledby="hallazgos-titulo">
     <div class="card-header"><h2 id="hallazgos-titulo" class="h5 fw-bold mb-0">Hallazgos {% include "core/_chip.html" with estado="PROCESANDO" texto=filas|length %}</h2></div>
     <div class="card-body">
