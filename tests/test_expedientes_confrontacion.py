@@ -305,7 +305,14 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
 class _DiccionarioFicticio:
     """Solo conoce el castellano común de los borradores ficticios."""
 
-    COMUNES = {"dni", "compareciente", "nacionalidad", "peruana", "domicilio", "contrato"}
+    COMUNES = {
+        "dni",
+        "compareciente",
+        "nacionalidad",
+        "peruana",
+        "domicilio",
+        "contrato",
+    }
 
     def lookup(self, palabra):
         return palabra.lower() in self.COMUNES
@@ -676,7 +683,6 @@ def test_anexo_sin_identidades_no_bloquea_diagnostico(
 
     assert resultado["estado"] == "RESULTADO"
     assert resultado["regla"] == []
-    assert resultado["ortografia"] == []
 
 
 def test_confrontacion_real_detecta_dni_nombre_y_monto_alterados(

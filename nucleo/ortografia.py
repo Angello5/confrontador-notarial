@@ -80,3 +80,87 @@ def revisar(
         m = process.extractOne(base, lemas, scorer=fuzz.ratio)
         fuera.append((w, "no existe en castellano", m[0] if m and m[1] >= 75 else "?"))
     return fuera
+
+
+# F23: gramatica y redaccion con reglas cerradas. Lo completo necesita un motor
+# linguistico que no esta en el alcance local (spec 017).
+_PALABRA = r"[^\W\d_]"
+_FEMENINOS = {
+    "CLAUSULA", "PARTIDA", "ESCRITURA", "MINUTA",
+    "VENDEDORA", "COMPRADORA", "PROPIEDAD", "SOCIEDAD",
+}  # fmt: skip
+# PARTE no entra: «EL PARTE» notarial es correcto
+_MASCULINOS = {"CONTRATO", "INMUEBLE", "PRECIO", "PREDIO", "VENDEDOR", "COMPRADOR"}
+_CORRECTO = {"EL": "LA", "DEL": "DE LA", "AL": "A LA", "LA": "EL"}
+_REGLAS = (
+    (rf"\b({_PALABRA}{{2,}})[^\S\n]+(\1)\b", "palabra repetida"),
+    (rf"{_PALABRA}+ {{2,}}(?=({_PALABRA}+))", "doble espacio"),
+    (rf"{_PALABRA}+ +(?:[,;:]|\.(?!\.))", "espacio antes de signo"),
+    (rf"\b(EL|DEL|AL|LA)[^\S\n]+({_PALABRA}+)\b", "concordancia de artículo"),
+)
+
+
+def _sin_cerrar(linea: str) -> str | None:
+    if linea.count("(") > linea.count(")"):
+        return "paréntesis sin cerrar"
+    if (
+        linea.count('"') % 2
+        or linea.count("«") > linea.count("»")
+        or linea.count("“") > linea.count("”")
+    ):
+        return "comillas sin cerrar"
+    return None
+
+
+def redaccion(texto: str, protegidos) -> list[tuple[str, str, str]]:
+    """[(fragmento, motivo, sugerencia)] en orden de aparicion.
+
+    Se descarta lo que se solapa con un dato protegido (A.3): la capa
+    linguistica no tiene autoridad sobre nombres, DNI, montos ni domicilios.
+    """
+    tramos = [
+        m.span()
+        for valor in protegidos
+        if (palabras := valor.split())
+        for m in re.finditer(r"\s+".join(map(re.escape, palabras)), texto, re.I)
+    ]
+    hallazgos = []
+    for patron, motivo in _REGLAS:
+        for m in re.finditer(patron, texto, re.I):
+            inicio, fin = m.span()
+            fragmento = m[0]
+            if motivo == "palabra repetida":
+                sugerencia = m[1]
+            elif motivo == "doble espacio":
+                fin += len(m[1])
+                fragmento = texto[inicio:fin]
+                sugerencia = " ".join(fragmento.split())
+            elif motivo == "espacio antes de signo":
+                sugerencia = fragmento.split()[0] + fragmento[-1]
+            else:
+                articulo, nombre = m[1].upper(), plano(m[2]).upper()
+                if articulo == "LA" and nombre not in _MASCULINOS:
+                    continue
+                if articulo != "LA" and nombre not in _FEMENINOS:
+                    continue
+                correcto = _CORRECTO[articulo]
+                sugerencia = (
+                    f"{correcto if m[1].isupper() else correcto.lower()} {m[2]}"
+                )
+            hallazgos.append((inicio, fin, fragmento, motivo, sugerencia))
+    desde = 0
+    for linea in texto.splitlines(keepends=True):
+        if motivo := _sin_cerrar(linea):
+            # el tramo es solo el signo de apertura: un nombre en la linea no la oculta
+            signo = next(i for i, c in enumerate(linea) if c in '("«“')
+            hallazgos.append(
+                (desde + signo, desde + signo + 1, linea.strip(), motivo, "?")
+            )
+        desde += len(linea)
+    return [
+        (fragmento, motivo, sugerencia)
+        for inicio, fin, fragmento, motivo, sugerencia in sorted(
+            hallazgos, key=lambda h: h[:2]
+        )
+        if not any(inicio < b and a < fin for a, b in tramos)
+    ]

@@ -16,12 +16,24 @@ from nucleo.ortografia import redaccion
             "LA VENTA (SEGUN MINUTA ES LIBRE",
             [("LA VENTA (SEGUN MINUTA ES LIBRE", "paréntesis sin cerrar", "?")],
         ),
-        ('DENOMINADO "LOTE UNO', [('DENOMINADO "LOTE UNO', "comillas sin cerrar", "?")]),
-        ("DENOMINADO «LOTE UNO", [("DENOMINADO «LOTE UNO", "comillas sin cerrar", "?")]),
+        (
+            'DENOMINADO "LOTE UNO',
+            [('DENOMINADO "LOTE UNO', "comillas sin cerrar", "?")],
+        ),
+        (
+            "DENOMINADO «LOTE UNO",
+            [("DENOMINADO «LOTE UNO", "comillas sin cerrar", "?")],
+        ),
         ("LA CONTRATO", [("LA CONTRATO", "concordancia de artículo", "EL CONTRATO")]),
-        ("DEL CLÁUSULA", [("DEL CLÁUSULA", "concordancia de artículo", "DE LA CLÁUSULA")]),
+        (
+            "DEL CLÁUSULA",
+            [("DEL CLÁUSULA", "concordancia de artículo", "DE LA CLÁUSULA")],
+        ),
         ("EL PARTIDA", [("EL PARTIDA", "concordancia de artículo", "LA PARTIDA")]),
-        ("AL ESCRITURA", [("AL ESCRITURA", "concordancia de artículo", "A LA ESCRITURA")]),
+        (
+            "AL ESCRITURA",
+            [("AL ESCRITURA", "concordancia de artículo", "A LA ESCRITURA")],
+        ),
     ],
 )
 def test_cada_regla_reporta_su_caso(texto, esperado):
@@ -33,7 +45,7 @@ def test_cada_regla_reporta_su_caso(texto, esperado):
     [
         "EL PRECIO DE LA COMPRA ES DE CIEN SOLES.",
         "LA PARTE VENDEDORA, EL CONTRATO Y LA CLÁUSULA PRIMERA; DEL INMUEBLE.",
-        "EL PARTE NOTARIAL (DOS COPIAS) Y «LOTE UNO» Y “LOTE DOS” Y \"LOTE TRES\".",
+        'EL PARTE NOTARIAL (DOS COPIAS) Y «LOTE UNO» Y “LOTE DOS” Y "LOTE TRES".',
         "CONSTE ............ FIRMA",
         "DNI 90000001  90000002",
         "LA\tVENTA",
