@@ -13,3 +13,9 @@
 
 - [X] T005 `redaccion()` en `nucleo/ortografia.py`; orquestación en `services.py`; plantilla.
 - [X] T006 Fixtures, suite con cobertura, Ruff, `check`, `makemigrations --check`, `git diff --check`; commits locales sin push.
+
+## Ronda 2 — medición del revisor (2026-09-28)
+
+- [ ] T007 Pruebas rojas: palabra rara en una fuente → sin aviso; ausente de las fuentes → aviso; doble espacio → sin aviso (SC-004).
+- [ ] T008 `_capa_linguistica` pasa las palabras de las fuentes a `ortografia.revisar`; se retira la regla «doble espacio».
+- [ ] T009 Verificaciones de T006; commit local sin push.

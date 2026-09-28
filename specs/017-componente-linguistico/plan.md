@@ -9,6 +9,9 @@
   captura `DiccionarioNoAprovisionado` como aviso (no bloquea), amplía las
   palabras propias (domicilio, distrito, hallados de regla/personas) y añade
   `redaccion`. Clave nueva `linguistico_aviso`.
+- Ronda 2 (2026-09-28): `_capa_linguistica` recibe los textos de las fuentes
+  y suma sus palabras (≥ 3 letras) a las propias; `redaccion` pierde la regla
+  «doble espacio».
 - `templates/expedientes/confrontacion.html`: descomenta tarjeta y sección
   como «Lingüístico», con aviso.
 
