@@ -94,3 +94,79 @@ class Documento(models.Model):
                 name="documento_tamano_positivo",
             ),
         ]
+
+
+class RegistroInmutable(Exception):
+    """Un registro de auditoría no se modifica ni se borra."""
+
+
+class _InmutableQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise RegistroInmutable("Registro de auditoría inmutable.")
+
+    def delete(self):
+        raise RegistroInmutable("Registro de auditoría inmutable.")
+
+
+class Inmutable(models.Model):
+    objects = _InmutableQuerySet.as_manager()
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise RegistroInmutable("Registro de auditoría inmutable.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise RegistroInmutable("Registro de auditoría inmutable.")
+
+
+class Corrida(Inmutable):
+    """Manifiesto de una confrontación (Anexo A, capa 7)."""
+
+    RESULTADO = "RESULTADO"
+    ADVERTENCIA = "ADVERTENCIA"
+    NO_DISPONIBLE = "NO_DISPONIBLE"
+    ERROR = "ERROR"
+    ESTADOS = (
+        (RESULTADO, "Resultado"),
+        (ADVERTENCIA, "Advertencia"),
+        (NO_DISPONIBLE, "No disponible"),
+        (ERROR, "Error"),
+    )
+
+    expediente = models.ForeignKey(
+        Expediente, on_delete=models.PROTECT, related_name="corridas"
+    )
+    id_borrador = models.PositiveBigIntegerField()
+    hash_borrador = models.CharField(max_length=64)
+    # Borrador y fuentes en el orden usado: rol, nombre, hash_archivo,
+    # version_extractor, hash_texto y estado del documento.
+    entradas = models.JSONField()
+    version_catalogo = models.CharField(max_length=64)
+    version_software = models.CharField(max_length=32)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="corridas"
+    )
+    creado_el = models.DateTimeField(auto_now_add=True)
+    fecha_referencia = models.DateField()
+    estado = models.CharField(max_length=14, choices=ESTADOS)
+    hallazgos = models.TextField()
+    huella = models.CharField(max_length=64)
+
+
+class DecisionCorreccion(Inmutable):
+    """Decisión sobre las correcciones de una corrida (fase de corrección)."""
+
+    corrida = models.ForeignKey(
+        Corrida, on_delete=models.PROTECT, related_name="decisiones"
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="decisiones_correccion",
+    )
+    creado_el = models.DateTimeField(auto_now_add=True)
+    correcciones_excluidas = models.JSONField(default=list, blank=True)
