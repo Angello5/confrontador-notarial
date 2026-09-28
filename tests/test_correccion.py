@@ -38,21 +38,25 @@ def test_carga_util_solo_con_correcto_distinto_y_fuente():
     ]
     assert carga[0]["fuente"] == {"archivo": "reniec-ficticio.pdf", "pagina": 2}
     assert carga[1]["fuente"] == {"archivo": "minuta-ficticia.docx", "pagina": 1}
-    assert all(c["ocurrencia"] == 0 for c in carga)
+    assert all("ocurrencia" not in c for c in carga)
     assert all(c["correcto"] != c["erroneo"] for c in carga)  # P-03
 
 
-def test_ids_estables_y_ocurrencias_por_orden():
+def test_ids_estables_y_un_par_repetido_es_una_sola_fila():
     from nucleo.correccion import correcciones
 
     salidas = [
         "[DNI] «90000002» debe decir «90000001»   …uno",
         "[DNI] «90000002» debe decir «90000001»   …dos",
+        "[DNI] «90000002» debe decir «90000003»   …otro valor",
     ]
-    carga = correcciones(salidas, FUENTES)
-    assert [c["ocurrencia"] for c in carga] == [0, 1]
+    carga = correcciones(salidas, {"f.pdf": "DNI 90000001 Y DNI 90000003"})
+    assert [(c["erroneo"], c["correcto"]) for c in carga] == [
+        ("90000002", "90000001"),
+        ("90000002", "90000003"),
+    ]
     assert len({c["id"] for c in carga}) == 2
-    assert carga == correcciones(salidas, FUENTES)
+    assert carga == correcciones(salidas, {"f.pdf": "DNI 90000001 Y DNI 90000003"})
     assert all(re.fullmatch(r"[0-9a-f]{12}", c["id"]) for c in carga)
 
 
@@ -122,18 +126,17 @@ CUERPO = (
 )
 
 
-def _correccion(id_, erroneo, correcto, ocurrencia=0):
+def _correccion(id_, erroneo, correcto):
     return {
         "id": id_,
         "campo": "X",
         "erroneo": erroneo,
         "correcto": correcto,
         "fuente": {"archivo": "minuta-ficticia.docx", "pagina": 1},
-        "ocurrencia": ocurrencia,
     }
 
 
-def test_aplicar_solo_la_ocurrencia_senalada_y_nada_mas(tmp_path):
+def test_aplicar_todas_las_apariciones_y_nada_mas(tmp_path):
     from adaptadores.docx_corregido import aplicar
 
     original = crear_docx(tmp_path / "borrador.docx", CUERPO)
@@ -141,13 +144,13 @@ def test_aplicar_solo_la_ocurrencia_senalada_y_nada_mas(tmp_path):
     destino = tmp_path / "borrador-corregido.docx"
     carga = [
         _correccion("nombre", "ALBA ZURBELIA LUNARIA", "ALBA ZURBELIA LUMARIA"),
-        _correccion("dni", "90000002", "90000001", ocurrencia=1),
-        _correccion("inexistente", "90000002", "90000001", ocurrencia=5),
+        _correccion("dni", "90000002", "90000001"),
+        _correccion("inexistente", "90000009", "90000001"),
     ]
 
     aplicadas, no_aplicadas = aplicar(original, destino, carga)
 
-    assert aplicadas == ["nombre", "dni"]
+    assert aplicadas == {"nombre": 1, "dni": 2}
     assert no_aplicadas == ["inexistente"]
     assert original.read_bytes() == antes
     esperado = (
@@ -156,6 +159,10 @@ def test_aplicar_solo_la_ocurrencia_senalada_y_nada_mas(tmp_path):
             '<w:t xml:space="preserve">ALBA ZURBELIA LUMARIA</w:t>',
         )
         .replace("<w:t>NARIA</w:t>", '<w:t xml:space="preserve"></w:t>')
+        .replace(
+            '<w:t xml:space="preserve">, DE NACIONALIDAD PERUANA, DNI 90000002.</w:t>',
+            '<w:t xml:space="preserve">, DE NACIONALIDAD PERUANA, DNI 90000001.</w:t>',
+        )
         .replace(
             "<w:t>TESTIGO CON DNI 90000002 Y A &amp; B</w:t>",
             '<w:t xml:space="preserve">TESTIGO CON DNI 90000001 Y A &amp; B</w:t>',
@@ -181,12 +188,12 @@ def test_p04_solo_cambian_las_palabras_corregidas(tmp_path):
         ],
     )
     antes, despues = _palabras(original), _palabras(destino)
-    assert antes - despues == Counter({"LUNARIA": 1, "90000002": 1})
-    assert despues - antes == Counter({"LUMARIA": 1, "90000001": 1})
+    assert antes - despues == Counter({"LUNARIA": 1, "90000002": 2})
+    assert despues - antes == Counter({"LUMARIA": 1, "90000001": 2})
     assert sum(antes.values()) == sum(despues.values())
 
 
-def test_correccion_solapada_no_se_aplica(tmp_path):
+def test_correcciones_en_competencia_no_se_aplican_en_ese_tramo(tmp_path):
     from adaptadores.docx_corregido import aplicar
 
     original = crear_docx(tmp_path / "borrador.docx", CUERPO)
@@ -196,9 +203,32 @@ def test_correccion_solapada_no_se_aplica(tmp_path):
         [
             _correccion("uno", "ALBA ZURBELIA LUNARIA", "ALBA ZURBELIA LUMARIA"),
             _correccion("dos", "ZURBELIA LUNARIA", "ZURBELIA LUMARIA"),
+            _correccion("dni", "90000002", "90000001"),
         ],
     )
-    assert (aplicadas, no_aplicadas) == (["uno"], ["dos"])
+    assert (aplicadas, no_aplicadas) == ({"dni": 2}, ["uno", "dos"])
+    assert "ALBA ZURBELIA LU" in _xml(tmp_path / "c.docx")
+
+
+def test_correccion_aplicada_en_un_tramo_y_en_competencia_en_otro(tmp_path):
+    from adaptadores.docx_corregido import aplicar
+
+    cuerpo = (
+        "<w:p><w:r><w:t>DNI 90000002 DE ELIO RAMOS</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>ELIO RAMOS FIRMA</w:t></w:r></w:p>"
+    )
+    original = crear_docx(tmp_path / "b.docx", cuerpo)
+    aplicadas, no_aplicadas = aplicar(
+        original,
+        tmp_path / "c.docx",
+        [
+            _correccion("nombre", "ELIO RAMOS", "ELIO RAMIS"),
+            _correccion("dni", "90000002 DE ELIO", "90000001 DE ELIO"),
+        ],
+    )
+    assert (aplicadas, no_aplicadas) == ({"nombre": 1}, ["nombre", "dni"])
+    assert "DNI 90000002 DE ELIO RAMOS" in _xml(tmp_path / "c.docx")
+    assert "ELIO RAMIS FIRMA" in _xml(tmp_path / "c.docx")
 
 
 def test_sin_correcciones_el_corregido_es_copia_del_texto(tmp_path):
@@ -206,7 +236,7 @@ def test_sin_correcciones_el_corregido_es_copia_del_texto(tmp_path):
 
     original = crear_docx(tmp_path / "borrador.docx", CUERPO)
     destino = tmp_path / "c.docx"
-    assert aplicar(original, destino, []) == ([], [])
+    assert aplicar(original, destino, []) == ({}, [])
     assert _xml(destino) == _xml(original)
     assert hashlib.sha256(original.read_bytes()).hexdigest()
 
@@ -218,7 +248,7 @@ def test_erroneo_ausente_queda_no_aplicado(tmp_path, cuerpo):
     original = crear_docx(tmp_path / "b.docx", cuerpo)
     assert aplicar(
         original, tmp_path / "c.docx", [_correccion("x", "90000002", "90000001")]
-    ) == ([], ["x"])
+    ) == ({}, ["x"])
 
 
 def test_enie_descompuesta_y_destino_distinto(tmp_path):
@@ -229,3 +259,42 @@ def test_enie_descompuesta_y_destino_distinto(tmp_path):
     original = crear_docx(tmp_path / "b.docx", CUERPO)
     with pytest.raises(ValueError):
         aplicar(original, original, [])
+
+
+def test_erroneo_repetido_tres_veces_se_corrige_las_tres(tmp_path):
+    from adaptadores.docx_corregido import aplicar, apariciones
+
+    cuerpo = (
+        "<w:p><w:r><w:t>COMPARECE NILO FERRANTE ORBEGAL, CON DNI 90000021.</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>EL SENOR NILO </w:t></w:r><w:r><w:t>FERRANTE ORBEGAL VENDE.</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>FIRMA NILO FERRANTE ORBEGAL; TESTIGO NILO FERRANTE.</w:t></w:r></w:p>"
+    )
+    original = crear_docx(tmp_path / "b.docx", cuerpo)
+    destino = tmp_path / "c.docx"
+    carga = [_correccion("nombre", "NILO FERRANTE ORBEGAL", "NILO FERRANTE ORBEGAR")]
+
+    assert apariciones(original, carga) == {"nombre": 3}
+    assert aplicar(original, destino, carga) == ({"nombre": 3}, [])
+    antes, despues = _palabras(original), _palabras(destino)
+    assert antes - despues == Counter({"ORBEGAL": 3})
+    assert despues - antes == Counter({"ORBEGAR": 3})
+    assert sum(antes.values()) == sum(despues.values())
+
+
+def test_prefijo_numerico_solo_con_limite_de_palabra(tmp_path):
+    from adaptadores.docx_corregido import aplicar
+
+    cuerpo = (
+        "<w:p><w:r><w:t>DNI 9000011 Y DNI 90000111; RUC 20000000011.</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>REPITE 9000011, NO 90000111.</w:t></w:r></w:p>"
+    )
+    original = crear_docx(tmp_path / "b.docx", cuerpo)
+    destino = tmp_path / "c.docx"
+    carga = [_correccion("dni", "9000011", "90000112")]
+
+    assert aplicar(original, destino, carga) == ({"dni": 2}, [])
+    antes, despues = _palabras(original), _palabras(destino)
+    assert antes - despues == Counter({"9000011": 2})
+    assert despues - antes == Counter({"90000112": 2})
+    assert despues["90000111"] == 2
+    assert despues["20000000011"] == 1

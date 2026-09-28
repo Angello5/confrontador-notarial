@@ -132,6 +132,7 @@ def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_fi
     assert html.count('name="aplicar"') >= 2
     assert html.count("checked") >= 2
     assert html.count("Aplicar correcciones") == 1
+    assert "1 aparición" in html
     assert 'name="confirmado"' in html
     assert "originales" not in html
 
@@ -200,6 +201,7 @@ def test_confirmacion_aplica_registra_y_descarga(client, escenario, usuario_fict
     assert aplicacion.confirmado_por == usuario_ficticio
     assert aplicacion.confirmado_el >= antes
     assert aplicacion.aplicadas == [dni["id"]]
+    assert aplicacion.apariciones == {dni["id"]: 1}
     assert sorted(aplicacion.excluidas) == otras
     assert aplicacion.no_aplicadas == []
     assert aplicacion.huella_corrida == huella
