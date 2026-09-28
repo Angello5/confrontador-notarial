@@ -1,5 +1,7 @@
 """Contrato de la accion protegida de confrontacion F5."""
 
+import re
+
 import pytest
 from django.test import Client
 
@@ -159,7 +161,9 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     assert "<table" in contenido
     assert '<th scope="col">Campo</th>' in contenido
     assert "Línea 1" in contenido
-    assert "palabraficticia" in contenido
+    # Ortografía oculta a pedido del propietario (2026-09-27).
+    assert "palabraficticia" not in contenido
+    assert "ortografia-titulo" not in contenido
     assert "[DNI]" not in contenido
 
 
@@ -645,6 +649,11 @@ def test_resultado_muestra_cabecera_y_metricas_por_capa(
                 }
             ]
             * 2,
+            "personas": [{"nombre": "NOMBRE FICTICIO", "ubicacion": ubicacion}],
+            "extraccion": {
+                "personas": [{"nombre": "UNO FICTICIO"}] * 3,
+                "documentos": [],
+            },
             "ortografia": [],
         },
     )
@@ -657,6 +666,12 @@ def test_resultado_muestra_cabecera_y_metricas_por_capa(
     assert "<h1>Resultado de la confrontación</h1>" in contenido
     assert "EXP-FICTICIO-METRICAS · borrador-ficticio.txt" in contenido
     assert contenido.count('class="card metrica"') == 3
-    assert '<p class="metrica-valor">2</p>' in contenido
+    etiquetas = re.findall(r'<p class="metrica-etiqueta">([^<]+)</p>', contenido)
+    valores = re.findall(r'<p class="metrica-valor">([^<]+)</p>', contenido)
+    assert list(zip(etiquetas, valores)) == [
+        ("Personas con ficha", "3"),
+        ("Identidad", "1"),
+        ("Regla", "2"),
+    ]
+    assert "Ortografía" not in etiquetas
     assert 'class="chip" data-estado="REVISION">2</span>' in contenido
-    assert 'class="chip" data-estado="LISTO">0</span>' in contenido

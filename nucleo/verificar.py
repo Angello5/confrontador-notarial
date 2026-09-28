@@ -988,7 +988,20 @@ def revisar_parrafos(minutas: list[str], destino: str, umbral: int) -> list[str]
     dp = parrafos(destino)
     obs = []
     for src in minutas:
-        for p in parrafos(src):
+        propios = parrafos(src)
+        for i, p in enumerate(propios):
+            # subcadena literal: partial_ratio daria 100 y no hay observacion;
+            # saltar extractOne evita el costo en borradores largos
+            if any(p in d for d in dp):
+                continue
+            # Basta con UN parrafo sobre el umbral para no observar, y el orden
+            # no cambia esa respuesta: se prueban primero los de posicion
+            # parecida, que es donde suele estar. La busqueda completa solo
+            # corre para los que fallan, porque el mensaje lleva su puntuacion.
+            centro = i * len(dp) / len(propios)
+            cercanos = sorted(range(len(dp)), key=lambda j, c=centro: abs(j - c))
+            if any(fuzz.partial_ratio(p, dp[j], score_cutoff=umbral) for j in cercanos):
+                continue
             m = process.extractOne(p, dp, scorer=fuzz.partial_ratio)
             if not m or m[1] < umbral:
                 # con dos decimales: a 99.7% redondeado a 0 decimales salia "100%",

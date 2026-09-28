@@ -15,8 +15,11 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from adaptadores import extraccion
-from adaptadores import diccionario
-from nucleo import ortografia, verificar
+
+# Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando.
+# from adaptadores import diccionario
+# from nucleo import ortografia
+from nucleo import verificar
 
 from .models import Documento, Expediente, TextoExtraido
 
@@ -746,7 +749,7 @@ def estado_confrontacion(expediente, borrador, fuentes=None):
 
 
 def confrontar_borrador(expediente, borrador):
-    """Ejecuta regla y ortografía sobre un borrador listo, sin persistir."""
+    """Ejecuta la regla sobre un borrador listo, sin persistir."""
     if borrador.expediente_id != expediente.pk or borrador.rol != Documento.BORRADOR:
         raise ValueError("El documento no es un borrador de este expediente.")
 
@@ -790,20 +793,21 @@ def confrontar_borrador(expediente, borrador):
         if documento.rol == Documento.MINUTA
     ]
     reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
-    try:
-        dic, lemas = diccionario.diccionario()
-    except diccionario.DiccionarioNoAprovisionado:
-        return _resultado_no_disponible(
-            "Falta aprovisionar el diccionario es_PE antes de iniciar el servicio."
-        )
-    propios = {palabra for nombre in catalogo["NOMBRE"] for palabra in nombre.split()}
-    faltas = ortografia.revisar(
-        texto_borrador,
-        dic,
-        lemas,
-        diccionario.lista_casa(),
-        propios,
-    )
+    # Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando.
+    # try:
+    #     dic, lemas = diccionario.diccionario()
+    # except diccionario.DiccionarioNoAprovisionado:
+    #     return _resultado_no_disponible(
+    #         "Falta aprovisionar el diccionario es_PE antes de iniciar el servicio."
+    #     )
+    # propios = {palabra for nombre in catalogo["NOMBRE"] for palabra in nombre.split()}
+    # faltas = ortografia.revisar(
+    #     texto_borrador,
+    #     dic,
+    #     lemas,
+    #     diccionario.lista_casa(),
+    #     propios,
+    # )
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     if isinstance(catalogo, verificar.Catalogo):
         observaciones_regla.extend(
@@ -822,7 +826,9 @@ def confrontar_borrador(expediente, borrador):
         ),
         "extraccion": extraccion,
         "regla": observaciones_regla,
-        "ortografia": adaptar_observaciones_ortografia(faltas, texto_borrador),
+        # Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando:
+        # "ortografia": adaptar_observaciones_ortografia(faltas, texto_borrador),
+        "ortografia": [],
     }
 
 
