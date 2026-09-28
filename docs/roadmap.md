@@ -20,6 +20,7 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F16 · en curso** | Nombres exigibles | Solo se exigen al borrador los nombres de fichas y minuta; el domicilio se busca también por DNI | F15 | Menciones y adjuntos reconocen, no exigen |
 | **F18 · en curso** | Lectura de fichas RENIEC escaneadas | Fechas con ruido OCR, valores en la línea siguiente y fichas sin nombre legible aportan sus campos | F15 | Los datos de las personas salen de las fichas, también escaneadas |
 | **F19 · en curso** | Errores del borrador fuera de la comparecencia | DNI de longitud incorrecta, nombres mal escritos en cualquier cláusula y números en letras distintos de su cifra | F16 | Reconocimiento anclado a rótulo, a nombre de la fuente o a cifra entre paréntesis |
+| **F21 · en curso** | Capa de corrección y documento corregido | Correcciones propuestas con su fuente, una sola confirmación y descarga del `.docx` corregido; el original no cambia | F19 | Se conserva el borrador `.docx` (constitución 1.7.0) |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
 | **F7** | Informe exportable | Descargar o imprimir las observaciones | F5 | Formato |
