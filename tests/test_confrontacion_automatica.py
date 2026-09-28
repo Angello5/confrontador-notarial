@@ -314,3 +314,18 @@ def test_error_automatico_deja_corrida_error_y_permite_reintentar(
     client.post(f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/")
     estado, _ = _borrador_estado(client, usuario_ficticio, expediente, borrador)
     assert estado["resultado_listo"] is True
+
+
+def test_worker_no_confronta_expedientes_archivados(administrador_ficticio, caso):
+    from django.utils import timezone
+
+    from expedientes.models import Corrida
+
+    expediente, borrador = caso
+    expediente.archivado_el = timezone.now()
+    expediente.archivado_por = administrador_ficticio
+    expediente.save(update_fields=("archivado_el", "archivado_por"))
+
+    _worker()
+
+    assert not Corrida.objects.exists()

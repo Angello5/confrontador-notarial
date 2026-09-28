@@ -7,7 +7,8 @@ from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_POST
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .forms import DocumentoUploadForm, ExpedienteForm, formatos_admitidos
 from .models import DecisionCorreccion, Documento, Expediente
@@ -45,7 +46,7 @@ def _requiere_rol(request):
 
 
 def _expediente_visible(request, pk):
-    expediente = get_object_or_404(Expediente, pk=pk)
+    expediente = get_object_or_404(Expediente, pk=pk, archivado_el__isnull=True)
     if not usuario_puede_ver_expediente(request.user, expediente):
         raise PermissionDenied
     return expediente
@@ -157,8 +158,13 @@ def expediente_lista(request):
                 return redirect("expediente_detalle", pk=expediente.pk)
     else:
         form = ExpedienteForm()
-    contexto = {"form": form, "expedientes": expedientes_con_resumen(request.user)}
-    contexto.update(_navegacion_contexto(request))
+    contexto = _navegacion_contexto(request)
+    archivados = contexto["es_administrador"] and request.GET.get("archivados") == "1"
+    contexto.update(
+        form=form,
+        archivados=archivados,
+        expedientes=expedientes_con_resumen(request.user, archivados),
+    )
     return render(
         request,
         "expedientes/lista.html",
@@ -171,6 +177,64 @@ def expediente_lista(request):
 def expediente_detalle(request, pk):
     _requiere_rol(request)
     return _render_detalle(request, _expediente_visible(request, pk))
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def expediente_editar(request, pk):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    status = 200
+    if request.method == "POST":
+        form = ExpedienteForm(request.POST, instance=expediente)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    form.save()
+            except IntegrityError:
+                form.add_error(
+                    "codigo", "Ese código ya está registrado. Ingrese otro código."
+                )
+            else:
+                messages.success(request, "Expediente actualizado.")
+                return redirect("expediente_detalle", pk=expediente.pk)
+        status = 400
+        # El formulario inválido ya cambió la instancia; la cabecera usa la guardada.
+        expediente.refresh_from_db()
+    else:
+        form = ExpedienteForm(instance=expediente)
+    contexto = {"expediente": expediente, "form": form}
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/editar.html", contexto, status=status)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def expediente_eliminar(request, pk):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    if request.method == "POST":
+        expediente.archivado_el = timezone.now()
+        expediente.archivado_por = request.user
+        expediente.save(update_fields=["archivado_el", "archivado_por"])
+        messages.success(request, f"Expediente {expediente.codigo} eliminado.")
+        return redirect("expediente_lista")
+    contexto = {"expediente": expediente}
+    contexto.update(_navegacion_contexto(request))
+    return render(request, "expedientes/eliminar.html", contexto)
+
+
+@login_required
+@require_POST
+def expediente_restaurar(request, pk):
+    if not _navegacion_contexto(request)["es_administrador"]:
+        raise PermissionDenied
+    expediente = get_object_or_404(Expediente, pk=pk, archivado_el__isnull=False)
+    expediente.archivado_el = None
+    expediente.archivado_por = None
+    expediente.save(update_fields=["archivado_el", "archivado_por"])
+    messages.success(request, f"Expediente {expediente.codigo} restaurado.")
+    return redirect("expediente_detalle", pk=expediente.pk)
 
 
 @login_required

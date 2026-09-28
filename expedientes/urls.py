@@ -5,6 +5,11 @@ from . import views
 urlpatterns = [
     path("", views.expediente_lista, name="expediente_lista"),
     path("<int:pk>/", views.expediente_detalle, name="expediente_detalle"),
+    path("<int:pk>/editar/", views.expediente_editar, name="expediente_editar"),
+    path("<int:pk>/eliminar/", views.expediente_eliminar, name="expediente_eliminar"),
+    path(
+        "<int:pk>/restaurar/", views.expediente_restaurar, name="expediente_restaurar"
+    ),
     path("<int:pk>/documentos/", views.documento_subir, name="documento_subir"),
     path("<int:pk>/estado/", views.expediente_estado, name="expediente_estado"),
     path(
