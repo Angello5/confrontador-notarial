@@ -1627,6 +1627,8 @@ def test_linea_siguiente_que_es_rotulo_no_es_valor():
     "linea, esperado",
     [
         ("Cerro Ficticio", None),
+        ("145", None),
+        ("12 - 4", None),
         ("Av. Cometa", "Av. Cometa"),
         ("Mz B Lt 4", "Mz B Lt 4"),
     ],

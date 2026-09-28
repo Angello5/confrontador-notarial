@@ -300,7 +300,8 @@ def _campo_reniec(raw: str, etiqueta: str) -> str | None:
     """Lee solo un rótulo al inicio de línea y su propia celda.
 
     Sin valor en la celda, lo toma de la línea siguiente (F18); una dirección
-    así leída debe tener un dígito o una abreviatura de vía.
+    así leída debe tener alguna palabra y un dígito o una abreviatura de vía:
+    un número suelto es un fragmento, no una dirección.
     """
     lineas = raw.splitlines()
     for indice, linea in enumerate(lineas):
@@ -312,9 +313,9 @@ def _campo_reniec(raw: str, etiqueta: str) -> str | None:
         valor = valor.strip() or (celdas[1].strip() if len(celdas) > 1 else "")
         if not valor:
             valor = _primera_celda_siguiente(lineas, indice)
+            palabras = set(re.findall(r"[A-ZÑ]+", norm(valor)))
             if etiqueta == "DIRECCION" and not (
-                re.search(r"\d", valor)
-                or _VIAS.keys() & set(re.findall(r"[A-ZÑ]+", norm(valor)))
+                palabras and (re.search(r"\d", valor) or _VIAS.keys() & palabras)
             ):
                 valor = ""
         return valor or None
