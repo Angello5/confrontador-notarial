@@ -40,6 +40,9 @@ _OCR_USE_CLS = False
 
 # 1: texto unido en una cadena. 2: una entrada por pagina.
 _FORMATO_CACHE = 2
+# Forma del texto extraido que no pasa por la cache de OCR (identidad en la base).
+# 2: cada fila de tabla de un .docx es una linea (F27).
+_FORMATO_TEXTO = 2
 
 
 def version_extractor() -> str:
@@ -57,6 +60,7 @@ def version_extractor() -> str:
             "modelos": sorted(_OCR_FILES.items()),
             "use_cls": _OCR_USE_CLS,
             "rapidocr": importlib.metadata.version("rapidocr"),
+            "formato_texto": _FORMATO_TEXTO,
         },
         separators=(",", ":"),
     ).encode()
@@ -239,6 +243,8 @@ RE_TAB = re.compile(r"<w:tab(?:\s[^>]*)?/>")
 # mc:AlternateContent guarda el mismo cuadro de texto dos veces (wps moderno y VML
 # antiguo). Sin descartar el Fallback, cada nota se lee duplicada.
 RE_FALLBACK = re.compile(r"<mc:Fallback>.*?</mc:Fallback>", re.S)
+RE_WT = re.compile(r"<w:t(?:\s[^>]*)?>(.*?)</w:t>", re.S)
+RE_DOCX_MARCA = re.compile(r"</w:p>|<w:tbl(?=[\s>])|</w:tbl>|</w:tc>|</w:tr>")
 
 
 def _docx(p: Path) -> str:
@@ -258,12 +264,33 @@ def _docx(p: Path) -> str:
         for n in nombres:
             xml = z.read(n).decode("utf-8", "ignore")
             xml = RE_TAB.sub("<w:t>  </w:t>", RE_FALLBACK.sub("", xml))
-            for parrafo in xml.split("</w:p>"):
+            # F27: dentro de una tabla, cada fila es una linea con sus celdas
+            # separadas por dos espacios, como ocr_lineas; una tabla anidada se
+            # aplana dentro de su celda. Fuera de tablas, un parrafo por linea.
+            # El texto antes de otra marca (un cuadro de texto con tabla dentro
+            # de un parrafo) sigue en el parrafo hasta su </w:p>.
+            nivel, inicio, t, celda, celdas = 0, 0, "", [], []
+            for m in RE_DOCX_MARCA.finditer(xml):
                 # el grupo opcional exige espacio tras "w:t": sin eso <w:tab .../>
                 # entra como si abriera un <w:t> y se arrastra el XML crudo
-                t = "".join(re.findall(r"<w:t(?:\s[^>]*)?>(.*?)</w:t>", parrafo, re.S))
-                if t.strip():
-                    lineas.append(unescape(t))
+                t += unescape("".join(RE_WT.findall(xml, inicio, m.start())))
+                inicio = m.end()
+                marca = m.group()
+                if marca == "</w:p>":
+                    if t.strip():
+                        (celda if nivel else lineas).append(t)
+                    t = ""
+                elif marca == "</w:tbl>":
+                    nivel -= 1
+                elif marca.startswith("<w:tbl"):
+                    nivel += 1
+                elif nivel == 1 and marca == "</w:tc>":
+                    celdas.append(" ".join(celda))
+                    celda = []
+                elif nivel == 1 and marca == "</w:tr>":
+                    if fila := "  ".join(c for c in celdas if c.strip()):
+                        lineas.append(fila)
+                    celdas = []
     return "\n".join(lineas)
 
 

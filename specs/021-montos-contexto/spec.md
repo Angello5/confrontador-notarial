@@ -31,7 +31,7 @@
 ## Requirements *(mandatory)*
 
 - **FR-001 (moneda)**: `RE_MONTO` reconoce las monedas de la clarificación, antes o después de la cifra. `catalogo()`, `montos_exigibles()` y `revisar()` usan el valor (moneda, importe) según la clarificación.
-- **FR-002 (posición)**: `revisar(..., minutas=None)` recibe los textos de la minuta como `{archivo: texto}`. Para cada importe del borrador con par en la minuta (clarificación), si difiere del importe en la misma posición: `[MONTO] «hallado» debe decir «esperado»   (concepto: <concepto>; fuente: <archivo>, p. <n>)`. Si coincide, no hay observación.
+- **FR-002 (posición)**: `revisar(..., minutas=None)` recibe los textos de la minuta como `{archivo: texto}`. Para cada importe del borrador con par en la minuta (clarificación), si difiere del importe en la misma posición: `[MONTO] «hallado» debe decir «esperado»   (concepto: <concepto>; fuente: <archivo>, p. <n>)`. Si coincide, no hay observación. El esperado de una observación posicional no se repite como `FALTA`.
 - **FR-003 (sin par)**: sin par, o con `minutas=None`, regla actual: importe fuera de las fuentes → `debe decir` por similitud o `no coincide con ninguna fuente`.
 - **FR-004 (vista)**: `services.py` pasa la minuta a `revisar()` y añade al dict de la observación las claves `concepto` y `fuente` (vacías si no hay), sin cambiar las existentes.
 - **FR-005**: `FALTA`, `NOMBRE`, `DNI`, `RUC`, `PARTIDA`, `DIRECCION`, `NUMERO_EN_LETRAS` y `PARRAFO` sin cambios. Núcleo puro y determinista; sin dependencias ni migraciones. Solo datos ficticios.

@@ -170,7 +170,8 @@ def test_pdf_texto_y_tabla_docx(monkeypatch, tmp_path):
     assert "DOCUMENTO FICTICIO" in texto
     assert "90000004" in texto
     tabla = extraer.leer(BASE / "formatos" / "tabla.docx")
-    assert tabla.splitlines()[:4] == ["DNI", "90000004", "Partida", "80000001"]
+    # F27: cada fila de tabla es una linea con sus celdas separadas por dos espacios
+    assert tabla.splitlines()[:2] == ["DNI  90000004", "Partida  80000001"]
     assert "CAMPO  VALOR" in tabla
 
 

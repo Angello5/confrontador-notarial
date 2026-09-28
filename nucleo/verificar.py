@@ -1487,6 +1487,8 @@ def revisar(
             continue
         vistos["MONTO"].add(v)
         if v != par[0]:
+            # el esperado ya queda dicho aqui: no se repite como FALTA
+            vistos["MONTO"].add(par[0])
             obs.append(f"[MONTO] «{v}» debe decir «{par[0]}»{par[1]}")
     # F22: cada aparición; el dict legado de cuatro campos no trae RUC ni DIRECCION.
     rucs = cat.get("RUC", frozenset())
