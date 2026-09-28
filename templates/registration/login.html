@@ -4,15 +4,15 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ingresar · ERP Notarial</title>
+    <title>Ingresar · {{ erp_nombre }}</title>
     <link rel="stylesheet" href="{% static 'vendor/adminlte/adminlte.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/erp.css' %}">
   </head>
   <body class="login-page">
     <main class="login-box" aria-labelledby="titulo-login">
       <div class="marca">
-        <span class="marca-sello" aria-hidden="true">CN</span>
-        <span><span class="marca-nombre">CONFRONTADOR</span><span class="marca-sub">ERP NOTARIAL</span></span>
+        <span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>
+        <span><span class="marca-nombre">{{ erp_nombre }}</span><span class="marca-sub">ERP</span></span>
       </div>
       <div class="card">
         <div class="card-body login-card-body p-4">

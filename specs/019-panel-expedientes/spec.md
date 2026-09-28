@@ -31,4 +31,4 @@
 ## Assumptions
 
 - El worker sigue procesando documentos ya en cola de un expediente archivado: no se pierden datos y nadie los ve hasta restaurar.
-- Archivar no cambia el código: un código archivado sigue ocupado (unicidad global).
+- Archivar no cambia el código. Desde F28 el código es único solo entre activos: un archivado no bloquea crear otro con el mismo código (`specs/022-codigo-y-marca`).

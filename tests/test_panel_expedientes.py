@@ -65,7 +65,7 @@ def test_editar_valida_unicidad_y_obligatorio(client, usuario_ficticio, expedien
 
     duplicado = client.post(ruta, {"codigo": "EXP-FICTICIO-OCUPADO"})
     assert duplicado.status_code == 400
-    assert "Ese código ya está registrado" in duplicado.content.decode()
+    assert "Ya existe un expediente activo con ese código" in duplicado.content.decode()
     assert client.post(ruta, {"codigo": "   "}).status_code == 400
     # Guardar el mismo código no choca consigo mismo.
     assert client.post(ruta, {"codigo": "EXP-FICTICIO-F25"}).status_code == 302
