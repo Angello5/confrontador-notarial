@@ -18,5 +18,5 @@ inventados).
 ## Phase 3 — implementación y entrega
 
 - [X] T006 `unificar_personas(personas, tipos)` para anclas y `_pegar()` con adjuntos previos (`nucleo/verificar.py`); fixtures, suite con cobertura, Ruff, `check`, `makemigrations --check`, `git diff --check`.
-- [ ] T007 **Medir SC-001..SC-003 (revisor, fuera del repositorio y de CI).**
+- [X] T007 **Medir SC-001..SC-003 (revisor, fuera del repositorio y de CI).** Resultado 2026-09-27, solo recuentos: anclas 32 → 28 para 28 documentos; revisión manual 8 → 1 (el nombre truncado); menciones 36 → 31; fichas sin persona 6 sin cambio; expediente 71856: 1 persona con ficha, confirmada, con 2 adjuntos.
 - [X] T008 Actualizar `spec.md` si la implementación cambió comportamiento no descrito; commits locales sin push ni PR.
