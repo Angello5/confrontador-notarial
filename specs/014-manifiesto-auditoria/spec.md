@@ -22,7 +22,7 @@
 - **FR-006 (decisiones)**: `DecisionCorreccion` (FK a `Corrida`, usuario confirmante, fecha y hora, correcciones excluidas en JSON) queda lista para la fase que aplica correcciones; esta fase no la crea.
 - **FR-007 (reconstruir)**: `manage.py reconstruir_corrida <id>` localiza cada texto por hash del archivo + `version_extractor`, comprueba el hash del texto, vuelve a confrontar con la fecha de referencia registrada y compara la huella. Informa `CONFORME` o la diferencia (huellas y número de hallazgos, sin contenido) y termina con error si no es conforme o falta un texto. Si la versión actual del catálogo difiere de la registrada, lo informa; no reconstruye catálogos antiguos.
 - **FR-008 (historial)**: «Historial de confrontaciones» del expediente: lista de corridas (fecha, usuario, estado, versión de reglas, hallazgos por severidad) y detalle de solo lectura. Mismos permisos que el expediente.
-- **FR-009 (P-07)**: Si la confrontación falla a medias, la corrida queda en `ERROR` con el mensaje seguro, sin hallazgos parciales y sin tocar documentos. El error se registra en el log sin datos del expediente.
+- **FR-009 (P-07)**: Si la confrontación falla a medias, la corrida queda en `ERROR` con el mensaje seguro, sin hallazgos parciales y sin tocar documentos; nada se escribe en el log. Una corrida ERROR se reconstruye como ERROR si el fallo persiste.
 - **FR-010 (privacidad)**: La corrida no aparece en el sondeo JSON ni en logs. Los hashes de texto permiten detectar la supresión (Ley 29733): tras `suprimir_texto_expediente` la corrida deja de ser reconstruible y el comando lo dice.
 
 ## Success Criteria *(mandatory)*

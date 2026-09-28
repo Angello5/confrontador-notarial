@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+
+{% block title %}Historial · {{ expediente.codigo }}{% endblock %}
+{% block breadcrumb %}<ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
+  <li class="breadcrumb-item active" aria-current="page">Historial</li>
+</ol>{% endblock %}
+{% block eyebrow %}Expedientes / Historial{% endblock %}
+{% block heading %}Historial de confrontaciones{% endblock %}
+{% block subtitle %}{{ expediente.codigo }} · registro inmutable de cada corrida{% endblock %}
+{% block actions %}<a class="btn btn-outline-primary" href="{% url 'expediente_detalle' expediente.pk %}">Volver al expediente</a>{% endblock %}
+{% block content %}
+  <section class="card">
+    <div class="card-body">
+      {% if corridas %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <caption class="visually-hidden">Corridas de confrontación del expediente</caption>
+            <thead><tr>
+              <th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Estado</th>
+              <th scope="col" class="d-none d-md-table-cell">Reglas</th>
+              <th scope="col">Alta</th><th scope="col">Media</th><th scope="col">Baja</th>
+              <th scope="col"><span class="visually-hidden">Acción</span></th>
+            </tr></thead>
+            <tbody>
+              {% for corrida in corridas %}
+                <tr>
+                  <th scope="row" class="text-nowrap">{{ corrida.creado_el|date:"d/m/Y H:i" }}</th>
+                  <td>{{ corrida.usuario.username }}</td>
+                  <td>{{ corrida.get_estado_display }}</td>
+                  <td class="d-none d-md-table-cell">{{ corrida.version_catalogo }}</td>
+                  <td>{{ corrida.severidades.ALTA }}</td>
+                  <td>{{ corrida.severidades.MEDIA }}</td>
+                  <td>{{ corrida.severidades.BAJA }}</td>
+                  <td class="text-end"><a class="btn btn-outline-primary btn-sm" href="{% url 'corrida_detalle' expediente.pk corrida.pk %}">Ver</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="alert alert-info mb-0" role="status">Aún no hay confrontaciones registradas.</div>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

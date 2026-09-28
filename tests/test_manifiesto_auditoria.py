@@ -246,6 +246,9 @@ def test_fallo_a_medias_deja_corrida_error_sin_hallazgos(
     assert corrida.version_catalogo
     assert len(corrida.entradas) == 3
     assert list(Documento.objects.order_by("pk").values()) == antes
+    salida = StringIO()
+    call_command("reconstruir_corrida", str(corrida.pk), stdout=salida)
+    assert "CONFORME" in salida.getvalue()
 
 
 def test_corrida_no_disponible_registra_version_y_hashes(
