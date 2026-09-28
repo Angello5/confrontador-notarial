@@ -1561,3 +1561,163 @@ def test_clausula_solo_con_dni_si_el_nombre_no_aparece_exacto():
         )
         == ()
     )
+
+
+# F18: fichas RENIEC escaneadas (formato de docs/catalogo-fuentes.md).
+_IRENE = (
+    "CUI:  90000061 - 3\n"
+    "Apellido Paterno:  QUIMERA\n"
+    "Apellido Materno:  TORNASOL\n"
+    "Nombres:  IRENE\n"
+    "Fecha de Nacimiento:  12/05/1978\n"
+    "Estado Civil:  SOLTERA\n"
+    "Dirección:  Jr. Cometa 45\n"
+    "Distrito de Domicilio:  Barranco\n"
+    "Fecha de Emision:  01/02/2020"
+)
+
+
+def _irene(**cambios):
+    texto = _IRENE
+    for viejo, nuevo in cambios.values():
+        texto = texto.replace(viejo, nuevo)
+    return catalogo({"reniec-escaneada.pdf": texto})
+
+
+@pytest.mark.parametrize(
+    "valor, esperado",
+    [
+        ("12/05/1.978", date(1978, 5, 12)),
+        ("12/05/1 978", date(1978, 5, 12)),
+        ("12/0 5/19.78", date(1978, 5, 12)),
+        ("12/05/19x8", None),
+    ],
+)
+def test_fecha_reniec_tolera_ruido_ocr_entre_digitos(valor, esperado):
+    (persona,) = _irene(f=("12/05/1978", valor)).personas
+    assert persona.fecha_nacimiento == esperado
+
+
+def test_valor_reniec_en_la_linea_siguiente():
+    (persona,) = _irene(
+        c=("Estado Civil:  SOLTERA", "Estado Civil:\nSOLTERA"),
+        f=("Nacimiento:  12/05/1978", "Nacimiento:\n12/05/1978"),
+        d=("Dirección:  Jr. Cometa 45", "Dirección:\nJr. Cometa 45  Otra columna"),
+    ).personas
+    origen = Procedencia("reniec-escaneada.pdf", 1)
+    assert (
+        persona.estado_civil,
+        persona.fecha_nacimiento,
+        persona.domicilio,
+        persona.procedencia_domicilio,
+    ) == ("SOLTERO", date(1978, 5, 12), "Jr. Cometa 45", origen)
+
+
+def test_linea_siguiente_que_es_rotulo_no_es_valor():
+    (persona,) = _irene(
+        c=("Estado Civil:  SOLTERA", "Estado Civil:"),
+        d=("Dirección:  Jr. Cometa 45", "Dirección:"),
+    ).personas
+    assert persona.estado_civil is None
+    assert persona.domicilio is None
+    assert persona.distrito == "Barranco"
+
+
+@pytest.mark.parametrize(
+    "linea, esperado",
+    [
+        ("Cerro Ficticio", None),
+        ("Av. Cometa", "Av. Cometa"),
+        ("Mz B Lt 4", "Mz B Lt 4"),
+    ],
+)
+def test_direccion_en_linea_siguiente_exige_digito_o_via(linea, esperado):
+    (persona,) = _irene(
+        d=("Dirección:  Jr. Cometa 45", f"Dirección:\n{linea}")
+    ).personas
+    assert persona.domicilio == esperado
+
+
+@pytest.mark.parametrize(
+    "viejo, nuevo",
+    [
+        ("Nombres:  IRENE", "Nombres:  10:45:12\nIRENE"),
+        ("Nombres:  IRENE", "Nombres:\nIRENE"),
+        ("Paterno:  QUIMERA", "Paterno:  0930\nQUIMERA"),
+        ("Materno:  TORNASOL", "Materno:\nTORNASOL"),
+    ],
+)
+def test_nombre_reniec_desplazado_a_la_linea_siguiente(viejo, nuevo):
+    (persona,) = _irene(n=(viejo, nuevo)).personas
+    assert (persona.nombre, persona.documento) == (
+        "IRENE QUIMERA TORNASOL",
+        "90000061",
+    )
+
+
+def test_nombre_reniec_no_toma_un_rotulo_de_la_linea_siguiente():
+    resultado = _irene(n=("Nombres:  IRENE", "Nombres:  10:45"))
+    assert resultado.personas == ()
+
+
+_IRENE_SIN_NOMBRE = _IRENE.replace("QUIMERA", "QU1MERA")
+
+
+def test_reniec_sin_nombre_aporta_campos_al_ancla_del_mismo_documento():
+    resultado = catalogo(
+        {
+            "biometrica-ficticia.txt": _biometrica(
+                "90000061", "IRENE", "QUIMERA", "TORNASOL"
+            ),
+            "reniec-escaneada.pdf": _IRENE_SIN_NOMBRE,
+        }
+    )
+    (ancla,) = resultado.personas
+    origen = Procedencia("reniec-escaneada.pdf", 1)
+    assert (ancla.nombre, ancla.documento, ancla.estado) == (
+        "IRENE QUIMERA TORNASOL",
+        "90000061",
+        "CONFIRMADA",
+    )
+    assert (
+        ancla.estado_civil,
+        ancla.fecha_nacimiento,
+        ancla.domicilio,
+        ancla.distrito,
+    ) == ("SOLTERO", date(1978, 5, 12), "Jr. Cometa 45", "Barranco")
+    assert (
+        ancla.procedencia_estado_civil,
+        ancla.procedencia_fecha_nacimiento,
+        ancla.procedencia_domicilio,
+        ancla.procedencia_distrito,
+    ) == (origen,) * 4
+    assert origen in ancla.procedencias
+    assert ancla.adjuntos is None
+    assert resultado.menciones == ()
+
+
+def test_reniec_sin_nombre_sigue_la_regla_de_emision_de_f12():
+    anterior = _IRENE.replace("01/02/2020", "01/02/2010")
+    reciente = _IRENE_SIN_NOMBRE.replace("SOLTERA", "CASADA")
+    (ancla,) = catalogo(
+        {"reniec-antigua.pdf": anterior, "reniec-escaneada.pdf": reciente}
+    ).personas
+    assert (ancla.nombre, ancla.estado_civil, ancla.estado) == (
+        "IRENE QUIMERA TORNASOL",
+        "CASADO",
+        "REVISION_MANUAL",
+    )
+    assert ancla.procedencia_estado_civil == Procedencia("reniec-escaneada.pdf", 1)
+
+
+def test_reniec_sin_nombre_y_sin_ancla_no_cambia():
+    resultado = catalogo({"reniec-escaneada.pdf": _IRENE_SIN_NOMBRE})
+    assert resultado.personas == ()
+    assert resultado.menciones == (
+        Persona(
+            None,
+            "90000061",
+            (Procedencia("reniec-escaneada.pdf", 1),),
+            "SIN_FICHA",
+        ),
+    )
