@@ -9,7 +9,6 @@ from nucleo.ortografia import redaccion
     ("texto", "esperado"),
     [
         ("EL PRECIO DE DE LA COMPRA", [("DE DE", "palabra repetida", "DE")]),
-        ("LA  PARTE VENDEDORA", [("LA  PARTE", "doble espacio", "LA PARTE")]),
         ("ALBA , VENDEDORA", [("ALBA ,", "espacio antes de signo", "ALBA,")]),
         ("CONSTE .", [("CONSTE .", "espacio antes de signo", "CONSTE.")]),
         (
@@ -49,6 +48,7 @@ def test_cada_regla_reporta_su_caso(texto, esperado):
         "CONSTE ............ FIRMA",
         "DNI 90000001  90000002",
         "LA\tVENTA",
+        "LA  PARTE VENDEDORA",
     ],
 )
 def test_texto_correcto_no_reporta(texto):

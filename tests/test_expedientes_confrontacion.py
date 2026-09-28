@@ -383,6 +383,44 @@ def test_capa_linguistica_informa_sin_tocar_datos_del_a3(
     assert sin_capa["personas"] == resultado["personas"]
 
 
+def test_palabra_de_las_fuentes_no_se_marca_por_ortografia(
+    expediente_confrontacion, crear_documento_listo, monkeypatch
+):
+    """F23 FR-002b: el vocabulario del legajo se da por conocido."""
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    crear_documento_listo(
+        expediente_confrontacion, Documento.CLIENTE, "reniec-f23.pdf", _RENIEC_F23
+    )
+    crear_documento_listo(
+        expediente_confrontacion,
+        Documento.MINUTA,
+        "minuta-f23.docx",
+        "ALBA LUMARIA ZAFIRO, DE NACIONALIDAD PERUANA, DNI 90000011. "
+        "FUNDO Quirvanta.",
+    )
+    borrador = crear_documento_listo(
+        expediente_confrontacion,
+        Documento.BORRADOR,
+        "borrador-f23.txt",
+        _BORRADOR_F23 + "\nFUNDO QUIRVANTA  ZELMORIND",
+    )
+    monkeypatch.setattr(
+        "expedientes.services.diccionario.diccionario",
+        lambda: (_DiccionarioFicticio(), ["palabra"]),
+    )
+    monkeypatch.setattr("expedientes.services.diccionario.lista_casa", set)
+
+    resultado = confrontar_borrador(expediente_confrontacion, borrador)
+
+    palabras = [f["palabra"] for f in resultado["ortografia"]]
+    assert "QUIRVANTA" not in palabras
+    assert "FUNDO" not in palabras
+    assert "ZELMORIND" in palabras
+    assert "doble espacio" not in [f["motivo"] for f in resultado["ortografia"]]
+
+
 def test_sin_diccionario_la_confrontacion_sigue_con_aviso(
     expediente_confrontacion, crear_documento_listo, monkeypatch
 ):
