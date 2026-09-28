@@ -1484,3 +1484,72 @@ def test_domicilio_en_clausula_del_dni_con_nombre_mal_escrito():
     ajeno = "ALBA LUMARIA ZAFIRO\nCON DNI 900000112, CON DOMICILIO EN AV. LUNA 12."
     obs = revisar_persona_ampliada(fuente, ajeno, date(2025, 1, 1))
     assert [fila["tipo"] for fila in obs] == ["DOMICILIO_NO_ENCONTRADO"]
+
+
+def _persona_civil(civil):
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    return Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        estado_civil=civil,
+        procedencia_estado_civil=origen,
+    )
+
+
+def _borrador_con_caratula(comparecencia):
+    return (
+        "CON INTERVENCION DE: ALBA LUMARIA ZAFIRO\n"
+        f"{comparecencia}\n"
+        "OTRA PERSONA, SOLTERA.\n"
+        "FIRMADO: ALBA LUMARIA ZAFIRO"
+    )
+
+
+@pytest.mark.parametrize(
+    ("civil", "comparecencia", "tipos"),
+    [
+        (
+            "SOLTERO",
+            "ALBA LUMARA ZAFIRO, CON DNI 90000011, CASADA CON BRUNO TELURIO NEBULOSA.",
+            ["ESTADO_CIVIL_DISCREPANTE"],
+        ),
+        (
+            "CASADO",
+            "ALBA LUMARA ZAFIRO, CON DNI 90000011, CASADA CON BRUNO TELURIO NEBULOSA.",
+            [],
+        ),
+        (
+            "CASADO",
+            "ALBA LUMARA ZAFIRO, CON DNI 90000011, SOLTERA.",
+            ["ESTADO_CIVIL_DISCREPANTE"],
+        ),
+        (
+            "CASADO",
+            "ALBA LUMARIA ZAFIRO, CASADA CON BRUNO TELURIO NEBULOSA.",
+            [],
+        ),
+        (
+            "CASADO",
+            "HUGO BERNAL TIRSO, CON DNI 900000112, SOLTERO.",
+            ["CONYUGE_NO_MENCIONADO"],
+        ),
+    ],
+)
+def test_clausula_es_la_comparecencia_por_dni_y_estado_civil(
+    civil, comparecencia, tipos
+):
+    obs = revisar_persona_ampliada(
+        Catalogo((_persona_civil(civil),)),
+        _borrador_con_caratula(comparecencia),
+        date(2025, 1, 1),
+    )
+    assert [fila["tipo"] for fila in obs] == tipos
+
+
+def test_clausula_solo_con_dni_si_el_nombre_no_aparece_exacto():
+    borrador = "COMPARECE ALBA LUMARA ZAFIRO CON DNI 90000011."
+    obs = revisar_persona_ampliada(
+        Catalogo((_persona_civil("CASADO"),)), borrador, date(2025, 1, 1)
+    )
+    assert [fila["tipo"] for fila in obs] == ["CONYUGE_NO_MENCIONADO"]
