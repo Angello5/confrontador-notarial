@@ -873,16 +873,18 @@ def usuario_puede_ver_expediente(usuario, expediente):
     )
 
 
-def expedientes_visibles(usuario):
-    queryset = Expediente.objects.all()
+def expedientes_visibles(usuario, archivados=False):
+    queryset = Expediente.objects.filter(archivado_el__isnull=not archivados)
     if usuario.groups.filter(name="Administrador").exists():
         return queryset
     return queryset.filter(creado_por=usuario)
 
 
-def expedientes_con_resumen(usuario):
+def expedientes_con_resumen(usuario, archivados=False):
     """Expedientes visibles, del más reciente al más antiguo, con su resumen."""
-    expedientes = expedientes_visibles(usuario).order_by("-actualizado_el", "-pk")
+    expedientes = expedientes_visibles(usuario, archivados).order_by(
+        "-actualizado_el", "-pk"
+    )
     return [(expediente, resumen_expediente(expediente)) for expediente in expedientes]
 
 

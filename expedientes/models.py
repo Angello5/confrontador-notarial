@@ -13,6 +13,15 @@ class Expediente(models.Model):
     )
     creado_el = models.DateTimeField(auto_now_add=True)
     actualizado_el = models.DateTimeField(auto_now=True)
+    # F25: "Eliminar" archiva; el manifiesto de auditoría es inmutable.
+    archivado_el = models.DateTimeField(null=True, blank=True)
+    archivado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="expedientes_archivados",
+    )
 
     def save(self, *args, **kwargs):
         self.codigo = self.codigo.strip()

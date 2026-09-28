@@ -33,7 +33,7 @@ def test_lista_y_detalle_muestran_abrir_editar_eliminar(
     assert f'href="/expedientes/{expediente.pk}/"' in lista
     assert f'href="/expedientes/{expediente.pk}/editar/"' in lista
     assert f'href="/expedientes/{expediente.pk}/eliminar/"' in lista
-    assert ">Editar<" in lista and ">Eliminar<" in lista
+    assert "</span> Editar</a>" in lista and "</span> Eliminar</a>" in lista
 
     detalle = client.get(f"/expedientes/{expediente.pk}/").content.decode()
     assert f'href="/expedientes/{expediente.pk}/editar/"' in detalle
@@ -57,7 +57,9 @@ def test_editar_cambia_el_codigo(client, usuario_ficticio, expediente):
 def test_editar_valida_unicidad_y_obligatorio(client, usuario_ficticio, expediente):
     from expedientes.models import Expediente
 
-    Expediente.objects.create(codigo="EXP-FICTICIO-OCUPADO", creado_por=usuario_ficticio)
+    Expediente.objects.create(
+        codigo="EXP-FICTICIO-OCUPADO", creado_por=usuario_ficticio
+    )
     client.force_login(usuario_ficticio)
     ruta = f"/expedientes/{expediente.pk}/editar/"
 
@@ -90,7 +92,10 @@ def test_administrador_puede_editar_y_eliminar_ajeno(
 ):
     client.force_login(administrador_ficticio)
     base = f"/expedientes/{expediente.pk}"
-    assert client.post(f"{base}/editar/", {"codigo": "EXP-FICTICIO-ADM"}).status_code == 302
+    assert (
+        client.post(f"{base}/editar/", {"codigo": "EXP-FICTICIO-ADM"}).status_code
+        == 302
+    )
     assert client.post(f"{base}/eliminar/").status_code == 302
     expediente.refresh_from_db()
     assert expediente.codigo == "EXP-FICTICIO-ADM"
@@ -101,14 +106,18 @@ def test_editar_y_eliminar_exigen_csrf(usuario_ficticio, expediente):
     cliente = Client(enforce_csrf_checks=True)
     cliente.force_login(usuario_ficticio)
     base = f"/expedientes/{expediente.pk}"
-    assert cliente.post(f"{base}/editar/", {"codigo": "EXP-FICTICIO-X"}).status_code == 403
+    assert (
+        cliente.post(f"{base}/editar/", {"codigo": "EXP-FICTICIO-X"}).status_code == 403
+    )
     assert cliente.post(f"{base}/eliminar/").status_code == 403
     expediente.refresh_from_db()
     assert expediente.codigo == "EXP-FICTICIO-F25"
     assert expediente.archivado_el is None
 
 
-def test_eliminar_confirma_con_el_codigo_y_archiva(client, usuario_ficticio, expediente):
+def test_eliminar_confirma_con_el_codigo_y_archiva(
+    client, usuario_ficticio, expediente
+):
     client.force_login(usuario_ficticio)
     ruta = f"/expedientes/{expediente.pk}/eliminar/"
     confirmacion = client.get(ruta)
