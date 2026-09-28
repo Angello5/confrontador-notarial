@@ -75,8 +75,11 @@ confirmación. Sin contexto nuevo. Tests: `tests/test_expedientes_ui.py`
 ## Resultado (`expedientes/confrontacion.html`)
 
 Cabecera «Resultado de la confrontación», subtítulo código · nombre del
-borrador. En `RESULTADO`: tres tarjetas de métrica (Personas, Regla,
-Ortografía) y las tablas actuales con chip de conteo; `details` de extracción
+borrador. En `RESULTADO`: tres tarjetas de métrica («Personas con ficha»:
+anclas de `resultado.extraccion.personas`; «Identidad»: observaciones de
+personas, documento cruzado o sin titular; «Regla») y las tablas actuales con
+chip de conteo. La tarjeta y la sección de Ortografía quedan ocultas desde
+2026-09-27 a pedido del propietario; `details` de extracción
 sin cambios de contenido. `NO_DISPONIBLE`, `ADVERTENCIA_CORRESPONDENCIA`,
 `ERROR_SEGURO`: mismos textos y roles con la paleta. Sin contexto nuevo.
 Tests: `tests/test_expedientes_confrontacion_ui.py`.
