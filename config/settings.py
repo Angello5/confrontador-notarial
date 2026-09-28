@@ -43,6 +43,9 @@ EXPEDIENTES_MAX_FILE_SIZE = _positive_setting(
 EXPEDIENTES_PROCESSING_TIMEOUT = _positive_setting(
     "EXPEDIENTES_PROCESSING_TIMEOUT", 15 * 60
 )
+# Versión del ERP registrada en cada corrida; incrementar junto con
+# sonar.projectVersion al publicar.
+ERP_VERSION = "0.20.0"
 ALLOWED_HOSTS = [
     host
     for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")

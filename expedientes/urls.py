@@ -17,4 +17,14 @@ urlpatterns = [
         views.documento_confrontar,
         name="documento_confrontar",
     ),
+    path(
+        "<int:pk>/confrontaciones/",
+        views.expediente_historial,
+        name="expediente_historial",
+    ),
+    path(
+        "<int:pk>/confrontaciones/<int:corrida_id>/",
+        views.corrida_detalle,
+        name="corrida_detalle",
+    ),
 ]

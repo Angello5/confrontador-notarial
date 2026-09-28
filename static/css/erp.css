@@ -124,8 +124,8 @@ body { background: var(--erp-bg); }
   background: #e9ecef; color: #3d444d;
 }
 .chip[data-estado="LISTO"] { background: var(--erp-success-bg); color: var(--erp-success-ink); }
-.chip[data-estado="ERROR"], .chip[data-estado="REVISION"] { background: #f8d7da; color: #8c1c28; }
-.chip[data-estado="PROCESANDO"] { background: #e3e8f4; color: var(--erp-navy); }
+.chip[data-estado="ERROR"], .chip[data-estado="REVISION"], .chip[data-estado="ALTA"] { background: #f8d7da; color: #8c1c28; }
+.chip[data-estado="PROCESANDO"], .chip[data-estado="MEDIA"] { background: #e3e8f4; color: var(--erp-navy); }
 
 /* Tarjeta de métrica */
 .metrica { height: 100%; padding: 1.25rem; }
