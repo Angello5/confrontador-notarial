@@ -21,6 +21,9 @@ class MultipleFileField(forms.FileField):
         return data if isinstance(data, list) else [data]
 
 
+CODIGO_OCUPADO = "Ya existe un expediente activo con ese código. Ingrese otro código."
+
+
 class ExpedienteForm(forms.ModelForm):
     codigo = forms.CharField(
         max_length=100, error_messages={"required": "Ingrese el código del expediente."}
@@ -37,13 +40,11 @@ class ExpedienteForm(forms.ModelForm):
         if not codigo:
             raise forms.ValidationError("Ingrese el código del expediente.")
         if (
-            Expediente.objects.filter(codigo=codigo)
+            Expediente.objects.filter(codigo=codigo, archivado_el__isnull=True)
             .exclude(pk=self.instance.pk)
             .exists()
         ):
-            raise forms.ValidationError(
-                "Ese código ya está registrado. Ingrese otro código."
-            )
+            raise forms.ValidationError(CODIGO_OCUPADO)
         return codigo
 
 

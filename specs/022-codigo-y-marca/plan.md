@@ -6,7 +6,7 @@
 
 - `expedientes/models.py`: `UniqueConstraint` condicional; migración `0007`.
 - `expedientes/forms.py`: el filtro de unicidad añade `archivado_el__isnull=True`.
-- `expedientes/views.py`: mensajes de unicidad y restaurar con comprobación previa + `IntegrityError` capturado.
+- `expedientes/views.py`: mensajes de unicidad y restaurar captura el `IntegrityError` de la restricción.
 - `config/settings.py`: `ERP_NOMBRE` y el context processor `core.context_processors.marca`.
 - Plantillas `base.html`, `login.html` y los `<title>` con «ERP Notarial».
 

@@ -38,7 +38,7 @@ def test_codigo_de_expediente_duplicado_muestra_validacion(client, usuario_ficti
     respuesta = client.post("/expedientes/", {"codigo": "EXP-FICTICIO-DUP-CODIGO"})
 
     assert respuesta.status_code == 200
-    assert b"Ese c\xc3\xb3digo ya est\xc3\xa1 registrado" in respuesta.content
+    assert "Ya existe un expediente activo con ese código" in respuesta.content.decode()
     assert Expediente.objects.filter(codigo="EXP-FICTICIO-DUP-CODIGO").count() == 1
 
 

@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}ERP Notarial{% endblock %}</title>
+    <title>{% block title %}{{ erp_nombre }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'vendor/adminlte/adminlte.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/erp.css' %}">
     <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
@@ -34,8 +34,8 @@
       {% if not user.force_password_change %}
       <aside id="menu-principal" class="app-sidebar" data-bs-theme="dark">
         <a class="marca navbar-brand" href="{% url 'home' %}">
-          <span class="marca-sello" aria-hidden="true">CN</span>
-          <span><span class="marca-nombre">CONFRONTADOR</span><span class="marca-sub">ERP NOTARIAL</span></span>
+          <span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>
+          <span><span class="marca-nombre">{{ erp_nombre }}</span><span class="marca-sub">ERP</span></span>
         </a>
         <nav aria-label="Navegación principal">
           <p class="menu-seccion">Menú principal</p>

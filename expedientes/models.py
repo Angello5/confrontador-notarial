@@ -5,7 +5,7 @@ from django.db.models import Q
 
 
 class Expediente(models.Model):
-    codigo = models.CharField(max_length=100, unique=True)
+    codigo = models.CharField(max_length=100)
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -22,6 +22,16 @@ class Expediente(models.Model):
         on_delete=models.PROTECT,
         related_name="expedientes_archivados",
     )
+
+    class Meta:
+        # F28: el código es único solo entre expedientes activos.
+        constraints = [
+            models.UniqueConstraint(
+                fields=("codigo",),
+                condition=Q(archivado_el__isnull=True),
+                name="expediente_codigo_activo_unico",
+            )
+        ]
 
     def save(self, *args, **kwargs):
         self.codigo = self.codigo.strip()

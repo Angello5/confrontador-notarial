@@ -80,6 +80,7 @@ def pytest_sessionfinish(session, exitstatus):
             "expedientes/migrations/0004_decisioncorreccion_aplicacion.py",
             "expedientes/migrations/0005_expediente_archivado.py",
             "expedientes/migrations/0006_corrida_origen_presentacion.py",
+            "expedientes/migrations/0007_expediente_codigo_activo_unico.py",
             "expedientes/migrations/__init__.py",
             "expedientes/services.py",
             "expedientes/urls.py",

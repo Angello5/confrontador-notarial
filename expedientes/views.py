@@ -7,10 +7,16 @@ from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from .forms import DocumentoUploadForm, ExpedienteForm, formatos_admitidos
+from .forms import (
+    CODIGO_OCUPADO,
+    DocumentoUploadForm,
+    ExpedienteForm,
+    formatos_admitidos,
+)
 from .models import DecisionCorreccion, Documento, Expediente
 from .services import (
     RESULTADO_ERROR,
@@ -148,9 +154,7 @@ def expediente_lista(request):
                     expediente.creado_por = request.user
                     expediente.save()
             except IntegrityError:
-                form.add_error(
-                    "codigo", "Ese código ya está registrado. Ingrese otro código."
-                )
+                form.add_error("codigo", CODIGO_OCUPADO)
             else:
                 messages.success(
                     request, "Expediente creado. Ahora puede cargar sus documentos."
@@ -192,9 +196,7 @@ def expediente_editar(request, pk):
                 with transaction.atomic():
                     form.save()
             except IntegrityError:
-                form.add_error(
-                    "codigo", "Ese código ya está registrado. Ingrese otro código."
-                )
+                form.add_error("codigo", CODIGO_OCUPADO)
             else:
                 messages.success(request, "Expediente actualizado.")
                 return redirect("expediente_detalle", pk=expediente.pk)
@@ -232,7 +234,16 @@ def expediente_restaurar(request, pk):
     expediente = get_object_or_404(Expediente, pk=pk, archivado_el__isnull=False)
     expediente.archivado_el = None
     expediente.archivado_por = None
-    expediente.save(update_fields=["archivado_el", "archivado_por"])
+    try:
+        with transaction.atomic():
+            expediente.save(update_fields=["archivado_el", "archivado_por"])
+    except IntegrityError:
+        messages.error(
+            request,
+            "No se puede restaurar: ya existe un expediente activo con el código "
+            f"{expediente.codigo}. Cambie o elimine ese expediente primero.",
+        )
+        return redirect(f"{reverse('expediente_lista')}?archivados=1")
     messages.success(request, f"Expediente {expediente.codigo} restaurado.")
     return redirect("expediente_detalle", pk=expediente.pk)
 
