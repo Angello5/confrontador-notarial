@@ -806,6 +806,7 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
         verificar.nombres_exigibles(catalogo, minutas)
         if isinstance(catalogo, verificar.Catalogo)
         else None,
+        verificar.montos_exigibles(minutas),
     )
     reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
     # Ortografia oculta a pedido del propietario (2026-09-27); reactivar descomentando.
