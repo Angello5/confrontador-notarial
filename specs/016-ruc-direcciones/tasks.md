@@ -19,4 +19,4 @@
 ## Ronda 2 — falsos positivos de DIRECCION (medición del revisor)
 
 - [X] T009 Pruebas rojas: abreviatura desarrollada + `#` interior, distrito añadido, `NRO.`/`INT.`, ruido OCR de la fuente → nada; número 1444→1454 y calle LAS ARTES→LAS ARTAS con fuente confirmada → `[DIRECCION]` con la fuente (FR-005a, FR-005b).
-- [ ] T010 Implementación en `nucleo/verificar.py` (vocabulario de las fuentes en `Catalogo`); verificaciones de T007.
+- [X] T010 Implementación en `nucleo/verificar.py` (vocabulario de las fuentes en `Catalogo`); verificaciones de T007.

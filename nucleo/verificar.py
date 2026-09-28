@@ -39,6 +39,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         "menciones",
         "rucs",
         "direcciones",
+        "vocabulario",
         "_fijo",
     )
 
@@ -52,6 +53,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         menciones=(),
         rucs=frozenset(),
         direcciones=frozenset(),
+        vocabulario=(),
     ):
         object.__setattr__(self, "personas", tuple(personas))
         object.__setattr__(self, "partidas", frozenset(partidas))
@@ -69,6 +71,8 @@ class Catalogo(Mapping[str, frozenset[str]]):
             frozenset(direcciones)
             | {norm(p.domicilio) for p in self._registros() if p.domicilio},
         )
+        # F22 ronda 2: palabras de las fuentes, para distinguir el ruido OCR.
+        object.__setattr__(self, "vocabulario", Counter(vocabulario))
         object.__setattr__(self, "_fijo", True)
 
     def __setattr__(self, campo, valor):
@@ -816,7 +820,7 @@ def _direccion_palabras(texto: str) -> list[str]:
         if not unicodedata.combining(c)
     )
     sin_tildes = re.sub(r"\bS\s*/\s*N\b", " SN ", sin_tildes)
-    sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes)
+    sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes).replace("#", " INTERIOR ")
     tokens = re.findall(r"[A-Z0-9]+", sin_tildes)
     return [palabra for token in tokens for palabra in _VIAS.get(token, token).split()]
 
@@ -858,27 +862,66 @@ def _direcciones(texto: str, rotulo: re.Pattern) -> list[str]:
     return out
 
 
-def _clave_direccion(texto: str) -> str:
+def _palabras_clave(texto: str) -> list[str]:
     # El «N°» delante del número es opcional en la escritura.
-    return " ".join(
-        w for w in _direccion_palabras(texto) if w not in {"NUMERO", "NO", "NRO"}
-    )
+    return [w for w in _direccion_palabras(texto) if w not in {"NUMERO", "NO", "NRO"}]
 
 
-def _direcciones_observadas(fuente, borrador: str) -> list[tuple[str, str]]:
-    """F22: (hallado, esperado) por cada mención parecida pero no igual."""
+def _clave_direccion(texto: str) -> str:
+    return " ".join(_palabras_clave(texto))
+
+
+def _sustitucion(fuente: Counter, tramo: Counter, vocabulario) -> bool | None:
+    """F22 ronda 2: None si es otra dirección; si no, ¿hay una sustitución real?
+
+    El borrador puede agregar (interior, distrito, referencia); solo cuenta lo
+    que falta de la fuente y trae pareja en el borrador.
+    """
+    faltan = fuente - tramo
+    sobran = tramo - fuente
+    if sum(faltan.values()) > sum((fuente & tramo).values()):
+        return None
+    real = False
+    for w in sorted(faltan.elements()):
+        candidatas = sorted(v for v in sobran if v.isdigit() == w.isdigit())
+        if w.isdigit():
+            if not candidatas:
+                return None
+            pareja, real = candidatas[0], True
+        else:
+            pareja = min(
+                candidatas, key=lambda v: Levenshtein.distance(w, v), default=None
+            )
+            if len(w) < 4 or pareja is None or Levenshtein.distance(w, pareja) > 2:
+                return None
+            # [NEEDS CLARIFICATION] sin diccionario en el núcleo: la palabra de la
+            # fuente vale si se lee dos veces y la del borrador no está en fuentes.
+            real = real or (
+                vocabulario[pareja] == 0 and (vocabulario[w] >= 2 or w in _PALABRAS_VIA)
+            )
+        sobran[pareja] -= 1
+        sobran = +sobran
+    return real
+
+
+def _direcciones_observadas(
+    fuente, borrador: str, vocabulario
+) -> list[tuple[str, str]]:
+    """F22: (hallado, esperado) por cada mención con una sustitución real."""
     claves = {}
     for direccion in sorted(fuente):
         claves.setdefault(_clave_direccion(direccion), direccion)
     claves.pop("", None)
+    cuentas = {c: Counter(c.split()) for c in claves}
     obs = []
     for tramo in _direcciones(borrador, _ROTULO_DIRECCION_BORRADOR):
-        clave = _clave_direccion(tramo)
-        if clave in claves:
+        palabras = Counter(_palabras_clave(tramo))
+        if any(c <= palabras for c in cuentas.values()):
             continue
-        m = process.extractOne(clave, list(claves), scorer=fuzz.ratio, score_cutoff=85)
-        if m:
-            obs.append((tramo, claves[m[0]]))
+        for clave, cuenta in cuentas.items():
+            if _sustitucion(cuenta, palabras, vocabulario):
+                obs.append((tramo, claves[clave]))
+                break
     return obs
 
 
@@ -890,7 +933,9 @@ def revisar_persona_ampliada(
     # F22: la aparición errónea ya sale como [DIRECCION] en revisar().
     observadas = {
         _clave_direccion(esperado)
-        for _, esperado in _direcciones_observadas(cat["DIRECCION"], borrador)
+        for _, esperado in _direcciones_observadas(
+            cat["DIRECCION"], borrador, cat.vocabulario
+        )
     }
     for persona in cat.personas:
         if (
@@ -1041,6 +1086,7 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
     montos = set()
     rucs = set()
     direcciones = set()
+    vocabulario = Counter()
     descartadas = []
     no_clasificadas = []
     sueltas = {}
@@ -1053,6 +1099,7 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
             descartadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
             continue
         rucs.update(RE_RUC_DOC.findall(t))
+        vocabulario.update(_direccion_palabras(t))
         direcciones.update(
             tramo
             for tramo in _direcciones(pagina.texto, _ROTULO_DIRECCION_FUENTE)
@@ -1091,6 +1138,7 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         menciones,
         rucs,
         direcciones,
+        vocabulario,
     )
 
 
@@ -1346,7 +1394,9 @@ def revisar(
         vistos.setdefault("RUC", set()).add(v)
         if v not in rucs:
             obs.append(f"[RUC] «{v}» {_esperado_cercano(v, rucs)}")
-    for hallado, esperado in _direcciones_observadas(cat.get("DIRECCION", ()), destino):
+    for hallado, esperado in _direcciones_observadas(
+        cat.get("DIRECCION", ()), destino, getattr(cat, "vocabulario", Counter())
+    ):
         obs.append(f"[DIRECCION] «{hallado}» debe decir «{esperado}»")
     obs += _numeros_en_letras(d)
 
