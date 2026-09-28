@@ -1,15 +1,14 @@
 {% extends "core/base.html" %}
 
 {% block title %}{{ expediente.codigo }} · Expedientes{% endblock %}
-{% block heading %}Expediente {{ expediente.codigo }}{% endblock %}
+{% block breadcrumb %}<ol class="breadcrumb">
+  <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li class="breadcrumb-item active" aria-current="page">{{ expediente.codigo }}</li>
+</ol>{% endblock %}
+{% block eyebrow %}Expediente{% endblock %}
+{% block heading %}{{ expediente.codigo }}{% endblock %}
+{% block subtitle %}Cargue las fuentes y el borrador; confronte cuando todo esté listo.{% endblock %}
 {% block content %}
-  <nav aria-label="Migas de pan">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ expediente.codigo }}</li>
-    </ol>
-  </nav>
-
   {{ documentos_estado|json_script:"documentos-estado" }}
   {{ borradores_estado|json_script:"borradores-estado" }}
   <div
@@ -46,39 +45,63 @@
     }"
     x-init="iniciar()"
   >
-  <section class="card card-outline card-primary mb-3" aria-labelledby="estado-expediente">
-    <div class="card-header"><h2 id="estado-expediente" class="h5 mb-0">Estado del expediente</h2></div>
-    <div class="card-body">
+  {% if not zonas.0.documentos or not zonas.1.documentos %}{% include "core/_riel.html" with actual=1 %}
+  {% elif not zonas.2.documentos %}{% include "core/_riel.html" with actual=2 %}
+  {% elif resumen.estado == "LISTO" %}{% include "core/_riel.html" with actual=4 x_actual="estado === 'LISTO' ? 4 : 3" %}
+  {% else %}{% include "core/_riel.html" with actual=3 x_actual="estado === 'LISTO' ? 4 : 3" %}{% endif %}
+
+  <section class="card mb-4" aria-labelledby="estado-expediente">
+    <div class="card-body px-4 py-3">
+      <h2 id="estado-expediente" class="visually-hidden">Estado del expediente</h2>
       <p class="mb-1" aria-live="polite">
         <strong x-show="estado === 'VACIO'">Este expediente aún no tiene documentos.</strong>
         <strong x-show="estado === 'PROCESANDO'">Procesando</strong>
         <strong x-show="estado === 'LISTO'">Todos los documentos están listos.</strong>
         <strong x-show="estado === 'ERROR'">No se pudo procesar uno o más documentos. Elimine el documento y vuelva a subirlo.</strong>
       </p>
-      <p class="text-body-secondary mb-0"><span x-text="resumen.total">{{ resumen.total }}</span> documento(s): <span x-text="resumen.pendientes">{{ resumen.pendientes }}</span> pendiente(s), <span x-text="resumen.procesando">{{ resumen.procesando }}</span> procesando, <span x-text="resumen.listos">{{ resumen.listos }}</span> listo(s), <span x-text="resumen.errores">{{ resumen.errores }}</span> con error.</p>
+      <p class="text-body-secondary small mb-0"><span x-text="resumen.total">{{ resumen.total }}</span> documento(s): <span x-text="resumen.pendientes">{{ resumen.pendientes }}</span> pendiente(s), <span x-text="resumen.procesando">{{ resumen.procesando }}</span> procesando, <span x-text="resumen.listos">{{ resumen.listos }}</span> listo(s), <span x-text="resumen.errores">{{ resumen.errores }}</span> con error.</p>
       <p x-show="mensaje" x-text="mensaje" class="alert alert-warning mt-3 mb-0" role="alert"></p>
     </div>
   </section>
 
   <div class="row g-4">
     <div class="col-12 col-xl-7">
-      <div class="mb-4">
-        <h2 class="h4">Minuta y documentos del cliente</h2>
-        <p class="text-body-secondary">Cargue las fuentes que se usarán para revisar el proyecto.</p>
-      </div>
-      <div class="row g-4">
-        {% for zona in zonas|slice:":2" %}
-          <div class="col-12">
+      <section class="card h-100" aria-labelledby="fuentes-titulo">
+        <div class="card-body p-3 p-md-4">
+          <h2 id="fuentes-titulo" class="h5 fw-bold">Documentos del expediente</h2>
+          <p class="text-body-secondary small mb-4">Minuta y documentos del cliente: las fuentes que se usarán para revisar el proyecto.</p>
+          {% for zona in zonas|slice:":2" %}
             {% include "expedientes/_zona_carga.html" %}
-          </div>
-        {% endfor %}
-      </div>
+          {% endfor %}
+        </div>
+      </section>
     </div>
     <div class="col-12 col-xl-5">
-      {% with zona=zonas|last %}
-        {% include "expedientes/_zona_carga.html" with destacada=True con_confrontacion=True %}
-      {% endwith %}
+      <section class="card h-100" aria-labelledby="borrador-titulo">
+        <div class="card-body p-3 p-md-4">
+          <h2 id="borrador-titulo" class="h5 fw-bold">Borrador a confrontar</h2>
+          <p class="text-body-secondary small mb-4">El documento elaborado que se comparará con las fuentes.</p>
+          {% with zona=zonas|last %}
+            {% include "expedientes/_zona_carga.html" %}
+          {% endwith %}
+          <div class="border-top pt-3">
+            {% if borradores %}
+              {% for borrador in borradores %}
+                <form x-show="confrontaciones[{{ borrador.pk }}]?.disponible" method="post" action="{% url 'documento_confrontar' expediente.pk borrador.pk %}" onsubmit="this.querySelector('button').textContent='Confrontando el borrador…'; this.querySelector('button').disabled=true;">
+                  {% csrf_token %}<button class="btn btn-primary w-100 mb-2" type="submit">Confrontar borrador</button>
+                </form>
+                <button x-show="!confrontaciones[{{ borrador.pk }}]?.disponible" class="btn btn-primary w-100" type="button" disabled>Confrontar borrador</button>
+                <p x-show="!confrontaciones[{{ borrador.pk }}]?.disponible" x-text="confrontaciones[{{ borrador.pk }}]?.mensaje" class="small text-body-secondary mt-2 mb-0">{{ borrador.confrontacion_estado.mensaje }}</p>
+              {% endfor %}
+            {% else %}
+              <button class="btn btn-primary w-100" type="button" disabled>Confrontar borrador</button>
+              <p class="small text-body-secondary mt-2 mb-0">{{ estado_general.mensaje }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
     </div>
   </div>
+  <p class="privacidad mt-4"><span aria-hidden="true">✓ </span>Privacidad: los archivos se procesan localmente y se eliminan al terminar; el texto extraído se conserva.</p>
   </div>
 {% endblock %}

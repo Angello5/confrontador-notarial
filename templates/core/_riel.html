@@ -1,0 +1,11 @@
+{% comment %}
+Riel de pasos. `actual` (1-4) es el paso del servidor; `x_actual`, si llega, es
+la expresión Alpine que lo recalcula con el sondeo. Los colores salen de
+data-actual en erp.css.
+{% endcomment %}
+<div x-data="{ pasos: ['Fuentes', 'Borrador', 'Procesamiento', 'Resultado'] }">
+  <ol class="riel" data-actual="{{ actual }}"{% if x_actual %} :data-actual="{{ x_actual }}"{% endif %} aria-hidden="true">
+    <li>Fuentes</li><li>Borrador</li><li>Procesamiento</li><li>Resultado</li>
+  </ol>
+  <p class="visually-hidden" aria-live="polite">Paso actual: <span{% if x_actual %} x-text="pasos[({{ x_actual }}) - 1]"{% endif %}>{% if actual == 1 %}Fuentes{% elif actual == 2 %}Borrador{% elif actual == 3 %}Procesamiento{% else %}Resultado{% endif %}</span></p>
+</div>

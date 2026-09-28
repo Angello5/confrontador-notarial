@@ -187,3 +187,87 @@ def test_ninguna_pantalla_filtra_marcas_de_plantilla(client, usuario_ficticio):
 
     for marca in ("{#", "#}", "{% comment", "{% endcomment", "{{", "{%"):
         assert marca not in contenido, f"la pantalla filtra la marca {marca!r}"
+
+
+# F14 · Rediseño de interfaz
+
+
+def _expediente_con(usuario, codigo, documentos):
+    from expedientes.models import Documento, Expediente
+
+    expediente = Expediente.objects.create(codigo=codigo, creado_por=usuario)
+    for indice, (rol, estado) in enumerate(documentos):
+        Documento.objects.create(
+            expediente=expediente,
+            rol=rol,
+            nombre_original=f"riel-{indice}.txt",
+            hash_archivo=f"{codigo}{indice}".lower().ljust(64, "0")[:64],
+            tamano_bytes=4,
+            estado=estado,
+            subido_por=usuario,
+        )
+    return expediente
+
+
+@pytest.mark.parametrize(
+    ("documentos", "actual"),
+    [
+        ([], "1"),
+        ([("CLIENTE", "LISTO"), ("BORRADOR", "LISTO")], "1"),
+        ([("CLIENTE", "LISTO"), ("MINUTA", "LISTO")], "2"),
+        ([("CLIENTE", "LISTO"), ("MINUTA", "PENDIENTE"), ("BORRADOR", "LISTO")], "3"),
+        ([("CLIENTE", "LISTO"), ("MINUTA", "ERROR"), ("BORRADOR", "LISTO")], "3"),
+        ([("CLIENTE", "LISTO"), ("MINUTA", "LISTO"), ("BORRADOR", "LISTO")], "4"),
+    ],
+)
+def test_riel_marca_el_paso_actual_por_estado(
+    client, usuario_ficticio, documentos, actual
+):
+    expediente = _expediente_con(
+        usuario_ficticio, f"EXP-FICTICIO-R{actual}", documentos
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = client.get(f"/expedientes/{expediente.pk}/").content.decode()
+
+    assert f'class="riel" data-actual="{actual}"' in contenido
+    nombres = ["Fuentes", "Borrador", "Procesamiento", "Resultado"]
+    assert "Paso actual: <span" in contenido
+    assert f">{nombres[int(actual) - 1]}</span>" in contenido
+
+
+def test_detalle_usa_paneles_chips_y_privacidad(client, usuario_ficticio):
+    expediente = _expediente_con(
+        usuario_ficticio, "EXP-FICTICIO-PANEL", [("CLIENTE", "LISTO")]
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = client.get(f"/expedientes/{expediente.pk}/").content.decode()
+
+    assert "Documentos del expediente" in contenido
+    assert "Borrador a confrontar" in contenido
+    assert 'class="chip" data-estado="LISTO"' in contenido
+    assert "se procesan localmente y se eliminan al terminar" in contenido
+    assert contenido.count('class="zona-arrastre"') == 3
+
+
+def test_lista_muestra_chip_documentos_y_actualizado(client, usuario_ficticio):
+    _expediente_con(usuario_ficticio, "EXP-FICTICIO-L1", [("CLIENTE", "ERROR")])
+    client.force_login(usuario_ficticio)
+
+    contenido = client.get("/expedientes/").content.decode()
+
+    assert "Nuevo expediente" in contenido
+    assert 'class="chip" data-estado="ERROR"' in contenido
+    assert ">Documentos</th>" in contenido
+    assert ">Actualizado</th>" in contenido
+    assert "abierto: false" in contenido
+
+
+def test_lista_con_error_de_codigo_deja_el_formulario_abierto(client, usuario_ficticio):
+    client.force_login(usuario_ficticio)
+
+    contenido = client.post("/expedientes/", {"codigo": ""}).content.decode()
+
+    assert "abierto: true" in contenido
+    assert 'role="alert"' in contenido
