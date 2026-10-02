@@ -254,7 +254,10 @@ def test_resultado_muestra_verificacion_de_extraccion_sin_texto_completo(
         f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
-    assert '<details class="card mb-3"' in contenido
+    assert (
+        '<details class="panel desplegable" aria-labelledby="extraccion-titulo"'
+        in contenido
+    )
     assert "Qué se extrajo de los documentos" in contenido
     assert "NOMBRE FICTICIO" in contenido
     assert "90000001" in contenido
@@ -342,14 +345,19 @@ def test_resultado_muestra_personas_una_vez_con_procedencia_segura(
     ).content.decode()
 
     assert "Personas con ficha" in contenido
-    assert contenido.count("ALBA ZAFIRO LUMARIA") == 2
+    fichas = re.search(
+        r'<table[^>]*aria-label="Personas con ficha"[^>]*>(.*?)</table>',
+        contenido,
+        re.S,
+    ).group(1)
+    assert fichas.count("ALBA ZAFIRO LUMARIA") == 1
     assert "biometrica-ficticia.pdf" in contenido
     assert "sunarp-ficticio.pdf" in contenido
     assert "CASADO" in contenido
     assert "1990-07-03" in contenido
     assert "Av. Luna 12" in contenido
     assert "Miraflores" in contenido
-    assert contenido.count("reniec-ficticio.pdf, página 2") == 4
+    assert fichas.count("reniec-ficticio.pdf, página 2") == 4
     assert "/srv/privado" not in contenido
     assert "sha256" not in contenido.lower()
     assert "texto completo ficticio" not in contenido
@@ -430,9 +438,9 @@ def test_tabla_de_regla_no_muestra_columnas_vacias(
         f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
-    encabezado_regla = contenido.split('<section class="card mb-3"', 1)[1].split(
-        '<section class="card mb-3"', 1
-    )[0]
+    encabezado_regla = re.search(
+        r'<div data-seccion="REGLA">(.*?)</table>', contenido, re.S
+    ).group(1)
     assert '<th scope="col">Motivo</th>' not in encabezado_regla
     assert '<th scope="col">Porcentaje</th>' not in encabezado_regla
     assert "Coincidencia: 87.50%" in encabezado_regla
@@ -694,15 +702,12 @@ def test_resultado_muestra_cabecera_y_metricas_por_capa(
         f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
-    assert "<h1>Resultado de la confrontación</h1>" in contenido
-    assert "EXP-FICTICIO-METRICAS · borrador-ficticio.txt" in contenido
-    assert contenido.count('class="card metrica"') == 4
-    etiquetas = re.findall(r'<p class="metrica-etiqueta">([^<]+)</p>', contenido)
-    valores = re.findall(r'<p class="metrica-valor">([^<]+)</p>', contenido)
-    assert list(zip(etiquetas, valores)) == [
-        ("Personas con ficha", "3"),
-        ("Identidad", "1"),
-        ("Regla", "2"),
-        ("Lingüístico", "0"),
-    ]
-    assert 'class="chip" data-estado="REVISION">2</span>' in contenido
+    assert "<h1>EXP-FICTICIO-METRICAS</h1>" in contenido
+    assert "Resultado de la confrontación" in contenido
+    assert "borrador-ficticio.txt" in contenido
+    assert "3 personas con ficha" in contenido
+    assert len(re.findall(r'<li data-id="p\d+"', contenido)) == 1
+    assert len(re.findall(r'<li data-id="r\d+"', contenido)) == 2
+    assert len(re.findall(r'<li data-id="o\d+"', contenido)) == 0
+    assert 'aria-label="Filtrar por severidad"' in contenido
+    assert 'role="tablist" aria-label="Capas de revisión"' in contenido

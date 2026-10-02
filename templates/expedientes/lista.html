@@ -1,77 +1,138 @@
 {% extends "core/base.html" %}
 
 {% block title %}Expedientes · {{ erp_nombre }}{% endblock %}
-{% block breadcrumb %}<ol class="breadcrumb"><li class="breadcrumb-item active" aria-current="page">Expedientes</li></ol>{% endblock %}
+{% block breadcrumb %}<ol><li aria-current="page">Expedientes</li></ol>{% endblock %}
 {% block eyebrow %}Módulo{% endblock %}
 {% block heading %}Expedientes{% endblock %}
 {% block subtitle %}Cree un expediente con su código y cargue sus documentos para confrontar.{% endblock %}
+{% block actions %}{% if not archivados %}<button class="btn btn-primario" type="button" @click="$dispatch('nuevo-expediente')" aria-controls="crear-expediente-panel"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo expediente</button>{% endif %}{% endblock %}
 {% block content %}
-  <div x-data="{ abierto: {% if form.errors %}true{% else %}false{% endif %} }">
-    <div class="d-flex justify-content-end mb-3">
-      <button class="btn btn-primary" type="button" @click="abierto = !abierto" :aria-expanded="abierto" aria-controls="crear-expediente-panel">+ Nuevo expediente</button>
-    </div>
-    <section id="crear-expediente-panel" class="card mb-4" aria-labelledby="crear-expediente" x-show="abierto"{% if not form.errors %} x-cloak{% endif %}>
-      <div class="card-body p-3 p-md-4">
-        <h2 id="crear-expediente" class="h5 fw-bold">Crear expediente</h2>
-        <p class="text-body-secondary">Use el código que identifica el trámite.</p>
-        <form method="post" novalidate>
-          {% csrf_token %}
-          <div class="mb-3">
-            <label class="form-label" for="{{ form.codigo.id_for_label }}">{{ form.codigo.label }}</label>
-            {{ form.codigo }}
-            {% if form.codigo.help_text %}<div class="form-text" id="codigo-ayuda">{{ form.codigo.help_text }}</div>{% endif %}
-            {% for error in form.codigo.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
-          </div>
-          <button class="btn btn-primary" type="submit">Crear expediente</button>
-        </form>
-      </div>
+  {% if not archivados %}
+  <div x-data="{ abierto: {% if form.errors %}true{% else %}false{% endif %} }"
+       x-init="if (new URLSearchParams(location.search).has('nuevo')) abierto = true; $watch('abierto', v => v && $nextTick(() => $refs.codigo?.querySelector('input')?.focus()))"
+       @nuevo-expediente.window="abierto = !abierto">
+    <section id="crear-expediente-panel" class="panel panel-cuerpo panel-nuevo" aria-labelledby="crear-expediente" x-show="abierto"{% if not form.errors %} x-cloak{% endif %}>
+      <h2 id="crear-expediente" class="panel-titulo">Crear expediente</h2>
+      <form method="post" class="formulario-linea" novalidate>
+        {% csrf_token %}
+        <div class="campo{% if form.codigo.errors %} campo-error{% endif %}" x-ref="codigo">
+          <label for="{{ form.codigo.id_for_label }}">{{ form.codigo.label }} *</label>
+          {{ form.codigo }}
+          {% for error in form.codigo.errors %}<span class="campo-error-texto" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>{{ error }}</span>{% endfor %}
+          <span class="campo-ayuda" id="codigo-ayuda">{% if form.codigo.help_text %}{{ form.codigo.help_text }}{% else %}Use el código que identifica el trámite.{% endif %}</span>
+        </div>
+        <div class="acciones">
+          <button class="btn btn-verde btn-alto" type="submit">Crear expediente</button>
+          <button class="btn btn-alto" type="button" @click="abierto = false">Cancelar</button>
+        </div>
+      </form>
     </section>
   </div>
+  {% endif %}
 
-  <section class="card" aria-labelledby="lista-expedientes">
-    <div class="card-body p-3 p-md-4">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-        <h2 id="lista-expedientes" class="h5 fw-bold mb-0">{% if archivados %}Expedientes archivados{% else %}Mis expedientes{% endif %}</h2>
-        {% if es_administrador %}
-          <nav class="nav nav-pills" aria-label="Filtro de expedientes">
-            <a class="nav-link py-1{% if not archivados %} active{% endif %}" href="{% url 'expediente_lista' %}"{% if not archivados %} aria-current="page"{% endif %}>Activos</a>
-            <a class="nav-link py-1{% if archivados %} active{% endif %}" href="{% url 'expediente_lista' %}?archivados=1"{% if archivados %} aria-current="page"{% endif %}>Archivados</a>
-          </nav>
-        {% endif %}
-      </div>
-      {% if expedientes %}
-        <div class="table-responsive">
-          <table class="table align-middle mb-0">
-            <caption class="visually-hidden">Expedientes visibles y su estado derivado</caption>
-            <thead><tr><th scope="col">Código</th><th scope="col">Estado</th><th scope="col" class="d-none d-md-table-cell">Documentos</th><th scope="col" class="d-none d-md-table-cell">Actualizado</th><th scope="col"><span class="visually-hidden">Acciones</span></th></tr></thead>
-            <tbody>
-              {% for expediente, resumen in expedientes %}
-                <tr>
-                  <th scope="row" class="text-nowrap">{{ expediente.codigo }}</th>
-                  <td>{% include "core/_chip.html" with estado=resumen.estado %}</td>
-                  <td class="d-none d-md-table-cell">{{ resumen.total }}</td>
-                  <td class="d-none d-md-table-cell">{{ expediente.actualizado_el|date:"d/m/Y H:i" }}</td>
-                  <td class="text-end text-nowrap">
-                    {% if archivados %}
-                      <form method="post" action="{% url 'expediente_restaurar' expediente.pk %}">
-                        {% csrf_token %}<button class="btn btn-outline-primary btn-sm" type="submit" aria-label="Restaurar {{ expediente.codigo }}"><span aria-hidden="true">↺</span> Restaurar</button>
-                      </form>
-                    {% else %}
-                      <a class="btn btn-outline-primary btn-sm" href="{% url 'expediente_detalle' expediente.pk %}" aria-label="Abrir {{ expediente.codigo }}"><span aria-hidden="true">↗</span> Abrir</a>
-                      <a class="btn btn-outline-secondary btn-sm" href="{% url 'expediente_editar' expediente.pk %}" aria-label="Editar {{ expediente.codigo }}"><span aria-hidden="true">✎</span> Editar</a>
-                      <a class="btn btn-outline-danger btn-sm" href="{% url 'expediente_eliminar' expediente.pk %}" aria-label="Eliminar {{ expediente.codigo }}"><span aria-hidden="true">✕</span> Eliminar</a>
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="alert alert-info mb-0" role="status">
-          {% if archivados %}No hay expedientes archivados.{% else %}Aún no hay expedientes visibles. Cree uno con su código para cargar documentos.{% endif %}
-        </div>
+  <section class="panel" aria-labelledby="lista-expedientes"
+    x-data="{
+      q: '',
+      estado: new URLSearchParams(location.search).get('estado') || 'TODOS',
+      filas: [],
+      asc: false,
+      abierto: null,
+      eliminar: null,
+      iniciar() {
+        this.filas = [...this.$root.querySelectorAll('tbody tr[data-codigo]')].map(tr => ({ codigo: tr.dataset.codigo, estado: tr.dataset.estado }));
+      },
+      visible(codigo, estado) {
+        const q = this.q.trim().toUpperCase();
+        return (!q || codigo.toUpperCase().includes(q)) && (this.estado === 'TODOS' || estado === this.estado);
+      },
+      cuenta(estado) { return estado === 'TODOS' ? this.filas.length : this.filas.filter(f => f.estado === estado).length; },
+      get visibles() { return this.filas.filter(f => this.visible(f.codigo, f.estado)).length; },
+      ordenar() {
+        this.asc = !this.asc;
+        const cuerpo = this.$root.querySelector('tbody');
+        [...cuerpo.children].sort((a, b) => this.asc ? a.dataset.t - b.dataset.t : b.dataset.t - a.dataset.t).forEach(tr => cuerpo.appendChild(tr));
+      }
+    }"
+    x-init="iniciar()" @click.outside="abierto = null" @keydown.escape="abierto = null">
+    <div class="panel-cab">
+      <h2 id="lista-expedientes" class="panel-titulo empuja">{% if archivados %}Expedientes archivados{% else %}Mis expedientes{% endif %}</h2>
+      {% if es_administrador %}
+        <nav class="segmentado" aria-label="Filtro de expedientes">
+          <a href="{% url 'expediente_lista' %}"{% if not archivados %} aria-current="page"{% endif %}>Activos</a>
+          <a href="{% url 'expediente_lista' %}?archivados=1"{% if archivados %} aria-current="page"{% endif %}>Archivados</a>
+        </nav>
       {% endif %}
     </div>
+
+    {% if expedientes %}
+      <div class="filtros">
+        <label class="buscador">
+          <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" x-model="q" placeholder="Buscar por código" aria-label="Buscar por código">
+        </label>
+        {% if not archivados %}
+          <div class="filtro-chips" role="group" aria-label="Filtrar por estado">
+            <template x-for="[clave, etiqueta] in [['TODOS', 'Todos'], ['LISTO', 'Listo'], ['PROCESANDO', 'Procesando'], ['ERROR', 'Con error'], ['VACIO', 'Sin documentos']]" :key="clave">
+              <button type="button" class="filtro-chip" :aria-pressed="estado === clave" @click="estado = clave"><span x-text="etiqueta"></span><span class="filtro-num" x-text="cuenta(clave)"></span></button>
+            </template>
+          </div>
+        {% endif %}
+      </div>
+      <div class="tabla-desliza">
+        <table class="tabla tabla-media">
+          <caption class="visually-hidden">Expedientes visibles y su estado derivado</caption>
+          <thead><tr>
+            <th scope="col">Código</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Documentos</th>
+            <th scope="col" :aria-sort="asc ? 'ascending' : 'descending'"><button type="button" class="th-orden" @click="ordenar()">Actualizado<svg class="ico" aria-hidden="true"><use :href="asc ? '#i-arrow-up' : '#i-arrow-down'" href="#i-arrow-down"/></svg></button></th>
+            <th scope="col"><span class="visually-hidden">Acciones</span></th>
+          </tr></thead>
+          <tbody>
+            {% for expediente, resumen in expedientes %}
+              <tr data-codigo="{{ expediente.codigo }}" data-estado="{{ resumen.estado }}" data-t="{{ expediente.actualizado_el|date:'U' }}" x-show="visible($el.dataset.codigo, $el.dataset.estado)">
+                <th scope="row">{% if archivados %}{{ expediente.codigo }}{% else %}<a class="codigo-enlace" href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a>{% endif %}</th>
+                <td>{% include "core/_chip.html" with estado=resumen.estado %}</td>
+                <td>{{ resumen.total }}</td>
+                <td class="texto-suave sin-corte">{{ expediente.actualizado_el|date:"d/m/Y H:i" }}</td>
+                <td class="fin">
+                  {% if archivados %}
+                    <form method="post" action="{% url 'expediente_restaurar' expediente.pk %}">
+                      {% csrf_token %}<button class="btn btn-sm" type="submit" aria-label="Restaurar {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-rotate-ccw"/></svg>Restaurar</button>
+                    </form>
+                  {% else %}
+                    <div class="menu-fila">
+                      <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}" aria-label="Abrir {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Abrir</a>
+                      <button type="button" class="btn btn-sm btn-icono" aria-label="Más acciones para {{ expediente.codigo }}" aria-haspopup="menu" :aria-expanded="abierto === {{ expediente.pk }}" @click.stop="abierto = abierto === {{ expediente.pk }} ? null : {{ expediente.pk }}"><svg class="ico" aria-hidden="true"><use href="#i-ellipsis"/></svg></button>
+                      <div class="menu-flotante" role="menu" x-show="abierto === {{ expediente.pk }}" x-cloak>
+                        <a role="menuitem" href="{% url 'expediente_editar' expediente.pk %}" aria-label="Editar {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>Editar código</a>
+                        <a role="menuitem" class="peligro" href="{% url 'expediente_eliminar' expediente.pk %}" aria-label="Eliminar {{ expediente.codigo }}" @click.prevent="abierto = null; eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar expediente</a>
+                      </div>
+                    </div>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="vacio" role="status" x-show="!visibles" x-cloak>
+        <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
+        <strong>Ningún expediente coincide con el filtro.</strong>
+        <span>Cambie el código buscado o el estado.</span>
+      </div>
+      <div class="panel-pie" aria-live="polite"><span x-text="visibles">{{ expedientes|length }}</span> de <span x-text="filas.length">{{ expedientes|length }}</span> expedientes</div>
+    {% else %}
+      <div class="vacio" role="status">
+        <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
+        {% if archivados %}
+          <strong>No hay expedientes archivados.</strong>
+        {% else %}
+          <strong>Aún no hay expedientes visibles.</strong>
+          <span>Cree uno con su código para cargar documentos.</span>
+        {% endif %}
+      </div>
+    {% endif %}
+    {% include "expedientes/_modal_eliminar.html" %}
   </section>
 {% endblock %}

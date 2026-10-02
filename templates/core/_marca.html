@@ -1,0 +1,14 @@
+{% comment %}
+Marca de la notaría. `erp_logo` (URL de la imagen, configurable por notaría
+como `erp_nombre`) muestra el logo; sin él, el sello con las iniciales.
+El nombre real nunca se escribe en el repositorio (F28 · FR-005).
+{% endcomment %}
+{% if erp_logo %}
+  <img class="marca-logo" src="{{ erp_logo }}" alt="{{ erp_nombre }}">
+  <span class="marca-sub">Hub notarial</span>
+{% else %}
+  <span class="marca-fila">
+    <span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>
+    <span><span class="marca-nombre">{{ erp_nombre }}</span><span class="marca-sub">ERP</span></span>
+  </span>
+{% endif %}

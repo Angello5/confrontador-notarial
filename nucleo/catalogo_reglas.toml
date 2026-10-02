@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.09.28-1"
+version = "2026.10.02-2"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -16,7 +16,7 @@ descripcion = "DNI del borrador ausente de las fuentes o de longitud incorrecta.
 severidad = "ALTA"
 
 [reglas.PARTIDA]
-descripcion = "Partida registral distinta de la de las fuentes."
+descripcion = "Partida o ficha registral distinta de la de las fuentes."
 severidad = "ALTA"
 
 [reglas.MONTO]
@@ -36,11 +36,11 @@ descripcion = "Documento de identidad que no pertenece a ninguna persona de las 
 severidad = "ALTA"
 
 [reglas.RUC]
-descripcion = "RUC distinto del de las fuentes (reservada para su fase)."
+descripcion = "RUC distinto del de las fuentes."
 severidad = "ALTA"
 
 [reglas.DIRECCION]
-descripcion = "Dirección distinta de la de las fuentes (reservada para su fase)."
+descripcion = "Dirección (domicilio o bien) distinta de la de las fuentes."
 severidad = "ALTA"
 
 [reglas.ESTADO_CIVIL_DISCREPANTE]
@@ -66,3 +66,20 @@ severidad = "MEDIA"
 [reglas.ORTOGRAFIA]
 descripcion = "Palabra no reconocida por el diccionario es_PE ni la lista de la casa."
 severidad = "BAJA"
+
+# F30
+[reglas.AREA]
+descripcion = "Área en letras distinta de su cifra en metros cuadrados."
+severidad = "ALTA"
+
+[reglas.DATO_REGISTRAL]
+descripcion = "Zona registral, registro, oficina o provincia distinta de la de las fuentes."
+severidad = "ALTA"
+
+[reglas.CORRELATIVO]
+descripcion = "Cláusula o inciso que salta o repite su número."
+severidad = "MEDIA"
+
+[reglas.COPROPIEDAD]
+descripcion = "Cuotas de copropiedad que no suman 100 %."
+severidad = "MEDIA"

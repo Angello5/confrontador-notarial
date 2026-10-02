@@ -151,7 +151,7 @@ def test_comando_procesa_dos_pendientes_borra_temporales_e_informa(
         lambda: "ocr-ficticio-v1",
     )
     monkeypatch.setattr(
-        "expedientes.services.extraccion.leer",
+        "expedientes.services.extraccion.leer_con_calidad",
         lambda ruta: f"texto de {ruta.name}",
     )
     salida = StringIO()
@@ -203,7 +203,8 @@ def test_comando_recupera_vencido_al_arrancar_y_lo_procesa(
         lambda: "ocr-ficticio-v1",
     )
     monkeypatch.setattr(
-        "expedientes.services.extraccion.leer", lambda _: "texto recuperado ficticio"
+        "expedientes.services.extraccion.leer_con_calidad",
+        lambda _: "texto recuperado ficticio",
     )
 
     call_command("procesar_documentos")

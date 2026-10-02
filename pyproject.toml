@@ -3,7 +3,7 @@ DJANGO_SETTINGS_MODULE = "tests.settings"
 testpaths = ["test_*.py", "tests"]
 python_files = ["test_*.py"]
 pythonpath = ["."]
-norecursedirs = [".git", ".venv", "tests/fixtures", "Cliente", "Proyecto*", "Resultado", "Plantilla", "expedientes", "*-[0-9][0-9][0-9][0-9][0-9]"]
+norecursedirs = [".git", ".venv", "tests/fixtures", "Cliente", "Proyecto*", "Resultado", "Plantilla", "expedientes", "expedientes_locales", "*-[0-9][0-9][0-9][0-9][0-9]"]
 addopts = "--strict-markers -m 'not local_reference and not revisor_llm and not ocr_research'"
 markers = [
     "local_reference: medición privada solo por selección explícita local",
@@ -14,7 +14,7 @@ markers = [
 [tool.coverage.run]
 relative_files = true
 source = ["."]
-omit = ["test_*.py", "tests/*", "scripts/*", ".venv/*", "experimental/*"]
+omit = ["test_*.py", "tests/*", "scripts/*", ".venv/*", "experimental/*", "expedientes_locales/*"]
 
 [tool.coverage.report]
 show_missing = true
@@ -25,6 +25,7 @@ output = "coverage.xml"
 
 [tool.ruff]
 target-version = "py313"
+extend-exclude = ["expedientes_locales", "tests/fixtures"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "S"]

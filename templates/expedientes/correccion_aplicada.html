@@ -1,32 +1,41 @@
 {% extends "core/base.html" %}
 
 {% block title %}Correcciones · {{ expediente.codigo }}{% endblock %}
-{% block breadcrumb %}<ol class="breadcrumb">
-  <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
-  <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
-  <li class="breadcrumb-item active" aria-current="page">Correcciones</li>
+{% block breadcrumb %}<ol>
+  <li><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
+  <li aria-current="page">Correcciones</li>
 </ol>{% endblock %}
 {% block eyebrow %}Expedientes / Correcciones{% endblock %}
 {% block heading %}Documento corregido{% endblock %}
-{% block subtitle %}{{ expediente.codigo }} · {{ borrador.nombre_original }}{% endblock %}
-{% block actions %}<a class="btn btn-outline-primary" href="{% url 'expediente_detalle' expediente.pk %}">Volver al expediente</a>{% endblock %}
+{% block meta %}<p class="cabecera-meta"><span>{{ expediente.codigo }}</span><span><svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>{{ borrador.nombre_original }}</span></p>{% endblock %}
+{% block actions %}<a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al expediente</a>{% endblock %}
 {% block content %}
   {% if error %}
-    <section class="alert alert-warning" role="alert" aria-live="polite">
-      <h2 class="h5">No se aplicó ninguna corrección</h2>
-      <p class="mb-0">{{ error }}</p>
+    <section class="aviso aviso-grande" data-tono="advertencia" role="alert" aria-live="polite">
+      <svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+      <div class="aviso-texto">
+        <h2>No se aplicó ninguna corrección</h2>
+        <p>{{ error }}</p>
+      </div>
     </section>
   {% else %}
-    <section class="card mb-3" aria-labelledby="aplicada-titulo">
-      <div class="card-body" role="status" aria-live="polite">
-        <h2 id="aplicada-titulo" class="h5">Correcciones aplicadas</h2>
+    <section class="aviso aviso-grande" data-tono="exito" role="status" aria-live="polite">
+      <svg class="ico" aria-hidden="true"><use href="#i-circle-check"/></svg>
+      <div class="aviso-texto">
+        <h2 id="aplicada-titulo">Correcciones aplicadas</h2>
         <p>Se generó un documento corregido nuevo. El borrador original se conserva sin cambios.</p>
-        <ul>
-          <li>Aplicadas: {{ aplicacion.apariciones|length }}</li>
-          <li>Excluidas por usted: {{ aplicacion.correcciones_excluidas|length }}</li>
-          <li>No aplicadas (no se ubicaron en el documento o competían con otra corrección): {{ aplicacion.correcciones_no_aplicadas|length }}</li>
-        </ul>
-        <a class="btn btn-primary" href="{% url 'correccion_descargar' expediente.pk aplicacion.pk %}">Descargar documento corregido</a>
+      </div>
+    </section>
+    <section class="panel angosto" aria-labelledby="aplicada-titulo">
+      <dl class="valores valores-sueltos">
+        <div><dt>Aplicadas</dt><dd class="esperado">{{ aplicacion.apariciones|length }}</dd></div>
+        <div><dt>Excluidas por usted</dt><dd>{{ aplicacion.correcciones_excluidas|length }}</dd></div>
+        <div><dt>No aplicadas</dt><dd>{{ aplicacion.correcciones_no_aplicadas|length }}</dd></div>
+      </dl>
+      <p class="panel-pie">No aplicadas: no se ubicaron en el documento o competían con otra corrección.</p>
+      <div class="confrontar">
+        <a class="btn btn-verde btn-lg btn-bloque" href="{% url 'correccion_descargar' expediente.pk aplicacion.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar documento corregido</a>
       </div>
     </section>
   {% endif %}

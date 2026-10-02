@@ -1,0 +1,22 @@
+{% comment %}
+Confirmación de eliminar (archivado lógico, F25). Lo abre cualquier botón con
+@click="eliminar = { codigo: '…', url: '…' }" dentro del mismo x-data.
+Sin JavaScript, los enlaces siguen llevando a expedientes/eliminar.html.
+{% endcomment %}
+<template x-if="eliminar">
+  <div class="modal-fondo" @click.self="eliminar = null" @keydown.escape.window="eliminar = null">
+    <div class="modal" data-tono="peligro" role="alertdialog" aria-modal="true" aria-labelledby="eliminar-titulo" x-init="$nextTick(() => $el.querySelector('[data-cancelar]').focus())">
+      <div class="modal-cuerpo">
+        <h2 id="eliminar-titulo">¿Eliminar el expediente <span x-text="eliminar.codigo"></span>?</h2>
+        <p>Dejará de aparecer en la lista y en el inicio, y no admitirá cargas ni confrontaciones. El historial de confrontaciones se conserva para auditoría y un Administrador puede restaurarlo.</p>
+      </div>
+      <div class="modal-pie">
+        <button type="button" class="btn" data-cancelar @click="eliminar = null">Cancelar</button>
+        <form method="post" :action="eliminar.url">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-peligro"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg><span x-text="'Eliminar ' + eliminar.codigo"></span></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>

@@ -298,7 +298,7 @@ def test_historial_y_detalle_con_permisos_del_expediente(
     contenido = ficha.content.decode()
     assert ficha.status_code == 200
     assert corrida.huella in contenido
-    assert "MENOR_DE_EDAD" in contenido
+    assert "Menor de edad" in contenido
     assert "<form" not in contenido.split("<main", 1)[-1]
 
     otro = get_user_model().objects.create_user(username="otro_ficticio")

@@ -232,7 +232,7 @@ def test_inicio_lista_los_cinco_mas_recientes_sin_datos_sensibles(
     assert "EXP-FICTICIO-U1<" not in content
     assert "hash" not in content.lower()
     assert "ficticio-0.txt" not in content
-    assert "<caption" in content
+    assert 'aria-label="Últimos expedientes y su estado"' in content
     assert "Nueva confrontación" in content
     assert "Control administrativo" not in content
 

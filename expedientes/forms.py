@@ -70,6 +70,8 @@ class DocumentoUploadForm(forms.Form):
     )
 
     def __init__(self, *args, expected_role=None, **kwargs):
+        if expected_role in dict(Documento.ROLES):
+            kwargs.setdefault("auto_id", f"id_{expected_role.lower()}_%s")
         super().__init__(*args, **kwargs)
         self.expected_role = expected_role
         self.errores_archivos = []

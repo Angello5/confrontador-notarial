@@ -1,0 +1,656 @@
+{
+  "recovery_date": "2026-10-02",
+  "source": "%USERPROFILE%/Desktop/Proyectos/confrontador-notarial-main",
+  "source_git_metadata": "No .git directory; source identity corroborated against shared settings/migration and project guidance.",
+  "destination": "%USERPROFILE%/Desktop/MG CONSULTING/confrontador-notarial-main",
+  "policy": "Copied text source/configuration files absent at destination only. Existing files were left untouched. Excluded secrets, local data/PII, document binaries, caches, and virtual environments.",
+  "copied_file_count": 127,
+  "skipped_existing_count": 8,
+  "copied_files": [
+    {
+      "path": ".agents/skills/speckit-analyze/SKILL.md",
+      "sha256_source": "0b3261b13cc33537f24b3e1f6d5320694c348302c385d0046dc6b958cf2db6cb",
+      "sha256_destination": "0b3261b13cc33537f24b3e1f6d5320694c348302c385d0046dc6b958cf2db6cb"
+    },
+    {
+      "path": ".agents/skills/speckit-checklist/SKILL.md",
+      "sha256_source": "7ac5cba31a27151a1a7b73f691bd478d42750ce2dd734701a07eb0e235ffbd94",
+      "sha256_destination": "7ac5cba31a27151a1a7b73f691bd478d42750ce2dd734701a07eb0e235ffbd94"
+    },
+    {
+      "path": ".agents/skills/speckit-clarify/SKILL.md",
+      "sha256_source": "f6acfbc82c96c0d91b2429fd0b51ce7df7f94b003d1b73acc54470d48bcc455e",
+      "sha256_destination": "f6acfbc82c96c0d91b2429fd0b51ce7df7f94b003d1b73acc54470d48bcc455e"
+    },
+    {
+      "path": ".agents/skills/speckit-constitution/SKILL.md",
+      "sha256_source": "b2a6a979ef7511812b60cde4adb6f1c4a8b1b57314ea2f1861ebc3f4796bf377",
+      "sha256_destination": "b2a6a979ef7511812b60cde4adb6f1c4a8b1b57314ea2f1861ebc3f4796bf377"
+    },
+    {
+      "path": ".agents/skills/speckit-converge/SKILL.md",
+      "sha256_source": "ba0b853dba470f414cdf9eae53200b8468bd639ecd92549a6d4e533af3da7521",
+      "sha256_destination": "ba0b853dba470f414cdf9eae53200b8468bd639ecd92549a6d4e533af3da7521"
+    },
+    {
+      "path": ".agents/skills/speckit-implement/SKILL.md",
+      "sha256_source": "848a5c9eff7b99e348927cbde6c35378de9fea3fd317941f58fa0b0b79301eec",
+      "sha256_destination": "848a5c9eff7b99e348927cbde6c35378de9fea3fd317941f58fa0b0b79301eec"
+    },
+    {
+      "path": ".agents/skills/speckit-plan/SKILL.md",
+      "sha256_source": "db2406adfa50103fc04ca8109ac934cd715086fba64365fb404630a88c62bda5",
+      "sha256_destination": "db2406adfa50103fc04ca8109ac934cd715086fba64365fb404630a88c62bda5"
+    },
+    {
+      "path": ".agents/skills/speckit-specify/SKILL.md",
+      "sha256_source": "a505028de7f6489878696d6656c7d057f3a66119ebb8c0cc82d69fabb7b344ff",
+      "sha256_destination": "a505028de7f6489878696d6656c7d057f3a66119ebb8c0cc82d69fabb7b344ff"
+    },
+    {
+      "path": ".agents/skills/speckit-tasks/SKILL.md",
+      "sha256_source": "1086d7885df1188d00e7d5eb4715e678b4340b893e8f24ae748d823b13599a56",
+      "sha256_destination": "1086d7885df1188d00e7d5eb4715e678b4340b893e8f24ae748d823b13599a56"
+    },
+    {
+      "path": ".agents/skills/speckit-taskstoissues/SKILL.md",
+      "sha256_source": "a349d410c180385215bf5180b13319bd8259199267af24917f4f4d0adcbb6ad2",
+      "sha256_destination": "a349d410c180385215bf5180b13319bd8259199267af24917f4f4d0adcbb6ad2"
+    },
+    {
+      "path": ".claude/skills/actualizar-local/SKILL.md",
+      "sha256_source": "1a16a399e9c647d63a80feb32d5667a3195c5b327d6228a67774442aeb8dc0e4",
+      "sha256_destination": "1a16a399e9c647d63a80feb32d5667a3195c5b327d6228a67774442aeb8dc0e4"
+    },
+    {
+      "path": ".claude/skills/speckit-analyze/SKILL.md",
+      "sha256_source": "3237cd827194efaf6bb06ba05ef9bc1a703a223d362f5e34d0558c5a38ae34d0",
+      "sha256_destination": "3237cd827194efaf6bb06ba05ef9bc1a703a223d362f5e34d0558c5a38ae34d0"
+    },
+    {
+      "path": ".claude/skills/speckit-checklist/SKILL.md",
+      "sha256_source": "5dc436df0c727e9078bf182dd385e5cb1b60ee67ebe644d3f659ec12e3b78abb",
+      "sha256_destination": "5dc436df0c727e9078bf182dd385e5cb1b60ee67ebe644d3f659ec12e3b78abb"
+    },
+    {
+      "path": ".claude/skills/speckit-clarify/SKILL.md",
+      "sha256_source": "164f49ef87cb2e922585316f5281b455a8e1940b1efd25317d517a567acae472",
+      "sha256_destination": "164f49ef87cb2e922585316f5281b455a8e1940b1efd25317d517a567acae472"
+    },
+    {
+      "path": ".claude/skills/speckit-constitution/SKILL.md",
+      "sha256_source": "60c27f3962e78edf204b2b2e7cba91a616980860b61d6bf2051dc6965d483dda",
+      "sha256_destination": "60c27f3962e78edf204b2b2e7cba91a616980860b61d6bf2051dc6965d483dda"
+    },
+    {
+      "path": ".claude/skills/speckit-converge/SKILL.md",
+      "sha256_source": "fac66428c93e6e4fa0559a618a620d979fd8124d567f6f79db741fce0081cb3d",
+      "sha256_destination": "fac66428c93e6e4fa0559a618a620d979fd8124d567f6f79db741fce0081cb3d"
+    },
+    {
+      "path": ".claude/skills/speckit-implement/SKILL.md",
+      "sha256_source": "7186d59488f89dcf23abd17baed118b05c242d4f62f1de3f9f44625a2b1728f0",
+      "sha256_destination": "7186d59488f89dcf23abd17baed118b05c242d4f62f1de3f9f44625a2b1728f0"
+    },
+    {
+      "path": ".claude/skills/speckit-plan/SKILL.md",
+      "sha256_source": "9e97fc0b4ce895c70a1ea720dc0377618c23e27c83ecf4d87b6e0f6c323790a4",
+      "sha256_destination": "9e97fc0b4ce895c70a1ea720dc0377618c23e27c83ecf4d87b6e0f6c323790a4"
+    },
+    {
+      "path": ".claude/skills/speckit-specify/SKILL.md",
+      "sha256_source": "d4d93f2444355136e78bb533988aa2dd560dc4b258f4923f67b1a437e7de38f8",
+      "sha256_destination": "d4d93f2444355136e78bb533988aa2dd560dc4b258f4923f67b1a437e7de38f8"
+    },
+    {
+      "path": ".claude/skills/speckit-tasks/SKILL.md",
+      "sha256_source": "d148aeda1011260c4465c5f105fa1e045a0b0224ccb3e6e0c1ec32c732cae1ae",
+      "sha256_destination": "d148aeda1011260c4465c5f105fa1e045a0b0224ccb3e6e0c1ec32c732cae1ae"
+    },
+    {
+      "path": ".claude/skills/speckit-taskstoissues/SKILL.md",
+      "sha256_source": "464bbaf464a28ffa371b0452599c18e7cb5799630148d9f945e6a4d7066a1234",
+      "sha256_destination": "464bbaf464a28ffa371b0452599c18e7cb5799630148d9f945e6a4d7066a1234"
+    },
+    {
+      "path": ".env.example",
+      "sha256_source": "7d9bf45840105cecc9b9b2353884b315ca0533ce5ff6be9b9a99772e06c73405",
+      "sha256_destination": "7d9bf45840105cecc9b9b2353884b315ca0533ce5ff6be9b9a99772e06c73405"
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "sha256_source": "8d1e0f7730be33af764028830a7a438ed5b6458ddf8e6c402f8d75e7daf8ee82",
+      "sha256_destination": "8d1e0f7730be33af764028830a7a438ed5b6458ddf8e6c402f8d75e7daf8ee82"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256_source": "fbec4d52c4245a9a52a0911cccc599e8e14105ae46292beac5e14a1cfa7696ad",
+      "sha256_destination": "fbec4d52c4245a9a52a0911cccc599e8e14105ae46292beac5e14a1cfa7696ad"
+    },
+    {
+      "path": ".gitleaksignore",
+      "sha256_source": "070061746c3e47653159b8f3c5f7b5cfdcd24d7cdb794ad9e833b9525d687783",
+      "sha256_destination": "070061746c3e47653159b8f3c5f7b5cfdcd24d7cdb794ad9e833b9525d687783"
+    },
+    {
+      "path": ".pre-commit-config.yaml",
+      "sha256_source": "c5b43dc1b9bc527ee8d68c7a64f91c79e83361bc24e0f034eafe6292ecccb1b7",
+      "sha256_destination": "c5b43dc1b9bc527ee8d68c7a64f91c79e83361bc24e0f034eafe6292ecccb1b7"
+    },
+    {
+      "path": ".specify/.gitignore",
+      "sha256_source": "8c908410d177a1ef3d0dee16d7ad55f2ac3333df3104c4d4adee1c9b82f1dbc1",
+      "sha256_destination": "8c908410d177a1ef3d0dee16d7ad55f2ac3333df3104c4d4adee1c9b82f1dbc1"
+    },
+    {
+      "path": ".specify/init-options.json",
+      "sha256_source": "de02afa7f0cb8f440b1f1fb95096f7d662e91a090adabeb895960211753e24e2",
+      "sha256_destination": "de02afa7f0cb8f440b1f1fb95096f7d662e91a090adabeb895960211753e24e2"
+    },
+    {
+      "path": ".specify/integration.json",
+      "sha256_source": "6b04758c6fb7c1757a7799a532ed0170848f3228ad44df768b199bf510c01f7e",
+      "sha256_destination": "6b04758c6fb7c1757a7799a532ed0170848f3228ad44df768b199bf510c01f7e"
+    },
+    {
+      "path": ".specify/integrations/claude.manifest.json",
+      "sha256_source": "d60998aa6d69af56dc2d9838634d4959a93178e80328298b85760f9bc4760690",
+      "sha256_destination": "d60998aa6d69af56dc2d9838634d4959a93178e80328298b85760f9bc4760690"
+    },
+    {
+      "path": ".specify/integrations/codex.manifest.json",
+      "sha256_source": "ea79b14b675bb5c2fc00ee34e5ce56947eae7c11d9c1eb5dd096bad618f880d2",
+      "sha256_destination": "ea79b14b675bb5c2fc00ee34e5ce56947eae7c11d9c1eb5dd096bad618f880d2"
+    },
+    {
+      "path": ".specify/integrations/speckit.manifest.json",
+      "sha256_source": "94ccba7768153876a8008be791651a7b456861c77fc3e494ec0443151edbb156",
+      "sha256_destination": "94ccba7768153876a8008be791651a7b456861c77fc3e494ec0443151edbb156"
+    },
+    {
+      "path": ".specify/memory/.constitution-template.json",
+      "sha256_source": "8fc4b39294bae0c10d59547ad7d415b6f0e890d656cbf7171dd567f4e9054711",
+      "sha256_destination": "8fc4b39294bae0c10d59547ad7d415b6f0e890d656cbf7171dd567f4e9054711"
+    },
+    {
+      "path": ".specify/memory/constitution.md",
+      "sha256_source": "1468f3118593dfbea17a964c143e600b3a656d174b8b837e09e258107a7c1d65",
+      "sha256_destination": "1468f3118593dfbea17a964c143e600b3a656d174b8b837e09e258107a7c1d65"
+    },
+    {
+      "path": ".specify/scripts/bash/check-prerequisites.sh",
+      "sha256_source": "daa377146db4fb69912f42611a7b91c5d55873b3e3e27ed33bd8d67505826344",
+      "sha256_destination": "daa377146db4fb69912f42611a7b91c5d55873b3e3e27ed33bd8d67505826344"
+    },
+    {
+      "path": ".specify/scripts/bash/common.sh",
+      "sha256_source": "170e91ece502b88d83c715e427473843e0b358f550e86e3ff524546df405a9ca",
+      "sha256_destination": "170e91ece502b88d83c715e427473843e0b358f550e86e3ff524546df405a9ca"
+    },
+    {
+      "path": ".specify/scripts/bash/create-new-feature.sh",
+      "sha256_source": "9f7a741d9766a6c1c5d5e44368f2c6bea6026b399ff6f0055870f760afdb8726",
+      "sha256_destination": "9f7a741d9766a6c1c5d5e44368f2c6bea6026b399ff6f0055870f760afdb8726"
+    },
+    {
+      "path": ".specify/scripts/bash/resolve-template.sh",
+      "sha256_source": "829e227096abc8bf0889889ec9f792f503ca5d395b7836a8a7eb739ee75214e7",
+      "sha256_destination": "829e227096abc8bf0889889ec9f792f503ca5d395b7836a8a7eb739ee75214e7"
+    },
+    {
+      "path": ".specify/scripts/bash/setup-plan.sh",
+      "sha256_source": "d0bd298c026446f3c63167130d65e49e4aa4485de6bef18bcdfd57b19aa0de96",
+      "sha256_destination": "d0bd298c026446f3c63167130d65e49e4aa4485de6bef18bcdfd57b19aa0de96"
+    },
+    {
+      "path": ".specify/scripts/bash/setup-tasks.sh",
+      "sha256_source": "4a33dd1e6c32ddc7d570f4b538572c54069192573eed0ec654d9fb826e31a4fe",
+      "sha256_destination": "4a33dd1e6c32ddc7d570f4b538572c54069192573eed0ec654d9fb826e31a4fe"
+    },
+    {
+      "path": ".specify/templates/checklist-template.md",
+      "sha256_source": "856532b3cb66171c662cc16f16b31a5856e4655a8666aad1e545bbfc7f603ca1",
+      "sha256_destination": "856532b3cb66171c662cc16f16b31a5856e4655a8666aad1e545bbfc7f603ca1"
+    },
+    {
+      "path": ".specify/templates/constitution-template.md",
+      "sha256_source": "ce7549540fa45543cca797a150201d868e64495fdff39dc38246fb17bd4024b3",
+      "sha256_destination": "ce7549540fa45543cca797a150201d868e64495fdff39dc38246fb17bd4024b3"
+    },
+    {
+      "path": ".specify/templates/plan-template.md",
+      "sha256_source": "7e637502d41eccf0ca672496636365691fdca62ef37b27ec07fcb412dbfa90d4",
+      "sha256_destination": "7e637502d41eccf0ca672496636365691fdca62ef37b27ec07fcb412dbfa90d4"
+    },
+    {
+      "path": ".specify/templates/spec-template.md",
+      "sha256_source": "3945437fc35cd30a5b2bf7beea680337c3516826d3efa5a6b92c4a7eca1ba28e",
+      "sha256_destination": "3945437fc35cd30a5b2bf7beea680337c3516826d3efa5a6b92c4a7eca1ba28e"
+    },
+    {
+      "path": ".specify/templates/tasks-template.md",
+      "sha256_source": "fc29a233f6f5a27ca31f1aa46b596af6500c627441c6e62b2bc4a1d721525842",
+      "sha256_destination": "fc29a233f6f5a27ca31f1aa46b596af6500c627441c6e62b2bc4a1d721525842"
+    },
+    {
+      "path": ".specify/workflows/speckit/workflow.yml",
+      "sha256_source": "177761c5e7df28126beea043b5cb45aeaf7958090c022dc11ac71399422fcfbc",
+      "sha256_destination": "177761c5e7df28126beea043b5cb45aeaf7958090c022dc11ac71399422fcfbc"
+    },
+    {
+      "path": ".specify/workflows/workflow-registry.json",
+      "sha256_source": "3ab172867577b8c1fcafb163179678d7166443505a5765c04cd02f13aa2bf8c2",
+      "sha256_destination": "3ab172867577b8c1fcafb163179678d7166443505a5765c04cd02f13aa2bf8c2"
+    },
+    {
+      "path": ".streamlit/config.toml",
+      "sha256_source": "5ee1fbde12754e9d7636313a5ac40a66ca92bd45bac607b7907ad699ef124ef2",
+      "sha256_destination": "5ee1fbde12754e9d7636313a5ac40a66ca92bd45bac607b7907ad699ef124ef2"
+    },
+    {
+      "path": "accounts/admin.py",
+      "sha256_source": "ec6ead960c5fdf186788c5945007c465ff44d5a914040bd775ef3c109a5d30f8",
+      "sha256_destination": "ec6ead960c5fdf186788c5945007c465ff44d5a914040bd775ef3c109a5d30f8"
+    },
+    {
+      "path": "accounts/admin_site.py",
+      "sha256_source": "591340fc85303452b442f41044aba18c82344360ffcdbfdf001d4d25fc55eb95",
+      "sha256_destination": "591340fc85303452b442f41044aba18c82344360ffcdbfdf001d4d25fc55eb95"
+    },
+    {
+      "path": "accounts/apps.py",
+      "sha256_source": "18e2eead477b44dd04296f2b80e78f7c54db0bbd004406d43f5663d3c5841371",
+      "sha256_destination": "18e2eead477b44dd04296f2b80e78f7c54db0bbd004406d43f5663d3c5841371"
+    },
+    {
+      "path": "accounts/backends.py",
+      "sha256_source": "ca66879402dc4cc1860acafd0a7fd891be2ffe68c67d5d88868999ed1bb0654c",
+      "sha256_destination": "ca66879402dc4cc1860acafd0a7fd891be2ffe68c67d5d88868999ed1bb0654c"
+    },
+    {
+      "path": "accounts/forms.py",
+      "sha256_source": "2e579ffcb2234d863dc668ad6ceed0fdda7577815f4bdcaadbfd2b4ff363e095",
+      "sha256_destination": "2e579ffcb2234d863dc668ad6ceed0fdda7577815f4bdcaadbfd2b4ff363e095"
+    },
+    {
+      "path": "accounts/management/commands/__init__.py",
+      "sha256_source": "fd4376289d57c91fdb1e073497995d49d10777f9ce391cedd7132036d2a38659",
+      "sha256_destination": "fd4376289d57c91fdb1e073497995d49d10777f9ce391cedd7132036d2a38659"
+    },
+    {
+      "path": "accounts/management/commands/bootstrap_admin.py",
+      "sha256_source": "0bd2f1b5290d3fb861b203bca52bb3bad9805e3d5030736b9c4566cb28f84c96",
+      "sha256_destination": "0bd2f1b5290d3fb861b203bca52bb3bad9805e3d5030736b9c4566cb28f84c96"
+    },
+    {
+      "path": "accounts/middleware.py",
+      "sha256_source": "01f35126a18b347a92ff110eea04b6cc5a7a567e220e9dd81addf898a3cb7316",
+      "sha256_destination": "01f35126a18b347a92ff110eea04b6cc5a7a567e220e9dd81addf898a3cb7316"
+    },
+    {
+      "path": "accounts/migrations/0001_initial.py",
+      "sha256_source": "e5ea3d4a13ec01c464d833d7bfee4fb62f726027610949050ed22bfe8a70438c",
+      "sha256_destination": "e5ea3d4a13ec01c464d833d7bfee4fb62f726027610949050ed22bfe8a70438c"
+    },
+    {
+      "path": "accounts/migrations/0002_seed_roles.py",
+      "sha256_source": "05a8a7ebd61a64965a460d53d96aaade56d9390b4a0ee1ab7e9b8d84feff2982",
+      "sha256_destination": "05a8a7ebd61a64965a460d53d96aaade56d9390b4a0ee1ab7e9b8d84feff2982"
+    },
+    {
+      "path": "accounts/migrations/0003_account_security_state.py",
+      "sha256_source": "6633815bb7d19cc3f7ff8fd7cdb7ab3a7816a87903944c48db42ee2725eb0b93",
+      "sha256_destination": "6633815bb7d19cc3f7ff8fd7cdb7ab3a7816a87903944c48db42ee2725eb0b93"
+    },
+    {
+      "path": "accounts/migrations/0004_login_lockout.py",
+      "sha256_source": "2c426b8d3a73e20b8623105b13c7dc05afda5972a2d8e679ad5276e29f8a23de",
+      "sha256_destination": "2c426b8d3a73e20b8623105b13c7dc05afda5972a2d8e679ad5276e29f8a23de"
+    },
+    {
+      "path": "accounts/migrations/__init__.py",
+      "sha256_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256_destination": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "accounts/models.py",
+      "sha256_source": "7baa2cc5d4ca0acf16055745b4e3d326d50b34d67d2d9176dc5c9f958189562c",
+      "sha256_destination": "7baa2cc5d4ca0acf16055745b4e3d326d50b34d67d2d9176dc5c9f958189562c"
+    },
+    {
+      "path": "accounts/urls.py",
+      "sha256_source": "cbef5a80c3aee0534450cadfcb974b22b480050d47c9e62b0c4f070bf0835fef",
+      "sha256_destination": "cbef5a80c3aee0534450cadfcb974b22b480050d47c9e62b0c4f070bf0835fef"
+    },
+    {
+      "path": "accounts/views.py",
+      "sha256_source": "4c4e1f911aa03a73743ba84869ead66fe9117e3425dbf6dc7bae05b8b12abd2a",
+      "sha256_destination": "4c4e1f911aa03a73743ba84869ead66fe9117e3425dbf6dc7bae05b8b12abd2a"
+    },
+    {
+      "path": "adaptadores/__init__.py",
+      "sha256_source": "a39731a2f87be8c08306786088280bf1ee6406b32f8d79932f5eba31d8fff1ad",
+      "sha256_destination": "a39731a2f87be8c08306786088280bf1ee6406b32f8d79932f5eba31d8fff1ad"
+    },
+    {
+      "path": "adaptadores/diccionario.py",
+      "sha256_source": "ba1f9130769fd7e8fb450d4242e029bec81464b206f4b45759c861f6810e2791",
+      "sha256_destination": "ba1f9130769fd7e8fb450d4242e029bec81464b206f4b45759c861f6810e2791"
+    },
+    {
+      "path": "adaptadores/docx_corregido.py",
+      "sha256_source": "210d7014caddbf2c89b5bd8a4ba8f70aa56e707cb6c23b9074234a3751e53f12",
+      "sha256_destination": "210d7014caddbf2c89b5bd8a4ba8f70aa56e707cb6c23b9074234a3751e53f12"
+    },
+    {
+      "path": "adaptadores/extraccion.py",
+      "sha256_source": "a0cc1d68228f6c746f803bfb903cf3b68a82e1c738a0caa03e6a10163831413d",
+      "sha256_destination": "a0cc1d68228f6c746f803bfb903cf3b68a82e1c738a0caa03e6a10163831413d"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256_source": "f3e68f436862c765399e6729299ef198e6d3cdeb83196de403783132f2320c1f",
+      "sha256_destination": "f3e68f436862c765399e6729299ef198e6d3cdeb83196de403783132f2320c1f"
+    },
+    {
+      "path": "app.py",
+      "sha256_source": "327064051ba6dbda8054c39ff7aa36e6e66778abab25c5c0582e58c40f3ce924",
+      "sha256_destination": "327064051ba6dbda8054c39ff7aa36e6e66778abab25c5c0582e58c40f3ce924"
+    },
+    {
+      "path": "app_ortografia.py",
+      "sha256_source": "aa55d01a1a649de398f941cbb58b0869bf89dbe3fd2af158113da0d6446e6ffa",
+      "sha256_destination": "aa55d01a1a649de398f941cbb58b0869bf89dbe3fd2af158113da0d6446e6ffa"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256_source": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49",
+      "sha256_destination": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+    },
+    {
+      "path": "config/__init__.py",
+      "sha256_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256_destination": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "config/apps.py",
+      "sha256_source": "355bca7ba9353ff4ac4859bea525c90568e805226606bd52991660de2a6510e0",
+      "sha256_destination": "355bca7ba9353ff4ac4859bea525c90568e805226606bd52991660de2a6510e0"
+    },
+    {
+      "path": "config/asgi.py",
+      "sha256_source": "68091a061d54455635f667d22e5f5a7bc45bab421168ff043eb4ada0ef121cd0",
+      "sha256_destination": "68091a061d54455635f667d22e5f5a7bc45bab421168ff043eb4ada0ef121cd0"
+    },
+    {
+      "path": "config/settings.py",
+      "sha256_source": "57ecc855d452fd1659b29d6bce740dc6dcb0f00955dfacfcc9915029e85e6eb0",
+      "sha256_destination": "57ecc855d452fd1659b29d6bce740dc6dcb0f00955dfacfcc9915029e85e6eb0"
+    },
+    {
+      "path": "config/urls.py",
+      "sha256_source": "38650b5b259474c5e91ab804ce8d87843d2fb083073a84961eb28cd42809ac2c",
+      "sha256_destination": "38650b5b259474c5e91ab804ce8d87843d2fb083073a84961eb28cd42809ac2c"
+    },
+    {
+      "path": "config/wsgi.py",
+      "sha256_source": "f2563644298f803003bd744e8bd67fdf55e97f8f79d5420269bee499541b7269",
+      "sha256_destination": "f2563644298f803003bd744e8bd67fdf55e97f8f79d5420269bee499541b7269"
+    },
+    {
+      "path": "core/__init__.py",
+      "sha256_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256_destination": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "core/apps.py",
+      "sha256_source": "bf5ed4638a9bab73339adcd2ba6542beda0edb0ac40103855bc189a89ca75e84",
+      "sha256_destination": "bf5ed4638a9bab73339adcd2ba6542beda0edb0ac40103855bc189a89ca75e84"
+    },
+    {
+      "path": "core/context_processors.py",
+      "sha256_source": "5ea06e6a7d5c5d7d225f0de2de6469d0853b9471ffd197eccee592855de67210",
+      "sha256_destination": "5ea06e6a7d5c5d7d225f0de2de6469d0853b9471ffd197eccee592855de67210"
+    },
+    {
+      "path": "core/urls.py",
+      "sha256_source": "639d8282df3a251828821e33cdd17c6d94f7a420df00fba17299ae9e3808f6f1",
+      "sha256_destination": "639d8282df3a251828821e33cdd17c6d94f7a420df00fba17299ae9e3808f6f1"
+    },
+    {
+      "path": "core/views.py",
+      "sha256_source": "8eb0433e0832fe1a8217488040296e04fc85c3a53d9cfefb0a93b74b36dba3ad",
+      "sha256_destination": "8eb0433e0832fe1a8217488040296e04fc85c3a53d9cfefb0a93b74b36dba3ad"
+    },
+    {
+      "path": "docs/arquitectura/erp-notarial-c4.drawio",
+      "sha256_source": "0a74c915acc32ea55e7b44f7f073c7086f12458220e7b5da13ff568894270fb5",
+      "sha256_destination": "0a74c915acc32ea55e7b44f7f073c7086f12458220e7b5da13ff568894270fb5"
+    },
+    {
+      "path": "docs/arquitectura/f4-expedientes-flujo.mmd",
+      "sha256_source": "eb3f8cc1c30d54a3920d49b8557d9628065d5f183c1d4c6b515a460d13ed847a",
+      "sha256_destination": "eb3f8cc1c30d54a3920d49b8557d9628065d5f183c1d4c6b515a460d13ed847a"
+    },
+    {
+      "path": "docs/arquitectura/f4-expedientes-modelo.mmd",
+      "sha256_source": "92e93cb0a88152a6a89b2d2ff5312f5ac64065a94c97556ab39f82d1fd274430",
+      "sha256_destination": "92e93cb0a88152a6a89b2d2ff5312f5ac64065a94c97556ab39f82d1fd274430"
+    },
+    {
+      "path": "docs/catalogo-datos.md",
+      "sha256_source": "ba505b7800ffe17c63402b03eb81cbe3d0959955e09ce0584eb5e1638e04257e",
+      "sha256_destination": "ba505b7800ffe17c63402b03eb81cbe3d0959955e09ce0584eb5e1638e04257e"
+    },
+    {
+      "path": "docs/catalogo-fuentes.md",
+      "sha256_source": "01994af953c20942c00565550f3ec2b93e30efdae32cabcce5645011d2259419",
+      "sha256_destination": "01994af953c20942c00565550f3ec2b93e30efdae32cabcce5645011d2259419"
+    },
+    {
+      "path": "docs/deuda-f3.md",
+      "sha256_source": "34462b12f8a6809850506dc7759a8d0105c682e6ffcec6cd3d8d7db6b47d0234",
+      "sha256_destination": "34462b12f8a6809850506dc7759a8d0105c682e6ffcec6cd3d8d7db6b47d0234"
+    },
+    {
+      "path": "docs/mediciones-ocr.md",
+      "sha256_source": "9ef8225dfe69ec253e8ef671b99bb31407f3ac2cbb659d79158ee134ebcf38b7",
+      "sha256_destination": "9ef8225dfe69ec253e8ef671b99bb31407f3ac2cbb659d79158ee134ebcf38b7"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "sha256_source": "4849d8d2df2cf2339c5c7076f58e6d59ad4957165ae2df3fd73cc20b035cd6c1",
+      "sha256_destination": "4849d8d2df2cf2339c5c7076f58e6d59ad4957165ae2df3fd73cc20b035cd6c1"
+    },
+    {
+      "path": "expedientes/apps.py",
+      "sha256_source": "55be242a4ebbd1a8900c848b1a4c6ee1bd245ed78734d07694042ed433dfd244",
+      "sha256_destination": "55be242a4ebbd1a8900c848b1a4c6ee1bd245ed78734d07694042ed433dfd244"
+    },
+    {
+      "path": "expedientes/forms.py",
+      "sha256_source": "2cd5ebfe7fd30f57b0db03d0084b53a27e950246e62956630e574a0a7de36c10",
+      "sha256_destination": "2cd5ebfe7fd30f57b0db03d0084b53a27e950246e62956630e574a0a7de36c10"
+    },
+    {
+      "path": "expedientes/management/commands/__init__.py",
+      "sha256_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256_destination": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "expedientes/management/commands/limpiar_temporales.py",
+      "sha256_source": "551981d057794ac8545a960e01a16117ecb25a016ebf43f888ef1681573c686b",
+      "sha256_destination": "551981d057794ac8545a960e01a16117ecb25a016ebf43f888ef1681573c686b"
+    },
+    {
+      "path": "expedientes/management/commands/procesar_documentos.py",
+      "sha256_source": "53b3ef7518c9f9b393b8362871ebe7d8e660c7f6461baa192ea6a309ec080782",
+      "sha256_destination": "53b3ef7518c9f9b393b8362871ebe7d8e660c7f6461baa192ea6a309ec080782"
+    },
+    {
+      "path": "expedientes/management/commands/reconstruir_corrida.py",
+      "sha256_source": "006e2b7f110f73973d21f4d78f6ca9949fa1461e0bc153504a12607532e56be7",
+      "sha256_destination": "006e2b7f110f73973d21f4d78f6ca9949fa1461e0bc153504a12607532e56be7"
+    },
+    {
+      "path": "expedientes/management/commands/reextraer_expediente.py",
+      "sha256_source": "50111b8407f638efc0302e913af210f5b2e246870126fd80f7651a927f4bdf2e",
+      "sha256_destination": "50111b8407f638efc0302e913af210f5b2e246870126fd80f7651a927f4bdf2e"
+    },
+    {
+      "path": "expedientes/management/commands/suprimir_texto_expediente.py",
+      "sha256_source": "a9060c3665b11e0f6d9b4036223bfbc0768a21e19dd9699e813610802f9b8507",
+      "sha256_destination": "a9060c3665b11e0f6d9b4036223bfbc0768a21e19dd9699e813610802f9b8507"
+    },
+    {
+      "path": "expedientes/migrations/0001_initial.py",
+      "sha256_source": "c1a6c6dd1b45f9287786c20eba2f3e20d290b5888461c9f94e623e730109ac88",
+      "sha256_destination": "c1a6c6dd1b45f9287786c20eba2f3e20d290b5888461c9f94e623e730109ac88"
+    },
+    {
+      "path": "expedientes/migrations/0002_documento_roles.py",
+      "sha256_source": "6c20cb312f072f4060e73435ef874a49c3329f8de527fdce91e113b5dac6ec50",
+      "sha256_destination": "6c20cb312f072f4060e73435ef874a49c3329f8de527fdce91e113b5dac6ec50"
+    },
+    {
+      "path": "expedientes/migrations/0003_manifiesto_auditoria.py",
+      "sha256_source": "5e80a0f87b8414d87ee71809cb0cb3f77263c8670d0a9d8ee5048b442031c044",
+      "sha256_destination": "5e80a0f87b8414d87ee71809cb0cb3f77263c8670d0a9d8ee5048b442031c044"
+    },
+    {
+      "path": "expedientes/migrations/0004_decisioncorreccion_aplicacion.py",
+      "sha256_source": "176fbae1bc10076e8321c49201579b7baeb66a0c937f13f1ff39d067970adfa2",
+      "sha256_destination": "176fbae1bc10076e8321c49201579b7baeb66a0c937f13f1ff39d067970adfa2"
+    },
+    {
+      "path": "expedientes/migrations/0005_expediente_archivado.py",
+      "sha256_source": "b360889316e2c945e05c94186e054c2c7a57e4de3cdbbb7baf5a355d34517979",
+      "sha256_destination": "b360889316e2c945e05c94186e054c2c7a57e4de3cdbbb7baf5a355d34517979"
+    },
+    {
+      "path": "expedientes/migrations/0006_corrida_origen_presentacion.py",
+      "sha256_source": "2c401dd9d66d097eab16b901c1d1bafd08bf98d9ccc26e640293fe5154abc920",
+      "sha256_destination": "2c401dd9d66d097eab16b901c1d1bafd08bf98d9ccc26e640293fe5154abc920"
+    },
+    {
+      "path": "expedientes/migrations/0007_expediente_codigo_activo_unico.py",
+      "sha256_source": "df287990f3673a75ebeb9f81ab95eb1d9fc3b042da0dad1e4a959f664e7c5586",
+      "sha256_destination": "df287990f3673a75ebeb9f81ab95eb1d9fc3b042da0dad1e4a959f664e7c5586"
+    },
+    {
+      "path": "expedientes/migrations/__init__.py",
+      "sha256_source": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256_destination": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "expedientes/models.py",
+      "sha256_source": "3ab7196fcba48fd88a16dafdd094792512e23998bb971b28a4110e94a58ab3d2",
+      "sha256_destination": "3ab7196fcba48fd88a16dafdd094792512e23998bb971b28a4110e94a58ab3d2"
+    },
+    {
+      "path": "expedientes/services.py",
+      "sha256_source": "49d058bcb4048e4269f2680f1968fb26e79bc145e64d39971fc470f5329d9159",
+      "sha256_destination": "49d058bcb4048e4269f2680f1968fb26e79bc145e64d39971fc470f5329d9159"
+    },
+    {
+      "path": "expedientes/urls.py",
+      "sha256_source": "d014b24481a93aadc3660587db673cac23f60cf7621b0b154dc0279257649541",
+      "sha256_destination": "d014b24481a93aadc3660587db673cac23f60cf7621b0b154dc0279257649541"
+    },
+    {
+      "path": "expedientes/views.py",
+      "sha256_source": "3ab534edbe7770d6b233ee515c611e6078a25fd9d267948e51c806b2b0763e18",
+      "sha256_destination": "3ab534edbe7770d6b233ee515c611e6078a25fd9d267948e51c806b2b0763e18"
+    },
+    {
+      "path": "extraer.py",
+      "sha256_source": "3982e57d3a3e96377daa3f83a04672909d0d4429c5d21a819fc38f46b5fabced",
+      "sha256_destination": "3982e57d3a3e96377daa3f83a04672909d0d4429c5d21a819fc38f46b5fabced"
+    },
+    {
+      "path": "lista_notarial.txt",
+      "sha256_source": "6a2875344cc4b6f8fcbc1527d44f7e0a4f2eccbbb9ebfafedc088c77b3948d3a",
+      "sha256_destination": "6a2875344cc4b6f8fcbc1527d44f7e0a4f2eccbbb9ebfafedc088c77b3948d3a"
+    },
+    {
+      "path": "manage.py",
+      "sha256_source": "30428108646cb4ce4db65635c073005a74654b2a908655f130880771e7493c14",
+      "sha256_destination": "30428108646cb4ce4db65635c073005a74654b2a908655f130880771e7493c14"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256_source": "061785c551986d57abd91a5cd0e0770655505477e1e0b522d2e88c22b6a0d88a",
+      "sha256_destination": "061785c551986d57abd91a5cd0e0770655505477e1e0b522d2e88c22b6a0d88a"
+    },
+    {
+      "path": "requirements-dev.in",
+      "sha256_source": "292b350d76c000d55aa00c8b95f1f7428cce451ccc0059dcf6f6e8b20b6adb08",
+      "sha256_destination": "292b350d76c000d55aa00c8b95f1f7428cce451ccc0059dcf6f6e8b20b6adb08"
+    },
+    {
+      "path": "requirements-dev.txt",
+      "sha256_source": "61497c5937be9db7670ce1b1be47013be6f42734144641f1677e411ff4a2a473",
+      "sha256_destination": "61497c5937be9db7670ce1b1be47013be6f42734144641f1677e411ff4a2a473"
+    },
+    {
+      "path": "requirements.in",
+      "sha256_source": "5c3fef0dc2f2394d03dcc2d64e482d5f7cda4b6ca3607231e5638689a067136d",
+      "sha256_destination": "5c3fef0dc2f2394d03dcc2d64e482d5f7cda4b6ca3607231e5638689a067136d"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256_source": "af0f793306a1aec6ae24116e0a07ff23f4f479c7207724fd2e0012b1926511f0",
+      "sha256_destination": "af0f793306a1aec6ae24116e0a07ff23f4f479c7207724fd2e0012b1926511f0"
+    },
+    {
+      "path": "sonar-project.properties",
+      "sha256_source": "148792d9f8bb559730cd97156b4ca1ac28c8ce3f81e508b93dcd9386b9afff77",
+      "sha256_destination": "148792d9f8bb559730cd97156b4ca1ac28c8ce3f81e508b93dcd9386b9afff77"
+    },
+    {
+      "path": "test_extraer.py",
+      "sha256_source": "ac59a5b2ed3596f4898ceeb7f4c3710ac9ac205ce0d64a7e9686280449071263",
+      "sha256_destination": "ac59a5b2ed3596f4898ceeb7f4c3710ac9ac205ce0d64a7e9686280449071263"
+    },
+    {
+      "path": "test_lexico.py",
+      "sha256_source": "be5cfa917bd894acd4f0057e1eaa19c6eabc0e71cdf7f778a18418b13527b48a",
+      "sha256_destination": "be5cfa917bd894acd4f0057e1eaa19c6eabc0e71cdf7f778a18418b13527b48a"
+    },
+    {
+      "path": "test_ocr_benchmark.py",
+      "sha256_source": "73b2cec4f158ab23bf01a4aa48809ddeafede87fa0e89762e72fc53a8a4f6190",
+      "sha256_destination": "73b2cec4f158ab23bf01a4aa48809ddeafede87fa0e89762e72fc53a8a4f6190"
+    },
+    {
+      "path": "test_ocr_research.py",
+      "sha256_source": "373318a58cbf859550f29c8e4ddc2747422453bd5a350ce3026739c447a17a62",
+      "sha256_destination": "373318a58cbf859550f29c8e4ddc2747422453bd5a350ce3026739c447a17a62"
+    },
+    {
+      "path": "test_ortografia.py",
+      "sha256_source": "c0a26ce7c42140319f1213b097f82576b5ac99f4b3b49c65c2ac0d095c5e3a94",
+      "sha256_destination": "c0a26ce7c42140319f1213b097f82576b5ac99f4b3b49c65c2ac0d095c5e3a94"
+    },
+    {
+      "path": "test_revisor_llm.py",
+      "sha256_source": "ce1c218dec0bebbeb3fcf85b0cb6c9ca5c21ea2e204e70e498c84523b91dd06f",
+      "sha256_destination": "ce1c218dec0bebbeb3fcf85b0cb6c9ca5c21ea2e204e70e498c84523b91dd06f"
+    },
+    {
+      "path": "test_verificar.py",
+      "sha256_source": "90acf1331b435fae05d9ac18fca0c081712f4f421683f0b23520d02195bfca9c",
+      "sha256_destination": "90acf1331b435fae05d9ac18fca0c081712f4f421683f0b23520d02195bfca9c"
+    }
+  ],
+  "skipped_existing_paths": [
+    ".gitignore",
+    "accounts/management/__init__.py",
+    "expedientes/__init__.py",
+    "expedientes/management/__init__.py",
+    "lexico.py",
+    "ortografia.py",
+    "README.md",
+    "verificar.py"
+  ]
+}

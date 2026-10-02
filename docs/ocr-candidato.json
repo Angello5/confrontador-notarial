@@ -1,0 +1,168 @@
+{
+  "esquema": 1,
+  "nota": "Medicion sintetica local; no predice precision en documentos reales.",
+  "motor": {
+    "rapidocr": "3.9.2",
+    "modelos_sha256": {
+      "ch_PP-OCRv5_mobile_det.onnx": "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae",
+      "latin_PP-OCRv5_rec_mobile_infer.onnx": "b20bd37c168a570f583afbc8cd7925603890efbcdc000a59e22c269d160b5f5a"
+    },
+    "version_extractor": "5e7272a7feeb751b58439e3ed6158bdc610dd09b1c03cf7f589018de00302e14"
+  },
+  "resumen": {
+    "casos": 7,
+    "campos_posibles": 21,
+    "campos_exactos": 21,
+    "latencia_mediana_ms": 5297.89,
+    "latencia_total_ms": 32899.92
+  },
+  "casos": [
+    {
+      "caso": "limpia",
+      "campos_exactos": {
+        "dni": true,
+        "nombre": true,
+        "importe": true
+      },
+      "campos_correctos": 3,
+      "latencia_ms": 5907.9,
+      "imagen_sha256": "94991032be3026624ea19d54f3ab7174956cb0ae24579f67beb211a5a409788d",
+      "deteccion_bruta": {
+        "cajas": 5,
+        "confianza_media": 0.9911,
+        "confianza_minima": 0.9642,
+        "angulo_borde_superior_mediano_grados": 0.0,
+        "angulo_borde_superior_rango_grados": [
+          -0.41,
+          0.07
+        ]
+      }
+    },
+    {
+      "caso": "inclinada_7_grados",
+      "campos_exactos": {
+        "dni": true,
+        "nombre": true,
+        "importe": true
+      },
+      "campos_correctos": 3,
+      "latencia_ms": 2844.68,
+      "imagen_sha256": "2dcce9946fc1588c7ff8aa5ae551c8f18d9fc251038df3cb2b9eeaa2d500001a",
+      "deteccion_bruta": {
+        "cajas": 5,
+        "confianza_media": 0.9952,
+        "confianza_minima": 0.9878,
+        "angulo_borde_superior_mediano_grados": -6.91,
+        "angulo_borde_superior_rango_grados": [
+          -7.02,
+          -6.85
+        ]
+      }
+    },
+    {
+      "caso": "inclinada_10_grados",
+      "campos_exactos": {
+        "dni": true,
+        "nombre": true,
+        "importe": true
+      },
+      "campos_correctos": 3,
+      "latencia_ms": 2711.42,
+      "imagen_sha256": "6d38017d9c2a8a500b11842ab84280137d27054f97a201f129dff2afe3bd7de3",
+      "deteccion_bruta": {
+        "cajas": 5,
+        "confianza_media": 0.9912,
+        "confianza_minima": 0.9754,
+        "angulo_borde_superior_mediano_grados": 9.96,
+        "angulo_borde_superior_rango_grados": [
+          9.94,
+          10.03
+        ]
+      }
+    },
+    {
+      "caso": "giro_90_grados",
+      "campos_exactos": {
+        "dni": true,
+        "nombre": true,
+        "importe": true
+      },
+      "campos_correctos": 3,
+      "latencia_ms": 5297.89,
+      "imagen_sha256": "626bac5f354299aa1bc6f141ae9d8ba9d90e86bdf2e435a473fc0c9ea242f780",
+      "deteccion_bruta": {
+        "cajas": 2,
+        "confianza_media": 0.8584,
+        "confianza_minima": 0.7263,
+        "angulo_borde_superior_mediano_grados": 0.0,
+        "angulo_borde_superior_rango_grados": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "caso": "giro_180_grados",
+      "campos_exactos": {
+        "dni": true,
+        "nombre": true,
+        "importe": true
+      },
+      "campos_correctos": 3,
+      "latencia_ms": 5009.06,
+      "imagen_sha256": "dea8214d012e5e61ba631aa87c5f8ff53b06b6900ff0377648b4c2b179337a70",
+      "deteccion_bruta": {
+        "cajas": 1,
+        "confianza_media": 0.9779,
+        "confianza_minima": 0.9779,
+        "angulo_borde_superior_mediano_grados": 0.0,
+        "angulo_borde_superior_rango_grados": [
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "caso": "bajo_contraste",
+      "campos_exactos": {
+        "dni": true,
+        "nombre": true,
+        "importe": true
+      },
+      "campos_correctos": 3,
+      "latencia_ms": 5476.56,
+      "imagen_sha256": "5662ceaa5c4100a9f143ffbfbfb23f0ded40203c2cb280409e872823b8a4c622",
+      "deteccion_bruta": {
+        "cajas": 5,
+        "confianza_media": 0.991,
+        "confianza_minima": 0.9627,
+        "angulo_borde_superior_mediano_grados": 0.0,
+        "angulo_borde_superior_rango_grados": [
+          0.0,
+          0.07
+        ]
+      }
+    },
+    {
+      "caso": "marcas_diagonales",
+      "campos_exactos": {
+        "dni": true,
+        "nombre": true,
+        "importe": true
+      },
+      "campos_correctos": 3,
+      "latencia_ms": 5652.41,
+      "imagen_sha256": "eb147dca92fbb62236ea12df7e6c812c2494b24b464fb3cf79ea17fcd80d608e",
+      "deteccion_bruta": {
+        "cajas": 9,
+        "confianza_media": 0.9952,
+        "confianza_minima": 0.9745,
+        "angulo_borde_superior_mediano_grados": 0.0,
+        "angulo_borde_superior_rango_grados": [
+          -0.66,
+          2.16
+        ]
+      }
+    }
+  ]
+}

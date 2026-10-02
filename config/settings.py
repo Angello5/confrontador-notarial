@@ -91,6 +91,8 @@ MIDDLEWARE = [
 ROOT_URLCONF = "config.urls"
 # F28: nombre de la notaría en la interfaz; el real se configura en el servidor.
 ERP_NOMBRE = os.environ.get("ERP_NOMBRE", "ERP Notarial")
+ERP_LOGO = os.environ.get("ERP_LOGO", "").strip()
+ERP_DIRECCION = os.environ.get("ERP_DIRECCION", "").strip()
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",

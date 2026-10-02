@@ -72,6 +72,7 @@ def test_suprimir_texto_vacia_compartidos_e_informa_expedientes_afectados(
         hash_archivo="4" * 64,
         version_extractor="ocr-ficticio-v1",
         texto="dato sintético que debe desaparecer",
+        calidad={"paginas": [{"cajas": [{"texto": "dato ficticio privado"}]}]},
         ultimo_uso_el=timezone.now(),
     )
     expedientes = [
@@ -96,6 +97,7 @@ def test_suprimir_texto_vacia_compartidos_e_informa_expedientes_afectados(
     texto.refresh_from_db()
 
     assert texto.texto == ""
+    assert texto.calidad == {}
     salida = capsys.readouterr().out
     assert "Expediente solicitado incluido: 1" in salida
     assert "Otros expedientes que compartían el texto: 1" in salida

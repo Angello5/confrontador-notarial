@@ -1,6 +1,7 @@
 {% comment %}
 Chip de estado. `estado` elige el color (data-estado en erp.css); el texto es
-`texto` o, si falta, el texto de estado de siempre. Con `sondeo_id`, Alpine lo
+`texto` o, si falta, el texto de estado de siempre; `clase` añade clases
+(p. ej. «sev» para las severidades). Con `sondeo_id`, Alpine lo
 actualiza desde `documentos` del sondeo del expediente.
 {% endcomment %}
-<span class="chip" data-estado="{{ estado }}"{% if sondeo_id %} :data-estado="documentos.find(item => item.id === {{ sondeo_id }})?.estado" x-text="documentos.find(item => item.id === {{ sondeo_id }})?.estado_texto"{% endif %}>{% if texto %}{{ texto }}{% elif estado == "VACIO" %}Sin documentos{% elif estado == "PENDIENTE" %}Pendiente{% elif estado == "PROCESANDO" %}Procesando{% elif estado == "LISTO" %}Listo{% else %}No se pudo procesar{% endif %}</span>
+<span class="chip{% if clase %} {{ clase }}{% endif %}" data-estado="{{ estado }}"{% if sondeo_id %} :data-estado="documentos.find(item => item.id === {{ sondeo_id }})?.estado" x-text="documentos.find(item => item.id === {{ sondeo_id }})?.estado_texto"{% endif %}>{% if texto %}{{ texto }}{% elif estado == "VACIO" %}Sin documentos{% elif estado == "PENDIENTE" %}Pendiente{% elif estado == "PROCESANDO" %}Procesando{% elif estado == "LISTO" %}Listo{% else %}No se pudo procesar{% endif %}</span>

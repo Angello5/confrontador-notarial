@@ -1,0 +1,101 @@
+/*
+ * Notaría Espinosa: tokens de marca.
+ * Extraídos de https://www.notariaespinosa.com (tema Wix + CSS computado), 2026-10-01.
+ * Guía completa: docs/branding/notaria-espinosa.md
+ *
+ * Fuentes (Google Fonts):
+ * <link rel="preconnect" href="https://fonts.googleapis.com">
+ * <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ * <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&family=Nunito+Sans:wght@300;400;600;800&family=Poppins:wght@600&display=swap" rel="stylesheet">
+ */
+
+:root {
+  /* ── Núcleo ─────────────────────────────────────────── */
+  --ne-navy: #0f2765;   /* marca: títulos, texto, topbar */
+  --ne-ink: #00112c;    /* tinta: texto sobre verde, paneles oscuros */
+  --ne-green: #44d880;  /* acción: CTA, activo */
+  --ne-slate: #4b5d8c;  /* texto secundario, nav inactivo */
+  --ne-white: #ffffff;
+
+  /* ── Escala marino ──────────────────────────────────── */
+  --ne-navy-50: #edeff8;
+  --ne-navy-100: #c3c9d9;
+  --ne-navy-200: #b3bfe7;
+  --ne-navy-300: #8999d0;
+  --ne-navy-400: #8793b2;
+  --ne-navy-500: #4b5d8c;
+  --ne-navy-600: #273b7b;
+  --ne-navy-700: #0f2765;
+  --ne-navy-800: #141d3d;
+  --ne-navy-900: #00112c;
+
+  /* ── Escala verde ───────────────────────────────────── */
+  --ne-green-50: #e5faed;
+  --ne-green-100: #c5ffcf;
+  --ne-green-300: #6ae29a;
+  --ne-green-400: #48e4a6;
+  --ne-green-500: #44d880;
+  --ne-green-700: #01835d;  /* verde para texto sobre blanco (AA) */
+  --ne-green-800: #0f6568;
+
+  /* ── Superficies (valores efectivos del sitio) ──────── */
+  --ne-surface: #ffffff;
+  --ne-surface-band: #e8ebf7;   /* rgba(179,191,231,.3) sobre blanco */
+  --ne-surface-card: #cfd3e0;   /* rgba(195,201,217,.8) sobre blanco */
+  --ne-surface-footer: #edeef3; /* rgba(195,201,217,.3) sobre blanco */
+  --ne-surface-dark: #00112c;
+  --ne-border: #c3c9d9;
+  --ne-border-strong: #0f2765;
+
+  /* ── Texto ──────────────────────────────────────────── */
+  --ne-text: var(--ne-navy);
+  --ne-text-muted: var(--ne-slate);
+  --ne-text-subtle: var(--ne-navy-400); /* solo ≥24px o iconos */
+  --ne-text-on-dark: #ffffff;
+  --ne-text-on-green: var(--ne-ink);
+  --ne-text-link: var(--ne-navy);
+
+  /* ── Estados (extensión para la app) ────────────────── */
+  --ne-success-bg: #e5faed; --ne-success-border: #44d880; --ne-success-text: #0f5132;
+  --ne-info-bg: #edeff8;    --ne-info-border: #4b5d8c;    --ne-info-text: #0f2765;
+  --ne-warning-bg: #fff6db; --ne-warning-border: #e0a400; --ne-warning-text: #5c4200;
+  --ne-danger-bg: #fdecee;  --ne-danger-border: #c8283c;  --ne-danger-text: #8b1c28;
+
+  /* ── Degradados ─────────────────────────────────────── */
+  --ne-gradient-band: linear-gradient(110deg, #00112c 12%, #0f2765 30%, #44d880 80%);
+  --ne-gradient-mark: linear-gradient(135deg, #48e4a6 0%, #44d880 15%, #1aa36a 45%, #01835d 62%, #0f6568 78%, #2c2e80 100%);
+
+  /* ── Tipografía ─────────────────────────────────────── */
+  --ne-font-display: "Prompt", "Poppins", system-ui, sans-serif;
+  --ne-font-body: "Avenir LT W01 35 Light", "Avenir Next", "Avenir", "Nunito Sans", system-ui, sans-serif;
+  --ne-font-label: "Poppins", "Prompt", system-ui, sans-serif;
+
+  --ne-text-display: 700 2.5rem/1.2 var(--ne-font-display);    /* 40/48 */
+  --ne-text-h1: 700 1.875rem/1.27 var(--ne-font-display);      /* 30/38 */
+  --ne-text-h2: 400 1.5rem/1.33 var(--ne-font-display);        /* 24/32 */
+  --ne-text-h3: 700 1.25rem/1.4 var(--ne-font-display);        /* 20/28 */
+  --ne-text-lead: 400 1.125rem/1.55 var(--ne-font-display);    /* 18/28 */
+  --ne-text-body: 400 1rem/1.5 var(--ne-font-body);            /* 16/24 */
+  --ne-text-sm: 400 0.875rem/1.43 var(--ne-font-body);         /* 14/20 */
+  --ne-text-xs: 600 0.75rem/1.33 var(--ne-font-body);          /* 12/16, MAYÚS */
+
+  --ne-tracking-title: 0.07em;   /* títulos de bloque Prompt 700 */
+  --ne-tracking-button: 0.1em;   /* CTA */
+  --ne-tracking-label: 0.2em;    /* etiquetas de valores en MAYÚS */
+
+  /* ── Forma y espacio ────────────────────────────────── */
+  --ne-radius: 0;          /* la marca es rectilínea */
+  --ne-radius-sm: 2px;     /* tolerancia para controles de app */
+  --ne-radius-pill: 999px; /* solo avatares / WhatsApp */
+  --ne-border-width: 1px;
+  --ne-focus-ring: 0 0 0 2px #fff, 0 0 0 5px var(--ne-green);
+  --ne-shadow-overlay: 0 8px 24px rgba(0, 17, 44, 0.16);
+
+  --ne-space-1: 4px;  --ne-space-2: 8px;  --ne-space-3: 12px; --ne-space-4: 16px;
+  --ne-space-5: 24px; --ne-space-6: 32px; --ne-space-7: 48px; --ne-space-8: 64px;
+  --ne-space-9: 96px;
+  --ne-container: 1200px;
+
+  --ne-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ne-duration: 200ms;
+}

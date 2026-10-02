@@ -40,6 +40,8 @@ class Catalogo(Mapping[str, frozenset[str]]):
         "rucs",
         "direcciones",
         "vocabulario",
+        "cantidades",
+        "registrales",
         "_fijo",
     )
 
@@ -54,6 +56,8 @@ class Catalogo(Mapping[str, frozenset[str]]):
         rucs=frozenset(),
         direcciones=frozenset(),
         vocabulario=(),
+        cantidades=frozenset(),
+        registrales=frozenset(),
     ):
         object.__setattr__(self, "personas", tuple(personas))
         object.__setattr__(self, "partidas", frozenset(partidas))
@@ -73,6 +77,9 @@ class Catalogo(Mapping[str, frozenset[str]]):
         )
         # F22 ronda 2: palabras de las fuentes, para distinguir el ruido OCR.
         object.__setattr__(self, "vocabulario", Counter(vocabulario))
+        # F30: (concepto, cifra) y (clase, valor); sin FALTA, por eso no son campos.
+        object.__setattr__(self, "cantidades", frozenset(cantidades))
+        object.__setattr__(self, "registrales", frozenset(registrales))
         object.__setattr__(self, "_fijo", True)
 
     def __setattr__(self, campo, valor):
@@ -156,8 +163,12 @@ RE_RUC_DOC = re.compile(_ROTULO_RUC + r"((?:10|15|16|17|20)\d{9})(?!\d)")
 RE_RUC_BORRADOR = re.compile(_ROTULO_RUC + r"(\d{9,13})(?!\d)")
 # F22: como el DNI de F19, en el borrador el rótulo basta.
 
-RE_PARTIDA = re.compile(r"PARTIDA\s*(?:ELECTRONICA\s*)?N[O°]?\s*(\d{5,})")
+RE_PARTIDA = re.compile(
+    r"(?<![A-ZÑ])(?:PARTIDA\s*(?:ELECTRONICA|REGISTRAL)?|FICHA\s*(?:REGISTRAL)?)"
+    r"\s*N[O°]?\.?\s*(\d{5,})"
+)
 # La forma corta PARTIDA N° también es valida en algunos actos.
+# F30: la FICHA (sistema anterior a la partida electrónica) es el mismo dato.
 
 RE_MONTO = re.compile(
     r"(US\$|S/\.?|\$|(?<![A-ZÑ])(?:SOLES|DOLARES(?: AMERICANOS)?))\s*(\d[\d,]*\.\d{2})"
@@ -174,6 +185,108 @@ def _monto(m: re.Match) -> str:
 
 def montos_de(t: str) -> list[str]:
     return [_monto(m) for m in RE_MONTO.finditer(t)]
+
+
+_CONCEPTOS = (
+    ("PRECIO", r"PRECIO(?: DE (?:VENTA|LA COMPRAVENTA|COMPRA))?"),
+    ("TASACION", r"(?:VALOR DE )?TASACION|VALOR TASADO"),
+    ("VALOR_COMERCIAL", r"VALOR COMERCIAL"),
+    ("VALOR_REALIZACION", r"VALOR DE REALIZACION"),
+    ("HIPOTECA", r"HIPOTECA|GRAVAMEN"),
+)
+_CUALQUIER_CONCEPTO = "|".join(patron for _, patron in _CONCEPTOS)
+RE_CANTIDAD = re.compile(
+    r"(?<![A-ZÑ])(?:"
+    + "|".join(f"(?P<{c}>{p})" for c, p in _CONCEPTOS)
+    + r")(?![A-ZÑ])"
+    rf"(?:(?!(?<!S/)\.\s|(?<![A-ZÑ])(?:{_CUALQUIER_CONCEPTO})(?![A-ZÑ])).){{0,160}}?"
+    r"(?<![\d,.])(?P<cifra>\d{1,3}(?:,\d{3})+\.\d{2}|\d+\.\d{2})(?!\d)"
+)
+# F30: la primera cifra con dos decimales tras el concepto, en la misma oración y
+# antes de otro concepto; con o sin moneda. Un punto tras abreviatura corta la
+# oración: se pierde la cantidad, no hay falso positivo.
+
+
+def cantidades_de(t: str) -> list[tuple[str, str]]:
+    """F30: (concepto, cifra) de cada precio, tasación, valor o hipoteca."""
+    return [
+        (next(c for c, _ in _CONCEPTOS if m[c]), m["cifra"])
+        for m in RE_CANTIDAD.finditer(t)
+    ]
+
+
+_ZONAS_REGISTRALES = (
+    "PIURA CHICLAYO MOYOBAMBA IQUITOS TRUJILLO PUCALLPA HUARAZ HUANCAYO LIMA CUSCO "
+    "ICA AREQUIPA TACNA AYACUCHO"
+).split()
+# Sede de cada zona registral de SUNARP, de la I a la XIV.
+_ROMANOS = {
+    d + u: 10 * i + j
+    for i, d in enumerate(("", "X", "XX", "XXX"))
+    for j, u in enumerate(("", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"))
+    if i or j
+}
+_PARADAS_LUGAR = {
+    *"A AL CON DE DEL EL EN LA LAS LOS N NO QUE SE Y".split(),
+    *"ASIENTO BAJO DEPARTAMENTO DISTRITO FICHA PARTIDA PROVINCIA SEDE ZONA".split(),
+}
+_REGISTROS = (
+    "PREDIOS|PROPIEDAD INMUEBLE|PROPIEDAD VEHICULAR|PERSONAS JURIDICAS|"
+    "PERSONAS NATURALES|SOCIEDADES|MANDATOS Y PODERES|BIENES MUEBLES|TESTAMENTOS|"
+    "SUCESIONES INTESTADAS"
+)
+_DATOS_REGISTRALES = (
+    (
+        "ZONA",
+        re.compile(
+            r"(?<![A-ZÑ])ZONA REGISTRAL\s*(?:N[O°]?\.?\s*)?([IVX]+)(?![A-ZÑ])"
+            r"(?:\s*[-–,]?\s*SEDE\s+([A-ZÑ]+))?"
+        ),
+    ),
+    (
+        "REGISTRO",
+        re.compile(rf"(?<![A-ZÑ])REGISTRO (?:DE (?:LA )?)?({_REGISTROS})(?![A-ZÑ])"),
+    ),
+    (
+        "OFICINA",
+        re.compile(
+            r"(?<![A-ZÑ])OFICINA REGISTRAL\s*(?:DE |DEL )?([A-ZÑ]+(?: [A-ZÑ]+){0,2})"
+        ),
+    ),
+    (
+        "PROVINCIA",
+        re.compile(
+            r"(?<![A-ZÑ])PROVINCIA(?: Y DEPARTAMENTO)?\s*(?:DE |:\s*)([A-ZÑ]+(?: [A-ZÑ]+){0,2})"
+        ),
+    ),
+)
+# F30 [NEEDS CLARIFICATION] «provincia» se lee como el lugar tras PROVINCIA DE;
+# también puede ser la provincia de la oficina registral, que va en OFICINA.
+
+
+def datos_registrales(t: str) -> list[tuple[str, str, re.Match]]:
+    """F30: (clase, valor, match) de cada zona, registro, oficina y provincia.
+
+    Un lugar (oficina, provincia) termina en la primera palabra de ``_PARADAS_LUGAR``.
+    """
+    datos = []
+    for clase, patron in _DATOS_REGISTRALES:
+        for m in patron.finditer(t):
+            palabras = m[1].split()
+            corte = len(palabras)
+            if clase in {"OFICINA", "PROVINCIA"}:
+                corte = next(
+                    (
+                        i
+                        for i, w in enumerate(palabras)
+                        if w in _PARADAS_LUGAR
+                        and not (i == 0 and w in {"EL", "LA", "LOS", "LAS"})
+                    ),
+                    corte,
+                )
+            if valor := " ".join(palabras[:corte]):
+                datos.append((clase, valor, m))
+    return datos
 
 
 RE_NOMBRE = re.compile(
@@ -846,12 +959,15 @@ def _direccion_tokens(texto: str) -> Counter:
 
 _ROTULO_DIRECCION_FUENTE = re.compile(
     r"(?<![A-ZÑ])(?<!DE )(?:CON DOMICILIO(?: LEGAL| FISCAL)? EN|DOMICILIAD[AO] EN"
-    r"|DOMICILIO(?: LEGAL| FISCAL)?(?: EN)?|DIRECCION)(?![A-ZÑ])[\s:|]*"
+    r"|DOMICILIO(?: LEGAL| FISCAL)?(?: EN)?|DIRECCION"
+    r"|UBICAD[AO] EN|SIT[AO] EN|UBICACION(?: DEL PREDIO| DEL INMUEBLE)?)(?![A-ZÑ])[\s:|]*"
 )
 # «DISTRITO DE DOMICILIO» y similares rotulan otra cosa: de ahí el (?<!DE ).
 _ROTULO_DIRECCION_BORRADOR = re.compile(
-    r"(?<![A-ZÑ])(?:CON DOMICILIO|DOMICILIAD[AO]|DOMICILIO LEGAL) EN(?![A-ZÑ])[\s:]*"
+    r"(?<![A-ZÑ])(?:CON DOMICILIO|DOMICILIAD[AO]|DOMICILIO LEGAL|UBICAD[AO]|SIT[AO])"
+    r" EN(?![A-ZÑ])[\s:]*"
 )
+# F30: «UBICADO EN» y «SITO EN» rotulan la dirección del bien.
 _PALABRAS_VIA = {via.split()[0] for via in _VIAS.values()} - {"NUMERO", "SIN"}
 
 
@@ -1102,6 +1218,8 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
     rucs = set()
     direcciones = set()
     vocabulario = Counter()
+    cantidades = set()
+    registrales = set()
     descartadas = []
     no_clasificadas = []
     sueltas = {}
@@ -1114,6 +1232,8 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
             descartadas.append(PaginaDescartada(pagina.fuente, pagina.numero, tipo))
             continue
         rucs.update(RE_RUC_DOC.findall(t))
+        cantidades.update(cantidades_de(t))
+        registrales.update((clase, valor) for clase, valor, _ in datos_registrales(t))
         vocabulario.update(_direccion_palabras(t))
         direcciones.update(
             tramo
@@ -1154,6 +1274,8 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         rucs,
         direcciones,
         vocabulario,
+        cantidades,
+        registrales,
     )
 
 
@@ -1258,61 +1380,410 @@ _NUMEROS = {
     "VEINTIUNA": 21,
     "CIEN": 100,
     "MIL": 1000,
+    "MILLON": 10**6,
+    "MILLONES": 10**6,
 }
-RE_CIFRA_PARENTESIS = re.compile(r"\(\s*(?:S/\s*)?(\d[\d,]*)(?:\.(\d{2}))?\s*\)")
+RE_CIFRA_PARENTESIS = re.compile(
+    r"\(\s*(?:(?:S/\.?|US\$|\$)\s*)?(\d[\d,]*)(?:\.(\d{2}))?\s*(%)?\s*\)"
+)
+# F30: «… SOLES (S/ 9.99)», «… DOLARES (US$ 9.99)» y «… POR CIENTO (9%)».
+_RE_MONEDA_EN_LETRAS = re.compile(
+    r"\s(?:(?:NUEVOS )?SOLES|DOLARES(?: AMERICANOS| DE LOS ESTADOS UNIDOS DE"
+    r" (?:NORTE ?)?AMERICA)?)$"
+)
 
 
 def numero_en_letras(palabras) -> int | None:
-    """Valor de un número en letras (0-999 999); None si una palabra no es numérica."""
-    total = actual = 0
+    """Valor de un número en letras (0 a 999 999 999 999); None si una palabra
+    no es numérica."""
+    millones = total = actual = 0
     for w in palabras:
         if w == "Y":
             continue
         if w not in _NUMEROS:
             return None
-        if w == "MIL":
+        if w in {"MILLON", "MILLONES"}:
+            millones += (total + actual or 1) * 10**6
+            total = actual = 0
+        elif w == "MIL":
             total += (actual or 1) * 1000
             actual = 0
         else:
             actual += _NUMEROS[w]
-    return total + actual
+    return millones + total + actual
+
+
+def _cola_en_letras(texto: str) -> tuple[int, list[str]] | None:
+    """F19: (posición, palabras) del número en letras con que termina ``texto``."""
+    palabras = list(re.finditer(r"\S+", texto))
+    inicio = len(palabras)
+    # ponytail: una palabra mal escrita se reconoce por similitud >= 75; si
+    # entra ruido, subir el umbral o exigirla entre dos palabras numericas.
+    while inicio and (
+        (w := palabras[inicio - 1].group()) == "Y"
+        or w in _NUMEROS
+        or (
+            len(w) >= 3
+            and process.extractOne(
+                w, _NUMEROS.keys(), scorer=fuzz.ratio, score_cutoff=75
+            )
+        )
+    ):
+        inicio -= 1
+    while inicio < len(palabras) and palabras[inicio].group() == "Y":
+        inicio += 1
+    span = [p.group() for p in palabras[inicio:]]
+    if not any(w in _NUMEROS for w in span):
+        return None
+    return palabras[inicio].start(), span
+
+
+def _separar_decimales(antes: str) -> tuple[str, str]:
+    """F30: (parte entera, decimales) de «… Y 50/100», «… PUNTO CERO CINCO» o
+    «… COMA CINCO»; sin decimales, «00»."""
+    if centimos := re.search(r"\s(?:Y|CON) (\d{2})/100$", antes):
+        return antes[: centimos.start()], centimos[1]
+    for separador in (" PUNTO ", " COMA "):
+        entero, _, cola = antes.rpartition(separador)
+        palabras = cola.split()
+        if entero and palabras and all(w in _NUMEROS or w == "Y" for w in palabras):
+            ceros = next(
+                (i for i, w in enumerate(palabras) if w != "CERO"), len(palabras)
+            )
+            resto = palabras[ceros:]
+            return entero, "0" * ceros + (str(numero_en_letras(resto)) if resto else "")
+    return antes, "00"
+
+
+Leido = tuple[int, int | None, str]
+# (posición donde empiezan las letras, valor o None si no se lee, decimales)
+
+
+def _leer_letras(texto: str) -> Leido | None:
+    """F30: el número en letras, con decimales, con que termina ``texto``."""
+    texto, decimales = _separar_decimales(texto)
+    if (cola := _cola_en_letras(texto)) is None:
+        return None
+    inicio, span = cola
+    return inicio, numero_en_letras(span), decimales
+
+
+def _sin_unidad(texto: str, porcentaje: str | None) -> str | None:
+    """Las letras sin «POR CIENTO» ni moneda; None si el % no se dice en letras."""
+    if porcentaje:
+        return (
+            texto.removesuffix(" POR CIENTO") if texto.endswith(" POR CIENTO") else None
+        )
+    moneda = _RE_MONEDA_EN_LETRAS.search(texto)
+    return texto[: moneda.start()] if moneda else texto
+
+
+def _mismo_numero(leido: Leido, cifra: str, decimales: str | None) -> bool:
+    """¿Las letras valen lo mismo que la cifra? 0.5 == 0.50."""
+    _, valor, decimales_letras = leido
+    return valor is not None and (valor, decimales_letras.rstrip("0")) == (
+        int(cifra.replace(",", "")),
+        (decimales or "").rstrip("0"),
+    )
+
+
+def _cifra(m: re.Match) -> str:
+    return m[1] + (f".{m[2]}" if m[2] else "")
+
+
+_LETRAS_ENTRE_PARENTESIS = r"\s*\(([A-ZÑ][A-ZÑ ]*(?:\d{2}/100[A-ZÑ ]*)?)\)"
+RE_LETRAS_PARENTESIS = re.compile(
+    r"(?<![\d,.])(\d[\d,]*)(?:\.(\d{2}))?\s*(%)?" + _LETRAS_ENTRE_PARENTESIS
+)
+# F30: el orden inverso, «S/ 1,500.00 (MIL QUINIENTOS Y 00/100 SOLES)».
 
 
 def _numeros_en_letras(d: str) -> list[str]:
-    """F19: letras seguidas de su cifra entre paréntesis que no valen lo mismo."""
+    """F19: letras y su cifra entre paréntesis (o al revés) que no valen lo mismo."""
     obs = []
     for m in RE_CIFRA_PARENTESIS.finditer(d):
         base = max(0, m.start() - 300)  # el número en letras más largo cabe
-        antes = d[base : m.start()].rstrip()
-        centimos = re.search(r"\s(?:Y|CON) (\d{2})/100$", antes)
-        palabras = list(
-            re.finditer(r"\S+", antes[: centimos.start()] if centimos else antes)
-        )
-        inicio = len(palabras)
-        # ponytail: una palabra mal escrita se reconoce por similitud >= 75; si
-        # entra ruido, subir el umbral o exigirla entre dos palabras numericas.
-        while inicio and (
-            (w := palabras[inicio - 1].group()) == "Y"
-            or w in _NUMEROS
-            or (
-                len(w) >= 3
-                and process.extractOne(
-                    w, _NUMEROS.keys(), scorer=fuzz.ratio, score_cutoff=75
-                )
+        antes = _sin_unidad(d[base : m.start()].rstrip(), m[3])
+        leido = _leer_letras(antes) if antes else None
+        if leido and not _mismo_numero(leido, m[1], m[2]):
+            hallado = d[base + leido[0] : m.end()]
+            obs.append(
+                f"[NUMERO_EN_LETRAS] «{hallado}» debe decir «{_cifra(m)}{m[3] or ''}»"
             )
+    for m in RE_LETRAS_PARENTESIS.finditer(d):
+        letras = _sin_unidad(m[4].strip(), m[3])
+        leido = _leer_letras(letras) if letras else None
+        # Las letras deben ser todo el paréntesis: «(DEL CODIGO CIVIL)» no es número.
+        if leido and leido[0] == 0 and not _mismo_numero(leido, m[1], m[2]):
+            obs.append(
+                f"[NUMERO_EN_LETRAS] «{m[0]}» debe decir «{_cifra(m)}{m[3] or ''}»"
+            )
+    return obs
+
+
+_UNIDAD_AREA = r"\s*(?:M2|MTS?\.?\s?2|METROS CUADRADOS)\.?"
+RE_AREA_PARENTESIS = re.compile(
+    r"\(\s*(\d[\d,]*)(?:\.(\d{1,2}))?" + _UNIDAD_AREA + r"\s*\)"
+)
+RE_AREA_LETRAS = re.compile(
+    r"(?<![\d,.])(\d[\d,]*)(?:\.(\d{1,2}))?" + _UNIDAD_AREA + _LETRAS_ENTRE_PARENTESIS
+)
+
+
+def _leer_area(texto: str) -> Leido | None:
+    """F30: el área en letras con que termina ``texto``: «… METROS CUADRADOS»,
+    con decimales como en ``_separar_decimales`` o «… CON CINCUENTA DECIMETROS
+    CUADRADOS» (1 dm² = 0.01 m²)."""
+    decimales = None
+    if texto.endswith(" DECIMETROS CUADRADOS"):
+        leido = _leer_letras(texto.removesuffix(" DECIMETROS CUADRADOS"))
+        if leido is None:
+            return None
+        inicio, decimetros, _ = leido
+        texto = re.sub(r"\s(?:Y|CON)$", "", texto[:inicio].rstrip())
+        decimales = f"{decimetros:02d}" if decimetros is not None else "?"
+    if not texto.endswith(" METROS CUADRADOS"):
+        return None
+    leido = _leer_letras(texto.removesuffix(" METROS CUADRADOS"))
+    if leido is None:
+        return None
+    inicio, metros, decimales_letras = leido
+    return inicio, metros, decimales or decimales_letras
+
+
+def _areas_en_letras(d: str) -> list[str]:
+    """F30: área en letras y su cifra en m² (en cualquier orden) que no valen lo mismo."""
+    obs = []
+    for m in RE_AREA_PARENTESIS.finditer(d):
+        base = max(0, m.start() - 300)
+        leido = _leer_area(d[base : m.start()].rstrip(" ,"))
+        if leido and not _mismo_numero(leido, m[1], m[2]):
+            hallado = d[base + leido[0] : m.end()]
+            obs.append(f"[AREA] «{hallado}» debe decir «{_cifra(m)} M2»")
+    for m in RE_AREA_LETRAS.finditer(d):
+        leido = _leer_area(m[3].strip())
+        if leido and leido[0] == 0 and not _mismo_numero(leido, m[1], m[2]):
+            obs.append(f"[AREA] «{m[0]}» debe decir «{_cifra(m)} M2»")
+    return obs
+
+
+_ORDINALES = {
+    "PRIMER": 1, "SEGUND": 2, "TERCER": 3, "CUART": 4, "QUINT": 5, "SEXT": 6,
+    "SEPTIM": 7, "SETIM": 7, "OCTAV": 8, "NOVEN": 9, "DECIM": 10, "UNDECIM": 11,
+    "DUODECIM": 12, "VIGESIM": 20, "TRIGESIM": 30,
+}  # fmt: skip
+_RAIZ_ORDINAL = "|".join(sorted(_ORDINALES, key=len, reverse=True))
+RE_CLAUSULA = re.compile(
+    rf"^(?:CLAUSULA\s+)?((?:(?:DECIM|VIGESIM|TRIGESIM)[AO]\s*)?(?:{_RAIZ_ORDINAL})([AO]))"
+    r"\s*(?:\.-|[.:-])"
+)
+# Rótulo al inicio de línea y con signo: «PRIMERA.-», «CLAUSULA SEGUNDA:».
+RE_INCISO = re.compile(r"^([A-Z]|\d{1,2}|[IVX]{1,6})\s?(\)|\.-|\.|-)\s")
+_LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+_TEXTO_ROMANO = {valor: romano for romano, valor in _ROMANOS.items()}
+
+
+def _texto_ordinal(n: int, genero: str) -> str:
+    decena, unidad = divmod(n, 10)
+    raices = [("DECIM", "VIGESIM", "TRIGESIM")[decena - 1]] if decena else []
+    raices += [next(r for r, v in _ORDINALES.items() if v == unidad)] if unidad else []
+    return " ".join(r + genero for r in raices)
+
+
+def _clase_inciso(simbolo: str, ultimos: dict) -> tuple[str, int] | None:
+    """(clase, valor) del inciso; «I», «V» y «X» son letra o romano según cuál
+    continúa su secuencia."""
+    if simbolo.isdigit():
+        return "NUMERO", int(simbolo)
+    opciones = [
+        ("LETRA", _LETRAS.index(simbolo) + 1) if len(simbolo) == 1 else None,
+        ("ROMANO", _ROMANOS[simbolo]) if simbolo in _ROMANOS else None,
+    ]
+    opciones = [o for o in opciones if o]
+    for clase, valor in opciones:
+        if ultimos.get(clase, 0) + 1 == valor:
+            return clase, valor
+    return opciones[0] if opciones else None
+
+
+def _rompe_secuencia(ultimos: dict, clase: str, valor: int) -> int | None:
+    """El valor esperado si ``valor`` rompe su secuencia; None si la sigue o la
+    empieza (1, o primera vez que aparece la clase)."""
+    anterior, ultimos[clase] = ultimos.get(clase), valor
+    if valor == 1 or anterior is None or valor == anterior + 1:
+        return None
+    return anterior + 1
+
+
+def _correlativos(destino: str) -> list[str]:
+    """F30: cláusulas (PRIMERA, SEGUNDA…) e incisos (a, b…; 1, 2…; I, II…) que
+    saltan o repiten su número. Un 1 empieza una secuencia nueva; cada
+    cláusula reinicia sus incisos. Femenino y masculino son secuencias aparte."""
+    obs = []
+    clausulas, incisos, clausula = {}, {}, ""
+    for linea in destino.splitlines():
+        t = norm(linea)
+        if m := RE_CLAUSULA.match(t):
+            ordinal, genero = re.sub(r"\s+", " ", m[1]), m[2]
+            valor = sum(_ORDINALES[r] for r in re.findall(_RAIZ_ORDINAL, ordinal))
+            if esperado := _rompe_secuencia(clausulas, genero, valor):
+                correcto = _texto_ordinal(esperado, genero)
+                obs.append(
+                    f"[CORRELATIVO] «{m[0]}» debe decir "
+                    f"«{m[0][: m.start(1)]}{correcto}{m[0][m.end(1) :]}»"
+                )
+            incisos, clausula = {}, ordinal
+        elif (m := RE_INCISO.match(t)) and (inciso := _clase_inciso(m[1], incisos)):
+            clase, valor = inciso
+            if esperado := _rompe_secuencia(incisos, clase, valor):
+                simbolo = {
+                    "NUMERO": str(esperado),
+                    "LETRA": _LETRAS[esperado - 1] if esperado <= len(_LETRAS) else "?",
+                    "ROMANO": _TEXTO_ROMANO.get(esperado, "?"),
+                }[clase]
+                motivo = f"   (cláusula {clausula})" if clausula else ""
+                obs.append(
+                    f"[CORRELATIVO] «{m[1]}{m[2]}» debe decir «{simbolo}{m[2]}»{motivo}"
+                )
+    return obs
+
+
+_RE_COPROPIEDAD = re.compile(r"COPROPIE|ACCIONES Y DERECHOS|CUOTA IDEAL|PARTICIPACION")
+_RE_PORCENTAJE = re.compile(r"(?<![\d.,])(\d{1,3})(?:[.,](\d{1,2}))?\s*%")
+_RE_POR_CIENTO = re.compile(r"(?<![A-ZÑ])POR CIENTO(?![A-ZÑ])")
+
+
+def _cuotas(oracion: str) -> list[tuple[int, int, int]]:
+    """(inicio, fin, centésimas) de cada porcentaje; en letras solo si la oración
+    no trae cifras con %, para no contar dos veces «50% (CINCUENTA POR CIENTO)»."""
+    cuotas = [
+        (m.start(), m.end(), int(m[1]) * 100 + int((m[2] or "0").ljust(2, "0")))
+        for m in _RE_PORCENTAJE.finditer(oracion)
+    ]
+    if cuotas:
+        return cuotas
+    for m in _RE_POR_CIENTO.finditer(oracion):
+        leido = _leer_letras(oracion[: m.start()].rstrip())
+        if leido and leido[1] is not None:
+            inicio, valor, decimales = leido
+            centesimas = valor * 100 + int(decimales.ljust(2, "0")[:2])
+            cuotas.append((inicio, m.end(), centesimas))
+    return cuotas
+
+
+def _porcentaje(centesimas: int) -> str:
+    entero, resto = divmod(centesimas, 100)
+    return f"{entero}.{resto:02d}" if resto else str(entero)
+
+
+def _copropiedad(destino: str) -> list[str]:
+    """F30: cuotas de copropiedad de una misma oración que no suman 100 %.
+
+    Vale también un múltiplo de 100 (vendedores y compradores en la misma
+    oración) o que una cuota sea la suma de las demás (se transfiere el 50 % y
+    se adquiere 25 % y 25 %). Con «CADA UNO» no se puede sumar: se omite.
+    ponytail: solo dentro de la oración; si las cuotas se reparten en varias,
+    no se detecta. [NEEDS CLARIFICATION] confirmar con escrituras reales.
+    """
+    obs = []
+    for linea in destino.splitlines():
+        for oracion in re.split(r"(?<!S/)\.\s+", norm(linea)):
+            if not _RE_COPROPIEDAD.search(oracion) or re.search(
+                r"CADA UN[AO]", oracion
+            ):
+                continue
+            cuotas = _cuotas(oracion)
+            if len(cuotas) < 2:
+                continue
+            total = sum(c for _, _, c in cuotas)
+            tolerancia = len(cuotas)  # redondeo: 33.33 % tres veces suma 99.99 %
+            resto = total % 10000
+            if min(resto, 10000 - resto) <= tolerancia or any(
+                abs(total - 2 * c) <= tolerancia for _, _, c in cuotas
+            ):
+                continue
+            tramo = oracion[cuotas[0][0] : cuotas[-1][1]]
+            obs.append(
+                f"[COPROPIEDAD] «{tramo}» debe decir «100 %»   "
+                f"(las cuotas suman {_porcentaje(total)} %)"
+            )
+    return obs
+
+
+_RE_MONTO_OBSERVADO = re.compile(r"\[MONTO\] «(?:US\$ )?([\d,.]+)»")
+
+
+def _cantidades_observadas(fuente, d: str, previas=()) -> list[str]:
+    """F30: precio, tasación, valor o hipoteca del borrador cuya cifra no es la
+    de ese mismo concepto en las fuentes. Sin el concepto en las fuentes, nada.
+    Una cifra que ``previas`` ya observa como MONTO no se repite."""
+    por_concepto = {}
+    for concepto, cifra in fuente:
+        por_concepto.setdefault(concepto, set()).add(cifra)
+    ya_observadas = {m[1] for o in previas if (m := _RE_MONTO_OBSERVADO.match(o))}
+    obs = []
+    for concepto, cifra in cantidades_de(d):
+        esperados = por_concepto.get(concepto, set())
+        if (
+            not esperados
+            or cifra in ya_observadas
+            or cifra.replace(",", "") in {e.replace(",", "") for e in esperados}
         ):
-            inicio -= 1
-        while inicio < len(palabras) and palabras[inicio].group() == "Y":
-            inicio += 1
-        span = [p.group() for p in palabras[inicio:]]
-        if not any(w in _NUMEROS for w in span):
             continue
-        valor = numero_en_letras(span)
-        cifra = (int(m.group(1).replace(",", "")), m.group(2) or "00")
-        if valor is None or (valor, centimos.group(1) if centimos else "00") != cifra:
-            hallado = d[base + palabras[inicio].start() : m.end()]
-            esperado = m.group(1) + (f".{m.group(2)}" if m.group(2) else "")
-            obs.append(f"[NUMERO_EN_LETRAS] «{hallado}» debe decir «{esperado}»")
+        esperado = min(
+            sorted(esperados), key=lambda e, c=cifra: Levenshtein.distance(c, e)
+        )
+        nombre = concepto.replace("_", " ")
+        obs.append(f"[MONTO] «{cifra}» debe decir «{esperado}»   (concepto: {nombre})")
+    return obs
+
+
+def _registrales_observados(fuente, d: str) -> list[str]:
+    """F30: zona, registro, oficina y provincia del borrador.
+
+    - La zona existe (I a XIV) y su sede es la de SUNARP.
+    - El valor está en las fuentes, si las fuentes traen esa clase. Zona y
+      registro son listas cerradas: con un único valor en las fuentes, ese es el
+      esperado. Oficina y provincia son texto: «debe decir» solo si se parecen
+      (ratio >= 80); una provincia distinta sin parecido no se observa, porque
+      el borrador nombra lugares que no están en las fuentes (la notaría).
+    """
+    por_clase = {}
+    for clase, valor in fuente:
+        por_clase.setdefault(clase, set()).add(valor)
+    obs = []
+    for clase, valor, m in datos_registrales(d):
+        frase = d[m.start() : m.start(1) + len(valor)]
+        if clase == "ZONA":
+            numero = _ROMANOS.get(valor, 0)
+            if not 1 <= numero <= len(_ZONAS_REGISTRALES):
+                obs.append(
+                    f"[DATO_REGISTRAL] «{frase}» no coincide con ninguna fuente   "
+                    f"(SUNARP tiene {len(_ZONAS_REGISTRALES)} zonas registrales)"
+                )
+                continue
+            sede = _ZONAS_REGISTRALES[numero - 1]
+            if m[2] and m[2].replace("CUZCO", "CUSCO") != sede:
+                obs.append(
+                    f"[DATO_REGISTRAL] «{m[0]}» debe decir "
+                    f"«{m[0][: m.start(2) - m.start()]}{sede}»   "
+                    f"(sede de la zona registral {valor})"
+                )
+        esperados = por_clase.get(clase, set())
+        if not esperados or valor in esperados:
+            continue
+        cercano, parecido, _ = process.extractOne(
+            valor, sorted(esperados), scorer=fuzz.ratio
+        )
+        if (clase in {"ZONA", "REGISTRO"} and len(esperados) == 1) or (
+            clase in {"OFICINA", "PROVINCIA"} and parecido >= 80
+        ):
+            obs.append(
+                f"[DATO_REGISTRAL] «{frase}» debe decir "
+                f"«{frase[: len(frase) - len(valor)]}{cercano}»"
+            )
+        elif clase != "PROVINCIA":
+            obs.append(f"[DATO_REGISTRAL] «{frase}» no coincide con ninguna fuente")
     return obs
 
 
@@ -1501,6 +1972,12 @@ def revisar(
     ):
         obs.append(f"[DIRECCION] «{hallado}» debe decir «{esperado}»")
     obs += _numeros_en_letras(d)
+    # F30: el dict legado no trae cantidades ni datos registrales.
+    obs += _cantidades_observadas(getattr(cat, "cantidades", ()), d, obs)
+    obs += _areas_en_letras(d)
+    obs += _registrales_observados(getattr(cat, "registrales", ()), d)
+    obs += _correlativos(destino)
+    obs += _copropiedad(destino)
 
     for campo, vals in cat.items():
         if campo == "DIRECCION":

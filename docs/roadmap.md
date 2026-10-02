@@ -39,6 +39,10 @@ la fase F10.
 
 Criterio de MVP (del README): medir cobertura sobre 10 expedientes cerrados.
 
+## Continuación autorizada · 2026-10-02
+
+F31: calidad de lectura OCR, avisos persistentes y medición con casos ficticios y muestra privada. Alcance y tareas en `specs/025-calidad-ocr/`; evidencia en `docs/ocr-mejoras-2026-10-02.md`. La precisión jurídica real requiere etiquetas revisadas por la notaría. La integración mantiene los controles de CI y SonarQube establecidos.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

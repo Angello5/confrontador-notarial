@@ -1,13 +1,17 @@
 {% comment %}
 Zona de arrastre: el `campo` de archivos real cubre el recuadro, así que se
 puede soltar o pulsar; teclado y lector de pantalla usan el input nativo.
+Al elegir o soltar archivos el formulario se envía solo (con JavaScript); sin
+JavaScript queda el botón de envío del formulario.
 La ayuda usa `formatos_admitidos` y `max_file_size_mb` del contexto.
 {% endcomment %}
-<div class="zona-arrastre" x-data="{ elegidos: '' }">
-  <span class="zona-mas" aria-hidden="true">+</span>
+<div class="zona-arrastre" x-data="{ elegidos: '', sobre: 0, enviando: false }"
+     :data-sobre="sobre" @dragenter="sobre = 1" @dragleave="sobre = 0" @drop="sobre = 0">
+  <svg class="ico" :class="enviando && 'ico-gira'" aria-hidden="true"><use href="#i-upload" :href="enviando ? '#i-loader' : '#i-upload'"/></svg>
   <span>
-    <span class="zona-titulo" x-text="elegidos || '{{ titulo|escapejs }}'">{{ titulo }}</span>
+    <span class="zona-titulo" x-text="enviando ? 'Cargando ' + elegidos + '…' : (elegidos || '')"></span>
+    <span class="zona-titulo" x-show="!elegidos"><strong>{{ titulo }}</strong>{% if subtitulo %} · {{ subtitulo }}{% endif %}</span>
     <span class="zona-ayuda">Formatos: {{ formatos_admitidos }} · máximo {{ max_file_size_mb|floatformat:0 }} MB por archivo</span>
   </span>
-  <span @change="elegidos = Array.from($event.target.files).map(archivo => archivo.name).join(', ')">{{ campo }}</span>
+  <span @change="elegidos = Array.from($event.target.files).map(archivo => archivo.name).join(', '); if (elegidos && $event.target.form.requestSubmit) { enviando = true; $event.target.form.requestSubmit(); }">{{ campo }}</span>
 </div>
