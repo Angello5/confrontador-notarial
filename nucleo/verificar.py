@@ -1384,7 +1384,7 @@ _NUMEROS = {
     "MILLONES": 10**6,
 }
 RE_CIFRA_PARENTESIS = re.compile(
-    r"\(\s*(?:S/\.?|US\$|\$)?\s*(\d[\d,]*)(?:\.(\d{2}))?\s*(%)?\s*\)"
+    r"\(\s*(?:(?:S/\.?|US\$|\$)\s*)?(\d[\d,]*)(?:\.(\d{2}))?\s*(%)?\s*\)"
 )
 # F30: «… SOLES (S/ 9.99)», «… DOLARES (US$ 9.99)» y «… POR CIENTO (9%)».
 _RE_MONEDA_EN_LETRAS = re.compile(
@@ -1730,7 +1730,9 @@ def _cantidades_observadas(fuente, d: str, previas=()) -> list[str]:
             or cifra.replace(",", "") in {e.replace(",", "") for e in esperados}
         ):
             continue
-        esperado = min(sorted(esperados), key=lambda e: Levenshtein.distance(cifra, e))
+        esperado = min(
+            sorted(esperados), key=lambda e, c=cifra: Levenshtein.distance(c, e)
+        )
         nombre = concepto.replace("_", " ")
         obs.append(f"[MONTO] «{cifra}» debe decir «{esperado}»   (concepto: {nombre})")
     return obs

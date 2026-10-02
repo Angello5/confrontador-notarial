@@ -357,7 +357,7 @@
 
     {# ── Modal: aplicar correcciones (envía el formulario de F15) ── #}
     {% if resultado.correcciones %}
-      <div class="modal-fondo" x-show="modal === 'aplicar'" x-cloak @click.self="modal = null">
+      <div class="modal-fondo" x-show="modal === 'aplicar'" x-cloak @click.self="modal = null" @keydown.escape="modal = null">
         <form class="modal" role="alertdialog" aria-modal="true" aria-labelledby="aplicar-titulo" method="post" action="{% url 'correcciones_aplicar' expediente.pk borrador.pk %}">
           {% csrf_token %}
           <input type="hidden" name="corrida" value="{{ resultado.corrida_id }}">
@@ -388,7 +388,7 @@
     {% endif %}
 
     {# ── Modal: reporte ── #}
-    <div class="modal-fondo" x-show="modal === 'reporte'" x-cloak @click.self="modal = null">
+    <div class="modal-fondo" x-show="modal === 'reporte'" x-cloak @click.self="modal = null" @keydown.escape="modal = null">
       <div class="modal modal-ancho" data-tono="exito" role="dialog" aria-modal="true" aria-labelledby="reporte-titulo">
         <div class="modal-cab">
           <div>
@@ -677,7 +677,7 @@
         const celda = (v) => {
           let t = String(v ?? '');
           if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; /* evita fórmulas al abrir en Excel */
-          return '"' + t.replace(/"/g, '""') + '"';
+          return '"' + t.replaceAll('"', '""') + '"';
         };
         const filas = [['Capa', 'Severidad', 'Campo', 'Valor hallado', 'Valor esperado', 'Línea', 'Persona', 'Procedencia', 'Fragmento del borrador']];
         this.obs.filter((o) => this.rep[o.capa]).forEach((o) => filas.push([CAPAS[o.capa], o.sev, o.campo, o.hallado, o.esperado, o.linea, o.persona, o.procedencia, o.fragmento]));

@@ -78,3 +78,14 @@ def test_password_change_validates_and_clears_pending_flag(client, cuenta_pendie
     cuenta_pendiente.refresh_from_db()
     assert not cuenta_pendiente.force_password_change
     assert cuenta_pendiente.check_password("Nueva-clave-ficticia-92!")
+
+
+def test_ayuda_de_clave_nueva_se_muestra_como_lista_sin_desactivar_escape(
+    client, cuenta_pendiente
+):
+    client.force_login(cuenta_pendiente)
+
+    html = client.get(reverse("password_change")).content.decode()
+
+    assert '<div class="campo-ayuda"><ul>' in html
+    assert "&lt;ul&gt;" not in html
