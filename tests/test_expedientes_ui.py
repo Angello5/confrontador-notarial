@@ -266,7 +266,7 @@ def test_lista_muestra_chip_documentos_y_actualizado(client, usuario_ficticio):
     assert "Nuevo expediente" in contenido
     assert 'class="chip" data-estado="ERROR"' in contenido
     assert ">Documentos</th>" in contenido
-    assert ">Actualizado</th>" in contenido
+    assert 'class="th-orden" @click="ordenar()">Actualizado' in contenido
     assert "abierto: false" in contenido
 
 

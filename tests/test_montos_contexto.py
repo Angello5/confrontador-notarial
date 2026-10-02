@@ -102,7 +102,10 @@ def test_parrafo_sin_par_conserva_la_regla_actual():
 
 def test_sin_minutas_la_verificacion_es_por_conjunto():
     borrador = _PRECIO.replace("S/ 250,000.00", "S/ 25,000.00") + "\n" + _CRONOGRAMA
-    assert _montos(borrador, con_minuta=False) == []
+    # F30: el conjunto acepta 25,000.00 (son las arras); el concepto PRECIO no.
+    assert _montos(borrador, con_minuta=False) == [
+        "[MONTO] «25,000.00» debe decir «250,000.00»   (concepto: PRECIO)"
+    ]
 
 
 def test_par_con_distinto_numero_de_importes_usa_la_regla_actual():

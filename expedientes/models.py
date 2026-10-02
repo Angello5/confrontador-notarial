@@ -42,6 +42,7 @@ class TextoExtraido(models.Model):
     hash_archivo = models.CharField(max_length=64, db_index=True)
     version_extractor = models.CharField(max_length=128)
     texto = models.TextField(blank=True)
+    calidad = models.JSONField(default=dict, blank=True)
     creado_el = models.DateTimeField(auto_now_add=True)
     ultimo_uso_el = models.DateTimeField()
 

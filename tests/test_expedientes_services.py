@@ -66,13 +66,17 @@ def test_procesamiento_real_borra_temporal_en_exito_y_error(
         subido_por=usuario_ficticio,
     )
     if estado_esperado == "LISTO":
-        monkeypatch.setattr("expedientes.services.extraccion.leer", lambda _: salida)
+        monkeypatch.setattr(
+            "expedientes.services.extraccion.leer_con_calidad", lambda _: salida
+        )
     else:
 
         def extractor_falla(_):
             raise salida("fallo sintetico")
 
-        monkeypatch.setattr("expedientes.services.extraccion.leer", extractor_falla)
+        monkeypatch.setattr(
+            "expedientes.services.extraccion.leer_con_calidad", extractor_falla
+        )
 
     procesar_documento(documento)
     documento.refresh_from_db()

@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notaría Espinosa · Marca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;700&family=Nunito+Sans:wght@300;400;600;800&family=Poppins:wght@600&display=swap" rel="stylesheet">
+<style>
+/* Copia de tokens.css (incrustada para que el archivo funcione solo) */
+:root {
+  /* ── Núcleo ─────────────────────────────────────────── */
+  --ne-navy: #0f2765;   /* marca: títulos, texto, topbar */
+  --ne-ink: #00112c;    /* tinta: texto sobre verde, paneles oscuros */
+  --ne-green: #44d880;  /* acción: CTA, activo */
+  --ne-slate: #4b5d8c;  /* texto secundario, nav inactivo */
+  --ne-white: #ffffff;
+
+  /* ── Escala marino ──────────────────────────────────── */
+  --ne-navy-50: #edeff8;
+  --ne-navy-100: #c3c9d9;
+  --ne-navy-200: #b3bfe7;
+  --ne-navy-300: #8999d0;
+  --ne-navy-400: #8793b2;
+  --ne-navy-500: #4b5d8c;
+  --ne-navy-600: #273b7b;
+  --ne-navy-700: #0f2765;
+  --ne-navy-800: #141d3d;
+  --ne-navy-900: #00112c;
+
+  /* ── Escala verde ───────────────────────────────────── */
+  --ne-green-50: #e5faed;
+  --ne-green-100: #c5ffcf;
+  --ne-green-300: #6ae29a;
+  --ne-green-400: #48e4a6;
+  --ne-green-500: #44d880;
+  --ne-green-700: #01835d;  /* verde para texto sobre blanco (AA) */
+  --ne-green-800: #0f6568;
+
+  /* ── Superficies (valores efectivos del sitio) ──────── */
+  --ne-surface: #ffffff;
+  --ne-surface-band: #e8ebf7;   /* rgba(179,191,231,.3) sobre blanco */
+  --ne-surface-card: #cfd3e0;   /* rgba(195,201,217,.8) sobre blanco */
+  --ne-surface-footer: #edeef3; /* rgba(195,201,217,.3) sobre blanco */
+  --ne-surface-dark: #00112c;
+  --ne-border: #c3c9d9;
+  --ne-border-strong: #0f2765;
+
+  /* ── Texto ──────────────────────────────────────────── */
+  --ne-text: var(--ne-navy);
+  --ne-text-muted: var(--ne-slate);
+  --ne-text-subtle: var(--ne-navy-400); /* solo ≥24px o iconos */
+  --ne-text-on-dark: #ffffff;
+  --ne-text-on-green: var(--ne-ink);
+  --ne-text-link: var(--ne-navy);
+
+  /* ── Estados (extensión para la app) ────────────────── */
+  --ne-success-bg: #e5faed; --ne-success-border: #44d880; --ne-success-text: #0f5132;
+  --ne-info-bg: #edeff8;    --ne-info-border: #4b5d8c;    --ne-info-text: #0f2765;
+  --ne-warning-bg: #fff6db; --ne-warning-border: #e0a400; --ne-warning-text: #5c4200;
+  --ne-danger-bg: #fdecee;  --ne-danger-border: #c8283c;  --ne-danger-text: #8b1c28;
+
+  /* ── Degradados ─────────────────────────────────────── */
+  --ne-gradient-band: linear-gradient(110deg, #00112c 12%, #0f2765 30%, #44d880 80%);
+  --ne-gradient-mark: linear-gradient(135deg, #48e4a6 0%, #44d880 15%, #1aa36a 45%, #01835d 62%, #0f6568 78%, #2c2e80 100%);
+
+  /* ── Tipografía ─────────────────────────────────────── */
+  --ne-font-display: "Prompt", "Poppins", system-ui, sans-serif;
+  --ne-font-body: "Avenir LT W01 35 Light", "Avenir Next", "Avenir", "Nunito Sans", system-ui, sans-serif;
+  --ne-font-label: "Poppins", "Prompt", system-ui, sans-serif;
+
+  --ne-text-display: 700 2.5rem/1.2 var(--ne-font-display);    /* 40/48 */
+  --ne-text-h1: 700 1.875rem/1.27 var(--ne-font-display);      /* 30/38 */
+  --ne-text-h2: 400 1.5rem/1.33 var(--ne-font-display);        /* 24/32 */
+  --ne-text-h3: 700 1.25rem/1.4 var(--ne-font-display);        /* 20/28 */
+  --ne-text-lead: 400 1.125rem/1.55 var(--ne-font-display);    /* 18/28 */
+  --ne-text-body: 400 1rem/1.5 var(--ne-font-body);            /* 16/24 */
+  --ne-text-sm: 400 0.875rem/1.43 var(--ne-font-body);         /* 14/20 */
+  --ne-text-xs: 600 0.75rem/1.33 var(--ne-font-body);          /* 12/16, MAYÚS */
+
+  --ne-tracking-title: 0.07em;   /* títulos de bloque Prompt 700 */
+  --ne-tracking-button: 0.1em;   /* CTA */
+  --ne-tracking-label: 0.2em;    /* etiquetas de valores en MAYÚS */
+
+  /* ── Forma y espacio ────────────────────────────────── */
+  --ne-radius: 0;          /* la marca es rectilínea */
+  --ne-radius-sm: 2px;     /* tolerancia para controles de app */
+  --ne-radius-pill: 999px; /* solo avatares / WhatsApp */
+  --ne-border-width: 1px;
+  --ne-focus-ring: 0 0 0 2px #fff, 0 0 0 5px var(--ne-green);
+  --ne-shadow-overlay: 0 8px 24px rgba(0, 17, 44, 0.16);
+
+  --ne-space-1: 4px;  --ne-space-2: 8px;  --ne-space-3: 12px; --ne-space-4: 16px;
+  --ne-space-5: 24px; --ne-space-6: 32px; --ne-space-7: 48px; --ne-space-8: 64px;
+  --ne-space-9: 96px;
+  --ne-container: 1200px;
+
+  --ne-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ne-duration: 200ms;
+}
+</style>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ne-surface); color: var(--ne-text); font: var(--ne-text-body); font-weight: 300; }
+  .wrap { max-width: var(--ne-container); margin: 0 auto; padding: 0 var(--ne-space-5); }
+  section { padding: var(--ne-space-8) 0; }
+  section.band { background: var(--ne-surface-band); }
+  .eyebrow { font: var(--ne-text-xs); text-transform: uppercase; letter-spacing: .12em; color: var(--ne-slate); margin: 0 0 var(--ne-space-2); }
+  h2.sec { font: 400 2.25rem/1.3 var(--ne-font-display); margin: 0 0 var(--ne-space-6); }
+  h3 { font: var(--ne-text-h3); margin: 0 0 var(--ne-space-3); }
+  p { margin: 0 0 var(--ne-space-3); }
+  code { font: 500 .8125rem/1.4 ui-monospace, Consolas, monospace; }
+
+  /* Topbar + header */
+  .topbar { background: var(--ne-navy); color: #fff; }
+  .topbar .wrap { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: var(--ne-space-5); align-items: center; padding-block: var(--ne-space-4); }
+  .topbar b { display: block; font: 600 13px/1.3 var(--ne-font-label); letter-spacing: .01em; margin-bottom: 6px; }
+  .topbar span { font: 400 13px/1.3 var(--ne-font-body); }
+  .wa { background: var(--ne-green); color: var(--ne-ink); border-radius: var(--ne-radius-pill); padding: 8px 18px; font: 800 14px var(--ne-font-body); text-decoration: none; }
+  .header .wrap { display: flex; align-items: center; justify-content: space-between; padding-block: var(--ne-space-5); gap: var(--ne-space-5); }
+  .header img { width: 320px; max-width: 55vw; height: auto; display: block; }
+  .nav { display: flex; gap: var(--ne-space-7); }
+  .nav a { font: 400 16px/27px var(--ne-font-body); color: var(--ne-slate); text-decoration: none; transition: color .4s; }
+  .nav a[aria-current] { color: var(--ne-green); }
+  .nav a:hover { color: var(--ne-navy); }
+
+  /* Hero */
+  .hero { background: var(--ne-ink); color: #fff; padding: var(--ne-space-9) 0; position: relative; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; right: -80px; top: 50%; width: 460px; height: 460px; transform: translateY(-50%); border-radius: 50%; background: var(--ne-green); opacity: .9; }
+  .hero h1 { font: 700 clamp(2.25rem, 4.5vw, 3.5625rem)/1.4 var(--ne-font-display); margin: 0 0 var(--ne-space-6); max-width: 12ch; position: relative; z-index: 1; }
+
+  /* Botones */
+  .btn { display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--ne-radius); cursor: pointer; text-decoration: none; transition: background-color var(--ne-duration) var(--ne-ease); }
+  .btn:focus-visible { outline: none; box-shadow: var(--ne-focus-ring); }
+  .btn-cta { background: var(--ne-green); color: var(--ne-ink); font: 800 22px var(--ne-font-body); letter-spacing: var(--ne-tracking-button); padding: 14px 36px; }
+  .btn-cta:hover, .btn-green:hover { background: var(--ne-green-300); }
+  .btn-navy { background: var(--ne-navy); color: #fff; font: 800 18px var(--ne-font-body); letter-spacing: var(--ne-tracking-button); padding: 16px 48px; }
+  .btn-navy:hover { background: var(--ne-navy-600); }
+  .btn-ink { background: var(--ne-ink); color: #fff; font: 400 17px var(--ne-font-body); padding: 9px 36px; }
+  .btn-ink:hover { background: var(--ne-navy); }
+  .btn-green { background: var(--ne-green); color: var(--ne-ink); font: 600 14px var(--ne-font-body); padding: 10px 40px; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--ne-space-5); align-items: center; }
+
+  /* Swatches */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--ne-space-4); }
+  .sw { border: 1px solid var(--ne-border); }
+  .sw .chip { height: 96px; }
+  .sw .meta { padding: var(--ne-space-3); font: var(--ne-text-sm); }
+  .sw .meta strong { display: block; font: 700 14px var(--ne-font-display); }
+  .ramp { display: grid; grid-template-columns: repeat(10, 1fr); margin-top: var(--ne-space-5); }
+  .ramp div { height: 56px; display: flex; align-items: flex-end; padding: 6px; font: 600 10px var(--ne-font-body); }
+  .grad { height: 120px; display: flex; align-items: center; justify-content: center; color: #fff; font: 400 1.5rem var(--ne-font-display); margin-top: var(--ne-space-4); }
+
+  /* Tipografía */
+  .type-row { display: grid; grid-template-columns: 220px 1fr; gap: var(--ne-space-5); padding: var(--ne-space-4) 0; border-top: 1px solid var(--ne-border); align-items: baseline; }
+  .type-row .spec { font: var(--ne-text-sm); color: var(--ne-slate); }
+
+  /* Tarjetas */
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ne-space-6); }
+  .card { background: var(--ne-surface-card); display: grid; grid-template-columns: 40% minmax(0, 1fr); gap: var(--ne-space-5); padding: var(--ne-space-6); }
+  .card .ill { aspect-ratio: 1; border-radius: 50%; background: var(--ne-green); display: grid; place-items: center; }
+  .card .ill svg { width: 56%; }
+  .card p { font: var(--ne-text-body); font-weight: 300; }
+
+  /* Banda */
+  .gband { background: var(--ne-gradient-band); color: #fff; padding: var(--ne-space-8) 0; text-align: center; }
+  .gband h2 { font: 400 2.0625rem/1.4 var(--ne-font-display); margin: 0; }
+
+  /* Formulario */
+  .contact { display: grid; grid-template-columns: 1fr 2fr; }
+  .contact .side { background: var(--ne-ink); color: #fff; padding: var(--ne-space-7) var(--ne-space-6); }
+  .contact .side h3 { font: 400 1.75rem var(--ne-font-display); }
+  .contact form { padding: var(--ne-space-7) var(--ne-space-6); display: grid; grid-template-columns: 1fr 1fr; gap: var(--ne-space-4) var(--ne-space-5); }
+  .field { display: grid; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font: var(--ne-text-sm); color: var(--ne-navy); }
+  input, textarea { font: var(--ne-text-sm); color: var(--ne-navy); background: #fff; border: 1px solid var(--ne-border-strong); border-radius: var(--ne-radius); padding: 8px 10px; min-height: 37px; }
+  input:focus-visible, textarea:focus-visible { outline: none; box-shadow: var(--ne-focus-ring); }
+
+  /* Estados / contraste */
+  .states { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--ne-space-4); }
+  .state { padding: var(--ne-space-4); border-left: 4px solid; font: var(--ne-text-sm); }
+  table { width: 100%; border-collapse: collapse; font: var(--ne-text-sm); }
+  th { font: var(--ne-text-xs); text-transform: uppercase; letter-spacing: .08em; color: var(--ne-slate); text-align: left; padding: 8px; border-bottom: 1px solid var(--ne-border); }
+  td { padding: 8px; border-bottom: 1px solid var(--ne-border); }
+  .pill { display: inline-block; padding: 2px 8px; font: 700 12px var(--ne-font-body); }
+
+  .values { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--ne-space-5); text-align: center; }
+  .values div { font: 800 15px var(--ne-font-body); letter-spacing: var(--ne-tracking-label); text-transform: uppercase; }
+
+  footer { background: var(--ne-surface-footer); border-top: 1px solid var(--ne-navy-400); padding: var(--ne-space-7) 0; font: var(--ne-text-sm); }
+
+  @media (max-width: 760px) {
+    .topbar .wrap { grid-template-columns: 1fr 1fr; }
+    .header .wrap { flex-direction: column; align-items: flex-start; }
+    .nav { gap: var(--ne-space-5); flex-wrap: wrap; }
+    .cards, .contact, .contact form, .states, .values { grid-template-columns: 1fr; }
+    .card { grid-template-columns: 1fr; }
+    .card .ill { max-width: 160px; }
+    .type-row { grid-template-columns: 1fr; gap: var(--ne-space-2); }
+    .ramp div { font-size: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div><b>E-mail:</b><span>informes@notariaespinosa.com</span></div>
+    <div><b>Teléfonos:</b><span>01 719 3975</span></div>
+    <div><b>Dirección:</b><span>Las Camelias 162, San Isidro, Lima</span></div>
+    <div><b>Horarios de atención:</b><span>L-V de 9:00 am a 6:45 pm</span></div>
+    <a class="wa" href="#">WhatsApp</a>
+  </div>
+</div>
+<header class="header">
+  <div class="wrap">
+    <img src="https://static.wixstatic.com/media/18564c_ecd10b3456db4f41bae8dcc17765985a~mv2.png" alt="Notaría Espinosa">
+    <nav class="nav" aria-label="Demostración">
+      <a href="#" aria-current="page">Inicio</a><a href="#">Nosotros</a><a href="#">Servicios</a><a href="#">Contacto</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>Servicios Notariales a tu Medida</h1>
+    <a class="btn btn-cta" href="#">Contáctanos</a>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">01 · Color</p>
+    <h2 class="sec">Paleta núcleo</h2>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#0f2765"></div><div class="meta"><strong>Marino</strong><code>#0F2765</code><br>Títulos · texto · topbar</div></div>
+      <div class="sw"><div class="chip" style="background:#00112c"></div><div class="meta"><strong>Tinta</strong><code>#00112C</code><br>Texto sobre verde · paneles</div></div>
+      <div class="sw"><div class="chip" style="background:#44d880"></div><div class="meta"><strong>Verde acción</strong><code>#44D880</code><br>CTA · activo</div></div>
+      <div class="sw"><div class="chip" style="background:#4b5d8c"></div><div class="meta"><strong>Pizarra</strong><code>#4B5D8C</code><br>Secundario · nav</div></div>
+      <div class="sw"><div class="chip" style="background:#cfd3e0"></div><div class="meta"><strong>Tarjeta</strong><code>#CFD3E0</code><br>Fondo de servicio</div></div>
+      <div class="sw"><div class="chip" style="background:#e8ebf7"></div><div class="meta"><strong>Banda</strong><code>#E8EBF7</code><br>Sección alterna</div></div>
+    </div>
+    <div class="ramp" aria-label="Escala marino">
+      <div style="background:#edeff8">50</div><div style="background:#c3c9d9">100</div><div style="background:#b3bfe7">200</div><div style="background:#8999d0">300</div><div style="background:#8793b2">400</div><div style="background:#4b5d8c;color:#fff">500</div><div style="background:#273b7b;color:#fff">600</div><div style="background:#0f2765;color:#fff">700</div><div style="background:#141d3d;color:#fff">800</div><div style="background:#00112c;color:#fff">900</div>
+    </div>
+    <div class="grad" style="background:var(--ne-gradient-band)">Degradado de banda · 110°</div>
+    <div class="grad" style="background:var(--ne-gradient-mark)">Degradado del isotipo · 135°</div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="eyebrow">02 · Tipografía</p>
+    <h2 class="sec">Prompt para títulos, Avenir para todo lo demás</h2>
+    <div class="type-row"><div class="spec">Hero · Prompt 700 · 57/1.4</div><div style="font:700 3.5625rem/1.4 var(--ne-font-display)">Servicios Notariales</div></div>
+    <div class="type-row"><div class="spec">Sección · Prompt 400 · 56/1.4</div><div style="font:400 3.5rem/1.4 var(--ne-font-display)">Servicios Recurrentes</div></div>
+    <div class="type-row"><div class="spec">Bloque · Prompt 700 · 30 · +0.07em</div><div style="font:700 1.875rem var(--ne-font-display);letter-spacing:var(--ne-tracking-title)">Compra o Vende tu Auto con Seguridad</div></div>
+    <div class="type-row"><div class="spec">Lead · Prompt 400 · 20 · +0.07em</div><div style="font:400 1.25rem/1.5 var(--ne-font-display);letter-spacing:var(--ne-tracking-title)">Nuestros servicios notariales son el resultado de años de experiencia.</div></div>
+    <div class="type-row"><div class="spec">Tarjeta · Prompt 700 · 20/28</div><div style="font:var(--ne-text-h3)">Escrituras Públicas</div></div>
+    <div class="type-row"><div class="spec">Body · Avenir 35 Light · 16/24<br>(sustituto: Nunito Sans 300)</div><div style="font:300 1rem/1.5 var(--ne-font-body)">Compra Venta, Donación, Transferencia, Cesión, Adjudicación de Bienes Inmuebles.</div></div>
+    <div class="type-row"><div class="spec">Etiqueta · Avenir 85 Heavy · 20 · +0.2em</div><div style="font:800 1.25rem var(--ne-font-body);letter-spacing:var(--ne-tracking-label)">RESPONSABILIDAD</div></div>
+    <div class="type-row"><div class="spec">Topbar · Poppins SemiBold · 13</div><div style="font:600 13px var(--ne-font-label)">Horarios de atención:</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">03 · Botones</p>
+    <h2 class="sec">Rectos, planos, sin sombra</h2>
+    <div class="row">
+      <a class="btn btn-cta" href="#">Contáctanos</a>
+      <a class="btn btn-navy" href="#">Ver más servicios</a>
+      <a class="btn btn-ink" href="#">Saber más</a>
+      <a class="btn btn-green" href="#">Ver más</a>
+    </div>
+    <p style="margin-top:var(--ne-space-4);font:var(--ne-text-sm);color:var(--ne-slate)">El sitio pone texto blanco sobre el verde pequeño (1,85:1). Aquí va corregido a tinta <code>#00112C</code> (10,2:1).</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="eyebrow">04 · Tarjetas de servicio</p>
+    <h2 class="sec" style="text-align:center">Servicios Recurrentes</h2>
+    <div class="cards">
+      <article class="card">
+        <div class="ill"><svg viewBox="0 0 64 64" fill="none" stroke="#0f2765" stroke-width="4" stroke-linejoin="round"><rect x="14" y="8" width="36" height="48" fill="#fff"/><path d="M22 20h20M22 28h20M22 36h12"/><circle cx="42" cy="46" r="8" fill="#6ae29a"/></svg></div>
+        <div><h3>Escrituras Públicas</h3><p>Compra Venta, Donación, Transferencia, Cesión, Adjudicación de Bienes Inmuebles.</p><a class="btn btn-green" href="#">Ver más</a></div>
+      </article>
+      <article class="card">
+        <div class="ill"><svg viewBox="0 0 64 64" fill="none" stroke="#0f2765" stroke-width="4" stroke-linejoin="round"><rect x="8" y="18" width="48" height="32" fill="#fff"/><path d="M8 18l24 18 24-18"/><path d="M40 44l14-14 4 4-14 14h-4z" fill="#6ae29a"/></svg></div>
+        <div><h3>Cartas Notariales</h3><p>Redacción profesional de cartas notariales para comunicaciones con garantía de entrega jurídica.</p><a class="btn btn-green" href="#">Ver más</a></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<div class="gband"><div class="wrap"><h2>Nuestros clientes corporativos</h2></div></div>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">05 · Formulario</p>
+    <div class="contact" style="border:1px solid var(--ne-border)">
+      <div class="side"><h3>Contáctanos</h3><p>Las Camelias 162, San Isidro, Lima, Perú, 15046</p><p>01 719 3975<br>informes@notariaespinosa.com</p></div>
+      <form onsubmit="return false">
+        <div class="field"><label for="n">Nombres</label><input id="n"></div>
+        <div class="field"><label for="a">Apellidos</label><input id="a"></div>
+        <div class="field full"><label for="e">Correo electrónico *</label><input id="e" type="email"></div>
+        <div class="field full"><label for="m">Mensaje</label><textarea id="m" rows="3"></textarea></div>
+        <button class="btn btn-green full" style="grid-column:1/-1;width:100%">Enviar</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="eyebrow">06 · Valores</p>
+    <div class="values"><div>Experiencia</div><div>Servicio personalizado</div><div>Responsabilidad</div><div>Agilidad &amp; eficiencia</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">07 · Estados para la app</p>
+    <div class="states">
+      <div class="state" style="background:var(--ne-success-bg);border-color:var(--ne-success-border);color:var(--ne-success-text)"><b>Coincide</b><br>DNI igual a la fuente</div>
+      <div class="state" style="background:var(--ne-info-bg);border-color:var(--ne-info-border);color:var(--ne-info-text)"><b>Información</b><br>3 documentos cargados</div>
+      <div class="state" style="background:var(--ne-warning-bg);border-color:var(--ne-warning-border);color:var(--ne-warning-text)"><b>Revisar</b><br>Posible errata léxica</div>
+      <div class="state" style="background:var(--ne-danger-bg);border-color:var(--ne-danger-border);color:var(--ne-danger-text)"><b>Discrepancia</b><br>Monto distinto a la minuta</div>
+    </div>
+    <h3 style="margin-top:var(--ne-space-7)">Contraste</h3>
+    <table>
+      <thead><tr><th>Texto</th><th>Fondo</th><th>Ratio</th><th>WCAG</th></tr></thead>
+      <tbody>
+        <tr><td>#0F2765</td><td>#FFFFFF</td><td>14,0</td><td><span class="pill" style="background:#e5faed;color:#0f5132">AAA</span></td></tr>
+        <tr><td>#4B5D8C</td><td>#FFFFFF</td><td>6,5</td><td><span class="pill" style="background:#e5faed;color:#0f5132">AA</span></td></tr>
+        <tr><td>#44D880</td><td>#00112C</td><td>10,2</td><td><span class="pill" style="background:#e5faed;color:#0f5132">AAA</span></td></tr>
+        <tr><td>#44D880</td><td>#0F2765</td><td>7,6</td><td><span class="pill" style="background:#e5faed;color:#0f5132">AAA</span></td></tr>
+        <tr><td>#01835D</td><td>#FFFFFF</td><td>4,8</td><td><span class="pill" style="background:#e5faed;color:#0f5132">AA</span></td></tr>
+        <tr><td>#8793B2</td><td>#FFFFFF</td><td>3,1</td><td><span class="pill" style="background:#fff6db;color:#5c4200">Solo ≥24px</span></td></tr>
+        <tr><td>#FFFFFF</td><td>#44D880</td><td>1,85</td><td><span class="pill" style="background:#fdecee;color:#8b1c28">No usar</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer><div class="wrap">© 2025 Notaría Espinosa, San Isidro, Lima, Perú.</div></footer>
+</body>
+</html>

@@ -1,62 +1,246 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
-{% block breadcrumb %}<ol class="breadcrumb">
-  <li class="breadcrumb-item"><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
-  <li class="breadcrumb-item"><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
-  <li class="breadcrumb-item active" aria-current="page">Confrontación</li>
+{% block breadcrumb %}<ol>
+  <li><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
+  <li aria-current="page">Confrontación</li>
 </ol>{% endblock %}
-{% block eyebrow %}Expedientes / Confrontación{% endblock %}
-{% block heading %}Resultado de la confrontación{% endblock %}
-{% block subtitle %}{{ expediente.codigo }} · {{ borrador.nombre_original }}{% endblock %}
-{% block actions %}<div class="d-flex gap-2"><a class="btn btn-outline-primary" href="{% url 'expediente_historial' expediente.pk %}">Historial</a><a class="btn btn-outline-primary" href="{% url 'expediente_detalle' expediente.pk %}">Volver al expediente</a></div>{% endblock %}
+{% block cabecera %}{% endblock %}
 {% block content %}
+<div class="pila" x-data="revisionConfrontacion()" x-init="iniciar()" @keydown.window="teclado($event)">
+  <div class="cabecera">
+    <div class="cabecera-texto">
+      <p class="eyebrow">Resultado de la confrontación</p>
+      <h1>{{ expediente.codigo }}</h1>
+      <p class="cabecera-meta">
+        <span><svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>{{ borrador.nombre_original }}</span>
+        {% if resultado.corrida_id %}<span>Corrida {{ resultado.corrida_id }}</span>{% endif %}
+      </p>
+    </div>
+    <div class="acciones">
+      <a class="btn" href="{% url 'expediente_historial' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Historial</a>
+      <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al expediente</a>
+      {% if resultado.estado == "RESULTADO" %}
+        <button type="button" class="btn btn-primario" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar reporte</button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% include "expedientes/_calidad_lectura.html" %}
   {% if resultado.estado == "ADVERTENCIA_CORRESPONDENCIA" %}
-    <section class="alert alert-warning" role="alert" aria-live="polite">
-      <h2 class="h5">Revise los documentos</h2>
-      <p>{{ resultado.mensaje }}</p>
-      <p class="mb-0">No se muestran diferencias campo por campo. Revise que el borrador y las fuentes pertenezcan al mismo expediente.</p>
+    <section class="aviso aviso-grande" data-tono="advertencia" role="alert" aria-live="polite">
+      <svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
+      <div class="aviso-texto">
+        <h2>Revise los documentos</h2>
+        <p>{{ resultado.mensaje }}</p>
+        <p>No se muestran diferencias campo por campo. Revise que el borrador y las fuentes pertenezcan al mismo expediente.</p>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del expediente</a></div>
+      </div>
     </section>
   {% elif resultado.estado == "NO_DISPONIBLE" %}
-    <section class="alert alert-info" role="status" aria-live="polite">
-      <h2 class="h5">No se puede confrontar todavía</h2>
-      <p class="mb-0">{{ resultado.mensaje }}</p>
+    <section class="aviso aviso-grande" role="status" aria-live="polite">
+      <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
+      <div class="aviso-texto">
+        <h2>No se puede confrontar todavía</h2>
+        <p>{{ resultado.mensaje }}</p>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del expediente</a></div>
+      </div>
     </section>
   {% elif resultado.estado == "ERROR_SEGURO" %}
-    <section class="alert alert-danger" role="alert" aria-live="polite">
-      <h2 class="h5">No se pudo completar la confrontación</h2>
-      <p class="mb-0">No se pudo completar la confrontación. Intente nuevamente.</p>
+    <section class="aviso aviso-grande" data-tono="peligro" role="alert" aria-live="polite">
+      <svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+      <div class="aviso-texto">
+        <h2>No se pudo completar la confrontación</h2>
+        <p>No se pudo completar la confrontación. Intente nuevamente.</p>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del expediente</a></div>
+      </div>
     </section>
   {% elif resultado.estado == "RESULTADO" %}
-    <div class="row g-3 mb-3">
-      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Personas con ficha" valor=resultado.extraccion.personas|length apoyo="Fichas RENIEC o biométricas en el legajo" %}</div>
-      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Identidad" valor=resultado.personas|length apoyo="Documento cruzado o sin titular" tono="rojo" %}</div>
-      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Regla" valor=resultado.regla|length apoyo="Datos que no coinciden con las fuentes" tono="rojo" %}</div>
-      <div class="col-12 col-md-4">{% include "core/_metrica.html" with etiqueta="Lingüístico" valor=resultado.ortografia|length apoyo="Ortografía, tildes y redacción" %}</div>
-    </div>
-    <section class="card mb-3 border-0" aria-labelledby="resultado-titulo">
-      <h2 id="resultado-titulo" class="visually-hidden">Resumen</h2>
-      <div class="card-body" role="status" aria-live="polite">
+
+    {# ── Resumen y filtro por severidad ── #}
+    <section class="panel resumen" aria-labelledby="resultado-titulo">
+      <div class="resumen-total" role="status" aria-live="polite">
         {% if resultado.personas or resultado.regla or resultado.ortografia %}
-          <p class="mb-0">Se encontraron observaciones para revisar.</p>
+          <span class="resumen-ico"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg></span>
+          <div>
+            <strong id="resultado-titulo"><span x-text="obs.length"></span> observaciones para revisar</strong>
+            <span>{{ resultado.extraccion.personas|length }} persona{{ resultado.extraccion.personas|length|pluralize }} con ficha{% if resultado.correcciones %} · {{ resultado.correcciones|length }} correccion{{ resultado.correcciones|length|pluralize:"es" }} propuesta{{ resultado.correcciones|length|pluralize }}{% endif %}</span>
+          </div>
         {% else %}
-          <p class="mb-0">No se encontraron observaciones. El borrador concuerda con las fuentes.</p>
+          <span class="resumen-ico" data-tono="exito"><svg class="ico" aria-hidden="true"><use href="#i-circle-check"/></svg></span>
+          <div>
+            <strong id="resultado-titulo">Sin observaciones</strong>
+            <span>{% if resultado.calidad_lectura %}No se encontraron observaciones en el texto leído. Revise los avisos de calidad.{% else %}No se encontraron observaciones en los datos detectados.{% endif %}</span>
+          </div>
         {% endif %}
+      </div>
+      <div class="resumen-sev" role="group" aria-label="Filtrar por severidad">
+        <button type="button" class="sev-filtro" data-sev="ALTA" :aria-pressed="sev === 'ALTA'" @click="sev = sev === 'ALTA' ? 'TODAS' : 'ALTA'">
+          <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg><span class="sev-pref">Severidad </span>alta</span>
+          <span class="sev-filtro-num" x-text="contarSev('ALTA')">0</span>
+        </button>
+        <button type="button" class="sev-filtro" data-sev="MEDIA" :aria-pressed="sev === 'MEDIA'" @click="sev = sev === 'MEDIA' ? 'TODAS' : 'MEDIA'">
+          <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg><span class="sev-pref">Severidad </span>media</span>
+          <span class="sev-filtro-num" x-text="contarSev('MEDIA')">0</span>
+        </button>
+        <button type="button" class="sev-filtro" data-sev="BAJA" :aria-pressed="sev === 'BAJA'" @click="sev = sev === 'BAJA' ? 'TODAS' : 'BAJA'">
+          <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span class="sev-pref">Severidad </span>baja</span>
+          <span class="sev-filtro-num" x-text="contarSev('BAJA')">0</span>
+        </button>
       </div>
     </section>
 
-    {% include "expedientes/_correcciones.html" %}
+    {% if resultado.linguistico_aviso %}
+      <div class="aviso" role="status" x-show="capa === 'TODAS' || capa === 'LINGUISTICO'">
+        <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
+        <div class="aviso-texto"><span>{{ resultado.linguistico_aviso }}</span></div>
+      </div>
+    {% endif %}
 
+    {% if resultado.personas or resultado.regla or resultado.ortografia %}
+    {# ── Pestañas por capa ── #}
+    <div class="capas">
+      <div role="tablist" aria-label="Capas de revisión">
+        <button type="button" role="tab" class="capa" :aria-selected="capa === 'TODAS'" @click="capa = 'TODAS'">Todas<span class="capa-num" x-text="contar('TODAS')"></span></button>
+        <button type="button" role="tab" class="capa" :aria-selected="capa === 'IDENTIDAD'" @click="capa = 'IDENTIDAD'">Identidad<span class="capa-num" x-text="contar('IDENTIDAD')"></span></button>
+        <button type="button" role="tab" class="capa" :aria-selected="capa === 'REGLA'" @click="capa = 'REGLA'">Regla<span class="capa-num" x-text="contar('REGLA')"></span></button>
+        <button type="button" role="tab" class="capa" :aria-selected="capa === 'LINGUISTICO'" @click="capa = 'LINGUISTICO'" id="ortografia-titulo">Lingüístico<span class="capa-num" x-text="contar('LINGUISTICO')"></span></button>
+      </div>
+      <span class="atajos" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd>recorrer observaciones</span>
+    </div>
+
+    {# ── Lista + detalle ── #}
+    <div class="revision">
+      <section class="panel obs-panel" aria-label="Observaciones">
+        <ul class="obs-lista" x-ref="lista">
+          {% for observacion in resultado.personas %}
+            <li data-id="p{{ forloop.counter }}" data-capa="IDENTIDAD" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="Documento de identidad" data-titulo="{{ observacion.nombre }}" data-hallado="{{ observacion.hallado }}" data-esperado="{{ observacion.esperado }}" data-persona="{{ observacion.nombre }}" data-procedencia="{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+              <button type="button" class="obs-item" :aria-current="sel === 'p{{ forloop.counter }}'" @click="elegir('p{{ forloop.counter }}')">
+                <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Identidad</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
+                <strong class="obs-titulo">{{ observacion.nombre }}</strong>
+                <span class="cambio"><span class="tachado">{{ observacion.hallado }}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="correcto">{{ observacion.esperado }}</span></span>
+                <span class="obs-marca" x-show="estaMarcadaObs('p{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
+              </button>
+            </li>
+          {% endfor %}
+          {% for observacion in resultado.regla %}
+            <li data-id="r{{ forloop.counter }}" data-capa="REGLA" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{{ observacion.hallado }}" data-esperado="{{ observacion.esperado }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+              <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
+                <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Regla</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
+                <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
+                <span class="cambio"><span class="tachado">{{ observacion.hallado }}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="correcto">{{ observacion.esperado }}</span></span>
+                <span class="obs-marca" x-show="estaMarcadaObs('r{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
+              </button>
+            </li>
+          {% endfor %}
+          {% for observacion in resultado.ortografia %}
+            <li data-id="o{{ forloop.counter }}" data-capa="LINGUISTICO" data-sev="BAJA" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{{ observacion.motivo }}" data-titulo="«{{ observacion.palabra }}»" data-hallado="{{ observacion.palabra }}" data-esperado="{{ observacion.sugerencia|default:'' }}" data-persona="" data-procedencia="" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+              <button type="button" class="obs-item" :aria-current="sel === 'o{{ forloop.counter }}'" @click="elegir('o{{ forloop.counter }}')">
+                <span class="obs-item-cab">{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<span class="obs-capa">Lingüístico</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
+                <strong class="obs-titulo">{{ observacion.motivo }}</strong>
+                <span class="cambio"><span class="tachado">{{ observacion.palabra }}</span>{% if observacion.sugerencia %}<svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="correcto">{{ observacion.sugerencia }}</span>{% endif %}</span>
+              </button>
+            </li>
+          {% endfor %}
+        </ul>
+        <p class="obs-vacia" x-show="!visibles.length" x-cloak>No hay observaciones con este filtro.</p>
+      </section>
+
+      <section class="panel" aria-label="Detalle de la observación" x-show="sel" x-ref="detalle">
+        {% for observacion in resultado.personas %}
+          <article class="obs-detalle" x-show="sel === 'p{{ forloop.counter }}'" x-cloak>
+            <div class="obs-detalle-cab">
+              <div>
+                <span class="obs-etiquetas">{% include "core/_chip.html" with estado=observacion.severidad texto="Severidad "|add:observacion.severidad clase="sev" %}<span class="eyebrow">Identidad · Documento</span></span>
+                <h2>{{ observacion.nombre }}</h2>
+                <p>{{ observacion.motivo }}</p>
+              </div>
+              {% include "expedientes/_obs_nav.html" %}
+            </div>
+            <div class="documentos">
+              {% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}
+              <div class="doc doc-fuente">
+                <div class="doc-cab"><strong>Fuente</strong><span>Procedencia del documento esperado</span></div>
+                <div class="doc-cuerpo">
+                  <ul class="doc-lista">
+                    {% for procedencia in observacion.procedencias %}<li>{{ procedencia.archivo }}, página {{ procedencia.pagina }}</li>{% empty %}<li class="texto-suave">No ubicada</li>{% endfor %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <dl class="valores">
+              <div><dt>Documento hallado</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
+              <div><dt>Documento esperado</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
+              <div><dt>Persona</dt><dd>{{ observacion.nombre }}</dd></div>
+            </dl>
+            {% include "expedientes/_obs_correccion.html" with prefijo="p" numero=forloop.counter %}
+          </article>
+        {% endfor %}
+        {% for observacion in resultado.regla %}
+          <article class="obs-detalle" x-show="sel === 'r{{ forloop.counter }}'" x-cloak>
+            <div class="obs-detalle-cab">
+              <div>
+                <span class="obs-etiquetas">{% include "core/_chip.html" with estado=observacion.severidad texto="Severidad "|add:observacion.severidad clase="sev" %}<span class="eyebrow">Regla · {% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</span></span>
+                <h2>{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</h2>
+                {% if observacion.motivo %}<p>{{ observacion.motivo }}</p>{% endif %}
+              </div>
+              {% include "expedientes/_obs_nav.html" %}
+            </div>
+            <div class="documentos">
+              {% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}
+            </div>
+            <dl class="valores">
+              <div><dt>Valor hallado</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
+              <div><dt>Valor esperado</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
+            </dl>
+            {% include "expedientes/_obs_correccion.html" with prefijo="r" numero=forloop.counter %}
+          </article>
+        {% endfor %}
+        {% for observacion in resultado.ortografia %}
+          <article class="obs-detalle" x-show="sel === 'o{{ forloop.counter }}'" x-cloak>
+            <div class="obs-detalle-cab">
+              <div>
+                <span class="obs-etiquetas">{% include "core/_chip.html" with estado="BAJA" texto="Severidad baja" clase="sev" %}<span class="eyebrow">Lingüístico</span></span>
+                <h2>«{{ observacion.palabra }}»</h2>
+                <p>{{ observacion.motivo }}</p>
+              </div>
+              {% include "expedientes/_obs_nav.html" %}
+            </div>
+            <div class="documentos">
+              {% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.palabra %}
+              <div class="doc doc-sugerencia">
+                <div class="doc-cab"><strong>Sugerencia</strong></div>
+                <div class="doc-cuerpo">
+                  <span class="sugerencia-grande">{{ observacion.sugerencia|default:"Sin sugerencia" }}</span>
+                  <p class="nota-info"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>Solo informa: no corrige el documento ni decide sobre nombres, documentos, montos ni domicilios.</p>
+                </div>
+              </div>
+            </div>
+            <dl class="valores">
+              <div><dt>Texto</dt><dd class="hallado">{{ observacion.palabra }}</dd></div>
+              <div><dt>Sugerencia</dt><dd class="esperado">{{ observacion.sugerencia|default:"—" }}</dd></div>
+            </dl>
+          </article>
+        {% endfor %}
+      </section>
+    </div>
+    {% endif %}
+
+    {# ── Qué se extrajo ── #}
     {% if resultado.extraccion %}
-      <details class="card mb-3" aria-labelledby="extraccion-titulo">
-        <summary id="extraccion-titulo" class="card-header h5">Qué se extrajo de los documentos</summary>
-        <div class="card-body">
-          <p class="text-body-secondary">Revise las personas detectadas y su procedencia. El texto completo no se muestra aquí.</p>
+      <details class="panel desplegable" aria-labelledby="extraccion-titulo">
+        <summary>
+          <svg class="ico" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+          <span><strong id="extraccion-titulo">Qué se extrajo de los documentos</strong><small>Personas detectadas y su procedencia. El texto completo no se muestra aquí.</small></span>
+        </summary>
+        <div class="desplegable-cuerpo">
           {% if resultado.extraccion.personas %}
-            <h3 class="h6">Personas con ficha</h3>
-            <p class="small text-body-secondary">Cada ficha RENIEC o biométrica es una persona. Los demás documentos solo añaden datos.</p>
-            <div class="table-responsive">
-              <table class="table table-striped" aria-label="Personas con ficha">
+            <h3>Personas con ficha</h3>
+            <p>Cada ficha RENIEC o biométrica es una persona. Los demás documentos solo añaden datos.</p>
+            <div class="tabla-desliza">
+              <table class="tabla tabla-arriba tabla-ancha" aria-label="Personas con ficha">
                 <thead><tr>
                   <th scope="col">Nombre</th><th scope="col">Documento</th>
                   <th scope="col">Procedencia</th><th scope="col">Estado</th>
@@ -67,28 +251,18 @@
                 <tbody>
                   {% for persona in resultado.extraccion.personas %}
                     <tr>
-                      <td>{{ persona.nombre }}</td>
+                      <th scope="row">{{ persona.nombre }}</th>
                       <td>{{ persona.documento }}</td>
-                      <td>
-                        {% for procedencia in persona.procedencias %}
-                          {{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}
-                        {% empty %}No ubicada{% endfor %}
-                      </td>
+                      <td class="texto-chico texto-suave">{% for procedencia in persona.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% empty %}No ubicada{% endfor %}</td>
                       <td>{{ persona.estado }}</td>
-                      <td>{{ persona.estado_civil|default:"No detectado" }}<br>
-                        {% if persona.procedencia_estado_civil %}{{ persona.procedencia_estado_civil.archivo }}, página {{ persona.procedencia_estado_civil.pagina }}{% else %}No ubicada{% endif %}</td>
-                      <td>{{ persona.fecha_nacimiento|default:"No detectada" }}<br>
-                        {% if persona.procedencia_fecha_nacimiento %}{{ persona.procedencia_fecha_nacimiento.archivo }}, página {{ persona.procedencia_fecha_nacimiento.pagina }}{% else %}No ubicada{% endif %}</td>
-                      <td>{{ persona.domicilio|default:"No detectado" }}<br>
-                        {% if persona.procedencia_domicilio %}{{ persona.procedencia_domicilio.archivo }}, página {{ persona.procedencia_domicilio.pagina }}{% else %}No ubicada{% endif %}</td>
-                      <td>{{ persona.distrito|default:"No detectado" }}<br>
-                        {% if persona.procedencia_distrito %}{{ persona.procedencia_distrito.archivo }}, página {{ persona.procedencia_distrito.pagina }}{% else %}No ubicada{% endif %}</td>
-                      <td>{{ persona.conyuge|default:"No declarado" }}<br>
-                        {% if persona.procedencia_conyuge %}{{ persona.procedencia_conyuge.archivo }}, página {{ persona.procedencia_conyuge.pagina }}{% else %}No ubicada{% endif %}</td>
+                      <td>{{ persona.estado_civil|default:"No detectado" }}<span class="sub">{% if persona.procedencia_estado_civil %}{{ persona.procedencia_estado_civil.archivo }}, página {{ persona.procedencia_estado_civil.pagina }}{% else %}No ubicada{% endif %}</span></td>
+                      <td>{{ persona.fecha_nacimiento|default:"No detectada" }}<span class="sub">{% if persona.procedencia_fecha_nacimiento %}{{ persona.procedencia_fecha_nacimiento.archivo }}, página {{ persona.procedencia_fecha_nacimiento.pagina }}{% else %}No ubicada{% endif %}</span></td>
+                      <td>{{ persona.domicilio|default:"No detectado" }}<span class="sub">{% if persona.procedencia_domicilio %}{{ persona.procedencia_domicilio.archivo }}, página {{ persona.procedencia_domicilio.pagina }}{% else %}No ubicada{% endif %}</span></td>
+                      <td>{{ persona.distrito|default:"No detectado" }}<span class="sub">{% if persona.procedencia_distrito %}{{ persona.procedencia_distrito.archivo }}, página {{ persona.procedencia_distrito.pagina }}{% else %}No ubicada{% endif %}</span></td>
+                      <td>{{ persona.conyuge|default:"No declarado" }}<span class="sub">{% if persona.procedencia_conyuge %}{{ persona.procedencia_conyuge.archivo }}, página {{ persona.procedencia_conyuge.pagina }}{% else %}No ubicada{% endif %}</span></td>
                       <td>
                         {% for adjunto in persona.adjuntos %}
-                          <div>{{ adjunto.nombre }} · {{ adjunto.documento }}<br>
-                            <span class="small text-body-secondary">{% for procedencia in adjunto.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% empty %}No ubicada{% endfor %}</span></div>
+                          <div>{{ adjunto.nombre }} · {{ adjunto.documento }}<span class="sub">{% for procedencia in adjunto.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% empty %}No ubicada{% endfor %}</span></div>
                         {% empty %}Ninguno{% endfor %}
                       </td>
                     </tr>
@@ -97,33 +271,31 @@
               </table>
             </div>
             {% if resultado.extraccion.paginas_descartadas %}
-              <p class="small text-body-secondary">Páginas descartadas: {{ resultado.extraccion.paginas_descartadas|length }}.</p>
+              <p>Páginas descartadas: {{ resultado.extraccion.paginas_descartadas|length }}.</p>
             {% endif %}
             {% if resultado.extraccion.paginas_no_clasificadas %}
-              <p class="small text-body-secondary">Páginas no clasificadas para revisión: {{ resultado.extraccion.paginas_no_clasificadas|length }}.</p>
-              <ul class="small">
+              <p>Páginas no clasificadas para revisión: {{ resultado.extraccion.paginas_no_clasificadas|length }}.</p>
+              <ul>
                 {% for pagina in resultado.extraccion.paginas_no_clasificadas %}
                   <li>{{ pagina.archivo }}, página {{ pagina.pagina }}</li>
                 {% endfor %}
               </ul>
             {% endif %}
           {% else %}
-            <p class="alert alert-info py-2" role="status">Ninguna ficha RENIEC o biométrica en el legajo.</p>
-            <h3 class="h6">Catálogo agregado</h3>
-            <dl class="row">
+            <div class="aviso aviso-margen" role="status"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><div class="aviso-texto"><span>Ninguna ficha RENIEC o biométrica en el legajo.</span></div></div>
+            <h3>Catálogo agregado</h3>
+            <dl class="definiciones">
               {% for campo, valores in resultado.extraccion.catalogo.items %}
-                <dt class="col-sm-3">{{ campo }}</dt>
-                <dd class="col-sm-9">
-                  {% if valores %}{{ valores|join:", " }}{% else %}<span class="text-body-secondary">Sin valores detectados</span>{% endif %}
-                </dd>
+                <dt>{{ campo }}</dt>
+                <dd>{% if valores %}{{ valores|join:", " }}{% else %}<span class="texto-suave">Sin valores detectados</span>{% endif %}</dd>
               {% endfor %}
             </dl>
           {% endif %}
           {% if resultado.extraccion.menciones %}
-            <h3 class="h6 mt-4">Menciones sin ficha</h3>
-            <p class="small text-body-secondary">Aparecen en los documentos pero no tienen ficha en el legajo. Se verifican campo por campo, no como persona. Si es un compareciente, falta su ficha.</p>
-            <div class="table-responsive">
-              <table class="table table-striped" aria-label="Menciones sin ficha">
+            <h3>Menciones sin ficha</h3>
+            <p>Aparecen en los documentos pero no tienen ficha en el legajo. Se verifican campo por campo, no como persona. Si es un compareciente, falta su ficha.</p>
+            <div class="tabla-desliza">
+              <table class="tabla tabla-arriba" aria-label="Menciones sin ficha">
                 <thead><tr>
                   <th scope="col">Nombre</th><th scope="col">Documento</th>
                   <th scope="col">Cónyuge</th><th scope="col">Origen</th>
@@ -131,14 +303,10 @@
                 <tbody>
                   {% for mencion in resultado.extraccion.menciones %}
                     <tr>
-                      <td>{{ mencion.nombre }}</td>
+                      <th scope="row">{{ mencion.nombre }}</th>
                       <td>{{ mencion.documento }}</td>
                       <td>{{ mencion.conyuge|default:"No declarado" }}</td>
-                      <td>
-                        {% for procedencia in mencion.procedencias %}
-                          {{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}
-                        {% empty %}No ubicada{% endfor %}
-                      </td>
+                      <td class="texto-chico texto-suave">{% for procedencia in mencion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% empty %}No ubicada{% endfor %}</td>
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -146,22 +314,20 @@
             </div>
           {% endif %}
 
-          <h3 class="h6 mt-4">Aporte por documento</h3>
+          <h3>Aporte por documento</h3>
           {% for documento in resultado.extraccion.documentos %}
-            <article class="border rounded p-3 mb-3{% if not documento.aporta %} border-warning{% endif %}">
-              <h4 class="h6 mb-1">{{ documento.nombre }}</h4>
-              <p class="small text-body-secondary mb-2">{{ documento.caracteres }} caracteres extraídos.</p>
+            <article class="aporte" data-aporta="{{ documento.aporta|yesno:'1,0' }}">
+              <h4>{{ documento.nombre }}</h4>
+              <p>{{ documento.caracteres }} caracteres extraídos.</p>
               {% if not documento.aporta %}
-                <p class="alert alert-warning py-2 mb-2" role="status">No aportó campos detectables.</p>
+                <div class="aviso" data-tono="advertencia" role="status"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg><div class="aviso-texto"><span>No aportó campos detectables.</span></div></div>
               {% endif %}
-              {% if documento.personas %}<p class="small mb-1">Personas con ficha: {{ documento.personas|length }}</p>{% endif %}
-              {% if documento.menciones %}<p class="small mb-1">Menciones sin ficha: {{ documento.menciones|length }}</p>{% endif %}
-              <dl class="row mb-0">
+              {% if documento.personas %}<p>Personas con ficha: {{ documento.personas|length }}</p>{% endif %}
+              {% if documento.menciones %}<p>Menciones sin ficha: {{ documento.menciones|length }}</p>{% endif %}
+              <dl class="definiciones">
                 {% for campo, valores in documento.catalogo.items %}
-                  <dt class="col-sm-3">{{ campo }}</dt>
-                  <dd class="col-sm-9">
-                    {% if valores %}{{ valores|join:", " }}{% else %}<span class="text-body-secondary">Sin valores detectados</span>{% endif %}
-                  </dd>
+                  <dt>{{ campo }}</dt>
+                  <dd>{% if valores %}{{ valores|join:", " }}{% else %}<span class="texto-suave">Sin valores detectados</span>{% endif %}</dd>
                 {% endfor %}
               </dl>
             </article>
@@ -170,108 +336,357 @@
       </details>
     {% endif %}
 
-    {% if resultado.personas %}
-    <section class="card mb-3" aria-labelledby="personas-titulo">
-      <div class="card-header"><h2 id="personas-titulo" class="h5 fw-bold mb-0">Personas {% if resultado.personas %}{% include "core/_chip.html" with estado="REVISION" texto=resultado.personas|length %}{% else %}{% include "core/_chip.html" with estado="LISTO" texto="0" %}{% endif %}</h2></div>
-      <div class="card-body">
-        {% if resultado.personas %}
-          <div class="table-responsive">
-            <table class="table table-striped" aria-describedby="personas-titulo">
-              <thead><tr>
-                <th scope="col">Persona</th><th scope="col">Severidad</th><th scope="col">Documento hallado</th>
-                <th scope="col">Documento esperado</th><th scope="col">Procedencia</th>
-                <th scope="col">Ubicación</th>
-              </tr></thead>
-              <tbody>
-                {% for observacion in resultado.personas %}
-                  <tr>
-                    <td>{{ observacion.nombre }}<div class="small text-body-secondary">{{ observacion.motivo }}</div></td>
-                    <td>{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad %}</td>
-                    <td>{{ observacion.hallado }}</td>
-                    <td>{{ observacion.esperado }}</td>
-                    <td>
-                      {% for procedencia in observacion.procedencias %}
-                        {{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}
-                      {% empty %}No ubicada{% endfor %}
-                    </td>
-                    <td>
-                      {% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}<p class="mb-0">No se encontraron observaciones de identidad.</p>{% endif %}
+    {# ── Barra de correcciones ── #}
+    {% if resultado.correcciones %}
+      <div class="barra-correcciones">
+        <div>
+          {% if resultado.corregible %}
+            <strong><span x-text="marcadas.length">{{ resultado.correcciones|length }}</span> de {{ resultado.correcciones|length }} correcciones marcadas</strong>
+            <span>Se generará un documento corregido nuevo; el original no cambia.</span>
+          {% else %}
+            <strong>{{ resultado.correcciones|length }} correccion{{ resultado.correcciones|length|pluralize:"es" }} propuesta{{ resultado.correcciones|length|pluralize }}</strong>
+            <span>Este borrador no admite corrección automática: solo se corrigen borradores Word (.docx) cargados con esta versión. Vuelva a subirlo en Word para corregirlo.</span>
+          {% endif %}
+        </div>
+        <button type="button" class="btn btn-fantasma" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Reporte de errores</button>
+        {% if resultado.corregible %}
+          <button type="button" class="btn btn-verde" :disabled="!marcadas.length" @click="modal = 'aplicar'"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Aplicar correcciones</button>
+        {% endif %}
       </div>
-    </section>
     {% endif %}
 
-    <section class="card mb-3" aria-labelledby="regla-titulo">
-      <div class="card-header"><h2 id="regla-titulo" class="h5 fw-bold mb-0">Regla {% if resultado.regla %}{% include "core/_chip.html" with estado="REVISION" texto=resultado.regla|length %}{% else %}{% include "core/_chip.html" with estado="LISTO" texto="0" %}{% endif %}</h2></div>
-      <div class="card-body">
-        {% if resultado.regla %}
-          <div class="table-responsive">
-            <table class="table table-striped" aria-describedby="regla-titulo">
-              <thead><tr>
-                <th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Valor hallado</th>
-                <th scope="col">Valor esperado</th>
-                <th scope="col">Ubicación</th>
-              </tr></thead>
-              <tbody>
-                {% for observacion in resultado.regla %}
-                  <tr>
-                    <td>{{ observacion.campo }}</td>
-                    <td>{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad %}</td>
-                    <td>{{ observacion.hallado }}</td>
-                    <td>
-                      {{ observacion.esperado }}
-                      {% if observacion.motivo %}<div class="small text-body-secondary">{{ observacion.motivo }}</div>{% endif %}
-                    </td>
-                    <td>
-                      {% if observacion.ubicacion.linea %}
-                        Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}
-                      {% else %}No ubicada{% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+    {# ── Modal: aplicar correcciones (envía el formulario de F15) ── #}
+    {% if resultado.correcciones %}
+      <div class="modal-fondo" x-show="modal === 'aplicar'" x-cloak @click.self="modal = null">
+        <form class="modal" role="alertdialog" aria-modal="true" aria-labelledby="aplicar-titulo" method="post" action="{% url 'correcciones_aplicar' expediente.pk borrador.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="corrida" value="{{ resultado.corrida_id }}">
+          <input type="hidden" name="confirmado" value="1">
+          <div class="modal-cuerpo">
+            <h2 id="aplicar-titulo">¿Aplicar <span x-text="marcadas.length"></span> correcciones?</h2>
+            <p>Se generará un documento corregido nuevo; el original no cambia. Desmarque las que no desea aplicar.</p>
+            <ul class="lista-cambios">
+              {% for correccion in resultado.correcciones %}
+                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}" data-fuente="{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}">
+                  <label class="casilla casilla-chica">
+                    <input type="checkbox" name="aplicar" value="{{ correccion.id }}" checked x-model="marcadas">
+                    <span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span>
+                    <span class="visually-hidden">Aplicar: {{ correccion.erroneo }} por {{ correccion.correcto }}</span>
+                  </label>
+                  <span class="tachado">{{ correccion.erroneo }}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><strong class="correcto">{{ correccion.correcto }}</strong>
+                  <span class="cuenta">{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:"ón,ones" }}</span>
+                </li>
+              {% endfor %}
+            </ul>
           </div>
-        {% else %}<p class="mb-0">No se encontraron observaciones de regla.</p>{% endif %}
+          <div class="modal-pie">
+            <button type="button" class="btn" @click="modal = null">Cancelar</button>
+            {% if resultado.corregible %}<button type="submit" class="btn btn-verde" :disabled="!marcadas.length"><span x-text="'Aplicar ' + marcadas.length + ' correcciones'">Aplicar correcciones</span></button>{% endif %}
+          </div>
+        </form>
       </div>
-    </section>
+    {% endif %}
 
-    <section class="card mb-3" aria-labelledby="ortografia-titulo">
-      <div class="card-header"><h2 id="ortografia-titulo" class="h5 fw-bold mb-0">Lingüístico {% if resultado.ortografia %}{% include "core/_chip.html" with estado="REVISION" texto=resultado.ortografia|length %}{% else %}{% include "core/_chip.html" with estado="LISTO" texto="0" %}{% endif %}</h2></div>
-      <div class="card-body">
-        <p class="small text-body-secondary">Solo informa: no corrige el documento ni decide sobre nombres, documentos, montos ni domicilios.</p>
-        {% if resultado.linguistico_aviso %}<p class="alert alert-info py-2" role="status">{{ resultado.linguistico_aviso }}</p>{% endif %}
-        {% if resultado.ortografia %}
-          <div class="table-responsive">
-            <table class="table table-striped" aria-describedby="ortografia-titulo">
-              <thead><tr>
-                <th scope="col">Texto</th><th scope="col">Motivo</th>
-                <th scope="col">Sugerencia</th><th scope="col">Ubicación</th>
-              </tr></thead>
-              <tbody>
-                {% for observacion in resultado.ortografia %}
-                  <tr>
-                    <td>{{ observacion.palabra }}</td>
-                    <td>{{ observacion.motivo }}</td>
-                    <td>{{ observacion.sugerencia }}</td>
-                    <td>
-                      {% if observacion.ubicacion.linea %}
-                        Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}
-                      {% else %}No ubicada{% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+    {# ── Modal: reporte ── #}
+    <div class="modal-fondo" x-show="modal === 'reporte'" x-cloak @click.self="modal = null">
+      <div class="modal modal-ancho" data-tono="exito" role="dialog" aria-modal="true" aria-labelledby="reporte-titulo">
+        <div class="modal-cab">
+          <div>
+            <h2 id="reporte-titulo">Descargar reporte de errores</h2>
+            <p>{{ expediente.codigo }} · {{ borrador.nombre_original }}</p>
           </div>
-        {% else %}<p class="mb-0">No se encontraron observaciones lingüísticas.</p>{% endif %}
+          <button type="button" class="modal-cerrar" aria-label="Cerrar" @click="modal = null"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="modal-cuerpo">
+          <fieldset>
+            <legend>Formato</legend>
+            <div class="formatos" role="radiogroup">
+              <button type="button" class="formato" role="radio" :aria-checked="rep.fmt === 'WORD'" @click="rep.fmt = 'WORD'"><strong>Word</strong><span>Documento ejecutivo (.docx)</span></button>
+              <button type="button" class="formato" role="radio" :aria-checked="rep.fmt === 'PDF'" @click="rep.fmt = 'PDF'"><strong>PDF</strong><span>Para imprimir o archivar</span></button>
+              <button type="button" class="formato" role="radio" :aria-checked="rep.fmt === 'EXCEL'" @click="rep.fmt = 'EXCEL'"><strong>Excel</strong><span>Tabla de observaciones (.csv)</span></button>
+            </div>
+          </fieldset>
+          <p class="aviso" role="alert" x-show="errorReporte" x-text="errorReporte" x-cloak></p>
+          <fieldset class="opciones-reporte">
+            <legend>Contenido</legend>
+            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.IDENTIDAD"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones de identidad</span><em x-text="contarCapa('IDENTIDAD')"></em></label>
+            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.REGLA"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones de regla</span><em x-text="contarCapa('REGLA')"></em></label>
+            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.LINGUISTICO"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones lingüísticas</span><em x-text="contarCapa('LINGUISTICO')"></em></label>
+            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.CORRECCIONES"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Correcciones propuestas</span><em x-text="correcciones.length"></em></label>
+            <label class="casilla casilla-chica" x-show="rep.fmt !== 'EXCEL'"><input type="checkbox" x-model="rep.EXTRACCION"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Personas extraídas y procedencia</span><em>{{ resultado.extraccion.personas|length }}</em></label>
+          </fieldset>
+          <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El reporte registra expediente, borrador, corrida, usuario y fecha de emisión.</span></p>
+        </div>
+        <div class="modal-pie">
+          <button type="button" class="btn" @click="modal = null">Cancelar</button>
+          <button type="button" class="btn btn-primario" :disabled="generando" @click="descargar()"><svg class="ico" aria-hidden="true"><use :href="rep.fmt === 'PDF' ? '#i-printer' : '#i-download'" href="#i-download"/></svg><span x-text="generando ? 'Generando…' : ({ WORD: 'Descargar Word', PDF: 'Imprimir o guardar PDF', EXCEL: 'Descargar Excel' })[rep.fmt]">Descargar Word</span></button>
+        </div>
       </div>
-    </section>
+    </div>
   {% endif %}
+</div>
+{% endblock %}
+
+{% block modales %}
+{% if resultado.estado == "RESULTADO" %}
+  {# Reporte imprimible: oculto en pantalla; «Imprimir o guardar PDF» lo muestra solo al imprimir. #}
+  <section class="solo-impresion reporte" aria-hidden="true">
+    {% if erp_logo %}<img class="marca-logo" src="{{ erp_logo }}" alt="">{% endif %}
+    <h1>Reporte de observaciones · {{ expediente.codigo }}</h1>
+    {% include "expedientes/_calidad_lectura.html" %}
+    <p class="reporte-meta">{{ erp_nombre }} · Borrador: {{ borrador.nombre_original }}{% if resultado.corrida_id %} · Corrida {{ resultado.corrida_id }}{% endif %} · Emitido por {{ user.username }} el {% now "d/m/Y H:i" %}</p>
+
+    <div data-seccion="IDENTIDAD">
+      <h2>Identidad</h2>
+      {% if resultado.personas %}
+        <table>
+          <thead><tr><th scope="col">Persona</th><th scope="col">Severidad</th><th scope="col">Documento hallado</th><th scope="col">Documento esperado</th><th scope="col">Procedencia</th><th scope="col">Ubicación</th></tr></thead>
+          <tbody>
+            {% for observacion in resultado.personas %}
+              <tr>
+                <td>{{ observacion.nombre }}<br><small>{{ observacion.motivo }}</small></td>
+                <td>{{ observacion.severidad }}</td>
+                <td>{{ observacion.hallado }}</td>
+                <td>{{ observacion.esperado }}</td>
+                <td>{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% empty %}No ubicada{% endfor %}</td>
+                <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}<p>No se encontraron observaciones de identidad.</p>{% endif %}
+    </div>
+
+    <div data-seccion="REGLA">
+      <h2 id="regla-titulo">Regla</h2>
+      {% if resultado.regla %}
+        <table aria-describedby="regla-titulo">
+          <thead><tr><th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Valor hallado</th><th scope="col">Valor esperado</th><th scope="col">Ubicación</th></tr></thead>
+          <tbody>
+            {% for observacion in resultado.regla %}
+              <tr>
+                <td>{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</td>
+                <td>{{ observacion.severidad }}</td>
+                <td>{{ observacion.hallado }}</td>
+                <td>{{ observacion.esperado }}{% if observacion.motivo %}<br><small>{{ observacion.motivo }}</small>{% endif %}</td>
+                <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}<p>No se encontraron observaciones de regla.</p>{% endif %}
+    </div>
+
+    <div data-seccion="LINGUISTICO">
+      <h2>Lingüístico</h2>
+      <p><small>Solo informa: no corrige el documento ni decide sobre nombres, documentos, montos ni domicilios.</small></p>
+      {% if resultado.ortografia %}
+        <table>
+          <thead><tr><th scope="col">Texto</th><th scope="col">Motivo</th><th scope="col">Sugerencia</th><th scope="col">Ubicación</th></tr></thead>
+          <tbody>
+            {% for observacion in resultado.ortografia %}
+              <tr>
+                <td>{{ observacion.palabra }}</td>
+                <td>{{ observacion.motivo }}</td>
+                <td>{{ observacion.sugerencia }}</td>
+                <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}<p>No se encontraron observaciones lingüísticas.</p>{% endif %}
+    </div>
+
+    <div data-seccion="CORRECCIONES">
+      <h2>Correcciones propuestas</h2>
+      {% if resultado.correcciones %}
+        <table>
+          <thead><tr><th scope="col">Valor erróneo</th><th scope="col">Valor correcto</th><th scope="col">Documento fuente</th><th scope="col">Apariciones</th></tr></thead>
+          <tbody>
+            {% for correccion in resultado.correcciones %}
+              <tr><td>{{ correccion.erroneo }}</td><td>{{ correccion.correcto }}</td><td>{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}</td><td>{{ correccion.apariciones }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}<p>No hay correcciones propuestas.</p>{% endif %}
+    </div>
+
+    <div data-seccion="EXTRACCION" hidden>
+      <h2>Personas extraídas y procedencia</h2>
+      {% if resultado.extraccion.personas %}
+        <table>
+          <thead><tr><th scope="col">Nombre</th><th scope="col">Documento</th><th scope="col">Estado civil</th><th scope="col">Domicilio</th><th scope="col">Cónyuge</th><th scope="col">Procedencia</th></tr></thead>
+          <tbody>
+            {% for persona in resultado.extraccion.personas %}
+              <tr>
+                <td>{{ persona.nombre }}</td><td>{{ persona.documento }}</td>
+                <td>{{ persona.estado_civil|default:"No detectado" }}</td>
+                <td>{{ persona.domicilio|default:"No detectado" }}{% if persona.distrito %}, {{ persona.distrito }}{% endif %}</td>
+                <td>{{ persona.conyuge|default:"No declarado" }}</td>
+                <td>{% for procedencia in persona.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% empty %}No ubicada{% endfor %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}<p>Ninguna ficha RENIEC o biométrica en el legajo.</p>{% endif %}
+    </div>
+  </section>
+{% endif %}
+
+<script src="{% static 'js/reporte-docx.js' %}"></script>
+<script>
+  /* Datos del encabezado del reporte (Word); el resto sale del HTML renderizado. */
+  const REPORTE = {
+    codigo: '{{ expediente.codigo|escapejs }}',
+    borrador: '{{ borrador.nombre_original|escapejs }}',
+    corrida: '{{ resultado.corrida_id|default_if_none:""|escapejs }}',
+    usuario: '{{ user.username|escapejs }}',
+    notaria: '{{ erp_nombre|escapejs }}',
+    logo: '{{ erp_logo|escapejs }}',
+  };
+  /* Resultado de la confrontación: filtros, selección, teclado, correcciones y reporte.
+     Lee todo del HTML ya renderizado (atributos data-*), así no expone datos extra. */
+  window.revisionConfrontacion = function () {
+    const ORDEN = { ALTA: 0, MEDIA: 1, BAJA: 2 };
+    const CAPAS = { IDENTIDAD: 'Identidad', REGLA: 'Regla', LINGUISTICO: 'Lingüístico' };
+    const normal = (texto) => String(texto || '').toUpperCase().replace(/\s+/g, ' ').trim();
+    const marcar = (el) => {
+      const buscado = el.dataset.marcar;
+      const texto = el.textContent;
+      if (!buscado) return;
+      const tienePosicion = el.dataset.inicio !== undefined && el.dataset.inicio !== '' && el.dataset.fin !== undefined && el.dataset.fin !== '';
+      const i = tienePosicion ? Number(el.dataset.inicio) : texto.toUpperCase().indexOf(buscado.toUpperCase());
+      const fin = tienePosicion ? Number(el.dataset.fin) : i + buscado.length;
+      if (!Number.isInteger(i) || !Number.isInteger(fin) || fin <= i || fin > texto.length) return;
+      if (i < 0) return;
+      const mark = document.createElement('mark');
+      mark.textContent = texto.slice(i, fin);
+      el.replaceChildren(document.createTextNode(texto.slice(0, i)), mark, document.createTextNode(texto.slice(fin)));
+    };
+    return {
+      capa: 'TODAS', sev: 'TODAS', sel: null, modal: null,
+      obs: [], correcciones: [], marcadas: [],
+      generando: false, errorReporte: '',
+      rep: { fmt: 'WORD', IDENTIDAD: true, REGLA: true, LINGUISTICO: true, CORRECCIONES: true, EXTRACCION: false },
+      iniciar() {
+        const lista = this.$refs.lista;
+        if (lista) {
+          [...lista.querySelectorAll('li[data-id]')]
+            .sort((a, b) => (ORDEN[a.dataset.sev] ?? 3) - (ORDEN[b.dataset.sev] ?? 3) || (+a.dataset.linea || 1e9) - (+b.dataset.linea || 1e9))
+            .forEach((li) => lista.appendChild(li));
+          this.obs = [...lista.querySelectorAll('li[data-id]')].map((li) => ({ ...li.dataset }));
+        }
+        this.correcciones = [...this.$el.querySelectorAll('[data-correccion]')].map((li) => ({
+          id: li.dataset.correccion, erroneo: li.dataset.erroneo, correcto: li.dataset.correcto,
+          apariciones: li.dataset.apariciones, fuente: li.dataset.fuente,
+        }));
+        this.marcadas = this.correcciones.map((c) => c.id);
+        this.obs.forEach((o) => {
+          const hallado = normal(o.hallado);
+          const esperado = normal(o.esperado);
+          const compatibles = this.correcciones.filter((c) => hallado && esperado &&
+            normal(c.erroneo) === hallado && normal(c.correcto) === esperado);
+          o.corr = compatibles.length === 1 ? compatibles[0].id : '';
+        });
+        this.sel = this.visibles[0]?.id || null;
+        this.$el.querySelectorAll('[data-marcar]').forEach(marcar);
+        this.$watch('capa', () => this.ajustarSeleccion());
+        this.$watch('sev', () => this.ajustarSeleccion());
+        window.addEventListener('afterprint', () => document.body.classList.remove('imprimiendo-reporte'));
+      },
+      visible(d) { return (this.capa === 'TODAS' || d.capa === this.capa) && (this.sev === 'TODAS' || d.sev === this.sev); },
+      get visibles() { return this.obs.filter((o) => this.visible(o)); },
+      contar(capa) { return this.obs.filter((o) => (capa === 'TODAS' || o.capa === capa) && (this.sev === 'TODAS' || o.sev === this.sev)).length; },
+      contarSev(sev) { return this.obs.filter((o) => o.sev === sev).length; },
+      contarCapa(capa) { return this.obs.filter((o) => o.capa === capa).length; },
+      elegir(id) {
+        this.sel = id;
+        if (window.innerWidth < 960) this.$nextTick(() => this.$refs.detalle?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      },
+      ajustarSeleccion() { if (!this.visibles.some((o) => o.id === this.sel)) this.sel = this.visibles[0]?.id || null; },
+      posicion() {
+        const i = this.visibles.findIndex((o) => o.id === this.sel);
+        return i < 0 ? '' : (i + 1) + ' de ' + this.visibles.length;
+      },
+      paso(d) {
+        const l = this.visibles;
+        if (!l.length) return;
+        let i = l.findIndex((o) => o.id === this.sel);
+        i = i < 0 ? 0 : Math.max(0, Math.min(l.length - 1, i + d));
+        this.sel = l[i].id;
+        this.$nextTick(() => this.$refs.lista?.querySelector('li[data-id="' + this.sel + '"]')?.scrollIntoView({ block: 'nearest' }));
+      },
+      teclado(e) {
+        if (e.key === 'Escape') { this.modal = null; return; }
+        if (this.modal) return;
+        const tag = (e.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); this.paso(1); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); this.paso(-1); }
+      },
+      corrDe(id) {
+        const o = this.obs.find((o) => o.id === id);
+        return (o && o.corr && this.correcciones.find((c) => c.id === o.corr)) || null;
+      },
+      estaMarcadaObs(id) { const c = this.corrDe(id); return !!(c && this.marcadas.includes(c.id)); },
+      alternar(id) { this.marcadas = this.marcadas.includes(id) ? this.marcadas.filter((m) => m !== id) : [...this.marcadas, id]; },
+      bajar(blob, nombre) {
+        const enlace = document.createElement('a');
+        enlace.href = URL.createObjectURL(blob);
+        enlace.download = nombre;
+        document.body.appendChild(enlace);
+        enlace.click();
+        setTimeout(() => { URL.revokeObjectURL(enlace.href); enlace.remove(); }, 0);
+      },
+      async descargarWord() {
+        this.generando = true;
+        this.errorReporte = '';
+        try {
+          const ahora = new Date();
+          const dos = (n) => String(n).padStart(2, '0');
+          const personas = [...document.querySelectorAll('.reporte [data-seccion="EXTRACCION"] tbody tr')].map((tr) => {
+            const c = [...tr.cells].map((td) => td.textContent.trim());
+            return { nombre: c[0], documento: c[1], civil: c[2], domicilio: c[3], conyuge: c[4], procedencia: c[5] };
+          });
+          const blob = window.ReporteDocx.generar({
+            meta: { ...REPORTE, fecha: `${dos(ahora.getDate())}/${dos(ahora.getMonth() + 1)}/${ahora.getFullYear()} ${dos(ahora.getHours())}:${dos(ahora.getMinutes())}` },
+            observaciones: this.obs,
+            correcciones: this.correcciones,
+            personas,
+            calidad: [...document.querySelectorAll('.reporte [aria-label="Calidad de lectura"] li')].map((li) => li.textContent.trim()),
+            incluir: this.rep,
+            logo: await window.ReporteDocx.cargarLogo(REPORTE.logo),
+          });
+          this.bajar(blob, REPORTE.codigo + '-reporte-observaciones.docx');
+          this.modal = null;
+        } catch {
+          this.errorReporte = 'No se pudo generar el documento Word. Vuelva a intentarlo o seleccione PDF.';
+        } finally {
+          this.generando = false;
+        }
+      },
+      descargar() {
+        if (this.rep.fmt === 'WORD') return this.descargarWord();
+        if (this.rep.fmt === 'PDF') {
+          document.querySelectorAll('.reporte [data-seccion]').forEach((s) => { s.hidden = !this.rep[s.dataset.seccion]; });
+          this.modal = null;
+          document.body.classList.add('imprimiendo-reporte');
+          this.$nextTick(() => window.print());
+          return;
+        }
+        const celda = (v) => {
+          let t = String(v ?? '');
+          if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; /* evita fórmulas al abrir en Excel */
+          return '"' + t.replace(/"/g, '""') + '"';
+        };
+        const filas = [['Capa', 'Severidad', 'Campo', 'Valor hallado', 'Valor esperado', 'Línea', 'Persona', 'Procedencia', 'Fragmento del borrador']];
+        this.obs.filter((o) => this.rep[o.capa]).forEach((o) => filas.push([CAPAS[o.capa], o.sev, o.campo, o.hallado, o.esperado, o.linea, o.persona, o.procedencia, o.fragmento]));
+        if (this.rep.CORRECCIONES) this.correcciones.forEach((c) => filas.push(['Corrección propuesta', '', '', c.erroneo, c.correcto, '', '', c.fuente, c.apariciones]));
+        const texto = '﻿' + filas.map((f) => f.map(celda).join(';')).join('\r\n');
+        this.bajar(new Blob([texto], { type: 'text/csv;charset=utf-8' }), REPORTE.codigo + '-observaciones.csv');
+        this.modal = null;
+      },
+    };
+  };
+</script>
 {% endblock %}

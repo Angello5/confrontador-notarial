@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import importlib.metadata
 import json
+import io
 import re
 import subprocess
 import sys
@@ -22,6 +23,8 @@ from functools import lru_cache
 from pathlib import Path
 
 from nucleo.verificar import IMGS, SEPARADOR_PAGINA
+from adaptadores import calidad_ocr
+from adaptadores.calidad_ocr import capa_pdf_dudosa
 
 # formatos que abre textutil (macOS) o LibreOffice (Linux)
 LEGACY = {".doc", ".rtf", ".odt", ".wordml"}
@@ -30,7 +33,7 @@ DOCS = {".docx", ".pdf", ".xlsx", ".txt", ".md", ".csv"} | IMGS | LEGACY
 CACHE = Path.home() / ".cache" / "notaria-ocr"
 OCR_MODELS = CACHE / "models"
 SOFFICE = "soffice"
-DPI = 200  # suficiente para DNI y sellos; a 300 tarda el doble sin ganar aciertos
+DPI = 200  # resolución inicial; cambios sujetos a medición
 
 _OCR_FILES = {
     "ch_PP-OCRv5_mobile_det.onnx": "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae",
@@ -39,7 +42,7 @@ _OCR_FILES = {
 _OCR_USE_CLS = False
 
 # 1: texto unido en una cadena. 2: una entrada por pagina.
-_FORMATO_CACHE = 2
+_FORMATO_CACHE = 3
 # Forma del texto extraido que no pasa por la cache de OCR (identidad en la base).
 # 2: cada fila de tabla de un .docx es una linea (F27).
 _FORMATO_TEXTO = 2
@@ -61,6 +64,9 @@ def version_extractor() -> str:
             "use_cls": _OCR_USE_CLS,
             "rapidocr": importlib.metadata.version("rapidocr"),
             "formato_texto": _FORMATO_TEXTO,
+            "calidad_ocr": calidad_ocr.VERSION,
+            "dpi": DPI,
+            "formato_cache": _FORMATO_CACHE,
         },
         separators=(",", ":"),
     ).encode()
@@ -101,6 +107,7 @@ def _cacheado(clave: bytes, calcular):
             # Sin esto, una entrada vieja se devuelve tal cual y el cambio queda
             # inactivo en silencio: paso al guardar paginas en vez de una cadena.
             "formato": _FORMATO_CACHE,
+            "extractor": version_extractor(),
         },
         sort_keys=True,
     ).encode()
@@ -116,45 +123,119 @@ def _cacheado(clave: bytes, calcular):
 
 
 def ocr_lineas(fuente, tol: int = 9) -> str:
-    """OCR reconstruyendo filas. Descarta cajas inclinadas: los sellos de agua van
-    en diagonal y el texto real es horizontal, asi que la inclinacion los separa.
+    """Texto OCR con agrupación por inclinación y reintentos acotados."""
+    return ocr_informe(fuente, tol)["texto"]
 
-    `fuente` es una ruta o los bytes de la imagen. Las columnas quedan separadas
-    por dos espacios, que es lo que usan los lectores de rotulo del RENIEC.
-    """
-    r = _ocr()(str(fuente) if isinstance(fuente, Path) else fuente)
-    if not r.txts:
-        return ""
-    cajas = []
-    for txt, box in zip(r.txts, r.boxes):
-        (x0, y0), (x1, y1) = box[0], box[1]
-        if abs(y1 - y0) <= max(4, abs(x1 - x0) * 0.08):  # borde superior horizontal
-            cajas.append((sum(pt[1] for pt in box) / 4, x0, txt))
-    cajas.sort()
-    filas, actual = [], []
-    for y, x, txt in cajas:
-        if actual and y - actual[0][0] > tol:
-            filas.append(actual)
-            actual = []
-        actual.append((y, x, txt))
-    filas.append(actual)
-    return "\n".join(
-        "  ".join(t for _, _, t in sorted(f, key=lambda c: c[1])) for f in filas if f
+
+def ocr_informe(fuente, tol=9, reintentar=True):
+    motor = _ocr()
+    informe = calidad_ocr.resumir(
+        motor(str(fuente) if isinstance(fuente, Path) else fuente), tol
     )
+    if (
+        not reintentar
+        or not informe["requiere_revision"]
+        or informe["motivos"] == ["confianza_no_disponible"]
+        or (
+            not {"sin_texto", "lectura_escasa"}.intersection(informe["motivos"])
+            and (informe["confianza"] or 0) >= calidad_ocr.CONFIANZA_MINIMA
+        )
+    ):
+        return informe
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    try:
+        with Image.open(
+            fuente if isinstance(fuente, Path) else io.BytesIO(fuente)
+        ) as original:
+            imagen = ImageOps.exif_transpose(original).convert("RGB")
+    except (UnidentifiedImageError, OSError, TypeError):
+        return informe
+    # Una hoja prácticamente vacía no necesita repetir el motor.
+    gris = imagen.convert("L")
+    hist = gris.histogram()
+    if sum(hist[:200]) / (imagen.width * imagen.height) < 0.001:
+        informe["motivos"] = ["pagina_casi_vacia"]
+        return informe
+    intentos = 1
+    for giro in (180, 90, 270):
+        candidata = imagen.rotate(giro, expand=True)
+        buffer = io.BytesIO()
+        candidata.save(buffer, format="PNG")
+        try:
+            nuevo = calidad_ocr.resumir(motor(buffer.getvalue()), tol)
+        except (RuntimeError, ValueError, OSError):
+            informe["motivos"] = list(
+                dict.fromkeys(informe["motivos"] + ["reintento_fallido"])
+            )
+            informe["requiere_revision"] = True
+            break
+        intentos += 1
+        nuevo["transformacion"] = {"giro": giro, "escala": 1}
+        nuevo["dimensiones"] = [candidata.width, candidata.height]
+        if calidad_ocr.puntuacion(nuevo) > calidad_ocr.puntuacion(informe) * 1.1:
+            # Si ambas lecturas son extensas, una alternativa no elimina la
+            # incertidumbre de los números contradictorios.
+            if "lectura_escasa" not in informe["motivos"] and re.findall(
+                r"\d+", informe["texto"]
+            ) != re.findall(r"\d+", nuevo["texto"]):
+                nuevo["motivos"].append("lecturas_divergentes")
+                nuevo["requiere_revision"] = True
+            informe = nuevo
+        if not informe["requiere_revision"]:
+            break
+    informe["intentos"] = intentos
+    return informe
 
 
 def _pdf_paginas(p: Path) -> tuple[str, ...]:
+    return tuple(pagina["texto"] for pagina in _pdf_informe(p))
+
+
+def _pdf_informe(p):
     import pymupdf
 
     with pymupdf.open(p) as doc:
         paginas = []
         for i, pg in enumerate(doc, 1):
             txt = pg.get_text()
-            if len(txt.strip()) < 50:  # escaneo sin capa de texto
-                print(f"    pagina {i}: sin texto, aplicando OCR", file=sys.stderr)
-                txt = ocr_lineas(pg.get_pixmap(dpi=DPI).tobytes("png"))
-            paginas.append(txt)
+            if capa_pdf_dudosa(txt):
+                print(f"    pagina {i}: lectura dudosa, aplicando OCR", file=sys.stderr)
+                informe = ocr_informe(pg.get_pixmap(dpi=DPI).tobytes("png"))
+                legibles = sum(c.isalnum() for c in txt)
+                recuperados = sum(c.isalnum() for c in informe["texto"])
+                if txt.strip() and (
+                    not informe["texto"].strip()
+                    or recuperados < legibles * 0.8
+                    or (
+                        informe.get("requiere_revision", False)
+                        # Una lectura dudosa solo sustituye una capa corta si aporta más.
+                        and (legibles >= 50 or recuperados <= legibles)
+                    )
+                ):
+                    txt = "".join(
+                        "\ufffd" if ord(c) < 32 and c not in "\n\r\t\f" else c
+                        for c in txt
+                    )
+                    informe = _informe_nativo(
+                        txt, "texto_pdf", ["capa_dudosa_sin_mejora"]
+                    )
+            else:
+                informe = _informe_nativo(txt, "texto_pdf")
+            paginas.append(informe)
     return tuple(paginas)
+
+
+def _informe_nativo(texto, metodo, motivos=None):
+    return {
+        "texto": texto,
+        "metodo": metodo,
+        "confianza": None,
+        "requiere_revision": bool(motivos),
+        "motivos": motivos or [],
+        "intentos": 0,
+        "cajas": [],
+    }
 
 
 def _pdf(p: Path) -> str:
@@ -165,11 +246,14 @@ def _xlsx(p: Path) -> str:
     import openpyxl
 
     wb = openpyxl.load_workbook(p, data_only=True, read_only=True)
-    return "\n".join(
-        "  ".join("" if c is None else str(c) for c in fila).rstrip()
-        for h in wb.worksheets
-        for fila in h.iter_rows(values_only=True)
-    )
+    try:
+        return "\n".join(
+            "  ".join("" if c is None else str(c) for c in fila).rstrip()
+            for h in wb.worksheets
+            for fila in h.iter_rows(values_only=True)
+        )
+    finally:
+        wb.close()
 
 
 def _ruta_legacy(p: Path) -> Path:
@@ -296,27 +380,60 @@ def _docx(p: Path) -> str:
 
 def leer(p: Path) -> str:
     """Texto plano de cualquier formato soportado. Cachea lo que pasa por OCR."""
-    return SEPARADOR_PAGINA.join(leer_paginas(p))
+    return leer_con_calidad(p)["texto"]
 
 
 def leer_paginas(p: Path) -> tuple[str, ...]:
     """Devuelve una página lógica por elemento y conserva el cache de OCR."""
+    return tuple(pagina["texto"] for pagina in _leer_informes(p))
+
+
+def leer_con_calidad(p: Path) -> dict:
+    paginas = _leer_informes(p)
+    return {
+        "texto": SEPARADOR_PAGINA.join(pagina["texto"] for pagina in paginas),
+        "calidad": {
+            "version": calidad_ocr.VERSION,
+            "paginas": [
+                {"pagina": i, **{k: v for k, v in pagina.items() if k != "texto"}}
+                for i, pagina in enumerate(paginas, 1)
+            ],
+        },
+    }
+
+
+def _leer_informes(p):
     s = p.suffix.lower()
     p = p.resolve(strict=True)
     if s == ".docx":
-        return (_docx(p),)
+        return (_informe_nativo(_docx(p), "texto_nativo"),)
     if s in LEGACY:
-        return (_legacy(p),)
+        return (_informe_nativo(_legacy(p), "texto_nativo"),)
     if s == ".xlsx":
-        return (_xlsx(p),)
+        return (_informe_nativo(_xlsx(p), "texto_nativo"),)
     if s == ".pdf":
-        paginas = _cacheado(p.read_bytes(), lambda: list(_pdf_paginas(p)))
-        return (paginas,) if isinstance(paginas, str) else tuple(paginas)
+        paginas = _cacheado(p.read_bytes(), lambda: list(_pdf_informe(p)))
+        if isinstance(paginas, str):
+            paginas = [paginas]
+        return tuple(
+            _informe_nativo(pg, "historico", ["calidad_no_disponible"])
+            if isinstance(pg, str)
+            else pg
+            for pg in paginas
+        )
     if s in IMGS:
-        return (_cacheado(p.read_bytes(), lambda: ocr_lineas(p)),)
+        pagina = _cacheado(p.read_bytes(), lambda: ocr_informe(p))
+        if isinstance(pagina, str):
+            pagina = _informe_nativo(pagina, "historico", ["calidad_no_disponible"])
+        return (pagina,)
     if s in {".xls", ".ppt"}:
         raise ValueError(f"{p.name}: formato binario antiguo, guardalo como .{s[1:]}x")
-    return (p.read_text(errors="ignore"),)
+    texto = p.read_text(encoding="utf-8", errors="replace")
+    return (
+        _informe_nativo(
+            texto, "texto_nativo", ["caracteres_invalidos"] if "\ufffd" in texto else []
+        ),
+    )
 
 
 def archivos(rutas: list[str]) -> list[Path]:

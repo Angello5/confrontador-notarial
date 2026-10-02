@@ -113,7 +113,7 @@ def test_tildes_de_vocales_siguen_siendo_indiferentes():
 
 def test_nucleo_solo_importa_lista_blanca_y_no_abre_accesos():
     for archivo in sorted(NUCLEO.glob("*.py")):
-        assert not _errores_pureza(archivo.read_text()), archivo.name
+        assert not _errores_pureza(archivo.read_text(encoding="utf-8")), archivo.name
 
 
 def test_guard_ast_detecta_imports_peligrosos_y_diferidos():
@@ -170,7 +170,7 @@ def test_shim_ortografia_conserva_firma_y_resultado_con_extra():
 def test_apps_declaran_imports_de_nuevos_modulos_sin_ejecutar_streamlit():
     raiz = NUCLEO.parent
     for nombre in ("app.py", "app_ortografia.py"):
-        arbol = ast.parse((raiz / nombre).read_text())
+        arbol = ast.parse((raiz / nombre).read_text(encoding="utf-8"))
         nodos = [n for n in ast.walk(arbol) if isinstance(n, ast.ImportFrom)]
         imports = {nodo.module for nodo in nodos}
         assert "adaptadores.extraccion" in imports

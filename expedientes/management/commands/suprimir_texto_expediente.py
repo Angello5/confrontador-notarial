@@ -27,7 +27,7 @@ class Command(BaseCommand):
                 .distinct()
                 .count()
             )
-            textos.update(texto="")
+            textos.update(texto="", calidad={})
         borrar_originales(expediente.pk)
         solicitado = min(afectados, 1)
         self.stdout.write(

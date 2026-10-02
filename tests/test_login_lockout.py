@@ -108,6 +108,6 @@ def test_concurrent_failures_do_not_lose_attempts():
 
 
 def _error_alert(content):
-    start = content.index(b'<div class="alert alert-block alert-danger">')
+    start = content.index(b'<div class="aviso" data-tono="peligro" role="alert">')
     end = content.index(b"</div>", start) + len(b"</div>")
     return content[start:end]

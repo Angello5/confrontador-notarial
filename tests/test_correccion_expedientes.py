@@ -1,6 +1,7 @@
 """F21: conservación del borrador, confirmación única y registro (ficticio)."""
 
 import hashlib
+import os
 import stat
 import zipfile
 
@@ -105,8 +106,11 @@ def test_solo_el_borrador_docx_se_conserva_inalterable(escenario, usuario_fictic
     expediente, borrador, contenido = escenario
     ruta = ruta_original(borrador)
     assert ruta.read_bytes() == contenido
-    assert stat.S_IMODE(ruta.stat().st_mode) == 0o400
-    assert stat.S_IMODE(ruta.parent.stat().st_mode) == 0o700
+    if os.name == "nt":
+        assert not ruta.stat().st_mode & stat.S_IWRITE
+    else:
+        assert stat.S_IMODE(ruta.stat().st_mode) == 0o400
+        assert stat.S_IMODE(ruta.parent.stat().st_mode) == 0o700
     cliente = registrar_documento(
         expediente,
         SimpleUploadedFile("cliente-ficticio.docx", contenido),
@@ -137,7 +141,14 @@ def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_fi
     assert "minuta-ficticia.txt" in html
     assert html.count('name="aplicar"') >= 2
     assert html.count("checked") >= 2
-    assert html.count("Aplicar correcciones") == 1
+    assert (
+        html.count(
+            'action="'
+            + reverse("correcciones_aplicar", args=(expediente.pk, borrador.pk))
+            + '"'
+        )
+        == 1
+    )
     assert "1 aparición" in html
     assert 'name="confirmado"' in html
     from expedientes.models import Corrida
@@ -150,6 +161,38 @@ def _aplicar(client, expediente, borrador, datos):
     return client.post(
         reverse("correcciones_aplicar", args=(expediente.pk, borrador.pk)), datos
     )
+
+
+def test_reabrir_resultado_conserva_correcciones_y_corrida(
+    client, escenario, usuario_ficticio
+):
+    expediente, borrador, _ = escenario
+    correcciones, corrida_id = _propuesta(expediente, borrador)
+    client.force_login(usuario_ficticio)
+    respuesta = client.get(
+        reverse("documento_resultado", args=(expediente.pk, borrador.pk))
+    )
+    resultado = respuesta.context["resultado"]
+    assert respuesta.status_code == 200
+    assert resultado["correcciones"] == correcciones
+    assert resultado["corrida_id"] == corrida_id
+    assert resultado["corregible"] is True
+    assert f'name="corrida" value="{corrida_id}"' in respuesta.content.decode()
+
+
+def test_reabrir_resultado_sin_original_no_ofrece_correccion(
+    client, escenario, usuario_ficticio
+):
+    from expedientes.services import borrar_originales
+
+    expediente, borrador, _ = escenario
+    _propuesta(expediente, borrador)
+    borrar_originales(expediente.pk, borrador.pk)
+    client.force_login(usuario_ficticio)
+    respuesta = client.get(
+        reverse("documento_resultado", args=(expediente.pk, borrador.pk))
+    )
+    assert respuesta.context["resultado"]["corregible"] is False
 
 
 def test_sin_confirmacion_no_se_aplica_nada(client, escenario, usuario_ficticio):
@@ -277,8 +320,8 @@ def test_decision_en_el_detalle_de_la_corrida(client, escenario, usuario_fictici
     ).content.decode()
     assert "Decisión de corrección" in html
     assert usuario_ficticio.username in html
-    assert "Aplicadas: 1" in html
-    assert f"Excluidas: {len(correcciones) - 1}" in html
+    assert '<dt>Aplicadas</dt><dd class="esperado">1</dd>' in html
+    assert f"<dt>Excluidas</dt><dd>{len(correcciones) - 1}</dd>" in html
     assert reverse("correccion_descargar", args=(expediente.pk, decision.pk)) in html
 
 

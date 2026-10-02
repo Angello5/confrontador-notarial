@@ -59,6 +59,7 @@ Ruff y pip-audit se validan en etapa 4; gitleaks y controles remotos pertenecen 
 - Antes de conectar Sonar: revisión de saneamiento del contenido y nombres, configuración CI presente, análisis automático desactivado, proyecto Cloud privado. GitHub Pro/Team/Enterprise y Sonar Team/Enterprise para las capacidades elegidas; verificar disponibilidad, no contratar automáticamente.
 - Variables públicas de proyecto/organización y `SONAR_TOKEN` aprovisionados por el responsable en almacenes de secretos; nunca pegarlos en comandos o documentos.
 - `ERP_NOMBRE` (F28, opcional): nombre de la notaría que muestran la barra lateral, el ingreso y los títulos; el sello usa las iniciales de sus dos primeras palabras. Por defecto «ERP Notarial». Se configura solo en el entorno del servidor; el nombre real nunca se escribe en el repositorio.
+- `ERP_LOGO` (F29, opcional): URL del logo de la notaría (PNG o JPEG) para la barra lateral, el ingreso y el reporte Word. Copie el logo a `static/marca/logo.png` (no se versiona: `*.png` está en `.gitignore`) y defina `ERP_LOGO=/static/marca/logo.png`. Sin valor se muestra el sello con las iniciales.
 
 ## Aprovisionamiento reproducible de pruebas · T012
 

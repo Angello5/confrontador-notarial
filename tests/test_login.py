@@ -50,7 +50,7 @@ def test_invalid_and_inactive_accounts_receive_the_same_error(client):
 
 def _visible_error(content):
     match = re.search(
-        r'<div class="alert alert-block alert-danger">\s*<ul class="m-0">.*?</ul>\s*</div>',
+        r'<div class="aviso" data-tono="peligro" role="alert">.*?</span></div>',
         content.decode(),
         re.DOTALL,
     )

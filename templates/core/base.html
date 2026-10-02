@@ -5,91 +5,116 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ erp_nombre }}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'vendor/adminlte/adminlte.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/erp.css' %}">
     <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
   </head>
-  <body class="layout-fixed sidebar-expand-lg" x-data="{ menuAbierto: false }" :class="{ 'sidebar-open': menuAbierto }" @keydown.escape.window="menuAbierto = false">
-    <div class="app-wrapper">
-      <header class="app-header navbar navbar-expand">
-        <div class="container-fluid gap-2">
-          {% if not user.force_password_change %}
-            <button class="btn btn-link d-lg-none" type="button" @click="menuAbierto = !menuAbierto" :aria-expanded="menuAbierto" aria-controls="menu-principal">
-              <span class="visually-hidden">Abrir o cerrar navegación</span>
-              <span aria-hidden="true">☰</span>
-            </button>
-            <nav aria-label="Migas de pan" class="d-none d-sm-block">
-              {% block breadcrumb %}{% endblock %}
-            </nav>
-          {% endif %}
-          <div class="ms-auto d-flex align-items-center gap-2">
-            <span class="avatar" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
-            <form method="post" action="{% url 'logout' %}">
-              {% csrf_token %}
-              <button class="btn btn-outline-secondary btn-sm" type="submit">Cerrar sesión</button>
-            </form>
-          </div>
-        </div>
-      </header>
+  <body x-data="{ menuAbierto: false }" :class="{ 'sidebar-open': menuAbierto }" @keydown.escape.window="menuAbierto = false">
+    {% include "core/_iconos.html" %}
+    <div class="shell{% if user.force_password_change %} shell-sin-menu{% endif %}">
       {% if not user.force_password_change %}
-      <aside id="menu-principal" class="app-sidebar" data-bs-theme="dark">
+      <aside id="menu-principal" class="lateral">
         <a class="marca navbar-brand" href="{% url 'home' %}">
-          <span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>
-          <span><span class="marca-nombre">{{ erp_nombre }}</span><span class="marca-sub">ERP</span></span>
+          {% include "core/_marca.html" %}
         </a>
         <nav aria-label="Navegación principal">
-          <p class="menu-seccion">Menú principal</p>
-          <ul class="nav sidebar-menu flex-column">
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>
-                <span class="nav-icon" aria-hidden="true">⌂</span>
-                <span>Inicio</span>
-              </a>
-            </li>
-            {% if es_administrador or es_usuario %}
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'expediente_lista' %}"{% if request.resolver_match.route|slice:":12" == "expedientes/" %} aria-current="page"{% endif %}>
-                  <span class="nav-icon" aria-hidden="true">▣</span>
-                  <span>Expedientes</span>
+          <div>
+            <p class="menu-seccion">Menú principal</p>
+            <ul class="menu">
+              <li>
+                <a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>
+                  <svg class="ico" aria-hidden="true"><use href="#i-house"/></svg><span>Inicio</span>
                 </a>
               </li>
-            {% endif %}
-          </ul>
-          {% if es_administrador %}
-            <p class="menu-seccion">Administración</p>
-            <ul class="nav sidebar-menu flex-column">
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'admin:index' %}">
-                  <span class="nav-icon" aria-hidden="true">⚙</span>
-                  <span>Usuarios y permisos</span>
-                </a>
-              </li>
+              {% if es_administrador or es_usuario %}
+                <li>
+                  <a href="{% url 'expediente_lista' %}"{% if request.resolver_match.route|slice:":12" == "expedientes/" %} aria-current="page"{% endif %}>
+                    <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg><span>Expedientes</span>
+                  </a>
+                </li>
+              {% endif %}
             </ul>
+          </div>
+          {% if es_administrador %}
+            <div>
+              <p class="menu-seccion">Administración</p>
+              <ul class="menu">
+                <li>
+                  <a href="{% url 'admin:index' %}">
+                    <svg class="ico" aria-hidden="true"><use href="#i-users"/></svg><span>Usuarios y permisos</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           {% endif %}
         </nav>
-        <div class="menu-pie">
-          <strong>{{ user.username }}</strong>
-          <small>{% if es_administrador %}Administrador{% elif es_usuario %}Usuario{% endif %}</small>
+        <div class="lateral-pie">
+          <span class="avatar" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
+          <div class="usuario">
+            <strong>{{ user.username }}</strong>
+            <span>{% if es_administrador %}Administrador{% elif es_usuario %}Usuario{% endif %}</span>
+          </div>
+          <a class="btn btn-icono btn-sm" href="{% url 'password_change' %}" title="Cambiar clave" aria-label="Cambiar clave"><svg class="ico" aria-hidden="true"><use href="#i-key"/></svg></a>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="btn btn-icono btn-sm" type="submit" title="Cerrar sesión" aria-label="Cerrar sesión"><svg class="ico" aria-hidden="true"><use href="#i-log-out"/></svg></button>
+          </form>
         </div>
       </aside>
       <button type="button" class="sidebar-overlay" aria-label="Cerrar navegación" @click="menuAbierto = false"></button>
       {% endif %}
-      <main class="app-main">
-        <div class="container-fluid px-3 px-lg-4">
+
+      <div class="columna">
+        <header class="barra">
+          {% if not user.force_password_change %}
+            <button class="btn btn-icono barra-menu" type="button" @click="menuAbierto = !menuAbierto" :aria-expanded="menuAbierto" aria-controls="menu-principal" aria-label="Abrir o cerrar navegación">
+              <svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg>
+            </button>
+            <nav aria-label="Migas de pan" class="migas">
+              {% block breadcrumb %}{% endblock %}
+            </nav>
+          {% endif %}
+          <div class="sesion">
+            <svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg>
+            <span>Sesión segura{% if es_administrador %} · Administrador{% elif es_usuario %} · Usuario{% endif %}</span>
+            {% if user.force_password_change %}
+              <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button class="btn btn-sm" type="submit">Cerrar sesión</button>
+              </form>
+            {% endif %}
+          </div>
+        </header>
+
+        <main class="contenido">
+          {% block cabecera %}
           <div class="cabecera">
-            <div>
+            <div class="cabecera-texto">
               <p class="eyebrow">{% block eyebrow %}{% endblock %}</p>
-              <h1>{% block heading %}Inicio{% endblock %}</h1>
-              <p class="subtitulo">{% block subtitle %}{% endblock %}</p>
+              <div class="cabecera-titulo">
+                <h1>{% block heading %}Inicio{% endblock %}</h1>
+                {% block heading_extra %}{% endblock %}
+              </div>
+              {% block meta %}<p class="subtitulo">{% block subtitle %}{% endblock %}</p>{% endblock %}
             </div>
             {% block actions %}{% endblock %}
           </div>
-          {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}" role="status">{{ message }}</div>
-          {% endfor %}
+          {% endblock %}
           {% block content %}{% endblock %}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
+
+    {% if messages %}
+      <div class="toasts" aria-live="polite">
+        {% for message in messages %}
+          <div class="toast" role="status" data-tono="{{ message.tags }}" x-data="{ visible: true }" x-show="visible" x-init="setTimeout(() => visible = false, 6000)">
+            <svg class="ico" aria-hidden="true"><use href="#{% if message.level >= 30 %}i-circle-alert{% else %}i-circle-check{% endif %}"/></svg>
+            <div>{{ message }}</div>
+            <button type="button" class="modal-cerrar" aria-label="Cerrar aviso" @click="visible = false"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% block modales %}{% endblock %}
   </body>
 </html>

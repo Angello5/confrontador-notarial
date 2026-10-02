@@ -33,7 +33,8 @@ def test_lista_y_detalle_muestran_abrir_editar_eliminar(
     assert f'href="/expedientes/{expediente.pk}/"' in lista
     assert f'href="/expedientes/{expediente.pk}/editar/"' in lista
     assert f'href="/expedientes/{expediente.pk}/eliminar/"' in lista
-    assert "</span> Editar</a>" in lista and "</span> Eliminar</a>" in lista
+    assert f'aria-label="Editar {expediente.codigo}"' in lista
+    assert f'aria-label="Eliminar {expediente.codigo}"' in lista
 
     detalle = client.get(f"/expedientes/{expediente.pk}/").content.decode()
     assert f'href="/expedientes/{expediente.pk}/editar/"' in detalle

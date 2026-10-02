@@ -5,42 +5,45 @@ esto, el mismo bloque estaba copiado en la izquierda y en la derecha.
 Comentario de bloque, no la forma corta: esa solo admite una línea y, si se
 parte en dos, Django renderiza el resto como texto visible al usuario.
 {% endcomment %}
-<section class="mb-4" aria-labelledby="zona-{{ zona.rol|lower }}">
-  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+<section class="zona" aria-labelledby="zona-{{ zona.rol|lower }}">
+  <div class="zona-cab">
     <div>
-      <h3 id="zona-{{ zona.rol|lower }}" class="h6 fw-bold mb-1">{{ zona.titulo }}</h3>
-      <p class="text-body-secondary small mb-0">{{ zona.descripcion }}</p>
+      <h3 id="zona-{{ zona.rol|lower }}">{{ zona.titulo }}</h3>
+      <p>{{ zona.descripcion }}</p>
     </div>
-    <span class="chip">Obligatorio</span>
+    <span class="chip chip-etiqueta">Obligatorio</span>
   </div>
-  <form method="post" enctype="multipart/form-data" action="{% url 'documento_subir' expediente.pk %}" novalidate>
-    {% csrf_token %}
-    {{ zona.form.rol }}
-    <label class="form-label visually-hidden" for="{{ zona.form.archivos.id_for_label }}">{{ zona.form.archivos.label }}</label>
-    {% include "core/_zona_arrastre.html" with campo=zona.form.archivos titulo="Arrastre archivos aquí o pulse para elegir" %}
-    <div class="form-text">{{ zona.form.archivos.help_text }}</div>
-    {% for error in zona.form.archivos.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
-    {% for error in zona.form.rol.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
-    {% for error in zona.form.errores_archivos %}<div class="alert alert-warning mt-3 mb-0" role="alert">No se cargó {{ error.0 }}: {{ error.1 }}</div>{% endfor %}
-    <button class="btn btn-outline-primary btn-sm mt-2" type="submit">Cargar {{ zona.titulo|lower }}</button>
-  </form>
   {% if zona.documentos %}
-    <ul class="list-unstyled mt-2 mb-0" aria-label="Archivos de {{ zona.titulo }}">
+    <ul class="archivos" aria-label="Archivos de {{ zona.titulo }}">
       {% for documento in zona.documentos %}
         <li class="archivo" data-estado="{{ documento.estado }}" :data-estado="documentos.find(item => item.id === {{ documento.pk }})?.estado">
-          <div>
-            <span class="archivo-check" aria-hidden="true">✓</span><span class="archivo-nombre">{{ documento.nombre_original }}</span>
-            {% if documento.estado == "ERROR" %}<div class="small">Motivo: no se pudo procesar el archivo. Elimine el documento y vuelva a subirlo.</div>{% endif %}
+          <svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>
+          <div class="archivo-texto">
+            <span class="archivo-nombre" title="{{ documento.nombre_original }}">{{ documento.nombre_original }}</span>
+            <span class="archivo-nota">{% if documento.estado == "ERROR" %}Motivo: no se pudo procesar el archivo. Elimine el documento y vuelva a subirlo.{% endif %}</span>
           </div>
-          <div class="d-flex align-items-center gap-2">
-            {% include "core/_chip.html" with estado=documento.estado sondeo_id=documento.pk %}
-            <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');">
-              {% csrf_token %}<input type="hidden" name="confirmado" value="1">
-              <button class="btn btn-outline-danger btn-sm" type="submit">Eliminar</button>
-            </form>
-          </div>
+          {% include "core/_chip.html" with estado=documento.estado sondeo_id=documento.pk %}
+          <form method="post" action="{% url 'documento_eliminar' expediente.pk documento.pk %}" onsubmit="return confirm('¿Confirma eliminar este documento?');">
+            {% csrf_token %}<input type="hidden" name="confirmado" value="1">
+            <button class="btn-quitar" type="submit" title="Eliminar documento" aria-label="Eliminar {{ documento.nombre_original }}"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></button>
+          </form>
         </li>
       {% endfor %}
     </ul>
-  {% else %}<p class="text-body-secondary small mt-2 mb-0">Aún no hay archivos cargados.</p>{% endif %}
+  {% endif %}
+  <form method="post" enctype="multipart/form-data" action="{% url 'documento_subir' expediente.pk %}" novalidate>
+    {% csrf_token %}
+    {{ zona.form.rol }}
+    <label class="visually-hidden" for="{{ zona.form.archivos.id_for_label }}">{{ zona.form.archivos.label }}</label>
+    {% if zona.rol == "BORRADOR" %}
+      {% include "core/_zona_arrastre.html" with campo=zona.form.archivos titulo="Adjuntar borrador" subtitulo="Word (.docx) admite corrección automática" %}
+    {% else %}{% with zona_min=zona.titulo|lower %}
+      {% include "core/_zona_arrastre.html" with campo=zona.form.archivos titulo="Adjuntar "|add:zona_min subtitulo="arrastre archivos aquí o pulse para elegir" %}
+    {% endwith %}{% endif %}
+    {% if zona.form.archivos.help_text %}<span class="campo-ayuda">{{ zona.form.archivos.help_text }}</span>{% endif %}
+    {% for error in zona.form.archivos.errors %}<span class="campo-error-texto" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>{{ error }}</span>{% endfor %}
+    {% for error in zona.form.rol.errors %}<span class="campo-error-texto" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>{{ error }}</span>{% endfor %}
+    {% for error in zona.form.errores_archivos %}<div class="aviso" data-tono="advertencia" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg><div class="aviso-texto"><span>No se cargó {{ error.0 }}: {{ error.1 }}</span></div></div>{% endfor %}
+    <noscript><div class="zona-enviar"><button class="btn btn-sm" type="submit">Cargar {{ zona.titulo|lower }}</button></div></noscript>
+  </form>
 </section>

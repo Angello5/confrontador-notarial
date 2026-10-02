@@ -1,9 +1,10 @@
 {% comment %}
-Tarjeta de métrica: etiqueta con punto de color (`tono`: navy por defecto,
-verde o rojo), número grande y línea de apoyo opcional.
+Métrica: etiqueta con cuadro de color (`tono`: navy por defecto, verde, rojo o
+gris), número grande y apoyo opcional. Con `enlace` es un enlace; `filtro`
+añade ?estado= para abrir la lista ya filtrada.
 {% endcomment %}
-<div class="card metrica" data-tono="{{ tono }}">
+{% if enlace %}<a class="metrica" data-tono="{{ tono }}" href="{{ enlace }}{% if filtro %}?estado={{ filtro }}{% endif %}">{% else %}<div class="metrica" data-tono="{{ tono }}">{% endif %}
   <p class="metrica-etiqueta">{{ etiqueta }}</p>
   <p class="metrica-valor">{{ valor }}</p>
   {% if apoyo %}<p class="metrica-apoyo">{{ apoyo }}</p>{% endif %}
-</div>
+{% if enlace %}</a>{% else %}</div>{% endif %}

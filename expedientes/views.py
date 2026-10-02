@@ -34,6 +34,7 @@ from .services import (
     registrar_corrida,
     registrar_documento,
     resultado_de_corrida,
+    ruta_original,
     resumen_documento,
     resumen_expediente,
     ruta_corregido,
@@ -460,7 +461,10 @@ def documento_resultado(request, pk, doc_id):
         "borrador": borrador,
         # F21 (vista consolidada de correcciones) usa la corrida al fusionarse.
         "corrida": corrida,
-        "resultado": resultado_de_corrida(corrida),
+        "resultado": {
+            **resultado_de_corrida(corrida),
+            "corregible": ruta_original(borrador).is_file(),
+        },
     }
     contexto.update(_navegacion_contexto(request))
     return render(request, "expedientes/confrontacion.html", contexto)

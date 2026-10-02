@@ -102,10 +102,24 @@ def _conservar_original(documento, temporal):
 
 def borrar_originales(expediente_id, documento_id=None):
     """Supresión: el original y los corregidos del documento o del expediente."""
-    carpeta = _carpeta_originales(expediente_id)
+    raiz = Path(settings.EXPEDIENTES_ORIGINALES_DIR).resolve()
+    carpeta = raiz / str(int(expediente_id))
     if documento_id is not None:
-        carpeta = carpeta / str(documento_id)
-    shutil.rmtree(carpeta, ignore_errors=True)
+        carpeta = carpeta / str(int(documento_id))
+    if not carpeta.resolve().is_relative_to(raiz):
+        raise ValueError("Directorio de originales no válido.")
+    if not carpeta.exists():
+        return
+
+    def quitar_solo_lectura(funcion, ruta, error):
+        # Windows no elimina los originales marcados como solo lectura.
+        if os.name == "nt" and isinstance(error, PermissionError):
+            Path(ruta).chmod(0o600)
+            funcion(ruta)
+        else:
+            raise error
+
+    shutil.rmtree(carpeta, onexc=quitar_solo_lectura)
 
 
 def calcular_hash(ruta):
@@ -260,13 +274,16 @@ def extraer_o_reutilizar(hash_archivo, version_extractor, extractor):
             return texto
 
     salida = extractor()
+    calidad = salida.get("calidad", {}) if isinstance(salida, dict) else {}
+    salida = salida["texto"] if isinstance(salida, dict) else salida
     with transaction.atomic():
         if texto is not None:
             texto = TextoExtraido.objects.select_for_update().get(pk=texto.pk)
             if texto.texto == "":
                 texto.texto = salida
+                texto.calidad = calidad
             texto.ultimo_uso_el = timezone.now()
-            texto.save(update_fields=("texto", "ultimo_uso_el"))
+            texto.save(update_fields=("texto", "calidad", "ultimo_uso_el"))
             return texto
         try:
             with transaction.atomic():
@@ -274,6 +291,7 @@ def extraer_o_reutilizar(hash_archivo, version_extractor, extractor):
                     hash_archivo=hash_archivo,
                     version_extractor=version_extractor,
                     texto=salida,
+                    calidad=calidad,
                     ultimo_uso_el=timezone.now(),
                 )
         except IntegrityError:
@@ -302,7 +320,7 @@ def _procesar_fila(documento):
         texto = extraer_o_reutilizar(
             documento.hash_archivo,
             version,
-            lambda: extraccion.leer(Path(ruta)),
+            lambda: extraccion.leer_con_calidad(Path(ruta)),
         )
         if not texto.texto:
             raise ValueError
@@ -590,13 +608,25 @@ def _normalizar_ubicacion(texto):
 
 def ubicar_valor(texto, valor):
     """Ubica un valor sin alterar el fragmento original que verá el usuario."""
-    buscado = _normalizar_ubicacion(valor) if valor else ""
-    if not buscado:
+    if not valor or not valor.strip():
         return {"linea": None, "fragmento": "No ubicada"}
     for numero, linea in enumerate(texto.splitlines(), start=1):
-        if buscado in _normalizar_ubicacion(linea):
-            fragmento = linea.strip()
-            return {"linea": numero, "fragmento": fragmento[:160]}
+        linea = linea.strip()
+        coincidencias = correccion.coincidencias(linea, valor)
+        if coincidencias:
+            inicio, fin = coincidencias[0]
+            while fin > inicio and linea[fin - 1].isspace():
+                fin -= 1
+            # El recorte debe contener el error, incluso en párrafos extensos.
+            desde = max(0, inicio - max(0, (160 - (fin - inicio)) // 2))
+            desde = min(desde, max(0, len(linea) - 160))
+            fragmento = linea[desde : desde + 160]
+            return {
+                "linea": numero,
+                "fragmento": fragmento,
+                "inicio": inicio - desde,
+                "fin": min(fin - desde, len(fragmento)),
+            }
     return {"linea": None, "fragmento": "No ubicada"}
 
 
@@ -814,6 +844,35 @@ def estado_confrontacion(expediente, borrador, fuentes=None):
     return {"disponible": True, "mensaje": ""}
 
 
+def _calidad_lectura(documentos):
+    avisos = []
+    for documento in documentos:
+        calidad = (
+            documento.texto_extraido.calidad if documento.texto_extraido_id else {}
+        )
+        if not calidad or not calidad.get("paginas"):
+            avisos.append(
+                {
+                    "documento": documento.nombre_original,
+                    "tipo": "SIN_MEDICION",
+                    "paginas": [],
+                }
+            )
+            continue
+        paginas = [
+            p["pagina"] for p in calidad["paginas"] if p.get("requiere_revision")
+        ]
+        if paginas:
+            avisos.append(
+                {
+                    "documento": documento.nombre_original,
+                    "tipo": "DUDOSA",
+                    "paginas": paginas,
+                }
+            )
+    return avisos
+
+
 def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=None):
     """Ejecuta la regla sobre un borrador listo, sin persistir.
 
@@ -836,6 +895,7 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
         for documento in fuentes_documentos
     }
     texto_borrador = borrador.texto_extraido.texto
+    calidad_lectura = _calidad_lectura([borrador, *fuentes_documentos])
     # El catalogo se construye ANTES del diagnostico: si el aviso salta, el
     # usuario necesita ver que se extrajo para saber si el borrador es de otro
     # expediente o si el OCR no leyo los datos de las fuentes.
@@ -845,6 +905,7 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
     if aviso:
         return {
             "estado": "ADVERTENCIA_CORRESPONDENCIA",
+            "calidad_lectura": calidad_lectura,
             "mensaje": aviso,
             "personas": [],
             "extraccion": extraccion,
@@ -897,6 +958,7 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
     )
     return {
         "estado": "RESULTADO",
+        "calidad_lectura": calidad_lectura,
         "mensaje": "",
         "fecha_referencia": fecha,
         "personas": personas,
@@ -1133,8 +1195,10 @@ def registrar_corrida(expediente, borrador, usuario, resultado, origen=Corrida.M
         huella=_sha256_texto(hallazgos),
         origen=origen,
         presentacion={
+            "calidad_lectura": resultado.get("calidad_lectura", []),
             "extraccion": resultado.get("extraccion", {}),
             "linguistico_aviso": resultado.get("linguistico_aviso", ""),
+            "correcciones": resultado.get("correcciones", []),
         },
     )
     return {**resultado, "corrida_id": corrida.pk}
@@ -1142,7 +1206,22 @@ def registrar_corrida(expediente, borrador, usuario, resultado, origen=Corrida.M
 
 def resultado_de_corrida(corrida):
     """Resultado para la pantalla de confrontación, sin recalcular (F26)."""
-    return {**json.loads(corrida.hallazgos), **corrida.presentacion}
+    return {
+        **json.loads(corrida.hallazgos),
+        **corrida.presentacion,
+        "corrida_id": corrida.pk,
+        "correcciones": corrida.presentacion.get("correcciones", []),
+        "calidad_lectura": corrida.presentacion.get(
+            "calidad_lectura",
+            [
+                {
+                    "documento": "Resultado histórico",
+                    "tipo": "SIN_MEDICION",
+                    "paginas": [],
+                }
+            ],
+        ),
+    }
 
 
 _CAMPOS_ENTRADA = ("rol", "nombre", "hash_archivo", "version_extractor", "estado")
