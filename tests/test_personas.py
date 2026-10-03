@@ -1662,6 +1662,13 @@ def test_nombre_reniec_no_toma_un_rotulo_de_la_linea_siguiente():
     assert resultado.personas == ()
 
 
+@pytest.mark.parametrize("valor", ["FEMENINO", "MASCULINÒ", "CASADA"])
+def test_nombre_reniec_no_toma_el_valor_de_sexo_o_estado_civil(valor):
+    # La marca de agua tapó el nombre y el rótulo «Sexo:»; queda su valor suelto.
+    resultado = _irene(n=("Nombres:  IRENE", f"Nombres:\n{valor}"))
+    assert resultado.personas == ()
+
+
 _IRENE_SIN_NOMBRE = _IRENE.replace("QUIMERA", "QU1MERA")
 
 

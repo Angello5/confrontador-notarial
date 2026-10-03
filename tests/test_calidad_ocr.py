@@ -250,7 +250,7 @@ def hoja(oscuros=None, alto=2339, ancho=1654):
 
 
 def test_f33_sube_la_version_de_la_lectura():
-    assert calidad_ocr.VERSION == 3
+    assert calidad_ocr.VERSION >= 3
 
 
 def test_motor_usa_reserva_de_memoria(monkeypatch, tmp_path):
@@ -412,3 +412,69 @@ def test_libreoffice_descarta_el_perfil_si_la_conversion_falla(tmp_path, monkeyp
     with pytest.raises(ValueError, match="LibreOffice no pudo convertirlo"):
         extraccion._soffice(rtf, "txt", salida)
     assert not perfil.exists()
+
+
+def con_marca(n, score=0.98):
+    """Lectura de una página con `n` cajas diagonales de marca de agua."""
+    r = resultado(score=score)
+    for i in range(n):
+        r.boxes.append([[0, i], [100, 100 + i], [90, 110 + i], [-10, 10 + i]])
+        r.txts.append("MARCA FICTICIA")
+        r.scores.append(score)
+    return r
+
+
+def gris_y_negro():
+    """Página blanca con una franja gris clara (marca) y una negra (texto)."""
+    matriz = np.full((300, 300, 3), 255, np.uint8)
+    matriz[50:100] = 180
+    matriz[150:200] = 0
+    return matriz
+
+
+def con_nombre():
+    """Relectura limpia que recupera la línea que tapaba la marca."""
+    r = resultado()
+    r.boxes.append([[0, 115], [200, 115], [200, 131], [0, 131]])
+    r.txts.append("NOMBRES: ALBA ZURBELIA")
+    r.scores.append(0.97)
+    return r
+
+
+def test_marca_de_agua_se_relee_sin_grises(monkeypatch):
+    motor, entradas = secuencia(con_marca(12), con_nombre())
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    informe = extraccion.ocr_informe(gris_y_negro())
+    assert len(entradas) == 2
+    assert set(np.unique(entradas[1])) == {0, 255}
+    assert entradas[1][75, 0].tolist() == [255, 255, 255]  # el gris desaparece
+    assert entradas[1][175, 0].tolist() == [0, 0, 0]  # la tinta queda
+    assert informe["cajas_descartadas"] == 0
+    assert "NOMBRES: ALBA ZURBELIA" in informe["texto"]
+    assert informe["transformacion"]["umbral"] == extraccion.UMBRAL_TINTA
+    assert informe["intentos"] == 2
+    assert not informe["requiere_revision"]
+
+
+@pytest.mark.parametrize("relectura", [con_marca(12), resultado()])
+def test_relectura_sin_texto_recuperado_conserva_la_original(monkeypatch, relectura):
+    original = con_marca(12)
+    motor, entradas = secuencia(original, relectura)
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    informe = extraccion.ocr_informe(gris_y_negro())
+    assert len(entradas) == 2
+    assert "umbral" not in informe["transformacion"]
+    assert informe["cajas_descartadas"] == 12
+    assert not informe["requiere_revision"]
+
+
+def test_pocas_cajas_diagonales_no_releen_la_pagina(monkeypatch):
+    motor, entradas = secuencia(con_marca(3))
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    informe = extraccion.ocr_informe(gris_y_negro())
+    assert len(entradas) == 1
+    assert informe["cajas_descartadas"] == 3
+
+
+def test_marca_de_agua_sube_la_version_de_la_lectura():
+    assert calidad_ocr.VERSION == 4
