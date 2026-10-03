@@ -886,6 +886,42 @@ def test_numero_distinto_sigue_siendo_otro_domicilio():
     ]
 
 
+def _representante(linea, direcciones=("AV. SOL 300",)):
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio="Jr. Luna 12",
+        procedencia_domicilio=origen,
+    )
+    cat = Catalogo((persona,), direcciones=direcciones)
+    return revisar_persona_ampliada(cat, linea, date(2025, 1, 1))
+
+
+def test_representante_se_coteja_con_el_domicilio_de_los_recaudos():
+    linea = (
+        "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN AVENIDA SOL 300, QUIEN PROCEDE "
+        "EN REPRESENTACIÓN DE EMPRESA FICTICIA S.A.C."
+    )
+    assert _representante(linea) == ()
+
+
+@pytest.mark.parametrize(
+    "linea",
+    [
+        # Sin representación se exige el domicilio de RENIEC.
+        "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN AVENIDA SOL 300.",
+        # Representante con una dirección que no está en los recaudos.
+        "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN AVENIDA MAR 9, QUIEN PROCEDE "
+        "EN REPRESENTACIÓN DE EMPRESA FICTICIA S.A.C.",
+    ],
+)
+def test_domicilio_sin_respaldo_en_recaudos_se_sigue_senalando(linea):
+    (obs,) = _representante(linea)
+    assert obs["tipo"] == "DOMICILIO_NO_ENCONTRADO"
+
+
 def test_domicilio_de_otra_persona_no_satisface_fuente():
     origen = Procedencia("reniec-ficticio.pdf", 1)
     persona = Persona(
