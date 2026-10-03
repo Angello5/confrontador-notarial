@@ -914,6 +914,8 @@ _VIAS = {
     "LT": "LOTE",
     "URB": "URBANIZACION",
     "AAHH": "ASENTAMIENTO HUMANO",
+    "ASENT": "ASENTAMIENTO",
+    "ASOC": "ASOCIACION",
     "DPTO": "DEPARTAMENTO",
     "INT": "INTERIOR",
     "N": "NUMERO",
@@ -954,7 +956,12 @@ def _direccion_palabras(texto: str) -> list[str]:
     )
     sin_tildes = re.sub(r"\bS\s*/\s*N\b", " SN ", sin_tildes)
     sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes).replace("#", " INTERIOR ")
+    # RENIEC abrevia «ASENT.H.» y «AA.HH.», y pega el número: «LT6», «MZ.44».
+    sin_tildes = re.sub(r"\b(?:ASENT\.?\s*H|AA\.?\s*HH)\b\.?", " AAHH ", sin_tildes)
+    sin_tildes = re.sub(r"\b(MZ|LT|DPTO|INT)(?=\d)", r"\1 ", sin_tildes)
     tokens = re.findall(r"[A-Z0-9]+", sin_tildes)
+    # «LOTE 05» y «LT.5» son el mismo número.
+    tokens = [t.lstrip("0") or "0" if t.isdigit() else t for t in tokens]
     return [palabra for token in tokens for palabra in _VIAS.get(token, token).split()]
 
 
