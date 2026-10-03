@@ -300,6 +300,9 @@ RE_NOMBRE_APELLIDOS = re.compile(
 )
 
 RE_RENIEC = {"nom": "NOMBRES", "pat": "APELLIDO PATERNO", "mat": "APELLIDO MATERNO"}
+# Valor de «Sexo» o «Estado civil» que quedó suelto cuando la marca de agua tapó
+# su rótulo: nunca es nombre ni apellido.
+_VALORES_NO_NOMBRE = re.compile(r"(?:FEMENIN|MASCULIN|SOLTER|CASAD|VIUD|DIVORCIAD)[AO]")
 # Rótulo ``Texto:`` al inicio de línea; su valor nunca es el de otro rótulo (F18).
 _ROTULO = re.compile(r"[A-Za-zÁÉÍÓÚÑáéíóúñ .]{3,40}:")
 
@@ -373,7 +376,9 @@ def nombre_reniec(raw: str) -> str | None:
                 valor = celdas[i + 1] if i + 1 < len(celdas) else ""
                 if not valor.replace(" ", "").isalpha():
                     valor = norm(_primera_celda_siguiente(lineas, j))
-                if valor.replace(" ", "").isalpha():
+                if valor.replace(" ", "").isalpha() and not (
+                    _VALORES_NO_NOMBRE.fullmatch(valor)
+                ):
                     c.setdefault(k, valor)
     return f"{c['nom']} {c['pat']} {c['mat']}" if len(c) == 3 else None
 

@@ -37,6 +37,15 @@ CACHE = Path.home() / ".cache" / "notaria-ocr"
 OCR_MODELS = CACHE / "models"
 SOFFICE = "soffice"
 DPI = 200  # resolución inicial; cambios sujetos a medición
+# Marca de agua: con 10 o más cajas inclinadas descartadas se relee la página
+# dejando solo la tinta (gris < 130). Medido en consultas RENIEC impresas:
+# 21–35 cajas con marca y 0–4 sin ella; a 130 la marca desaparece y el texto
+# queda (a 160 vuelve parte de la marca).
+MARCA_AGUA_MINIMA = 10
+UMBRAL_TINTA = 130
+# La relectura se acepta si recupera texto: +15–20 % de letras cuando aparecía
+# el nombre tapado; con 1 % o menos solo cambiaban letras sueltas.
+TEXTO_RECUPERADO = 1.01
 # F33: 0,001 % de píxeles oscuros. Una sola línea con un DNI ocupa ~0,03 % y
 # un «1» aislado ~0,0016 %: por debajo solo quedan hojas totalmente blancas.
 HOJA_BLANCA = 0.00001
@@ -170,6 +179,34 @@ def _valor(informe):
     return calidad_ocr.puntuacion(informe) * (0.5 + calidad_ocr.horizontal(informe))
 
 
+def _sin_marca_de_agua(imagen, motor, informe, tol):
+    """Relee la página sin los grises claros de una marca de agua diagonal.
+
+    El detector junta la marca con el texto que cruza en una sola caja
+    inclinada y, al descartarla, se pierde también el texto (un «Nombres:» sin
+    valor en las consultas RENIEC impresas).
+    """
+    limpia = imagen.convert("L").point(lambda v: 0 if v < UMBRAL_TINTA else 255)
+    try:
+        nuevo = calidad_ocr.resumir(motor(_matriz(limpia.convert("RGB"))), tol)
+    except (RuntimeError, ValueError, OSError):
+        nuevo = None
+    # Letras y no _valor: la puntuación topa en 500 letras y pesa la confianza,
+    # y una relectura que recupera el nombre baja a veces una centésima. Sin
+    # texto recuperado queda la lectura original: binarizar también puede
+    # cambiar una letra de un apellido.
+    letras = lambda i: sum(c.isalnum() for c in i["texto"])  # noqa: E731
+    if (
+        nuevo is not None
+        and nuevo["cajas_descartadas"] < MARCA_AGUA_MINIMA
+        and letras(nuevo) >= letras(informe) * TEXTO_RECUPERADO
+    ):
+        nuevo["transformacion"] = {"giro": 0, "escala": 1, "umbral": UMBRAL_TINTA}
+        informe = nuevo
+    informe["intentos"] = 2
+    return informe
+
+
 def ocr_informe(fuente, tol=9, reintentar=True):
     imagen = _imagen(fuente)
     if imagen is not None and _oscuros(imagen) <= HOJA_BLANCA:
@@ -178,6 +215,12 @@ def ocr_informe(fuente, tol=9, reintentar=True):
     informe = calidad_ocr.resumir(
         motor(str(fuente) if isinstance(fuente, Path) else fuente), tol
     )
+    if (
+        reintentar
+        and imagen is not None
+        and informe["cajas_descartadas"] >= MARCA_AGUA_MINIMA
+    ):
+        informe = _sin_marca_de_agua(imagen, motor, informe, tol)
     if (
         not reintentar
         or imagen is None
@@ -193,7 +236,7 @@ def ocr_informe(fuente, tol=9, reintentar=True):
     if _oscuros(imagen) < 0.001:
         informe["motivos"] = ["pagina_casi_vacia"]
         return informe
-    intentos = 1
+    intentos = informe["intentos"]
     for giro in (180, 90, 270):
         candidata = imagen.rotate(giro, expand=True)
         try:
