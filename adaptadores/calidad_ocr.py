@@ -4,7 +4,7 @@ import math
 from statistics import median
 
 
-VERSION = 3
+VERSION = 4
 CONFIANZA_MINIMA = 0.85
 
 
