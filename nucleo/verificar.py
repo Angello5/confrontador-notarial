@@ -1578,7 +1578,9 @@ RE_CLAUSULA = re.compile(
     r"\s*(?:\.-|[.:-])"
 )
 # Rótulo al inicio de línea y con signo: «PRIMERA.-», «CLAUSULA SEGUNDA:».
-RE_INCISO = re.compile(r"^([A-Z]|\d{1,2}|[IVX]{1,6})\s?(\)|\.-|\.|-)\s")
+# Tras «.-» y «)» el espacio es opcional («B.-SUSCRIBIR»); tras «.» y «-» no,
+# para no leer como inciso una cifra decimal o una sigla.
+RE_INCISO = re.compile(r"^([A-Z]|\d{1,2}|[IVX]{1,6})\s?(\)|\.-|\.(?=\s)|-(?=\s))\s?")
 _LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 _TEXTO_ROMANO = {valor: romano for romano, valor in _ROMANOS.items()}
 
@@ -1618,7 +1620,8 @@ def _rompe_secuencia(ultimos: dict, clase: str, valor: int) -> int | None:
 def _correlativos(destino: str) -> list[str]:
     """F30: cláusulas (PRIMERA, SEGUNDA…) e incisos (a, b…; 1, 2…; I, II…) que
     saltan o repiten su número. Un 1 empieza una secuencia nueva; cada
-    cláusula reinicia sus incisos. Femenino y masculino son secuencias aparte."""
+    cláusula reinicia sus incisos. Femenino y masculino son secuencias aparte,
+    salvo que el ordinal continúe la numeración general (SEGUNDO, TERCERA…)."""
     obs = []
     clausulas, incisos, clausula = {}, {}, ""
     for linea in destino.splitlines():
@@ -1626,7 +1629,11 @@ def _correlativos(destino: str) -> list[str]:
         if m := RE_CLAUSULA.match(t):
             ordinal, genero = re.sub(r"\s+", " ", m[1]), m[2]
             valor = sum(_ORDINALES[r] for r in re.findall(_RAIZ_ORDINAL, ordinal))
-            if esperado := _rompe_secuencia(clausulas, genero, valor):
+            general, clausulas["*"] = clausulas.get("*", 0), valor
+            esperado = _rompe_secuencia(clausulas, genero, valor)
+            if esperado and valor != general + 1:
+                # El otro género avanzó la numeración: la falta es contra ella.
+                esperado = general + 1 if esperado <= general else esperado
                 correcto = _texto_ordinal(esperado, genero)
                 obs.append(
                     f"[CORRELATIVO] «{m[0]}» debe decir "

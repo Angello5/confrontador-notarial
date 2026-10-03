@@ -51,7 +51,8 @@ _OCR_USE_CLS = False
 _FORMATO_CACHE = 3
 # Forma del texto extraido que no pasa por la cache de OCR (identidad en la base).
 # 2: cada fila de tabla de un .docx es una linea (F27).
-_FORMATO_TEXTO = 2
+# 3: el salto manual <w:br/> de un .docx también separa líneas.
+_FORMATO_TEXTO = 3
 
 
 def version_extractor() -> str:
@@ -393,7 +394,12 @@ RE_TAB = re.compile(r"<w:tab(?:\s[^>]*)?/>")
 # antiguo). Sin descartar el Fallback, cada nota se lee duplicada.
 RE_FALLBACK = re.compile(r"<mc:Fallback>.*?</mc:Fallback>", re.S)
 RE_WT = re.compile(r"<w:t(?:\s[^>]*)?>(.*?)</w:t>", re.S)
-RE_DOCX_MARCA = re.compile(r"</w:p>|<w:tbl(?=[\s>])|</w:tbl>|</w:tc>|</w:tr>")
+# Un salto manual (Mayús+Intro) separa líneas como un párrafo: sin él, el
+# inciso siguiente queda pegado a la línea anterior y su correlativo no se lee.
+RE_DOCX_MARCA = re.compile(
+    r"</w:p>|<w:br(?=[\s/>])[^>]*>|<w:cr(?=[\s/>])[^>]*>"
+    r"|<w:tbl(?=[\s>])|</w:tbl>|</w:tc>|</w:tr>"
+)
 
 
 def _docx(p: Path) -> str:
@@ -425,7 +431,7 @@ def _docx(p: Path) -> str:
                 t += unescape("".join(RE_WT.findall(xml, inicio, m.start())))
                 inicio = m.end()
                 marca = m.group()
-                if marca == "</w:p>":
+                if marca == "</w:p>" or marca.startswith(("<w:br", "<w:cr")):
                     if t.strip():
                         (celda if nivel else lineas).append(t)
                     t = ""
