@@ -37,6 +37,7 @@
 - **FR-005**: `FALTA`, `NOMBRE`, `DNI`, `RUC`, `PARTIDA`, `DIRECCION`, `NUMERO_EN_LETRAS` y `PARRAFO` sin cambios. Núcleo puro y determinista; sin dependencias ni migraciones. Solo datos ficticios.
 
 - **FR-006 (tablas .docx)**: `extraccion._docx` emite cada fila de tabla como una línea según la clarificación de la ronda 2; el texto fuera de tablas es idéntico al de antes.
+- **FR-008 (lectura mal formada)**: una cifra cuyos miles no van en grupos de tres (`47,00.00`, lectura OCR que se comió un cero) no es un monto: no entra al catálogo ni a `montos_exigibles()` y nunca se propone como «debe decir» ni como corrección. En la comparación por posición ocupa su lugar como ilegible, para que los importes siguientes no se corran, y esa posición no se compara. Un importe del borrador sin par, fuera del catálogo, de la misma moneda y a un dígito de una lectura mal formada de la minuta no se observa: el importe está en la fuente aunque no se lea. Medido en 10 expedientes reales: 4 falsos `[MONTO]` menos, ninguno nuevo; el expediente de referencia mantiene 8/8.
 - **FR-007 (reextracción)**: `version_extractor()` cambia con el formato del texto; `manage.py reextraer_expediente <codigo>` vuelve a poner en cola (`PENDIENTE`) los documentos del expediente con archivo disponible y lista los que no lo tienen, sin tocarlos.
 
 ## Success Criteria *(mandatory)*

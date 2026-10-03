@@ -170,11 +170,21 @@ RE_PARTIDA = re.compile(
 # La forma corta PARTIDA N° también es valida en algunos actos.
 # F30: la FICHA (sistema anterior a la partida electrónica) es el mismo dato.
 
+# Miles en grupos de tres o sin separador: «47,00.00» es una lectura OCR que se
+# comió un cero, no un monto, y nunca debe proponerse como corrección.
+_CIFRA = r"(?<![\d,.])(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}(?!\d|,\d)"
 RE_MONTO = re.compile(
+    rf"(US\$|S/\.?|\$|(?<![A-ZÑ])(?:SOLES|DOLARES(?: AMERICANOS)?))\s*({_CIFRA})"
+    rf"|({_CIFRA})\s*(US\$|SOLES|DOLARES(?: AMERICANOS)?)"
+)
+# F27: moneda antes o después de la cifra. [NEEDS CLARIFICATION] "$" = dólares.
+# Para emparejar por posición, la lectura mal formada ocupa su lugar (ILEGIBLE):
+# sin ella, los importes siguientes se correrían y se cruzarían con otro.
+RE_MONTO_LEIDO = re.compile(
     r"(US\$|S/\.?|\$|(?<![A-ZÑ])(?:SOLES|DOLARES(?: AMERICANOS)?))\s*(\d[\d,]*\.\d{2})"
     r"|(\d[\d,]*\.\d{2})\s*(US\$|SOLES|DOLARES(?: AMERICANOS)?)"
 )
-# F27: moneda antes o después de la cifra. [NEEDS CLARIFICATION] "$" = dólares.
+ILEGIBLE = object()
 
 
 def _monto(m: re.Match) -> str:
@@ -1892,7 +1902,7 @@ def _montos_por_posicion(minutas: Mapping[str, str], destino: str, umbral: int):
         (linea, ms, pagina)
         for pagina in _paginas(minutas)
         for linea in map(norm, pagina.texto.splitlines())
-        if (ms := list(RE_MONTO.finditer(linea)))
+        if (ms := list(RE_MONTO_LEIDO.finditer(linea)))
     ]
     pares = []
     for linea in map(norm, destino.splitlines()):
@@ -1916,6 +1926,9 @@ def _montos_por_posicion(minutas: Mapping[str, str], destino: str, umbral: int):
             continue
         texto, esperados, pagina = par
         for m in esperados:
+            if not re.fullmatch(_CIFRA, m[2] or m[3]):
+                pares.append(ILEGIBLE)
+                continue
             concepto = _rotulo_fila(texto, len(esperados)) or " ".join(
                 re.findall(r"[\w/]+", RE_MONTO.sub(" ", texto[: m.start()]))[-6:]
             )
@@ -1927,6 +1940,15 @@ def _montos_por_posicion(minutas: Mapping[str, str], destino: str, umbral: int):
                 )
             )
     return pares
+
+
+def _mismo_importe_mal_leido(valor: str, leido: str) -> bool:
+    """Misma moneda y un dígito de diferencia: el cero que el OCR se comió."""
+    moneda = lambda s: s.startswith("US$")  # noqa: E731
+    cifras = lambda s: re.sub(r"\D", "", s)  # noqa: E731
+    return moneda(valor) == moneda(leido) and (
+        Levenshtein.distance(cifras(valor), cifras(leido)) <= 1
+    )
 
 
 def revisar(
@@ -1987,7 +2009,22 @@ def revisar(
     pares = _montos_por_posicion(minutas or {}, destino, umbral)
     if len(pares) != len(valores):  # un importe partido entre dos lineas
         pares = [None] * len(valores)
+    # Lecturas mal formadas de la minuta («47,00.00»): el importe está en la
+    # fuente aunque no se lea; no se compara ni se sugiere otro parecido.
+    ilegibles = [
+        _monto(m)
+        for texto in (minutas or {}).values()
+        for m in RE_MONTO_LEIDO.finditer(norm(texto))
+        if not re.fullmatch(_CIFRA, m[2] or m[3])
+    ]
     for v, par in zip(valores, pares):
+        if par is ILEGIBLE or (
+            par is None
+            and v not in cat["MONTO"]
+            and any(_mismo_importe_mal_leido(v, x) for x in ilegibles)
+        ):
+            vistos["MONTO"].add(v)
+            continue
         if par is None:
             check("MONTO", v)
             continue
