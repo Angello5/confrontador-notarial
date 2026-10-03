@@ -58,6 +58,8 @@ Como notario, quiero saber cuándo el domicilio de la fuente oficial no aparece 
 
 Decisión del propietario (2026-09-25): equivalencias de vía peruanas habituales: AV/AVENIDA, JR/JIRÓN, CA/CALLE, PSJ/PASAJE, MZ/MANZANA, LT/LOTE, URB/URBANIZACIÓN, AAHH/ASENTAMIENTO HUMANO, DPTO/DEPARTAMENTO, INT/INTERIOR, N°/NÚMERO, S/N. Se comparan sin puntos, tildes ni orden del número.
 
+Ampliación (2026-10-03, a pedido del propietario tras revisar expedientes reales): `ASENT.H.`, `ASENT. H.` y `AA.HH.` se leen como AAHH; `ASENT`/ASENTAMIENTO y `ASOC`/ASOCIACIÓN; el número pegado a su abreviatura se separa (`LT6` = `LT 6`) y los ceros a la izquierda no cuentan (`LOTE 05` = `LT.5`). Omitir el tipo de zona («Manzana G Lote 5 Luna» frente a «AAHH Luna Mz G Lt 5») sigue señalándose: [NEEDS CLARIFICATION] confirmar con la notaría si es un error.
+
 ### User Story 4 - Ver los campos nuevos (Priority: P2)
 
 Como notario, quiero ver estado civil, fecha de nacimiento, domicilio y distrito de cada persona en la tabla de extracción, con su procedencia, para verificar una observación sin releer el legajo.
