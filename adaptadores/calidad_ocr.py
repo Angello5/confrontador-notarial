@@ -4,7 +4,7 @@ import math
 from statistics import median
 
 
-VERSION = 2
+VERSION = 3
 CONFIANZA_MINIMA = 0.85
 
 
@@ -101,6 +101,22 @@ def resumir(resultado, tol=9):
         "intentos": 1,
         "transformacion": {"giro": 0, "escala": 1},
     }
+
+
+def horizontal(informe):
+    """Proporción de cajas más anchas que altas.
+
+    RapidOCR gira las cajas altas antes de reconocerlas: una hoja de lado
+    también «se lee», pero con las líneas desordenadas.
+    """
+    cajas = informe.get("cajas") or []
+    if not cajas:
+        return 0
+    anchas = sum(
+        math.dist(*c["puntos"][:2]) > math.dist(c["puntos"][0], c["puntos"][3])
+        for c in cajas
+    )
+    return anchas / len(cajas)
 
 
 def puntuacion(informe):

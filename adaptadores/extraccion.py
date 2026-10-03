@@ -11,11 +11,14 @@ pagina a pagina y se pasan por el mismo OCR.
 """
 
 import argparse
+import atexit
 import hashlib
 import importlib.metadata
 import json
 import io
+import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -34,6 +37,9 @@ CACHE = Path.home() / ".cache" / "notaria-ocr"
 OCR_MODELS = CACHE / "models"
 SOFFICE = "soffice"
 DPI = 200  # resolución inicial; cambios sujetos a medición
+# F33: 0,001 % de píxeles oscuros. Una sola línea con un DNI ocupa ~0,03 % y
+# un «1» aislado ~0,0016 %: por debajo solo quedan hojas totalmente blancas.
+HOJA_BLANCA = 0.00001
 
 _OCR_FILES = {
     "ch_PP-OCRv5_mobile_det.onnx": "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae",
@@ -89,6 +95,9 @@ def _ocr():
         params={
             "Global.use_cls": _OCR_USE_CLS,
             "Global.log_level": "error",
+            # F33: sin reserva, cada lote de líneas de ancho distinto pide y
+            # libera memoria; con ella la página real tarda ~18 % menos.
+            "EngineConfig.onnxruntime.enable_cpu_mem_arena": True,
             "Det.model_path": str(paths["ch_PP-OCRv5_mobile_det.onnx"]),
             "Rec.model_path": str(paths["latin_PP-OCRv5_rec_mobile_infer.onnx"]),
         }
@@ -127,13 +136,50 @@ def ocr_lineas(fuente, tol: int = 9) -> str:
     return ocr_informe(fuente, tol)["texto"]
 
 
+def _imagen(fuente):
+    """Imagen RGB de la fuente, o None si no se puede abrir."""
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    if hasattr(fuente, "shape"):  # matriz BGR de una página PDF
+        return Image.fromarray(fuente[:, :, ::-1])
+    try:
+        with Image.open(
+            fuente if isinstance(fuente, Path) else io.BytesIO(fuente)
+        ) as original:
+            return ImageOps.exif_transpose(original).convert("RGB")
+    except (UnidentifiedImageError, OSError, TypeError):
+        return None
+
+
+def _oscuros(imagen):
+    """Fracción de píxeles con gris menor que 200, el criterio de F31."""
+    hist = imagen.convert("L").histogram()
+    return sum(hist[:200]) / (imagen.width * imagen.height)
+
+
+def _matriz(imagen):
+    """El motor trabaja en BGR; pasarle la matriz evita codificar un PNG."""
+    import numpy as np
+
+    return np.ascontiguousarray(np.asarray(imagen)[:, :, ::-1])
+
+
+def _valor(informe):
+    # Una hoja de lado leída en vertical puntúa igual que la horizontal.
+    return calidad_ocr.puntuacion(informe) * (0.5 + calidad_ocr.horizontal(informe))
+
+
 def ocr_informe(fuente, tol=9, reintentar=True):
+    imagen = _imagen(fuente)
+    if imagen is not None and _oscuros(imagen) <= HOJA_BLANCA:
+        return _informe_nativo("", "ocr", ["pagina_casi_vacia"])
     motor = _ocr()
     informe = calidad_ocr.resumir(
         motor(str(fuente) if isinstance(fuente, Path) else fuente), tol
     )
     if (
         not reintentar
+        or imagen is None
         or not informe["requiere_revision"]
         or informe["motivos"] == ["confianza_no_disponible"]
         or (
@@ -142,28 +188,15 @@ def ocr_informe(fuente, tol=9, reintentar=True):
         )
     ):
         return informe
-    from PIL import Image, ImageOps, UnidentifiedImageError
-
-    try:
-        with Image.open(
-            fuente if isinstance(fuente, Path) else io.BytesIO(fuente)
-        ) as original:
-            imagen = ImageOps.exif_transpose(original).convert("RGB")
-    except (UnidentifiedImageError, OSError, TypeError):
-        return informe
     # Una hoja prácticamente vacía no necesita repetir el motor.
-    gris = imagen.convert("L")
-    hist = gris.histogram()
-    if sum(hist[:200]) / (imagen.width * imagen.height) < 0.001:
+    if _oscuros(imagen) < 0.001:
         informe["motivos"] = ["pagina_casi_vacia"]
         return informe
     intentos = 1
     for giro in (180, 90, 270):
         candidata = imagen.rotate(giro, expand=True)
-        buffer = io.BytesIO()
-        candidata.save(buffer, format="PNG")
         try:
-            nuevo = calidad_ocr.resumir(motor(buffer.getvalue()), tol)
+            nuevo = calidad_ocr.resumir(motor(_matriz(candidata)), tol)
         except (RuntimeError, ValueError, OSError):
             informe["motivos"] = list(
                 dict.fromkeys(informe["motivos"] + ["reintento_fallido"])
@@ -173,16 +206,19 @@ def ocr_informe(fuente, tol=9, reintentar=True):
         intentos += 1
         nuevo["transformacion"] = {"giro": giro, "escala": 1}
         nuevo["dimensiones"] = [candidata.width, candidata.height]
-        if calidad_ocr.puntuacion(nuevo) > calidad_ocr.puntuacion(informe) * 1.1:
+        if _valor(nuevo) > _valor(informe) * 1.1:
             # Si ambas lecturas son extensas, una alternativa no elimina la
-            # incertidumbre de los números contradictorios.
-            if "lectura_escasa" not in informe["motivos"] and re.findall(
-                r"\d+", informe["texto"]
-            ) != re.findall(r"\d+", nuevo["texto"]):
+            # incertidumbre de los números contradictorios. Una lectura vacía o
+            # escasa no contradice nada (F33).
+            if not {"sin_texto", "lectura_escasa"}.intersection(
+                informe["motivos"]
+            ) and re.findall(r"\d+", informe["texto"]) != re.findall(
+                r"\d+", nuevo["texto"]
+            ):
                 nuevo["motivos"].append("lecturas_divergentes")
                 nuevo["requiere_revision"] = True
             informe = nuevo
-        if not informe["requiere_revision"]:
+        if not informe["requiere_revision"] and calidad_ocr.horizontal(informe) > 0.8:
             break
     informe["intentos"] = intentos
     return informe
@@ -201,7 +237,7 @@ def _pdf_informe(p):
             txt = pg.get_text()
             if capa_pdf_dudosa(txt):
                 print(f"    pagina {i}: lectura dudosa, aplicando OCR", file=sys.stderr)
-                informe = ocr_informe(pg.get_pixmap(dpi=DPI).tobytes("png"))
+                informe = ocr_informe(_matriz_pagina(pg.get_pixmap(dpi=DPI)))
                 legibles = sum(c.isalnum() for c in txt)
                 recuperados = sum(c.isalnum() for c in informe["texto"])
                 if txt.strip() and (
@@ -224,6 +260,13 @@ def _pdf_informe(p):
                 informe = _informe_nativo(txt, "texto_pdf")
             paginas.append(informe)
     return tuple(paginas)
+
+
+def _matriz_pagina(pix):
+    import numpy as np
+
+    rgb = np.frombuffer(pix.samples, np.uint8).reshape(pix.height, pix.width, pix.n)
+    return np.ascontiguousarray(rgb[:, :, 2::-1])
 
 
 def _informe_nativo(texto, metodo, motivos=None):
@@ -266,33 +309,55 @@ def _ruta_legacy(p: Path) -> Path:
     return p
 
 
+_PERFILES_SOFFICE = {}
+
+
+def _perfil_soffice() -> Path:
+    """Un perfil por proceso: prepararlo cuesta tanto como convertir (F33).
+
+    No guarda texto ni nombres de los documentos; vive junto a la caché OCR y
+    se borra al terminar el proceso. LibreOffice bloquea su perfil, por eso no
+    se comparte entre procesos.
+    """
+    clave = (os.getpid(), CACHE)
+    if clave not in _PERFILES_SOFFICE:
+        perfil = CACHE / f"libreoffice-{os.getpid()}"
+        atexit.register(shutil.rmtree, perfil, ignore_errors=True)
+        _PERFILES_SOFFICE[clave] = perfil
+    perfil = _PERFILES_SOFFICE[clave]
+    perfil.parent.mkdir(parents=True, exist_ok=True)
+    return perfil
+
+
 def _soffice(p: Path, formato: str, destino: Path) -> Path:
-    """Convierte con LibreOffice headless. Perfil propio en un temporal para no
-    chocar con otra instancia abierta; los errores no llevan stderr ni rutas."""
+    """Convierte con LibreOffice headless con el perfil del proceso; si falla,
+    el perfil se descarta. Los errores no llevan stderr ni rutas."""
     p = _ruta_legacy(p)
     destino = destino.resolve(strict=True)
-    with tempfile.TemporaryDirectory() as perfil:
-        try:
-            r = subprocess.run(  # noqa: S603 argv sin shell; conversor fijo y ruta como argumento
-                [
-                    SOFFICE,
-                    f"-env:UserInstallation={Path(perfil).as_uri()}",
-                    "--headless",
-                    "--convert-to",
-                    formato,
-                    "--outdir",
-                    str(destino),
-                    str(p),
-                ],
-                capture_output=True,
-                timeout=120,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            raise ValueError(
-                f"{p.name}: .doc necesita LibreOffice ({SOFFICE}) en PATH"
-            ) from None
+    perfil = _perfil_soffice()
+    try:
+        r = subprocess.run(  # noqa: S603 argv sin shell; conversor fijo y ruta como argumento
+            [
+                SOFFICE,
+                f"-env:UserInstallation={perfil.as_uri()}",
+                "--headless",
+                "--convert-to",
+                formato,
+                "--outdir",
+                str(destino),
+                str(p),
+            ],
+            capture_output=True,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        shutil.rmtree(perfil, ignore_errors=True)
+        raise ValueError(
+            f"{p.name}: .doc necesita LibreOffice ({SOFFICE}) en PATH"
+        ) from None
     salida = destino / f"{p.stem}.{formato.split(':')[0]}"
     if r.returncode or not salida.is_file():
+        shutil.rmtree(perfil, ignore_errors=True)
         raise ValueError(f"{p.name}: LibreOffice no pudo convertirlo")
     return salida
 
