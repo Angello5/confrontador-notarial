@@ -56,6 +56,22 @@ def test_fila_de_tabla_es_una_linea_y_fuera_de_tabla_no_cambia(tmp_path):
     ]
 
 
+def test_salto_manual_separa_lineas_y_en_tabla_no_parte_la_fila(tmp_path):
+    con_salto = (
+        "<w:p><w:r><w:t>3. INCISO FICTICIO.====</w:t></w:r>"
+        "<w:r><w:br/><w:t>4. OTRO INCISO.</w:t><w:cr/><w:t>5. ULTIMO.</w:t></w:r></w:p>"
+    )
+    celda = "<w:p><w:r><w:t>LOTE</w:t><w:br/><w:t>FICTICIO</w:t></w:r></w:p>"
+    cuerpo = con_salto + _tabla([["1", celda]])
+
+    assert extraccion.leer(_docx(tmp_path / "t.docx", cuerpo)).splitlines() == [
+        "3. INCISO FICTICIO.====",
+        "4. OTRO INCISO.",
+        "5. ULTIMO.",
+        "1  LOTE FICTICIO",
+    ]
+
+
 def _cronograma(cambiar=None):
     filas = [["N°", "FECHA", "CAPITAL", "INTERES", "CUOTA"]]
     for n in range(1, 13):
