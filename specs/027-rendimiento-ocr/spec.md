@@ -112,6 +112,6 @@ A partir del segundo documento en formato antiguo dentro del mismo proceso de ex
 
 - La exactitud real se sigue midiendo contra la lectura actual, porque no hay etiquetas de la notaría (F31).
 - Los tiempos se miden en el equipo de desarrollo; el servidor de la notaría puede dar cifras distintas.
-- La reserva de memoria aumenta el consumo de RAM del proceso de extracción; se acepta mientras quepa en el servidor (a medir en F8).
+- La reserva de memoria aumenta la RAM del proceso de extracción: pico de 1,0 a 1,7 GB y memoria retenida de 0,6 a 1,6 GB (medido el 2026-10-03). Se acepta mientras quepa en el servidor; comprobar en F8.
 - F32 modifica la misma función de conversión de LibreOffice en un trabajo aún no integrado; el conflicto se resuelve al integrar la segunda de las dos fases.
 - Fuera de alcance: procesos en paralelo (requiere decidir el tiempo límite), resolución, OpenVINO, clasificador de orientación y prioridad de la cola.

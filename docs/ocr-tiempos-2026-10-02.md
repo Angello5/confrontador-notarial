@@ -204,6 +204,11 @@ la lectura vertical y la correcta tienen los mismos números en distinto orden.
 La primera conversión de LibreOffice de cada proceso cuesta lo mismo que antes.
 Casos completos con el extractor nuevo en `ocr-tiempos-f33.json`.
 
+Memoria: la reserva de ONNX Runtime eleva el pico del proceso de extracción de
+1,0 a 1,7 GB y la memoria retenida tras 6 páginas de 0,6 a 1,6 GB (medido en
+Windows). Con dos procesos en paralelo superaría 3 GB: comprobar la RAM del
+servidor en F8 antes de activar la reserva o el paralelismo.
+
 ## Límites
 
 - Portátil Intel i7-1360P (12 núcleos, 16 hilos), Windows, Python 3.12. El
