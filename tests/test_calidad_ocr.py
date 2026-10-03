@@ -2,11 +2,13 @@
 
 import math
 import io
+from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
-from adaptadores import extraccion
+from adaptadores import calidad_ocr, extraccion
 from PIL import Image
 import pymupdf
 
@@ -107,7 +109,8 @@ def test_reintentos_acotados_y_pagina_vacia(monkeypatch):
         return SimpleNamespace(txts=None, boxes=None, scores=None)
 
     monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
-    for color, esperado in [("black", 4), ("white", 1)]:
+    # F33: una hoja totalmente blanca ya no pasa por el motor.
+    for color, esperado in [("black", 4), ("white", 0)]:
         llamadas.clear()
         buffer = io.BytesIO()
         Image.new("RGB", (40, 40), color).save(buffer, format="PNG")
@@ -207,3 +210,205 @@ def test_capa_residual_corta_cede_ante_ocr_dudoso_mas_completo(tmp_path, monkeyp
         lambda _: {"texto": ocr, "requiere_revision": True},
     )
     assert extraccion._pdf_informe(ruta)[0]["texto"] == ocr
+
+
+# ── F33 · Rendimiento del OCR ────────────────────────────────────────────────
+
+
+def _caja(x, y, ancho, alto):
+    return [[x, y], [x + ancho, y], [x + ancho, y + alto], [x, y + alto]]
+
+
+def vertical(score=0.98):
+    """Texto de una hoja de lado: RapidOCR reconoce las líneas en cajas altas."""
+    r = resultado(score=score)
+    r.boxes = [_caja(x, 10, 16, 200) for x in (10, 45, 80)]
+    return r
+
+
+def secuencia(*respuestas):
+    """Motor falso que registra cada entrada y responde en orden."""
+    entradas = []
+
+    def motor(entrada):
+        entradas.append(entrada)
+        return respuestas[min(len(entradas), len(respuestas)) - 1]
+
+    return motor, entradas
+
+
+VACIO = SimpleNamespace(txts=None, boxes=None, scores=None)
+
+
+def hoja(oscuros=None, alto=2339, ancho=1654):
+    """Página A4 a 200 dpi como matriz BGR: negra, o blanca con `oscuros` píxeles negros."""
+    if oscuros is None:
+        return np.zeros((alto, ancho, 3), np.uint8)
+    matriz = np.full((alto, ancho, 3), 255, np.uint8)
+    matriz.reshape(-1, 3)[:oscuros] = 0
+    return matriz
+
+
+def test_f33_sube_la_version_de_la_lectura():
+    assert calidad_ocr.VERSION == 3
+
+
+def test_motor_usa_reserva_de_memoria(monkeypatch, tmp_path):
+    import hashlib
+
+    import rapidocr
+
+    archivos = {}
+    for nombre in extraccion._OCR_FILES:
+        (tmp_path / nombre).write_bytes(nombre.encode())
+        archivos[nombre] = hashlib.sha256(nombre.encode()).hexdigest()
+    parametros = {}
+    monkeypatch.setattr(extraccion, "OCR_MODELS", tmp_path)
+    monkeypatch.setattr(extraccion, "_OCR_FILES", archivos)
+    monkeypatch.setattr(rapidocr, "RapidOCR", lambda params: parametros.update(params))
+    extraccion._ocr.cache_clear()
+    try:
+        extraccion._ocr()
+    finally:
+        extraccion._ocr.cache_clear()
+    assert parametros["EngineConfig.onnxruntime.enable_cpu_mem_arena"] is True
+
+
+def test_pdf_escaneado_llega_al_motor_como_matriz_bgr(tmp_path, monkeypatch):
+    ruta = tmp_path / "escaneo.pdf"
+    with pymupdf.open() as doc:
+        pagina = doc.new_page()
+        pagina.draw_rect(pagina.rect, color=(1, 0, 0), fill=(1, 0, 0))
+        doc.save(ruta)
+    motor, entradas = secuencia(resultado())
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    extraccion._pdf_informe(ruta)
+    assert isinstance(entradas[0], np.ndarray)
+    assert entradas[0].ndim == 3 and entradas[0].shape[2] == 3
+    assert entradas[0][50, 50].tolist() == [0, 0, 255]  # rojo en orden BGR
+
+
+def test_giros_tambien_llegan_como_matriz(monkeypatch):
+    motor, entradas = secuencia(VACIO, resultado())
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    extraccion.ocr_informe(hoja())
+    assert len(entradas) == 2
+    assert all(isinstance(e, np.ndarray) for e in entradas)
+
+
+def test_horizontal_cuenta_cajas_mas_anchas_que_altas():
+    assert calidad_ocr.horizontal(calidad_ocr.resumir(resultado())) == 1
+    assert calidad_ocr.horizontal(calidad_ocr.resumir(vertical())) == 0
+    assert calidad_ocr.horizontal(calidad_ocr.resumir(VACIO)) == 0
+
+
+def test_lectura_vacia_no_vuelve_divergente_al_primer_giro_legible(monkeypatch):
+    motor, entradas = secuencia(VACIO, resultado())
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    informe = extraccion.ocr_informe(hoja())
+    assert len(entradas) == 2
+    assert informe["intentos"] == 2
+    assert informe["transformacion"]["giro"] == 180
+    assert "lecturas_divergentes" not in informe["motivos"]
+    assert not informe["requiere_revision"]
+
+
+def test_ante_empate_gana_el_giro_con_lineas_horizontales(monkeypatch):
+    motor, _ = secuencia(VACIO, vertical(), VACIO, resultado())
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    informe = extraccion.ocr_informe(hoja())
+    assert informe["transformacion"]["giro"] == 270
+    assert informe["texto"].splitlines() == [
+        "DNI: 90000001",
+        "ALBA ZURBELIA LUMARIA",
+        "IMPORTE: 12345.67",
+    ]
+
+
+def test_lecturas_extensas_con_numeros_distintos_siguen_divergentes(monkeypatch):
+    otra = resultado()
+    otra.txts = ["DNI: 90000007", "ALBA ZURBELIA LUMARIA", "IMPORTE: 12345.69"]
+    motor, _ = secuencia(resultado(score=0.5), otra)
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    informe = extraccion.ocr_informe(hoja())
+    assert "lecturas_divergentes" in informe["motivos"]
+    assert informe["requiere_revision"]
+
+
+@pytest.mark.parametrize("oscuros", [0, 38])
+def test_hoja_totalmente_blanca_no_pasa_por_el_motor(monkeypatch, oscuros):
+    motor, entradas = secuencia(resultado())
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    informe = extraccion.ocr_informe(hoja(oscuros))
+    assert not entradas
+    assert informe["texto"] == ""
+    assert informe["intentos"] == 0
+    assert informe["motivos"] == ["pagina_casi_vacia"]
+    assert informe["requiere_revision"]
+
+
+def test_hoja_con_una_marca_minima_se_sigue_leyendo(monkeypatch):
+    # Un «1» aislado en A4 a 200 dpi ocupa unos 60 píxeles oscuros.
+    motor, entradas = secuencia(resultado())
+    monkeypatch.setattr(extraccion, "_ocr", lambda: motor)
+    extraccion.ocr_informe(hoja(60))
+    assert len(entradas) == 1
+
+
+def _soffice_falso(llamadas, perfiles, codigo=0):
+    """LibreOffice simulado: escribe en el perfil recibido y en el destino."""
+
+    def ejecutar(argv, **_kwargs):
+        llamadas.append(argv)
+        perfil = next(p for p in perfiles if p.as_uri() in argv[1])
+        perfil.mkdir(parents=True, exist_ok=True)
+        (perfil / "registrymodifications.xcu").write_text("ficticio")
+        destino = Path(argv[argv.index("--outdir") + 1])
+        (destino / (Path(argv[-1]).stem + ".txt")).write_text("DOCUMENTO FICTICIO")
+        return SimpleNamespace(returncode=codigo)
+
+    return ejecutar
+
+
+def _preparar_soffice(tmp_path, monkeypatch, codigo=0):
+    import os
+
+    monkeypatch.setattr(extraccion, "CACHE", tmp_path / "cache")
+    monkeypatch.setattr(extraccion, "_PERFILES_SOFFICE", {})
+    perfil = extraccion.CACHE / f"libreoffice-{os.getpid()}"
+    llamadas = []
+    monkeypatch.setattr(
+        extraccion.subprocess, "run", _soffice_falso(llamadas, [perfil], codigo)
+    )
+    rtf = tmp_path / "ficticio.rtf"
+    rtf.write_text("{\\rtf1 DOCUMENTO FICTICIO}")
+    salida = tmp_path / "salida"
+    salida.mkdir()
+    return perfil, llamadas, rtf, salida
+
+
+def test_libreoffice_reutiliza_un_perfil_por_proceso(tmp_path, monkeypatch):
+    temporales = tmp_path / "tmp"
+    temporales.mkdir()
+    monkeypatch.setattr(extraccion.tempfile, "tempdir", str(temporales))
+    registrados = []
+    monkeypatch.setattr(
+        extraccion.atexit, "register", lambda *a, **_k: registrados.append(a)
+    )
+    perfil, llamadas, rtf, salida = _preparar_soffice(tmp_path, monkeypatch)
+    for _ in range(2):
+        extraccion._soffice(rtf, "txt", salida)
+    assert len(llamadas) == 2
+    assert {argv[1] for argv in llamadas} == {
+        f"-env:UserInstallation={perfil.as_uri()}"
+    }
+    assert len(registrados) == 1
+    assert not list(temporales.iterdir())
+
+
+def test_libreoffice_descarta_el_perfil_si_la_conversion_falla(tmp_path, monkeypatch):
+    monkeypatch.setattr(extraccion.atexit, "register", lambda *_a, **_k: None)
+    perfil, _, rtf, salida = _preparar_soffice(tmp_path, monkeypatch, codigo=1)
+    with pytest.raises(ValueError, match="LibreOffice no pudo convertirlo"):
+        extraccion._soffice(rtf, "txt", salida)
+    assert not perfil.exists()

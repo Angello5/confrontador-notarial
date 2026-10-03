@@ -21,6 +21,7 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F18 · en curso** | Lectura de fichas RENIEC escaneadas | Fechas con ruido OCR, valores en la línea siguiente y fichas sin nombre legible aportan sus campos | F15 | Los datos de las personas salen de las fichas, también escaneadas |
 | **F19 · en curso** | Errores del borrador fuera de la comparecencia | DNI de longitud incorrecta, nombres mal escritos en cualquier cláusula y números en letras distintos de su cifra | F16 | Reconocimiento anclado a rótulo, a nombre de la fuente o a cifra entre paréntesis |
 | **F21 · en curso** | Capa de corrección y documento corregido | Correcciones propuestas con su fuente, una sola confirmación y descarga del `.docx` corregido; el original no cambia | F19 | Se conserva el borrador `.docx` (constitución 1.7.0) |
+| **F33 · en curso** | Rendimiento del OCR | Escaneos leídos más rápido con el mismo texto, páginas giradas con menos lecturas y en orden, hojas totalmente blancas sin OCR y conversión de `.doc`/`.rtf` sin preparar LibreOffice cada vez | F31 | Solo se saltan hojas con ≤ 0,001 % de píxeles oscuros; spec en `specs/027-rendimiento-ocr/` |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
 | **F7** | Informe exportable | Descargar o imprimir las observaciones | F5 | Formato |
