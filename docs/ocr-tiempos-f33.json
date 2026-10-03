@@ -1,0 +1,222 @@
+{
+  "esquema": 1,
+  "nota": "F33: casos de ingesta con el extractor nuevo; documentos ficticios, tiempos de este equipo, sin aislamiento. Línea base en ocr-tiempos.json.",
+  "equipo": {
+    "procesador": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+    "nucleos_logicos": 16,
+    "sistema": "Windows-11-10.0.26100-SP0",
+    "python": "3.12.14"
+  },
+  "casos": [
+    {
+      "caso": "txt",
+      "descripcion": "Texto plano",
+      "paginas": 1,
+      "segundos": 0.001,
+      "segundos_por_pagina": 0.001,
+      "metodos": [
+        "texto_nativo"
+      ],
+      "lecturas_ocr": 0,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "docx",
+      "descripcion": "Word moderno",
+      "paginas": 1,
+      "segundos": 0.001,
+      "segundos_por_pagina": 0.001,
+      "metodos": [
+        "texto_nativo"
+      ],
+      "lecturas_ocr": 0,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "rtf_libreoffice",
+      "descripcion": "Formato antiguo vía LibreOffice",
+      "paginas": 1,
+      "segundos": 11.009,
+      "segundos_por_pagina": 11.009,
+      "metodos": [
+        "texto_nativo"
+      ],
+      "lecturas_ocr": 0,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "pdf_texto_1p",
+      "descripcion": "PDF con capa de texto, 1 página",
+      "paginas": 1,
+      "segundos": 0.011,
+      "segundos_por_pagina": 0.011,
+      "metodos": [
+        "texto_pdf"
+      ],
+      "lecturas_ocr": 0,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "pdf_texto_10p",
+      "descripcion": "PDF con capa de texto, 10 páginas",
+      "paginas": 10,
+      "segundos": 0.026,
+      "segundos_por_pagina": 0.003,
+      "metodos": [
+        "texto_pdf"
+      ],
+      "lecturas_ocr": 0,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 140,
+      "campos_posibles": 140
+    },
+    {
+      "caso": "pdf_escaneado_1p",
+      "descripcion": "PDF escaneado limpio, 1 página",
+      "paginas": 1,
+      "segundos": 4.81,
+      "segundos_por_pagina": 4.81,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 1,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "pdf_escaneado_10p",
+      "descripcion": "PDF escaneado limpio, 10 páginas",
+      "paginas": 10,
+      "segundos": 40.041,
+      "segundos_por_pagina": 4.004,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 10,
+      "requiere_revision": 0,
+      "similitud": 0.9999,
+      "campos_exactos": 137,
+      "campos_posibles": 140
+    },
+    {
+      "caso": "foto_jpg",
+      "descripcion": "Foto JPEG de 12 MP",
+      "paginas": 1,
+      "segundos": 4.12,
+      "segundos_por_pagina": 4.12,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 1,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "pdf_inclinado_4",
+      "descripcion": "Escaneo inclinado 4°",
+      "paginas": 1,
+      "segundos": 3.732,
+      "segundos_por_pagina": 3.732,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 1,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "pdf_bajo_contraste",
+      "descripcion": "Escaneo de bajo contraste",
+      "paginas": 1,
+      "segundos": 3.925,
+      "segundos_por_pagina": 3.925,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 1,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "pdf_girado_180",
+      "descripcion": "Página escaneada al revés",
+      "paginas": 1,
+      "segundos": 7.693,
+      "segundos_por_pagina": 7.693,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 2,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "pdf_girado_90",
+      "descripcion": "Página escaneada de lado",
+      "paginas": 1,
+      "segundos": 15.318,
+      "segundos_por_pagina": 15.318,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 4,
+      "requiere_revision": 1,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    },
+    {
+      "caso": "pdf_pagina_blanca",
+      "descripcion": "Página en blanco",
+      "paginas": 1,
+      "segundos": 0.311,
+      "segundos_por_pagina": 0.311,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 0,
+      "requiere_revision": 1,
+      "similitud": 1.0,
+      "campos_exactos": 0,
+      "campos_posibles": 0
+    },
+    {
+      "caso": "pdf_capa_corrupta",
+      "descripcion": "Capa de texto corrupta",
+      "paginas": 1,
+      "segundos": 3.884,
+      "segundos_por_pagina": 3.884,
+      "metodos": [
+        "ocr"
+      ],
+      "lecturas_ocr": 1,
+      "requiere_revision": 0,
+      "similitud": 1.0,
+      "campos_exactos": 14,
+      "campos_posibles": 14
+    }
+  ]
+}
