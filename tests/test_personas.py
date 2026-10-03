@@ -1,10 +1,12 @@
 """Contrato puro de personas con datos enteramente ficticios."""
 
+from collections import Counter
 from datetime import date
 
 import pytest
 
 from nucleo.verificar import (
+    _direcciones_observadas,
     Catalogo,
     Persona,
     Procedencia,
@@ -825,6 +827,10 @@ def test_domicilio_equivalente_y_ausente():
         ("Int.", "Interior"),
         ("N°", "Número"),
         ("S/N", "Sin Número"),
+        ("ASENT.H.", "Asentamiento Humano"),
+        ("Asent. H.", "Asentamiento Humano"),
+        ("AA.HH.", "Asentamiento Humano"),
+        ("Asoc.", "Asociación"),
     ],
 )
 def test_domicilio_admite_equivalencias_cerradas(abreviado, extendido):
@@ -840,6 +846,44 @@ def test_domicilio_admite_equivalencias_cerradas(abreviado, extendido):
     assert (
         revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1)) == ()
     )
+
+
+@pytest.mark.parametrize(
+    ("fuente", "borrador"),
+    [
+        ("Mz J Lt6 Luna", "Manzana J Lote 06 Luna"),
+        ("Mz.G Lt.5 Luna", "Manzana G, Lote 05, Luna"),
+        ("Jr. Luna 012", "Jirón Luna 12"),
+    ],
+)
+def test_domicilio_con_numero_pegado_o_ceros_a_la_izquierda(fuente, borrador):
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio=fuente,
+        procedencia_domicilio=origen,
+    )
+    texto = f"ALBA LUMARIA ZAFIRO, CON DOMICILIO EN {borrador}."
+    assert revisar_persona_ampliada(Catalogo((persona,)), texto, date(2025, 1, 1)) == ()
+    assert _direcciones_observadas({fuente}, texto, Counter()) == []
+
+
+def test_numero_distinto_sigue_siendo_otro_domicilio():
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio="Mz J Lt6 Luna",
+        procedencia_domicilio=origen,
+    )
+    texto = "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN Manzana J Lote 16 Luna."
+    # Lo señala la sustitución F22 («16» por «6»), no el domicilio ausente.
+    assert _direcciones_observadas({persona.domicilio}, texto, Counter()) == [
+        ("MANZANA J LOTE 16 LUNA", "Mz J Lt6 Luna")
+    ]
 
 
 def test_domicilio_de_otra_persona_no_satisface_fuente():
