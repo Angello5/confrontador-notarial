@@ -902,6 +902,9 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
     return tuple(observaciones)
 
 
+_REPRESENTACION = re.compile(
+    r"(?<![A-ZÑ])(?:REPRESENTACION|REPRESENTANTE|APODERAD[AO])(?![A-ZÑ])"
+)
 _CIVIL_BORRADOR = re.compile(
     r"\b(CASAD[AO]\s+CON|SOLTER[AO]|VIUD[AO]|DIVORCIAD[AO]|CONVIVIENTE)\b"
 )
@@ -1080,6 +1083,10 @@ def revisar_persona_ampliada(
             cat["DIRECCION"], borrador, cat.vocabulario
         )
     }
+    # Un representante declara el domicilio de su representada: se coteja con
+    # las direcciones de los recaudos, no con los domicilios RENIEC personales.
+    personales = {norm(p.domicilio) for p in cat._registros() if p.domicilio}
+    recaudos = [_direccion_tokens(d) for d in cat.direcciones - personales]
     for persona in cat.personas:
         if (
             persona.estado != "CONFIRMADA"
@@ -1149,9 +1156,18 @@ def revisar_persona_ampliada(
                 for linea in borrador.splitlines()
                 if _nombre_clave(persona.nombre) in norm(linea) or dni.search(linea)
             ]
-            if not any(
-                direccion <= _direccion_tokens(oracion) for oracion in oraciones
-            ) and (_clave_direccion(persona.domicilio) not in observadas):
+            representada = any(
+                _REPRESENTACION.search(norm(oracion))
+                and any(d <= _direccion_tokens(oracion) for d in recaudos if d)
+                for oracion in oraciones
+            )
+            if (
+                not representada
+                and not any(
+                    direccion <= _direccion_tokens(oracion) for oracion in oraciones
+                )
+                and (_clave_direccion(persona.domicilio) not in observadas)
+            ):
                 observaciones.append(
                     {
                         **base,
