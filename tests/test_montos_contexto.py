@@ -117,3 +117,42 @@ def test_importe_partido_entre_lineas_usa_la_regla_actual():
     assert _montos("PRECIO US$\n80,500.00.", "PRECIO US$ 80,000.00.") == [
         "[MONTO] «US$ 80,500.00» debe decir «US$ 80,000.00»"
     ]
+
+
+def test_cifra_con_miles_mal_agrupados_no_es_un_monto():
+    # Lectura OCR que se comió un cero: «47,000.00» leído «47,00.00».
+    texto = (
+        "A US$47,00.00 B S/138,00.00 C 1,00.00 SOLES D S/ 1,0000.00 "
+        "E S/ 138,000.00 F US$ 900.00"
+    )
+    assert catalogo({"m.txt": texto})["MONTO"] == {"138,000.00", "US$ 900.00"}
+
+
+def test_minuta_mal_leida_no_propone_su_cifra_al_borrador():
+    minuta = _MINUTA.replace("S/ 250,000.00", "S/ 250,00.00")
+    borrador = _PRECIO
+    assert not [o for o in _montos(borrador, minuta) if "250,00.00" in o]
+
+
+def test_lectura_mal_formada_conserva_su_posicion_en_el_parrafo():
+    parrafo = (
+        "EL GARANTE FICTICIO RECIBE EL CAPITAL EQUIVALENTE A US$ {} AL TIPO DE "
+        "CAMBIO DEL DIA, Y ADEMAS LA SUMA DE S/ 19,000.00 MEDIANTE CHEQUE DE GERENCIA."
+    )
+    minuta = "MINUTA FICTICIA" + SEPARADOR_PAGINA + parrafo.format("47,00.00")
+    assert _montos(parrafo.format("47,000.00"), minuta) == []
+
+
+def test_monto_sin_par_que_la_minuta_lee_mal_no_sugiere_otro_importe():
+    minuta = (
+        "MINUTA FICTICIA" + SEPARADOR_PAGINA + "EL CAPITAL ES US$ 47,00.00.\n"
+        "LA SUMA DE S/ 19,000.00 SE ENTREGA CON CHEQUE.\n"
+    )
+    borrador = "EL CAPITAL ES US$ 47,000.00 Y LA SUMA DE S/ 19,000.00 SE ENTREGA."
+    assert _montos(borrador, minuta) == []
+
+
+def test_monto_distinto_de_la_lectura_mal_formada_se_sigue_observando():
+    minuta = "MINUTA FICTICIA" + SEPARADOR_PAGINA + "EL CAPITAL ES US$ 47,00.00.\n"
+    borrador = "EL CAPITAL ES US$ 45,000.00."
+    assert _montos(borrador, minuta) != []
