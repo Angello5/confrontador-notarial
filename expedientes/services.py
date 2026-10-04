@@ -1252,8 +1252,11 @@ def aplicar_correcciones(expediente, borrador, corrida_id, ids, usuario):
         )
         corregido_hash = calcular_hash(temporal)
         destino = original.with_name(f"corregido-{corregido_hash}.docx")
-        os.replace(temporal, destino)
-        destino.chmod(0o400)
+        # El nombre es el hash: si ya existe (doble clic, reintento) es idéntico.
+        # Windows no deja reemplazarlo porque queda de solo lectura.
+        if not (destino.is_file() and calcular_hash(destino) == corregido_hash):
+            os.replace(temporal, destino)
+            destino.chmod(0o400)
     finally:
         temporal.unlink(missing_ok=True)
     return DecisionCorreccion.objects.create(

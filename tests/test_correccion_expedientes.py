@@ -304,6 +304,27 @@ def test_confirmacion_aplica_registra_y_descarga(client, escenario, usuario_fict
     assert "LUNARIA" in xml  # excluida
 
 
+def test_aplicar_dos_veces_lo_mismo_reutiliza_el_corregido(
+    client, escenario, usuario_ficticio
+):
+    """Doble clic o reintento: el corregido idéntico ya existe y es de solo lectura."""
+    from expedientes.models import DecisionCorreccion
+
+    expediente, borrador, _ = escenario
+    correcciones, corrida_id = _propuesta(expediente, borrador)
+    dni = next(c for c in correcciones if c["erroneo"] == "90000002")
+    client.force_login(usuario_ficticio)
+    datos = {"corrida": corrida_id, "confirmado": "1", "aplicar": [dni["id"]]}
+
+    assert _aplicar(client, expediente, borrador, datos).status_code == 200
+    assert _aplicar(client, expediente, borrador, datos).status_code == 200
+
+    primera, segunda = DecisionCorreccion.objects.order_by("pk")
+    assert primera.hash_corregido == segunda.hash_corregido
+    assert len(list(ruta_dir(borrador).glob("corregido-*.docx"))) == 1
+    assert not list(ruta_dir(borrador).glob("*.tmp"))
+
+
 def test_decision_en_el_detalle_de_la_corrida(client, escenario, usuario_ficticio):
     from expedientes.models import DecisionCorreccion, RegistroInmutable
 
