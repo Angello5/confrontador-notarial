@@ -33,6 +33,8 @@ Se compara una batería ficticia de respuestas conocidas, registrando aciertos d
 - FR-007: publicar métricas sintéticas separadas de los resultados reales sin etiquetar; preparar una plantilla local para revisión con fuente, página, campo, sujeto, rol, bien, moneda, concepto, fecha y valor esperado.
 - FR-008: no modificar umbrales de correspondencia, cuotas ni criterios jurídicos sin referencia validada. No sustituir dígitos ambiguos por conjeturas.
 
+- **FR-MA (marca de agua)**: Una página con 10 o más cajas inclinadas descartadas DEBE releerse una vez dejando solo la tinta (gris < 130). Se conserva la relectura si descarta menos de 10 cajas y recupera al menos 1 % más de letras; queda con `transformacion.umbral` y `intentos` 2. En otro caso se mantiene la lectura original: binarizar sin recuperar texto puede cambiar letras sueltas. Medido en 10 expedientes reales: 32 páginas cumplen la condición, 8 se releen y en todas reaparece el texto tapado (+15–20 % de letras; nombres de 5 fichas RENIEC); las otras 24 no cambian. Una marca más oscura que el umbral sigue sin recuperarse. `calidad_ocr.VERSION` pasa a 4.
+
 ## Seguridad y privacidad
 
 Procesamiento local, mismos permisos de expediente, sin servicios externos ni nuevas dependencias. Metadatos con texto OCR reciben la misma protección y supresión que el texto extraído. No se conserva la imagen fuente fuera de la retención ya autorizada. Ejemplos, logs e informes compartibles usan datos ficticios o métricas agregadas.

@@ -300,6 +300,9 @@ RE_NOMBRE_APELLIDOS = re.compile(
 )
 
 RE_RENIEC = {"nom": "NOMBRES", "pat": "APELLIDO PATERNO", "mat": "APELLIDO MATERNO"}
+# Valor de «Sexo» o «Estado civil» que quedó suelto cuando la marca de agua tapó
+# su rótulo: nunca es nombre ni apellido.
+_VALORES_NO_NOMBRE = re.compile(r"(?:FEMENIN|MASCULIN|SOLTER|CASAD|VIUD|DIVORCIAD)[AO]")
 # Rótulo ``Texto:`` al inicio de línea; su valor nunca es el de otro rótulo (F18).
 _ROTULO = re.compile(r"[A-Za-zÁÉÍÓÚÑáéíóúñ .]{3,40}:")
 
@@ -373,7 +376,9 @@ def nombre_reniec(raw: str) -> str | None:
                 valor = celdas[i + 1] if i + 1 < len(celdas) else ""
                 if not valor.replace(" ", "").isalpha():
                     valor = norm(_primera_celda_siguiente(lineas, j))
-                if valor.replace(" ", "").isalpha():
+                if valor.replace(" ", "").isalpha() and not (
+                    _VALORES_NO_NOMBRE.fullmatch(valor)
+                ):
                     c.setdefault(k, valor)
     return f"{c['nom']} {c['pat']} {c['mat']}" if len(c) == 3 else None
 
@@ -897,6 +902,9 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
     return tuple(observaciones)
 
 
+_REPRESENTACION = re.compile(
+    r"(?<![A-ZÑ])(?:REPRESENTACION|REPRESENTANTE|APODERAD[AO])(?![A-ZÑ])"
+)
 _CIVIL_BORRADOR = re.compile(
     r"\b(CASAD[AO]\s+CON|SOLTER[AO]|VIUD[AO]|DIVORCIAD[AO]|CONVIVIENTE)\b"
 )
@@ -909,6 +917,8 @@ _VIAS = {
     "LT": "LOTE",
     "URB": "URBANIZACION",
     "AAHH": "ASENTAMIENTO HUMANO",
+    "ASENT": "ASENTAMIENTO",
+    "ASOC": "ASOCIACION",
     "DPTO": "DEPARTAMENTO",
     "INT": "INTERIOR",
     "N": "NUMERO",
@@ -949,7 +959,12 @@ def _direccion_palabras(texto: str) -> list[str]:
     )
     sin_tildes = re.sub(r"\bS\s*/\s*N\b", " SN ", sin_tildes)
     sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes).replace("#", " INTERIOR ")
+    # RENIEC abrevia «ASENT.H.» y «AA.HH.», y pega el número: «LT6», «MZ.44».
+    sin_tildes = re.sub(r"\b(?:ASENT\.?\s*H|AA\.?\s*HH)\b\.?", " AAHH ", sin_tildes)
+    sin_tildes = re.sub(r"\b(MZ|LT|DPTO|INT)(?=\d)", r"\1 ", sin_tildes)
     tokens = re.findall(r"[A-Z0-9]+", sin_tildes)
+    # «LOTE 05» y «LT.5» son el mismo número.
+    tokens = [t.lstrip("0") or "0" if t.isdigit() else t for t in tokens]
     return [palabra for token in tokens for palabra in _VIAS.get(token, token).split()]
 
 
@@ -1068,6 +1083,10 @@ def revisar_persona_ampliada(
             cat["DIRECCION"], borrador, cat.vocabulario
         )
     }
+    # Un representante declara el domicilio de su representada: se coteja con
+    # las direcciones de los recaudos, no con los domicilios RENIEC personales.
+    personales = {norm(p.domicilio) for p in cat._registros() if p.domicilio}
+    recaudos = [_direccion_tokens(d) for d in cat.direcciones - personales]
     for persona in cat.personas:
         if (
             persona.estado != "CONFIRMADA"
@@ -1137,9 +1156,18 @@ def revisar_persona_ampliada(
                 for linea in borrador.splitlines()
                 if _nombre_clave(persona.nombre) in norm(linea) or dni.search(linea)
             ]
-            if not any(
-                direccion <= _direccion_tokens(oracion) for oracion in oraciones
-            ) and (_clave_direccion(persona.domicilio) not in observadas):
+            representada = any(
+                _REPRESENTACION.search(norm(oracion))
+                and any(d <= _direccion_tokens(oracion) for d in recaudos if d)
+                for oracion in oraciones
+            )
+            if (
+                not representada
+                and not any(
+                    direccion <= _direccion_tokens(oracion) for oracion in oraciones
+                )
+                and (_clave_direccion(persona.domicilio) not in observadas)
+            ):
                 observaciones.append(
                     {
                         **base,
@@ -1578,7 +1606,9 @@ RE_CLAUSULA = re.compile(
     r"\s*(?:\.-|[.:-])"
 )
 # Rótulo al inicio de línea y con signo: «PRIMERA.-», «CLAUSULA SEGUNDA:».
-RE_INCISO = re.compile(r"^([A-Z]|\d{1,2}|[IVX]{1,6})\s?(\)|\.-|\.|-)\s")
+# Tras «.-» y «)» el espacio es opcional («B.-SUSCRIBIR»); tras «.» y «-» no,
+# para no leer como inciso una cifra decimal o una sigla.
+RE_INCISO = re.compile(r"^([A-Z]|\d{1,2}|[IVX]{1,6})\s?(\)|\.-|\.(?=\s)|-(?=\s))\s?")
 _LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 _TEXTO_ROMANO = {valor: romano for romano, valor in _ROMANOS.items()}
 
@@ -1618,7 +1648,8 @@ def _rompe_secuencia(ultimos: dict, clase: str, valor: int) -> int | None:
 def _correlativos(destino: str) -> list[str]:
     """F30: cláusulas (PRIMERA, SEGUNDA…) e incisos (a, b…; 1, 2…; I, II…) que
     saltan o repiten su número. Un 1 empieza una secuencia nueva; cada
-    cláusula reinicia sus incisos. Femenino y masculino son secuencias aparte."""
+    cláusula reinicia sus incisos. Femenino y masculino son secuencias aparte,
+    salvo que el ordinal continúe la numeración general (SEGUNDO, TERCERA…)."""
     obs = []
     clausulas, incisos, clausula = {}, {}, ""
     for linea in destino.splitlines():
@@ -1626,7 +1657,11 @@ def _correlativos(destino: str) -> list[str]:
         if m := RE_CLAUSULA.match(t):
             ordinal, genero = re.sub(r"\s+", " ", m[1]), m[2]
             valor = sum(_ORDINALES[r] for r in re.findall(_RAIZ_ORDINAL, ordinal))
-            if esperado := _rompe_secuencia(clausulas, genero, valor):
+            general, clausulas["*"] = clausulas.get("*", 0), valor
+            esperado = _rompe_secuencia(clausulas, genero, valor)
+            if esperado and valor != general + 1:
+                # El otro género avanzó la numeración: la falta es contra ella.
+                esperado = general + 1 if esperado <= general else esperado
                 correcto = _texto_ordinal(esperado, genero)
                 obs.append(
                     f"[CORRELATIVO] «{m[0]}» debe decir "

@@ -1,10 +1,12 @@
 """Contrato puro de personas con datos enteramente ficticios."""
 
+from collections import Counter
 from datetime import date
 
 import pytest
 
 from nucleo.verificar import (
+    _direcciones_observadas,
     Catalogo,
     Persona,
     Procedencia,
@@ -825,6 +827,10 @@ def test_domicilio_equivalente_y_ausente():
         ("Int.", "Interior"),
         ("N°", "Número"),
         ("S/N", "Sin Número"),
+        ("ASENT.H.", "Asentamiento Humano"),
+        ("Asent. H.", "Asentamiento Humano"),
+        ("AA.HH.", "Asentamiento Humano"),
+        ("Asoc.", "Asociación"),
     ],
 )
 def test_domicilio_admite_equivalencias_cerradas(abreviado, extendido):
@@ -840,6 +846,80 @@ def test_domicilio_admite_equivalencias_cerradas(abreviado, extendido):
     assert (
         revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1)) == ()
     )
+
+
+@pytest.mark.parametrize(
+    ("fuente", "borrador"),
+    [
+        ("Mz J Lt6 Luna", "Manzana J Lote 06 Luna"),
+        ("Mz.G Lt.5 Luna", "Manzana G, Lote 05, Luna"),
+        ("Jr. Luna 012", "Jirón Luna 12"),
+    ],
+)
+def test_domicilio_con_numero_pegado_o_ceros_a_la_izquierda(fuente, borrador):
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio=fuente,
+        procedencia_domicilio=origen,
+    )
+    texto = f"ALBA LUMARIA ZAFIRO, CON DOMICILIO EN {borrador}."
+    assert revisar_persona_ampliada(Catalogo((persona,)), texto, date(2025, 1, 1)) == ()
+    assert _direcciones_observadas({fuente}, texto, Counter()) == []
+
+
+def test_numero_distinto_sigue_siendo_otro_domicilio():
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio="Mz J Lt6 Luna",
+        procedencia_domicilio=origen,
+    )
+    texto = "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN Manzana J Lote 16 Luna."
+    # Lo señala la sustitución F22 («16» por «6»), no el domicilio ausente.
+    assert _direcciones_observadas({persona.domicilio}, texto, Counter()) == [
+        ("MANZANA J LOTE 16 LUNA", "Mz J Lt6 Luna")
+    ]
+
+
+def _representante(linea, direcciones=("AV. SOL 300",)):
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio="Jr. Luna 12",
+        procedencia_domicilio=origen,
+    )
+    cat = Catalogo((persona,), direcciones=direcciones)
+    return revisar_persona_ampliada(cat, linea, date(2025, 1, 1))
+
+
+def test_representante_se_coteja_con_el_domicilio_de_los_recaudos():
+    linea = (
+        "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN AVENIDA SOL 300, QUIEN PROCEDE "
+        "EN REPRESENTACIÓN DE EMPRESA FICTICIA S.A.C."
+    )
+    assert _representante(linea) == ()
+
+
+@pytest.mark.parametrize(
+    "linea",
+    [
+        # Sin representación se exige el domicilio de RENIEC.
+        "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN AVENIDA SOL 300.",
+        # Representante con una dirección que no está en los recaudos.
+        "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN AVENIDA MAR 9, QUIEN PROCEDE "
+        "EN REPRESENTACIÓN DE EMPRESA FICTICIA S.A.C.",
+    ],
+)
+def test_domicilio_sin_respaldo_en_recaudos_se_sigue_senalando(linea):
+    (obs,) = _representante(linea)
+    assert obs["tipo"] == "DOMICILIO_NO_ENCONTRADO"
 
 
 def test_domicilio_de_otra_persona_no_satisface_fuente():
@@ -1659,6 +1739,13 @@ def test_nombre_reniec_desplazado_a_la_linea_siguiente(viejo, nuevo):
 
 def test_nombre_reniec_no_toma_un_rotulo_de_la_linea_siguiente():
     resultado = _irene(n=("Nombres:  IRENE", "Nombres:  10:45"))
+    assert resultado.personas == ()
+
+
+@pytest.mark.parametrize("valor", ["FEMENINO", "MASCULINÒ", "CASADA"])
+def test_nombre_reniec_no_toma_el_valor_de_sexo_o_estado_civil(valor):
+    # La marca de agua tapó el nombre y el rótulo «Sexo:»; queda su valor suelto.
+    resultado = _irene(n=("Nombres:  IRENE", f"Nombres:\n{valor}"))
     assert resultado.personas == ()
 
 

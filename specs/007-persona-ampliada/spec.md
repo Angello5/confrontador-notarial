@@ -58,6 +58,10 @@ Como notario, quiero saber cuándo el domicilio de la fuente oficial no aparece 
 
 Decisión del propietario (2026-09-25): equivalencias de vía peruanas habituales: AV/AVENIDA, JR/JIRÓN, CA/CALLE, PSJ/PASAJE, MZ/MANZANA, LT/LOTE, URB/URBANIZACIÓN, AAHH/ASENTAMIENTO HUMANO, DPTO/DEPARTAMENTO, INT/INTERIOR, N°/NÚMERO, S/N. Se comparan sin puntos, tildes ni orden del número.
 
+Ampliación (2026-10-03, a pedido del propietario tras revisar expedientes reales): `ASENT.H.`, `ASENT. H.` y `AA.HH.` se leen como AAHH; `ASENT`/ASENTAMIENTO y `ASOC`/ASOCIACIÓN; el número pegado a su abreviatura se separa (`LT6` = `LT 6`) y los ceros a la izquierda no cuentan (`LOTE 05` = `LT.5`). Omitir el tipo de zona («Manzana G Lote 5 Luna» frente a «AAHH Luna Mz G Lt 5») es un error y se señala (decisión del propietario, 2026-10-03).
+
+Representante (decisión del propietario, 2026-10-03): si la línea de la persona dice que procede en representación (`REPRESENTACION`, `REPRESENTANTE`, `APODERADO/A`), su domicilio se coteja con las direcciones de los recaudos y no con su domicilio RENIEC; sin respaldo en los recaudos se sigue señalando `DOMICILIO_NO_ENCONTRADO`. Los domicilios RENIEC de otras personas no cuentan como respaldo. [NEEDS CLARIFICATION] una persona que procede por derecho propio con el domicilio que la minuta fija «para efectos de este contrato» se sigue señalando.
+
 ### User Story 4 - Ver los campos nuevos (Priority: P2)
 
 Como notario, quiero ver estado civil, fecha de nacimiento, domicilio y distrito de cada persona en la tabla de extracción, con su procedencia, para verificar una observación sin releer el legajo.

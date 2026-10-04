@@ -70,6 +70,35 @@ def test_correlativos_de_clausulas_e_incisos_reiniciados():
     ]
 
 
+def test_correlativo_continua_la_numeracion_aunque_cambie_el_genero():
+    borrador = (
+        "PRIMERO: OBJETO\n"
+        "SEGUNDO: PRECIO\n"
+        "TERCERA.- PLAZO\n"
+        "CUARTA: PAGO\n"
+        "QUINTO: DOMICILIO\n"
+        "SEPTIMA: FIRMA\n"
+    )
+    assert _observaciones("MINUTA FICTICIA", borrador, "CORRELATIVO") == [
+        "[CORRELATIVO] «SEPTIMA:» debe decir «SEXTA:»",
+    ]
+
+
+def test_inciso_con_guion_sin_espacio_sigue_la_secuencia():
+    borrador = (
+        "PRIMERA: FACULTADES\n"
+        "A.- PRIMERA FACULTAD FICTICIA\n"
+        "B.-SEGUNDA FACULTAD SIN ESPACIO\n"
+        "C.- TERCERA FACULTAD\n"
+        "1)CUOTA SIN ESPACIO\n"
+        "3) CUOTA SALTADA\n"
+        "2.5 NO ES UN INCISO\n"
+    )
+    assert _observaciones("MINUTA FICTICIA", borrador, "CORRELATIVO") == [
+        "[CORRELATIVO] «3)» debe decir «2)»   (cláusula PRIMERA)",
+    ]
+
+
 def test_copropiedad_omite_totales_validos_y_evitar_doble_conteo():
     fuente = "COPROPIEDAD DEL INMUEBLE FICTICIO."
     assert (
