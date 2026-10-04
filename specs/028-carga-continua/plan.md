@@ -15,14 +15,14 @@ I–III: reglas intactas y tests de integración primero. IV: retención DOCX si
 expedientes/models.py y migrations/: solicitud y métricas mínimas.
 expedientes/bloqueos.py: lock PostgreSQL de sesión usado por OCR, caché, comparación y vista.
 expedientes/solicitudes.py: solicitar, cancelar y publicar con transacciones breves.
-expedientes/services.py: snapshot al registrar; reutilización por versiones/fecha; métricas, OCR protegido y preview anticipado.
+expedientes/services.py: snapshot al registrar; reutilización por entradas y versión del catálogo; métricas, OCR protegido y vista bajo pedido.
 expedientes/views.py y urls.py: JSON y solicitudes.
 static/js/carga-expediente.js, templates/expedientes/detalle.html y CSS: carga continua.
 templates/expedientes/confrontacion.html: visor principal y correcciones.
 tests/: HTTP, concurrencia PostgreSQL, cancelación y JS.
 
 ## Decisions
-Se conserva precomputación automática; cancelación la inhibe hasta nueva solicitud. Un resultado exige entradas, catálogo, software y fecha iguales. Cancelar no mata OCR compartido a mitad de llamada; impide publicar comparación cancelada. Locks de sesión distinguen trabajo vivo de abandonado sin transacciones largas. Caché concurrente se reconsulta bajo lock; si está ocupado se difiere. Worker intercala trabajos acotados.
+Se conserva precomputación automática; cancelación la inhibe hasta nueva solicitud. Un resultado exige entradas y catálogo iguales; no caduca por día ni por despliegue (auditoría 2026-10-04). Cancelar no mata OCR compartido a mitad de llamada; impide publicar comparación cancelada. Locks de sesión distinguen trabajo vivo de abandonado sin transacciones largas. Caché concurrente se reconsulta bajo lock; si está ocupado se difiere. Worker intercala trabajos acotados.
 
 ## Complexity Tracking
 Entidad de solicitud necesaria para navegación y cancelación; un booleano del navegador no basta. Locks de sesión evitan hilos de heartbeat y se reutilizan en cuatro tareas concretas.

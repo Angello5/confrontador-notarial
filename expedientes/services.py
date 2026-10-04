@@ -211,6 +211,14 @@ def preparar_vistas(limite=None):
                     if not ruta_vista(borrador).is_file():
                         inicio = perf_counter()
                         paginas.a_pdf(ruta_original(borrador), ruta_vista(borrador))
+                        if _original_no_utilizable(borrador) or not (
+                            Documento.objects.filter(
+                                pk=borrador.pk, expediente__archivado_el__isnull=True
+                            ).exists()
+                        ):
+                            # Suprimido, eliminado o archivado mientras convertía.
+                            ruta_vista(borrador).unlink(missing_ok=True)
+                            continue
                         logger.info(
                             "vista documento_id=%s segundos=%.4f",
                             borrador.pk,
@@ -338,7 +346,6 @@ def registrar_documento(expediente, archivo, rol, usuario):
                     and Path(archivo.name).suffix.lower() == ".docx"
                 ):
                     _conservar_original(documento, temporal)
-                    transaction.on_commit(lambda: _estado_vista(documento))
                 documento.metricas = {
                     "recepcion_servidor_segundos": round(perf_counter() - inicio, 4)
                 }
@@ -1499,10 +1506,7 @@ def corrida_vigente(expediente, borrador):
         for fila in consulta.values_list(*campos)
     ]
     corridas = expediente.corridas.filter(
-        id_borrador=borrador.pk,
-        version_catalogo=CATALOGO_REGLAS["version"],
-        version_software=settings.ERP_VERSION,
-        fecha_referencia=timezone.localdate(),
+        id_borrador=borrador.pk, version_catalogo=CATALOGO_REGLAS["version"]
     ).order_by("-pk")
     for corrida in corridas.only("entradas", "estado"):
         registradas = [[e[c] for c in _CAMPOS_ENTRADA] for e in corrida.entradas]

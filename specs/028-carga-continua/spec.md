@@ -64,3 +64,10 @@ Diseño del expediente · 2026-10-03: el usuario pidió volver al diseño anteri
 
 ## Assumptions
 Máximo diez usuarios. Se conserva la preparación automática existente como optimización; Confrontar expresa la intención y espera lo que falta. Un error se reintenta explícitamente, no en bucle. Se prueban dos consumidores en PostgreSQL de prueba antes de recomendar su activación. Esta copia no tiene Git: implementación local y evidencia, integración pendiente en checkout autorizado.
+
+## Correcciones de auditoría (2026-10-04, decisión del propietario)
+
+- **Vigencia**: una corrida sigue vigente mientras no cambien las entradas ni la versión del catálogo de reglas; no caduca al cambiar el día ni la versión del software. El resultado conserva su `fecha_referencia`: la edad (`MENOR_DE_EDAD`) se evalúa a la fecha en que se calculó.
+- **Atribución**: un recálculo que nadie pidió (cambian las entradas tras una solicitud ya atendida) se registra como `AUTOMATICA` y a nombre de quien subió el borrador, nunca a nombre de quien pulsó Confrontar antes.
+- **Manifiesto**: pulsar Confrontar sin los documentos necesarios, con uno en error o sin texto registra una corrida `NO_DISPONIBLE` (spec 014 FR-003) además de mostrar el aviso.
+- **Vista**: el PDF de vista se genera solo cuando alguien abre la vista, no al subir el borrador; si el documento se suprime, elimina o archiva durante la conversión, el PDF se borra; `limpiar_temporales` borra también las carpetas de conversión `tmp*` con más de 24 h.

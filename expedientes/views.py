@@ -23,6 +23,7 @@ from .services import (
     CorreccionNoAplicable,
     DocumentoDuplicado,
     aplicar_correcciones,
+    confrontar_borrador,
     corrida_vigente,
     corridas_con_resumen,
     eliminar_documento,
@@ -31,6 +32,7 @@ from .services import (
     expedientes_con_resumen,
     filas_corrida,
     png_de_vista,
+    registrar_corrida,
     registrar_documento,
     resultado_de_corrida,
     ruta_original,
@@ -400,6 +402,13 @@ def documento_confrontar(request, pk, doc_id):
     try:
         listo = solicitar(expediente, borrador, request.user)
     except ValueError as exc:
+        # Spec 014 FR-003: cada confrontación pedida queda en el manifiesto.
+        registrar_corrida(
+            expediente,
+            borrador,
+            request.user,
+            confrontar_borrador(expediente, borrador),
+        )
         if _quiere_json(request):
             return JsonResponse({"mensaje": str(exc)}, status=400)
         messages.error(request, str(exc))

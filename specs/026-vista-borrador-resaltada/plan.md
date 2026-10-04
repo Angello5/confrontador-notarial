@@ -57,7 +57,7 @@ conversión con LibreOffice puede tardar hasta unos 10 s y la lista sigue usable
 | I. Determinismo, sin IA | Ubicación por igualdad normalizada (`coincidencias`). Misma entrada y misma versión de LibreOffice y PyMuPDF dan los mismos recuadros. Sin modelos. | ✅ |
 | II. Núcleo puro | `marcas()` en `nucleo/correccion.py` (junto a `coincidencias`; el núcleo no importa entre sus módulos) recibe segmentos `(texto, x0, y0, x1, y1, linea)` y devuelve rectángulos; no importa Django, PyMuPDF ni archivos. La lectura de la página es un adaptador (`adaptadores/paginas.py`). Las vistas son delgadas. | ✅ |
 | III. Tests primero | Cada función del núcleo y del adaptador empieza con un test que falla y usa solo datos ficticios. | ✅ |
-| IV. Privacidad | Tramo A: solo usa el `.docx` ya conservado (1.7.0). El PDF de vista es un derivado temporal en `EXPEDIENTES_TEMP_DIR`: lo limpia `limpiar_temporales` a las 24 h y lo borra la supresión. Tramo B: **requiere la 1.8.0 aprobada**. | ✅ A / ⏸ B |
+| IV. Privacidad | Tramo A: solo usa el `.docx` ya conservado (1.7.0). El PDF de vista es un derivado temporal en `EXPEDIENTES_TEMP_DIR`, generado solo cuando se abre la vista: lo limpia `limpiar_temporales` a las 24 h (también las carpetas de conversión cortadas) y lo borra la supresión, incluso si llega durante la conversión. Tramo B: **requiere la 1.8.0 aprobada**. | ✅ A / ⏸ B |
 | V. Simplicidad | Sin modelos, sin API REST: dos vistas GET como `expediente_estado`. Sin abstracciones nuevas. | ✅ |
 | VI. Seguridad | `login_required`, `_requiere_rol`, `_expediente_visible`; el borrador pertenece al expediente; SHA-256 verificado antes de convertir; sin rutas en respuestas ni logs. | ✅ |
 | VII. DevSecOps | ruff, pytest, cobertura ≥ 80 % en código nuevo, Quality Gate. | ✅ |

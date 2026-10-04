@@ -1,3 +1,4 @@
+import shutil
 from datetime import timedelta
 from pathlib import Path
 
@@ -39,6 +40,15 @@ class Command(BaseCommand):
             temporales = ()
         for temporal in temporales:
             try:
+                # Carpeta de una conversión cortada (worker detenido a mitad).
+                if (
+                    temporal.is_dir()
+                    and temporal.name.startswith("tmp")
+                    and temporal.stat().st_mtime < limite.timestamp()
+                ):
+                    shutil.rmtree(temporal)
+                    huerfanos_eliminados += 1
+                    continue
                 if (
                     not temporal.is_file()
                     or temporal.resolve() in referenciados

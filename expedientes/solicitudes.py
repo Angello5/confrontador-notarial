@@ -133,8 +133,22 @@ def procesar(borrador_id):
                 solicitud = SolicitudConfrontacion.objects.create(
                     borrador=borrador, usuario=borrador.subido_por, explicita=False
                 )
+            elif solicitud.estado not in ACTIVAS:
+                # La solicitud anterior ya se atendió: este recálculo es
+                # automático y no se atribuye a quien pulsó entonces.
+                solicitud.explicita = False
+                solicitud.usuario = borrador.subido_por
+                solicitud.token = uuid.uuid4()
             solicitud.estado = "PROCESANDO"
-            solicitud.save(update_fields=["estado", "actualizada_el"])
+            solicitud.save(
+                update_fields=[
+                    "estado",
+                    "explicita",
+                    "usuario",
+                    "token",
+                    "actualizada_el",
+                ]
+            )
             token = solicitud.token
             entradas = _entradas(borrador, fuentes)
             fecha = timezone.localdate()
