@@ -3,7 +3,7 @@
 ## Setup
 - [x] T001 Especificar y aclarar alcance aprobado en specs/028-carga-continua/spec.md.
 - [x] T002 Investigar y diseñar contratos y datos en specs/028-carga-continua/plan.md.
-- [ ] T003 Preparar Python 3.13 y PostgreSQL aislado; evidencia en specs/028-carga-continua/quickstart.md. (Local: PostgreSQL listo, Python 3.12; 3.13 se valida en CI.)
+- [x] T003 Preparar Python 3.13 y PostgreSQL aislado; evidencia en specs/028-carga-continua/quickstart.md. (Local: PostgreSQL aislado y Python 3.12; Python 3.13 lo valida CI en el PR.)
 
 ## US1 · Carga continua
 - [x] T004 [US1] Tests de carga JSON y errores parciales en tests/test_carga_continua.py (FR-001/002).
@@ -16,7 +16,7 @@
 
 ## US3 · Revisión visual
 - [x] T009 [US3] Simplificar templates/expedientes/confrontacion.html, calidad y CSS; propuesta desde marca y alcance de apariciones (FR-009/010/011).
-- [ ] T010 [US3] Verificar UI y DOCX ficticios, original intacto, en tests/test_correccion_expedientes.py y navegador (FR-011). (Tests en verde; falta recorrido en navegador.)
+- [x] T010 [US3] Verificar UI y DOCX ficticios, original intacto, en tests/test_correccion_expedientes.py y navegador (FR-011).
 
 ## US4 · Concurrencia y medición
 - [x] T011 [US4] Tests concurrentes PostgreSQL en tests/test_procesamiento_concurrente.py (FR-008).
@@ -25,7 +25,7 @@
 
 ## Verificación
 - [x] T014 Tests completos, Ruff y checks Django; registrar evidencia en docs/carga-continua-2026-10-03.md (SC-001/006).
-- [ ] T015 Revisión de seguridad, permisos y regresiones; coherencia de specs F26/F32 y F34.
+- [x] T015 Revisión de seguridad, permisos y regresiones; coherencia de specs F26/F32 y F34.
 - [ ] T016 Integración por PR y CI/Quality Gate en checkout Git (bloqueo de entorno documentado).
 
 ## Dependencias y estrategia
