@@ -6,6 +6,8 @@ import stat
 import zipfile
 
 import pytest
+
+from tests.flujo_confrontacion import confrontar_y_ver
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from django.urls import reverse
@@ -133,8 +135,8 @@ def test_confrontacion_propone_correcciones_con_fuente(escenario):
 def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_ficticio):
     expediente, borrador, _ = escenario
     client.force_login(usuario_ficticio)
-    respuesta = client.post(
-        reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
+    respuesta = confrontar_y_ver(
+        client, reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
     )
     html = respuesta.content.decode()
     assert "Correcciones propuestas" in html
@@ -154,7 +156,9 @@ def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_fi
     from expedientes.models import Corrida
 
     assert f'name="corrida" value="{Corrida.objects.get().pk}"' in html
-    assert "originales" not in html
+    from expedientes.services import ruta_original
+
+    assert str(ruta_original(borrador)) not in html
 
 
 def _aplicar(client, expediente, borrador, datos):
@@ -300,6 +304,27 @@ def test_confirmacion_aplica_registra_y_descarga(client, escenario, usuario_fict
     assert "LUNARIA" in xml  # excluida
 
 
+def test_aplicar_dos_veces_lo_mismo_reutiliza_el_corregido(
+    client, escenario, usuario_ficticio
+):
+    """Doble clic o reintento: el corregido idéntico ya existe y es de solo lectura."""
+    from expedientes.models import DecisionCorreccion
+
+    expediente, borrador, _ = escenario
+    correcciones, corrida_id = _propuesta(expediente, borrador)
+    dni = next(c for c in correcciones if c["erroneo"] == "90000002")
+    client.force_login(usuario_ficticio)
+    datos = {"corrida": corrida_id, "confirmado": "1", "aplicar": [dni["id"]]}
+
+    assert _aplicar(client, expediente, borrador, datos).status_code == 200
+    assert _aplicar(client, expediente, borrador, datos).status_code == 200
+
+    primera, segunda = DecisionCorreccion.objects.order_by("pk")
+    assert primera.hash_corregido == segunda.hash_corregido
+    assert len(list(ruta_dir(borrador).glob("corregido-*.docx"))) == 1
+    assert not list(ruta_dir(borrador).glob("*.tmp"))
+
+
 def test_decision_en_el_detalle_de_la_corrida(client, escenario, usuario_ficticio):
     from expedientes.models import DecisionCorreccion, RegistroInmutable
 
@@ -397,8 +422,8 @@ def test_borrador_sin_original_no_ofrece_aplicar(client, escenario, usuario_fict
     ruta_original(borrador).chmod(0o600)
     ruta_original(borrador).unlink()
     client.force_login(usuario_ficticio)
-    html = client.post(
-        reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
+    html = confrontar_y_ver(
+        client, reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
     ).content.decode()
     assert "Correcciones propuestas" in html
     assert "Aplicar correcciones" not in html

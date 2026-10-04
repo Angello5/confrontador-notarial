@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -18,8 +18,8 @@ from .forms import (
     formatos_admitidos,
 )
 from .models import DecisionCorreccion, Documento, Expediente
+from .solicitudes import cancelar, solicitar
 from .services import (
-    RESULTADO_ERROR,
     CorreccionNoAplicable,
     DocumentoDuplicado,
     aplicar_correcciones,
@@ -31,6 +31,7 @@ from .services import (
     estado_confrontacion,
     expedientes_con_resumen,
     filas_corrida,
+    png_de_vista,
     registrar_corrida,
     registrar_documento,
     resultado_de_corrida,
@@ -39,6 +40,7 @@ from .services import (
     resumen_expediente,
     ruta_corregido,
     usuario_puede_ver_expediente,
+    vista_borrador,
 )
 
 
@@ -74,7 +76,8 @@ def _sondear(resumen, borradores):
         resumen["pendientes"]
         or resumen["procesando"]
         or any(
-            b["disponible"] and not b["resultado_listo"] and not b["mensaje"]
+            (b.get("etapa") == "PREPARADO" and b["disponible"])
+            or b.get("etapa") in ("EN_COLA", "CONFRONTANDO")
             for b in borradores
         )
     )
@@ -129,12 +132,22 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
         "polling": _sondear(resumen, borradores_estado),
         "estado_general": estado_general,
         "zonas": zonas,
-        "documentos_estado": [resumen_documento(documento) for documento in documentos],
+        "documentos_estado": [
+            {**resumen_documento(d), "nombre": d.nombre_original} for d in documentos
+        ],
         "resumen": resumen,
         "formatos_admitidos": formatos_admitidos(),
         "max_file_size_mb": settings.EXPEDIENTES_MAX_FILE_SIZE / (1024 * 1024),
     }
     contexto.update(_navegacion_contexto(request))
+    contexto["carga_config"] = {
+        "documentos": contexto["documentos_estado"],
+        "borradores": borradores_estado,
+        "base": reverse("expediente_detalle", args=[expediente.pk]),
+        "maximo": settings.EXPEDIENTES_MAX_FILE_SIZE,
+        "extensiones": [e.strip().lower() for e in formatos_admitidos().split(",")],
+        "roles": [[rol, etiqueta] for rol, etiqueta in Documento.ROLES],
+    }
     return render(
         request,
         "expedientes/detalle.html",
@@ -260,26 +273,61 @@ def documento_subir(request, pk):
         expected_role=request.POST.get("rol"),
     )
     if not form.is_valid():
+        if _quiere_json(request):
+            return JsonResponse(
+                {
+                    "recibidos": [],
+                    "errores": [
+                        {"mensaje": str(error)}
+                        for errores in form.errors.values()
+                        for error in errores
+                    ],
+                },
+                status=400,
+            )
         return _render_detalle(request, expediente, form, status=400)
 
     registrados = 0
+    recibidos = []
+    errores = [
+        {"nombre": nombre, "mensaje": motivo}
+        for nombre, motivo in form.errores_archivos
+    ]
     for nombre, motivo in form.errores_archivos:
-        messages.error(request, f"No se cargó {nombre}: {motivo}")
+        if not _quiere_json(request):
+            messages.error(request, f"No se cargó {nombre}: {motivo}")
     for archivo in form.cleaned_data["archivos"]:
         try:
-            registrar_documento(
+            documento = registrar_documento(
                 expediente,
                 archivo,
                 form.cleaned_data["rol"],
                 request.user,
             )
         except DocumentoDuplicado:
-            messages.error(
-                request,
-                f"No se cargó {Path(archivo.name).name}: ya está registrado con este rol.",
-            )
+            if _quiere_json(request):
+                # Una respuesta perdida se puede reintentar sin duplicar la entrada.
+                errores.append(
+                    {
+                        "nombre": Path(archivo.name).name,
+                        "mensaje": "Ya está registrado con este rol. Revise la lista de documentos.",
+                    }
+                )
+            else:
+                messages.error(
+                    request,
+                    f"No se cargó {Path(archivo.name).name}: ya está registrado con este rol.",
+                )
         else:
             registrados += 1
+            recibidos.append(
+                {**resumen_documento(documento), "nombre": documento.nombre_original}
+            )
+    if _quiere_json(request):
+        return JsonResponse(
+            {"recibidos": recibidos, "errores": errores},
+            status=200 if registrados else 400,
+        )
     if not registrados:
         return _render_detalle(request, expediente, form, status=400)
     if registrados == 1:
@@ -313,7 +361,10 @@ def expediente_estado(request, pk):
             "expediente_id": expediente.pk,
             "estado": resumen["estado"],
             "resumen": resumen,
-            "documentos": [resumen_documento(documento) for documento in documentos],
+            "documentos": [
+                {**resumen_documento(d), "nombre": d.nombre_original}
+                for d in documentos
+            ],
             "borradores": borradores,
             "polling": _sondear(resumen, borradores),
         }
@@ -334,6 +385,8 @@ def documento_eliminar(request, pk, doc_id):
         messages.error(request, "Confirme la eliminación del documento para continuar.")
         return _render_detalle(request, expediente, status=400)
     eliminar_documento(documento, confirmado=True)
+    if _quiere_json(request):
+        return JsonResponse({"eliminado": True})
     messages.success(request, "Documento eliminado.")
     return redirect("expediente_detalle", pk=expediente.pk)
 
@@ -347,17 +400,48 @@ def documento_confrontar(request, pk, doc_id):
         expediente.documentos, pk=doc_id, rol=Documento.BORRADOR
     )
     try:
-        resultado = confrontar_borrador(expediente, borrador)
-    except Exception:
-        resultado = RESULTADO_ERROR
-    resultado = registrar_corrida(expediente, borrador, request.user, resultado)
-    contexto = {
-        "expediente": expediente,
-        "borrador": borrador,
-        "resultado": resultado,
-    }
-    contexto.update(_navegacion_contexto(request))
-    return render(request, "expedientes/confrontacion.html", contexto)
+        listo = solicitar(expediente, borrador, request.user)
+    except ValueError as exc:
+        # Spec 014 FR-003: cada confrontación pedida queda en el manifiesto.
+        registrar_corrida(
+            expediente,
+            borrador,
+            request.user,
+            confrontar_borrador(expediente, borrador),
+        )
+        if _quiere_json(request):
+            return JsonResponse({"mensaje": str(exc)}, status=400)
+        messages.error(request, str(exc))
+        return redirect("expediente_detalle", pk=pk)
+    if _quiere_json(request):
+        return JsonResponse(
+            estado_borrador(expediente, borrador), status=200 if listo else 202
+        )
+    if listo:
+        return redirect("documento_resultado", pk=pk, doc_id=doc_id)
+    messages.info(
+        request, "Confrontación solicitada. Puede seguir trabajando y volver después."
+    )
+    return redirect("expediente_detalle", pk=pk)
+
+
+def _quiere_json(request):
+    return "application/json" in request.headers.get("Accept", "")
+
+
+@login_required
+@require_POST
+def documento_cancelar_confrontacion(request, pk, doc_id):
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    borrador = get_object_or_404(
+        expediente.documentos, pk=doc_id, rol=Documento.BORRADOR
+    )
+    cancelar(expediente, borrador, request.user)
+    if _quiere_json(request):
+        return JsonResponse(estado_borrador(expediente, borrador))
+    messages.info(request, "Confrontación cancelada.")
+    return redirect("expediente_detalle", pk=pk)
 
 
 @login_required
@@ -468,3 +552,43 @@ def documento_resultado(request, pk, doc_id):
     }
     contexto.update(_navegacion_contexto(request))
     return render(request, "expedientes/confrontacion.html", contexto)
+
+
+def _borrador_y_corrida(request, pk, doc_id):
+    """F32: el borrador del expediente y la corrida que el usuario está viendo."""
+    _requiere_rol(request)
+    expediente = _expediente_visible(request, pk)
+    borrador = get_object_or_404(
+        expediente.documentos, pk=doc_id, rol=Documento.BORRADOR
+    )
+    corrida_id = request.GET.get("corrida", "")
+    if not corrida_id.isdigit():
+        raise Http404
+    corrida = get_object_or_404(
+        expediente.corridas, pk=int(corrida_id), id_borrador=borrador.pk
+    )
+    return borrador, corrida
+
+
+def _sin_cache(respuesta):
+    # Páginas con datos personales: nada queda en la caché de un PC compartido.
+    respuesta["Cache-Control"] = "no-store"
+    respuesta["X-Content-Type-Options"] = "nosniff"
+    return respuesta
+
+
+@login_required
+@require_GET
+def documento_vista(request, pk, doc_id):
+    borrador, corrida = _borrador_y_corrida(request, pk, doc_id)
+    return _sin_cache(JsonResponse(vista_borrador(borrador, corrida)))
+
+
+@login_required
+@require_GET
+def documento_vista_pagina(request, pk, doc_id, numero):
+    borrador, _corrida = _borrador_y_corrida(request, pk, doc_id)
+    contenido = png_de_vista(borrador, numero)
+    if contenido is None:
+        raise Http404
+    return _sin_cache(HttpResponse(contenido, content_type="image/png"))

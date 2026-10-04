@@ -1,8 +1,8 @@
 {% if resultado.calidad_lectura %}
 <section class="aviso" data-tono="advertencia" aria-label="Calidad de lectura" role="status">
   <div class="aviso-texto">
-    <h2>Calidad de lectura</h2>
-    <p>Revise las páginas indicadas o cargue una copia más clara. Una lectura incompleta puede ocultar discrepancias.</p>
+    <h2>Lectura que necesita revisión</h2>
+    <p>Revise las páginas indicadas o cargue una copia más clara. Una lectura incompleta puede ocultar discrepancias o producir diferencias aparentes.</p>
     <ul>
       {% for aviso in resultado.calidad_lectura %}
       <li><strong>{{ aviso.documento }}</strong>:
@@ -14,3 +14,10 @@
   </div>
 </section>
 {% endif %}
+<details class="ayuda-lectura">
+  <summary>¿Qué significa calidad de lectura?</summary>
+  <p>Indica si el texto pudo leerse de forma incompleta o dudosa. No mide la exactitud jurídica del documento ni garantiza que todos sus datos sean correctos.</p>
+  <p>Por página, se combina la confianza de los fragmentos reconocidos, dando más peso a los más largos. Se pide revisión si el promedio es menor de 0,85, algún fragmento queda por debajo de 0,65, hay poco texto o aparecen otras señales de lectura incompleta. No es un porcentaje de acierto.</p>
+  <p>Compare el dato con el original. Si el texto leído no coincide con la imagen, es un problema de lectura; si los originales difieren en el mismo dato y contexto, es una discrepancia documental. Una confianza alta también puede contener errores.</p>
+  <p>Revise la página indicada y, si es necesario, cargue una copia más clara. Los archivos con texto propio no tienen puntuación OCR; los resultados antiguos pueden carecer de medición. Sin observaciones no significa que todo se haya podido comprobar.</p>
+</details>

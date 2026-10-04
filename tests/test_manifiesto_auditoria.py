@@ -1,6 +1,8 @@
 """F20: catálogo de reglas, severidad y manifiesto de auditoría (datos ficticios)."""
 
 import hashlib
+
+from tests.flujo_confrontacion import confrontar_y_ver
 import json
 from datetime import date
 from io import StringIO
@@ -57,8 +59,8 @@ def caso(expediente_confrontacion, crear_documento_listo, monkeypatch):  # noqa:
 
 def _confrontar(client, usuario, expediente, borrador):
     client.force_login(usuario)
-    return client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    return confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     )
 
 

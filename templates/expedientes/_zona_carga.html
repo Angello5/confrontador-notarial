@@ -5,10 +5,10 @@ esto, el mismo bloque estaba copiado en la izquierda y en la derecha.
 Comentario de bloque, no la forma corta: esa solo admite una línea y, si se
 parte en dos, Django renderiza el resto como texto visible al usuario.
 {% endcomment %}
-<section class="zona" aria-labelledby="zona-{{ zona.rol|lower }}">
+<section class="zona" aria-label="{{ zona.titulo }}">
   <div class="zona-cab">
     <div>
-      <h3 id="zona-{{ zona.rol|lower }}">{{ zona.titulo }}</h3>
+      <h3>{{ zona.titulo }}</h3>
       <p>{{ zona.descripcion }}</p>
     </div>
     <span class="chip chip-etiqueta">Obligatorio</span>
@@ -44,6 +44,6 @@ parte en dos, Django renderiza el resto como texto visible al usuario.
     {% for error in zona.form.archivos.errors %}<span class="campo-error-texto" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>{{ error }}</span>{% endfor %}
     {% for error in zona.form.rol.errors %}<span class="campo-error-texto" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>{{ error }}</span>{% endfor %}
     {% for error in zona.form.errores_archivos %}<div class="aviso" data-tono="advertencia" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg><div class="aviso-texto"><span>No se cargó {{ error.0 }}: {{ error.1 }}</span></div></div>{% endfor %}
-    <noscript><div class="zona-enviar"><button class="btn btn-sm" type="submit">Cargar {{ zona.titulo|lower }}</button></div></noscript>
+    <div class="zona-enviar"><button class="btn btn-sm" type="submit">Cargar {{ zona.titulo|lower }}</button></div>
   </form>
 </section>

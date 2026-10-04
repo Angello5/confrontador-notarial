@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
+import uuid
 
 
 class Expediente(models.Model):
@@ -102,6 +103,7 @@ class Documento(models.Model):
     subido_el = models.DateTimeField(auto_now_add=True)
     procesando_el = models.DateTimeField(null=True, blank=True)
     procesado_el = models.DateTimeField(null=True, blank=True)
+    metricas = models.JSONField(default=dict, blank=True)
 
     class Meta:
         constraints = [
@@ -114,6 +116,32 @@ class Documento(models.Model):
                 name="documento_tamano_positivo",
             ),
         ]
+
+
+class SolicitudConfrontacion(models.Model):
+    borrador = models.OneToOneField(
+        Documento, on_delete=models.CASCADE, related_name="solicitud"
+    )
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    token = models.UUIDField(default=uuid.uuid4)
+    estado = models.CharField(
+        max_length=12,
+        default="PENDIENTE",
+        choices=[
+            (estado, estado)
+            for estado in (
+                "PENDIENTE",
+                "PROCESANDO",
+                "LISTO",
+                "ERROR",
+                "CANCELADA",
+                "CAMBIADA",
+            )
+        ],
+    )
+    explicita = models.BooleanField(default=True)
+    solicitada_el = models.DateTimeField(auto_now_add=True)
+    actualizada_el = models.DateTimeField(auto_now=True)
 
 
 class RegistroInmutable(Exception):

@@ -2,7 +2,7 @@
 Fragmento del borrador donde aparece la observación. `marcar` es el texto que
 se resalta (el JS de confrontacion.html lo envuelve en <mark> sin usar HTML).
 {% endcomment %}
-<div class="doc">
+<div class="doc doc-fragmento" x-show="vista.estado !== 'LISTA' || noUbicadaDe(sel)">
   <div class="doc-cab"><strong>Borrador</strong><span>{{ borrador.nombre_original }}{% if ubicacion.linea %} · línea {{ ubicacion.linea }}{% endif %}</span></div>
   <div class="doc-cuerpo">
     {% if ubicacion.linea %}

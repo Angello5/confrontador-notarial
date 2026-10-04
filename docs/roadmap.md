@@ -21,6 +21,7 @@ Request. Las reglas están en `.specify/memory/constitution.md`.
 | **F18 · en curso** | Lectura de fichas RENIEC escaneadas | Fechas con ruido OCR, valores en la línea siguiente y fichas sin nombre legible aportan sus campos | F15 | Los datos de las personas salen de las fichas, también escaneadas |
 | **F19 · en curso** | Errores del borrador fuera de la comparecencia | DNI de longitud incorrecta, nombres mal escritos en cualquier cláusula y números en letras distintos de su cifra | F16 | Reconocimiento anclado a rótulo, a nombre de la fuente o a cifra entre paréntesis |
 | **F21 · en curso** | Capa de corrección y documento corregido | Correcciones propuestas con su fuente, una sola confirmación y descarga del `.docx` corregido; el original no cambia | F19 | Se conserva el borrador `.docx` (constitución 1.7.0) |
+| **F32 · en curso** | Vista del borrador con errores resaltados | La página del borrador en pantalla con cada observación marcada en su sitio: alta en rojo, media en amarillo, baja en tono neutro. Hecho para `.docx`; escaneados pendientes | F21, F31 | Conservar el borrador en cualquier formato exige la constitución 1.8.0 (redactada aparte, pendiente de aprobación); spec en `specs/026-vista-borrador-resaltada/` |
 | **F33 · en curso** | Rendimiento del OCR | Escaneos leídos más rápido con el mismo texto, páginas giradas con menos lecturas y en orden, hojas totalmente blancas sin OCR y conversión de `.doc`/`.rtf` sin preparar LibreOffice cada vez | F31 | Solo se saltan hojas con ≤ 0,001 % de píxeles oscuros; spec en `specs/027-rendimiento-ocr/` |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
@@ -43,6 +44,10 @@ Criterio de MVP (del README): medir cobertura sobre 10 expedientes cerrados.
 ## Continuación autorizada · 2026-10-02
 
 F31: calidad de lectura OCR, avisos persistentes y medición con casos ficticios y muestra privada. Alcance y tareas en `specs/025-calidad-ocr/`; evidencia en `docs/ocr-mejoras-2026-10-02.md`. La precisión jurídica real requiere etiquetas revisadas por la notaría. La integración mantiene los controles de CI y SonarQube establecidos.
+
+## Continuación autorizada · 2026-10-03
+
+F34 en curso: carga continua, solicitud de confrontación reutilizable, cola sin espera global y simplificación del visor con correcciones DOCX. Usuario autorizó implementar la propuesta tras el diagnóstico. Alcance en `specs/028-carga-continua/`; actualiza la interacción de F26 y F32 sin cambiar reglas ni ampliar retención. Despliegue y medición en servidores siguen en F8. Se integra por PR junto con la parte `.docx` de F32, de la que depende; la constitución 1.8.0 queda fuera y sigue pendiente de aprobación.
 
 ## Prompts de arranque para `/speckit-specify`
 

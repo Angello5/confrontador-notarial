@@ -343,12 +343,12 @@ def _xlsx(p: Path) -> str:
         wb.close()
 
 
-def _ruta_legacy(p: Path) -> Path:
+def _ruta_legacy(p: Path, admitidos=LEGACY) -> Path:
     try:
         p = p.resolve(strict=True)
     except OSError:
         raise ValueError(f"{p.name}: formato legacy inválido") from None
-    if not p.is_file() or p.suffix.lower() not in LEGACY:
+    if not p.is_file() or p.suffix.lower() not in admitidos:
         raise ValueError(f"{p.name}: formato legacy inválido")
     return p
 
@@ -373,10 +373,13 @@ def _perfil_soffice() -> Path:
     return perfil
 
 
-def _soffice(p: Path, formato: str, destino: Path) -> Path:
+def _soffice(
+    p: Path, formato: str, destino: Path, admitidos=LEGACY, timeout=120
+) -> Path:
     """Convierte con LibreOffice headless con el perfil del proceso; si falla,
-    el perfil se descarta. Los errores no llevan stderr ni rutas."""
-    p = _ruta_legacy(p)
+    el perfil se descarta. Los errores no llevan stderr ni rutas.
+    F32 admite también .docx al dibujar las páginas del borrador."""
+    p = _ruta_legacy(p, admitidos)
     destino = destino.resolve(strict=True)
     perfil = _perfil_soffice()
     try:
@@ -392,7 +395,7 @@ def _soffice(p: Path, formato: str, destino: Path) -> Path:
                 str(p),
             ],
             capture_output=True,
-            timeout=120,
+            timeout=timeout,
         )
     except (OSError, subprocess.TimeoutExpired):
         shutil.rmtree(perfil, ignore_errors=True)

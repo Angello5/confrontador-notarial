@@ -142,7 +142,8 @@ def test_boton_confrontando_hasta_que_existe_la_corrida(
     assert estado["resultado_listo"] is False
     assert estado["mensaje"] == ""
     contenido = respuesta.content.decode()
-    assert "Confrontando…" in contenido
+    assert estado["etapa"] == "PREPARADO"
+    assert "js/carga-expediente.js" in contenido
     assert respuesta.context["polling"] is True
     assert _estado(client, usuario_ficticio, expediente)["polling"] is True
 
@@ -153,8 +154,8 @@ def test_boton_confrontando_hasta_que_existe_la_corrida(
     assert respuesta.context["polling"] is False
     contenido = respuesta.content.decode()
     assert "Ver resultado" in contenido
-    assert f"/documentos/{borrador.pk}/resultado/" in contenido
-    assert "Volver a confrontar" in contenido
+    assert ":href=\"url(b.id, 'resultado')\"" in contenido
+    assert "Confrontar" in contenido
     assert _estado(client, usuario_ficticio, expediente)["polling"] is False
 
 
@@ -191,7 +192,15 @@ def test_sondeo_json_solo_agrega_resultado_listo(
 
     datos = _estado(client, usuario_ficticio, expediente)
     (item,) = datos["borradores"]
-    assert set(item) == {"id", "disponible", "mensaje", "resultado_listo"}
+    assert set(item) == {
+        "id",
+        "disponible",
+        "mensaje",
+        "resultado_listo",
+        "etapa",
+        "puede_solicitar",
+        "solicitada",
+    }
     assert item["resultado_listo"] is True
     contenido = json.dumps(datos)
     for sensible in ("huella", "corrida", "resultado/", "MENOR_DE_EDAD", "90000011"):
@@ -261,7 +270,7 @@ def test_ver_resultado_exige_rol(client, caso):
     assert respuesta.status_code == 403
 
 
-def test_volver_a_confrontar_registra_corrida_manual(
+def test_volver_a_confrontar_reutiliza_corrida(
     client,
     usuario_ficticio,
     caso,
@@ -276,10 +285,10 @@ def test_volver_a_confrontar_registra_corrida_manual(
         f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     )
 
-    assert respuesta.status_code == 200
-    assert list(Corrida.objects.order_by("pk").values_list("origen", flat=True)) == [
-        Corrida.AUTOMATICA,
-        Corrida.MANUAL,
+    assert respuesta.status_code == 302
+    assert respuesta.url.endswith("/resultado/")
+    assert list(Corrida.objects.values_list("origen", flat=True)) == [
+        Corrida.AUTOMATICA
     ]
 
 
@@ -309,9 +318,10 @@ def test_error_automatico_deja_corrida_error_y_permite_reintentar(
     assert estado["disponible"] is True
     assert estado["mensaje"]
     assert respuesta.context["polling"] is False
-    assert "Volver a confrontar" in respuesta.content.decode()
+    assert "Confrontar" in respuesta.content.decode()
 
     client.post(f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/")
+    _worker()
     estado, _ = _borrador_estado(client, usuario_ficticio, expediente, borrador)
     assert estado["resultado_listo"] is True
 

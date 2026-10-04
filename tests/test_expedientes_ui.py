@@ -62,6 +62,9 @@ def test_estado_json_actualiza_disponibilidad_por_borrador(client, usuario_ficti
             "disponible": False,
             "mensaje": "Espere a que termine la extracción de los documentos.",
             "resultado_listo": False,
+            "etapa": "PREPARANDO",
+            "puede_solicitar": True,
+            "solicitada": False,
         }
     ]
 
@@ -76,6 +79,9 @@ def test_estado_json_actualiza_disponibilidad_por_borrador(client, usuario_ficti
             "disponible": True,
             "mensaje": "",
             "resultado_listo": False,
+            "etapa": "PREPARADO",
+            "puede_solicitar": True,
+            "solicitada": False,
         }
     ]
 
@@ -115,7 +121,34 @@ def test_pantalla_muestra_estado_y_accion_en_espanol(
         contenido = respuesta.content.lower()
         assert b"motivo" in contenido
         assert b"elimine el documento y vuelva a subirlo" in contenido
-        assert b"reintentar" not in contenido
+        assert (
+            "Reintentar" in respuesta.content.decode()
+        )  # Solo las transferencias fallidas.
+
+
+def test_procesando_muestra_barra_y_documento_por_documento(client, usuario_ficticio):
+    from expedientes.models import Documento, Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-AVANCE", creado_por=usuario_ficticio
+    )
+    for indice, estado in enumerate(("LISTO", "PROCESANDO", "PENDIENTE")):
+        Documento.objects.create(
+            expediente=expediente,
+            rol="CLIENTE",
+            nombre_original=f"avance-ficticio-{indice}.txt",
+            hash_archivo=f"avance{indice}".ljust(64, "0"),
+            tamano_bytes=4,
+            estado=estado,
+            subido_por=usuario_ficticio,
+        )
+    client.force_login(usuario_ficticio)
+    contenido = client.get(f"/expedientes/{expediente.pk}/").content.decode()
+
+    assert 'aria-label="Transferencia del archivo"' in contenido
+    assert "js/carga-expediente.js" in contenido
+    assert "js/avance-expediente.js" not in contenido
+    assert all(f"avance-ficticio-{indice}.txt" in contenido for indice in range(3))
 
 
 def test_detalle_separa_las_tres_zonas_obligatorias(client, usuario_ficticio):
@@ -132,7 +165,7 @@ def test_detalle_separa_las_tres_zonas_obligatorias(client, usuario_ficticio):
     assert "Documentos del cliente" in contenido
     assert "Minuta" in contenido
     assert "Proyecto (borrador)" in contenido
-    assert contenido.count("multiple") == 3
+    assert contenido.count("multiple") == 6  # Tres controles y alternativa sin JS.
     assert contenido.count("Obligatorio") >= 3
     assert "Faltan:" in contenido
 
@@ -236,10 +269,12 @@ def test_riel_marca_el_paso_actual_por_estado(
 
     contenido = client.get(f"/expedientes/{expediente.pk}/").content.decode()
 
+    # Diseño anterior del expediente (pedido del usuario) con la carga de F34.
     assert f'class="riel" data-actual="{actual}"' in contenido
     nombres = ["Fuentes", "Borrador", "Procesamiento", "Resultado"]
     assert "Paso actual: <span" in contenido
     assert f">{nombres[int(actual) - 1]}</span>" in contenido
+    assert "js/carga-expediente.js" in contenido
 
 
 def test_detalle_usa_paneles_chips_y_privacidad(client, usuario_ficticio):
@@ -252,9 +287,12 @@ def test_detalle_usa_paneles_chips_y_privacidad(client, usuario_ficticio):
 
     assert "Documentos del expediente" in contenido
     assert "Borrador a confrontar" in contenido
+    assert "Historial de confrontaciones" in contenido
+    assert 'class="rejilla-detalle"' in contenido
     assert 'class="chip" data-estado="LISTO"' in contenido
-    assert "se procesan localmente y se eliminan al terminar" in contenido
-    assert contenido.count('class="zona-arrastre"') == 3
+    assert "archivos temporales de lectura se eliminan al terminar" in contenido
+    # Tres zonas con la carga continua y tres de la alternativa sin JavaScript.
+    assert contenido.count('class="zona-arrastre"') == 6
 
 
 def test_lista_muestra_chip_documentos_y_actualizado(client, usuario_ficticio):

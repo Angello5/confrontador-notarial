@@ -1,0 +1,57 @@
+{% comment %}
+F32: páginas del borrador con cada observación marcada. Las páginas y los
+recuadros llegan por fetch (specs/026-vista-borrador-resaltada/contracts);
+revisionConfrontacion() de confrontacion.html los enlaza con la lista.
+{% endcomment %}
+<section class="panel visor-borrador" aria-labelledby="visor-titulo" x-ref="visor"
+         data-url="{% url 'documento_vista' expediente.pk borrador.pk %}" data-corrida="{{ resultado.corrida_id|default_if_none:'' }}">
+  <div class="panel-cab">
+    <div>
+      <h2 id="visor-titulo">Documento original</h2>
+      <p>{{ borrador.nombre_original }}</p>
+    </div>
+    <ul class="visor-leyenda" aria-label="Colores por severidad">
+      <li><span class="marca-muestra" data-sev="ALTA" aria-hidden="true"></span>Alta</li>
+      <li><span class="marca-muestra" data-sev="MEDIA" aria-hidden="true"></span>Media</li>
+      <li><span class="marca-muestra" data-sev="BAJA" aria-hidden="true"></span>Baja</li>
+    </ul>
+    <div class="visor-zoom" role="group" aria-label="Tamaño de la página" x-show="vista.estado === 'LISTA'" x-cloak>
+      <button type="button" class="btn" :aria-pressed="(zoom === 'ancho').toString()" @click="zoom = 'ancho'">Ajustar al ancho</button>
+      <button type="button" class="btn" :aria-pressed="(zoom === 'ampliar').toString()" @click="zoom = 'ampliar'">Ampliar</button>
+    </div>
+  </div>
+  <div class="panel-cuerpo">
+    <p class="visor-estado" role="status" aria-live="polite" x-show="vista.estado === 'CARGANDO' || vista.estado === 'PREPARANDO'">
+      <svg class="ico" aria-hidden="true"><use href="#i-loader"/></svg>Preparando la vista del borrador… Puede revisar la lista mientras tanto.
+    </p>
+    <div class="aviso" role="status" x-show="vista.estado === 'NO_DISPONIBLE'" x-cloak>
+      <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
+      <div class="aviso-texto"><span x-text="motivoVista()"></span></div>
+    </div>
+    <p class="visor-no-ubicadas" x-show="vista.estado === 'LISTA' && noUbicadas().length" x-cloak>
+      <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span x-text="textoNoUbicadas()"></span>
+    </p>
+    <p class="visor-sin-marca" role="status" x-show="vista.estado === 'LISTA' && noUbicadaDe(sel)" x-cloak>
+      <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span x-text="noUbicadaDe(sel)"></span>
+    </p>
+    <div class="visor-apariciones" x-show="aparicionesSel() > 1" x-cloak>
+      <span x-text="'Aparición ' + (aparicion + 1) + ' de ' + aparicionesSel()"></span>
+      <button type="button" class="btn" @click="cambiarAparicion(-1)" aria-label="Aparición anterior"><svg class="ico" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+      <button type="button" class="btn" @click="cambiarAparicion(1)" aria-label="Aparición siguiente"><svg class="ico" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+    </div>
+    <div class="visor-paginas" x-ref="paginas" :data-zoom="zoom" x-show="vista.estado === 'LISTA'" x-cloak>
+      <template x-for="pagina in vista.paginas" :key="pagina.numero">
+        <figure class="visor-pagina" :data-pagina="pagina.numero" :style="'aspect-ratio: 1000 / ' + Math.round(pagina.proporcion * 1000)">
+          <span class="visor-cargando" x-text="'Cargando página ' + pagina.numero + ' de ' + vista.paginas.length"></span>
+          <img loading="lazy" :src="urlPagina(pagina.numero)" :alt="'Página ' + pagina.numero + ' del borrador'" @load="$el.previousElementSibling.hidden = true" @error="$el.previousElementSibling.textContent = 'No se pudo cargar esta página. Recargue para reintentar.'">
+          <template x-for="m in marcasDe(pagina.numero)" :key="m.clave">
+            <button type="button" class="marca-pagina" :data-sev="m.sev" :data-obs="m.id" :data-aparicion="m.aparicion"
+                    :aria-current="(sel === m.id && aparicion === m.aparicion).toString()" :aria-label="m.etiqueta" :title="m.etiqueta"
+                    :style="m.estilo" @click="elegirMarca(m)"></button>
+          </template>
+          <figcaption x-text="'Página ' + pagina.numero + ' de ' + vista.paginas.length"></figcaption>
+        </figure>
+      </template>
+    </div>
+  </div>
+</section>

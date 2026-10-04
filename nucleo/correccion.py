@@ -47,6 +47,48 @@ def coincidencias(texto: str, valor: str) -> list[tuple[int, int]]:
     ]
 
 
+def marcas(segmentos, valor) -> list[dict]:
+    """F32: rectángulos de cada aparición de ``valor`` sobre una página.
+
+    ``segmentos``: ``(texto, x0, y0, x1, y1, linea)`` en orden de lectura, con
+    coordenadas en fracciones de la página; los de la misma ``linea`` se unen
+    con espacio y las líneas con salto. Busca con ``coincidencias``; dentro de
+    un segmento, los bordes se estiman por proporción de caracteres.
+    """
+    partes, tramos, previa = [], [], None
+    desplazamiento = 0
+    for texto, x0, y0, x1, y1, linea in segmentos:
+        if partes:
+            sep = " " if linea == previa else "\n"
+            partes.append(sep)
+            desplazamiento += len(sep)
+        partes.append(texto)
+        tramos.append((desplazamiento, desplazamiento + len(texto), x0, y0, x1, y1))
+        desplazamiento += len(texto)
+        previa = linea
+    pagina = "".join(partes)
+
+    resultado = []
+    for aparicion, (inicio, fin) in enumerate(coincidencias(pagina, valor or "")):
+        while fin > inicio and pagina[fin - 1].isspace():
+            fin -= 1
+        for desde, hasta, x0, y0, x1, y1 in tramos:
+            if hasta <= inicio or desde >= fin:
+                continue
+            largo = hasta - desde
+            a, b = max(inicio, desde) - desde, min(fin, hasta) - desde
+            resultado.append(
+                {
+                    "x0": round(x0 if a == 0 else x0 + (x1 - x0) * a / largo, 4),
+                    "y0": round(y0, 4),
+                    "x1": round(x1 if b == largo else x0 + (x1 - x0) * b / largo, 4),
+                    "y1": round(y1, 4),
+                    "aparicion": aparicion,
+                }
+            )
+    return resultado
+
+
 def _palabras(texto: str) -> str:
     return " " + " ".join(re.findall(f"[{_PALABRA}]+", _plano(texto)[0])) + " "
 

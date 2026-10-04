@@ -12,12 +12,16 @@ import zipfile
 from collections import Counter
 from datetime import timedelta
 from pathlib import Path
+from time import perf_counter
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from django.db.models import F, Q
 
-from adaptadores import diccionario, docx_corregido, extraccion
+from .bloqueos import exclusivo
+
+from adaptadores import diccionario, docx_corregido, extraccion, paginas
 from nucleo import correccion, ortografia, verificar
 
 from .models import Corrida, DecisionCorreccion, Documento, Expediente, TextoExtraido
@@ -102,6 +106,7 @@ def _conservar_original(documento, temporal):
 
 def borrar_originales(expediente_id, documento_id=None):
     """Supresión: el original y los corregidos del documento o del expediente."""
+    borrar_vistas(expediente_id, documento_id)
     raiz = Path(settings.EXPEDIENTES_ORIGINALES_DIR).resolve()
     carpeta = raiz / str(int(expediente_id))
     if documento_id is not None:
@@ -120,6 +125,171 @@ def borrar_originales(expediente_id, documento_id=None):
             raise error
 
     shutil.rmtree(carpeta, onexc=quitar_solo_lectura)
+
+
+# F32: vista del borrador. El PDF de vista es un derivado temporal del original:
+# lo borran `limpiar_temporales` (24 h) y la supresión; su ruta nunca se muestra.
+# La vista lo pide con un archivo `.pedido` y el worker lo convierte.
+_RE_PEDIDO_VISTA = re.compile(r"^vista-(\d+)-(\d+)-([0-9a-f]{16})\.pedido$")
+_VALOR_OBSERVADO = (
+    ("p", "personas", "hallado"),
+    ("r", "regla", "hallado"),
+    ("o", "ortografia", "palabra"),
+)
+
+
+def _base_vista(documento):
+    return Path(settings.EXPEDIENTES_TEMP_DIR) / (
+        f"vista-{documento.expediente_id}-{documento.pk}-{documento.hash_archivo[:16]}"
+    )
+
+
+def ruta_vista(documento):
+    return _base_vista(documento).with_suffix(".pdf")
+
+
+def borrar_vistas(expediente_id, documento_id=None):
+    """PDF de vista, pedidos y errores del documento o del expediente."""
+    prefijo = f"vista-{int(expediente_id)}-"
+    if documento_id is not None:
+        prefijo += f"{int(documento_id)}-"
+    for ruta in Path(settings.EXPEDIENTES_TEMP_DIR).glob(f"{prefijo}*"):
+        if ruta.is_file():
+            ruta.unlink(missing_ok=True)
+
+
+def _original_no_utilizable(borrador):
+    """Motivo por el que el original no sirve para la vista, o None."""
+    if Path(borrador.nombre_original).suffix.lower() not in paginas.CONVERTIBLES:
+        return "FORMATO"
+    original = ruta_original(borrador)
+    if not original.is_file():
+        return "SIN_ORIGINAL"
+    if calcular_hash(original) != borrador.hash_archivo:
+        return "VERIFICACION"
+    return None
+
+
+def _estado_vista(borrador):
+    """(pdf, motivo): el PDF de vista listo, o por qué todavía no está."""
+    motivo = _original_no_utilizable(borrador)
+    if motivo:
+        return None, motivo
+    pdf = ruta_vista(borrador)
+    if pdf.is_file():
+        return pdf, None
+    base = _base_vista(borrador)
+    error = base.with_suffix(".error")
+    if error.is_file():
+        error.unlink(missing_ok=True)
+        return None, "CONVERSION"
+    base.parent.mkdir(parents=True, exist_ok=True)
+    base.parent.chmod(0o700)
+    base.with_suffix(".pedido").touch()
+    return None, "PREPARANDO"
+
+
+def preparar_vistas(limite=None):
+    """Worker: convierte los borradores cuya vista se pidió."""
+    preparadas = 0
+    for pedido in sorted(Path(settings.EXPEDIENTES_TEMP_DIR).glob("vista-*.pedido")):
+        coincide = _RE_PEDIDO_VISTA.match(pedido.name)
+        borrador = (
+            coincide
+            and Documento.objects.filter(
+                pk=int(coincide[2]),
+                expediente_id=int(coincide[1]),
+                rol=Documento.BORRADOR,
+                hash_archivo__startswith=coincide[3],
+            ).first()
+        )
+        with exclusivo("vista", pedido.stem) as adquirido:
+            if not adquirido:
+                continue
+            try:
+                if borrador and not _original_no_utilizable(borrador):
+                    if not ruta_vista(borrador).is_file():
+                        inicio = perf_counter()
+                        paginas.a_pdf(ruta_original(borrador), ruta_vista(borrador))
+                        if _original_no_utilizable(borrador) or not (
+                            Documento.objects.filter(
+                                pk=borrador.pk, expediente__archivado_el__isnull=True
+                            ).exists()
+                        ):
+                            # Suprimido, eliminado o archivado mientras convertía.
+                            ruta_vista(borrador).unlink(missing_ok=True)
+                            continue
+                        logger.info(
+                            "vista documento_id=%s segundos=%.4f",
+                            borrador.pk,
+                            perf_counter() - inicio,
+                        )
+                    preparadas += 1
+            except Exception as exc:
+                logger.error(
+                    "No se pudo preparar la vista del borrador id=%s tipo=%s",
+                    borrador.pk,
+                    type(exc).__name__,
+                )
+                pedido.with_suffix(".error").touch()
+            finally:
+                pedido.unlink(missing_ok=True)
+        if limite and preparadas >= limite:
+            break
+    return preparadas
+
+
+def vista_borrador(borrador, corrida):
+    """Páginas del borrador y recuadros de cada observación de la corrida."""
+    pdf, motivo = _estado_vista(borrador)
+    if pdf is None:
+        return {
+            "estado": "PREPARANDO" if motivo == "PREPARANDO" else "NO_DISPONIBLE",
+            "motivo": None if motivo == "PREPARANDO" else motivo,
+            "paginas": [],
+            "marcas": {},
+            "no_ubicadas": [],
+        }
+    hojas = paginas.paginas(pdf)
+    segmentos = [paginas.segmentos(pdf, hoja["numero"]) for hoja in hojas]
+    resultado = resultado_de_corrida(corrida)
+    marcas, no_ubicadas = {}, []
+    for prefijo, clave, campo in _VALOR_OBSERVADO:
+        for i, observacion in enumerate(resultado.get(clave) or [], 1):
+            identificador = f"{prefijo}{i}"
+            if not (observacion.get("ubicacion") or {}).get("linea"):
+                no_ubicadas.append({"id": identificador, "motivo": "AUSENTE"})
+                continue
+            rectangulos, previas = [], 0
+            for numero, de_pagina in enumerate(segmentos, 1):
+                en_pagina = correccion.marcas(de_pagina, observacion.get(campo) or "")
+                rectangulos += [
+                    {**r, "pagina": numero, "aparicion": r["aparicion"] + previas}
+                    for r in en_pagina
+                ]
+                previas += len({r["aparicion"] for r in en_pagina})
+            if rectangulos:
+                marcas[identificador] = rectangulos
+            else:
+                no_ubicadas.append({"id": identificador, "motivo": "NO_EN_PAGINA"})
+    return {
+        "estado": "LISTA",
+        "motivo": None,
+        "paginas": hojas,
+        "marcas": marcas,
+        "no_ubicadas": no_ubicadas,
+    }
+
+
+def png_de_vista(borrador, numero):
+    """Imagen de una página del borrador, o None si no está disponible."""
+    pdf = ruta_vista(borrador)
+    if _original_no_utilizable(borrador) or not pdf.is_file():
+        return None
+    try:
+        return paginas.png(pdf, numero)
+    except IndexError:
+        return None
 
 
 def calcular_hash(ruta):
@@ -154,12 +324,14 @@ def crear_temporal(origen, nombre_original="", destino=None):
 
 def registrar_documento(expediente, archivo, rol, usuario):
     """Valida que el temporal persistido solo sobreviva si se crea la fila."""
+    inicio = perf_counter()
     temporal = crear_temporal(archivo, archivo.name)
     persistido = False
     try:
         hash_archivo = calcular_hash(temporal)
         try:
             with transaction.atomic():
+                Expediente.objects.select_for_update().get(pk=expediente.pk)
                 documento = Documento.objects.create(
                     expediente=expediente,
                     rol=rol,
@@ -174,6 +346,10 @@ def registrar_documento(expediente, archivo, rol, usuario):
                     and Path(archivo.name).suffix.lower() == ".docx"
                 ):
                     _conservar_original(documento, temporal)
+                documento.metricas = {
+                    "recepcion_servidor_segundos": round(perf_counter() - inicio, 4)
+                }
+                documento.save(update_fields=["metricas"])
         except IntegrityError as exc:
             raise DocumentoDuplicado from exc
         persistido = True
@@ -263,7 +439,18 @@ def validar_archivo(archivo):
     return contenido
 
 
+class ExtraccionOcupada(Exception):
+    """Otro proceso está preparando esta misma entrada."""
+
+
 def extraer_o_reutilizar(hash_archivo, version_extractor, extractor):
+    with exclusivo("texto", f"{hash_archivo}:{version_extractor}") as adquirido:
+        if not adquirido:
+            raise ExtraccionOcupada
+        return _extraer_o_reutilizar(hash_archivo, version_extractor, extractor)
+
+
+def _extraer_o_reutilizar(hash_archivo, version_extractor, extractor):
     with transaction.atomic():
         texto = TextoExtraido.objects.filter(
             hash_archivo=hash_archivo, version_extractor=version_extractor
@@ -315,15 +502,28 @@ def _procesar_fila(documento):
         documento.estado = Documento.PROCESANDO
         documento.procesando_el = ahora
         documento.save(update_fields=("estado", "procesando_el"))
+    inicio = perf_counter()
+    extraido = False
+
+    def leer():
+        nonlocal extraido
+        extraido = True
+        return extraccion.leer_con_calidad(Path(ruta))
+
     try:
         version = extraccion.version_extractor()
         texto = extraer_o_reutilizar(
             documento.hash_archivo,
             version,
-            lambda: extraccion.leer_con_calidad(Path(ruta)),
+            leer,
         )
         if not texto.texto:
             raise ValueError
+    except ExtraccionOcupada:
+        Documento.objects.filter(pk=documento.pk, estado=Documento.PROCESANDO).update(
+            estado=Documento.PENDIENTE, procesando_el=None
+        )
+        return None
     except Exception as exc:
         logger.error(
             "Falló el procesamiento del documento id=%s tipo=%s",
@@ -335,14 +535,12 @@ def _procesar_fila(documento):
         documento.procesado_el = timezone.now()
         documento.procesando_el = None
         documento.ruta_temporal = ""
-        documento.save(
-            update_fields=(
-                "estado",
-                "error",
-                "procesado_el",
-                "procesando_el",
-                "ruta_temporal",
-            )
+        Documento.objects.filter(pk=documento.pk).update(
+            estado=documento.estado,
+            error=documento.error,
+            procesado_el=documento.procesado_el,
+            procesando_el=None,
+            ruta_temporal="",
         )
     else:
         documento.texto_extraido = texto
@@ -351,28 +549,42 @@ def _procesar_fila(documento):
         documento.procesado_el = timezone.now()
         documento.procesando_el = None
         documento.ruta_temporal = ""
-        documento.save(
-            update_fields=(
-                "texto_extraido",
-                "estado",
-                "error",
-                "procesado_el",
-                "procesando_el",
-                "ruta_temporal",
-            )
+        documento.metricas = {
+            **documento.metricas,
+            "cola_segundos": round(
+                max(0, (ahora - documento.subido_el).total_seconds()), 4
+            ),
+            "lectura_segundos": round(perf_counter() - inicio, 4),
+            "reutilizada": not extraido,
+        }
+        Documento.objects.filter(pk=documento.pk).update(
+            texto_extraido=texto,
+            estado=documento.estado,
+            error="",
+            procesado_el=documento.procesado_el,
+            procesando_el=None,
+            ruta_temporal="",
+            metricas=documento.metricas,
         )
     finally:
-        _borrar_temporal(ruta)
+        # La contención no consume ni elimina la entrada del intento pendiente.
+        if documento.ruta_temporal == "":
+            _borrar_temporal(ruta)
     return documento
 
 
 def procesar_documento(documento_o_id):
-    documento = (
-        documento_o_id
-        if isinstance(documento_o_id, Documento)
-        else Documento.objects.get(pk=documento_o_id)
-    )
-    return _procesar_fila(documento)
+    pk = documento_o_id.pk if isinstance(documento_o_id, Documento) else documento_o_id
+    with exclusivo("documento", pk) as adquirido:
+        if not adquirido:
+            return None
+        documento = Documento.objects.filter(pk=pk).first()
+        if not documento or documento.estado not in (
+            Documento.PENDIENTE,
+            Documento.PROCESANDO,
+        ):
+            return documento
+        return _procesar_fila(documento)
 
 
 def _timeout():
@@ -382,17 +594,26 @@ def _timeout():
 
 def recuperar_documentos_vencidos():
     limite = timezone.now() - _timeout()
-    return Documento.objects.filter(
+    vencidos = Documento.objects.filter(
         estado=Documento.PROCESANDO,
         procesando_el__lt=limite,
-    ).update(estado=Documento.PENDIENTE, procesando_el=None)
+    )
+    recuperados = 0
+    for pk in vencidos.values_list("pk", flat=True):
+        with exclusivo("documento", pk) as adquirido:
+            if adquirido:
+                recuperados += vencidos.filter(pk=pk).update(
+                    estado=Documento.PENDIENTE, procesando_el=None
+                )
+    return recuperados
 
 
-def tomar_pendiente():
+def tomar_pendiente(excluir=()):
     with transaction.atomic():
         documento = (
             Documento.objects.select_for_update(skip_locked=True)
-            .filter(estado=Documento.PENDIENTE)
+            .filter(estado=Documento.PENDIENTE, expediente__archivado_el__isnull=True)
+            .exclude(pk__in=excluir)
             .order_by("id")
             .first()
         )
@@ -409,7 +630,9 @@ def eliminar_documento(documento, confirmado=False):
         raise ValueError("Se requiere confirmación para eliminar el documento.")
     ruta = documento.ruta_temporal
     expediente_id, documento_id = documento.expediente_id, documento.pk
-    documento.delete()
+    with transaction.atomic():
+        Expediente.objects.select_for_update().get(pk=expediente_id)
+        documento.delete()
     _borrar_temporal(ruta)
     borrar_originales(expediente_id, documento_id)
 
@@ -873,7 +1096,9 @@ def _calidad_lectura(documentos):
     return avisos
 
 
-def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=None):
+def confrontar_borrador(
+    expediente, borrador, fecha=None, fuentes_documentos=None, metricas=None
+):
     """Ejecuta la regla sobre un borrador listo, sin persistir.
 
     `fecha` y `fuentes_documentos` explícitos reconstruyen una corrida.
@@ -899,10 +1124,18 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
     # El catalogo se construye ANTES del diagnostico: si el aviso salta, el
     # usuario necesita ver que se extrajo para saber si el borrador es de otro
     # expediente o si el OCR no leyo los datos de las fuentes.
+    inicio_campos = perf_counter()
     catalogo = verificar.catalogo(fuentes)
     extraccion = _resumen_extraccion(fuentes_documentos, catalogo)
+    campos_segundos = round(perf_counter() - inicio_campos, 4)
+    inicio_comparacion = perf_counter()
     aviso = verificar.diagnostico(fuentes, texto_borrador)
     if aviso:
+        if metricas is not None:
+            metricas.update(
+                campos_segundos=campos_segundos,
+                comparacion_segundos=round(perf_counter() - inicio_comparacion, 4),
+            )
         return {
             "estado": "ADVERTENCIA_CORRESPONDENCIA",
             "calidad_lectura": calidad_lectura,
@@ -956,6 +1189,11 @@ def confrontar_borrador(expediente, borrador, fecha=None, fuentes_documentos=Non
     linguistico, aviso = _capa_linguistica(
         catalogo, observaciones_regla + personas, texto_borrador, fuentes.values()
     )
+    if metricas is not None:
+        metricas.update(
+            campos_segundos=campos_segundos,
+            comparacion_segundos=round(perf_counter() - inicio_comparacion, 4),
+        )
     return {
         "estado": "RESULTADO",
         "calidad_lectura": calidad_lectura,
@@ -1021,8 +1259,11 @@ def aplicar_correcciones(expediente, borrador, corrida_id, ids, usuario):
         )
         corregido_hash = calcular_hash(temporal)
         destino = original.with_name(f"corregido-{corregido_hash}.docx")
-        os.replace(temporal, destino)
-        destino.chmod(0o400)
+        # El nombre es el hash: si ya existe (doble clic, reintento) es idéntico.
+        # Windows no deja reemplazarlo porque queda de solo lectura.
+        if not (destino.is_file() and calcular_hash(destino) == corregido_hash):
+            os.replace(temporal, destino)
+            destino.chmod(0o400)
     finally:
         temporal.unlink(missing_ok=True)
     return DecisionCorreccion.objects.create(
@@ -1169,11 +1410,26 @@ def _entrada_corrida(documento):
     }
 
 
-def registrar_corrida(expediente, borrador, usuario, resultado, origen=Corrida.MANUAL):
+def registrar_corrida(
+    expediente,
+    borrador,
+    usuario,
+    resultado,
+    origen=Corrida.MANUAL,
+    fuentes_documentos=None,
+):
     """Crea la corrida inmutable y devuelve el resultado con severidad."""
     resultado = _con_severidad(resultado)
     hallazgos = hallazgos_canonicos(resultado)
-    fuentes = expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE)
+    fuentes = (
+        fuentes_documentos
+        if fuentes_documentos is not None
+        else list(
+            expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE)
+            .select_related("texto_extraido")
+            .order_by("pk")
+        )
+    )
     corrida = Corrida.objects.create(
         expediente=expediente,
         id_borrador=borrador.pk,
@@ -1182,7 +1438,7 @@ def registrar_corrida(expediente, borrador, usuario, resultado, origen=Corrida.M
             _entrada_corrida(documento)
             for documento in (
                 borrador,
-                *fuentes.select_related("texto_extraido").order_by("pk"),
+                *fuentes,
             )
         ],
         version_catalogo=CATALOGO_REGLAS["version"],
@@ -1195,6 +1451,7 @@ def registrar_corrida(expediente, borrador, usuario, resultado, origen=Corrida.M
         huella=_sha256_texto(hallazgos),
         origen=origen,
         presentacion={
+            "metricas": resultado.get("metricas", {}),
             "calidad_lectura": resultado.get("calidad_lectura", []),
             "extraccion": resultado.get("extraccion", {}),
             "linguistico_aviso": resultado.get("linguistico_aviso", ""),
@@ -1259,50 +1516,78 @@ def corrida_vigente(expediente, borrador):
 
 
 def estado_borrador(expediente, borrador, fuentes=None):
-    """Disponibilidad del borrador y si ya hay resultado para sus entradas (F26)."""
+    from .models import SolicitudConfrontacion
+
     estado = estado_confrontacion(expediente, borrador, fuentes)
     corrida = corrida_vigente(expediente, borrador) if estado["disponible"] else None
-    if corrida is not None and corrida.estado == Corrida.ERROR:
-        estado["mensaje"] = (
-            "No se pudo completar la confrontación. Vuelva a confrontar."
+    solicitud = SolicitudConfrontacion.objects.filter(borrador=borrador).first()
+    documentos = (
+        list(fuentes)
+        if fuentes is not None
+        else list(expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE))
+    )
+    roles = {d.rol for d in documentos} | {borrador.rol}
+    puede = all(rol in roles for rol, _ in Documento.ROLES) and not any(
+        d.estado == Documento.ERROR
+        or (d.estado == Documento.LISTO and _texto_listo(d) is None)
+        for d in [borrador, *documentos]
+    )
+    etapa = (
+        "PREPARANDO"
+        if any(
+            d.estado in (Documento.PENDIENTE, Documento.PROCESANDO)
+            for d in [borrador, *documentos]
         )
+        else "PREPARADO"
+    )
+    if solicitud and solicitud.estado in ("CANCELADA", "CAMBIADA", "ERROR"):
+        etapa = solicitud.estado
+        estado["mensaje"] = {
+            "CANCELADA": "Confrontación cancelada. Puede solicitarla de nuevo.",
+            "CAMBIADA": "Los documentos cambiaron. Pulse Confrontar para revisar el conjunto actualizado.",
+            "ERROR": "No se pudo completar la confrontación. Revise los documentos e intente nuevamente.",
+        }[etapa]
+    elif solicitud and solicitud.estado == "PROCESANDO":
+        etapa = "CONFRONTANDO"
+    elif solicitud and solicitud.estado == "PENDIENTE" and etapa == "PREPARADO":
+        etapa = "EN_COLA"
+    if corrida is not None:
+        if corrida.estado != Corrida.ERROR:
+            etapa = "LISTO"
+            estado["mensaje"] = ""
+        elif not solicitud or solicitud.estado not in ("PENDIENTE", "PROCESANDO"):
+            etapa = "ERROR"
+            estado["mensaje"] = (
+                "No se pudo completar la confrontación. Intente nuevamente."
+            )
     return {
         **estado,
         "resultado_listo": corrida is not None and corrida.estado != Corrida.ERROR,
+        "etapa": etapa,
+        "puede_solicitar": puede,
+        "solicitada": bool(
+            solicitud
+            and solicitud.explicita
+            and solicitud.estado in ("PENDIENTE", "PROCESANDO")
+        ),
     }
 
 
-def confrontar_automaticamente():
-    """Confronta los borradores listos sin corrida para sus entradas (F26)."""
+def confrontar_automaticamente(limite=None):
+    """Adelanta resultados y atiende solicitudes sin repetir entradas vigentes."""
+    from .solicitudes import procesar
+
     creadas = 0
     borradores = Documento.objects.filter(
+        Q(estado=Documento.LISTO)
+        | Q(solicitud__estado__in=("PENDIENTE", "PROCESANDO")),
         rol=Documento.BORRADOR,
-        estado=Documento.LISTO,
-        expediente__archivado_el__isnull=True,  # archivado: sin confrontaciones (F25)
-    ).order_by("pk")
+        expediente__archivado_el__isnull=True,
+    ).order_by(F("solicitud__explicita").desc(nulls_last=True), "pk")
     for pk in borradores.values_list("pk", flat=True):
-        with transaction.atomic():
-            borrador = (
-                Documento.objects.select_for_update(skip_locked=True)
-                .filter(pk=pk)
-                .first()
-            )
-            if borrador is None:
-                continue
-            expediente = borrador.expediente
-            if corrida_vigente(expediente, borrador) is not None:
-                continue
-            if not estado_confrontacion(expediente, borrador)["disponible"]:
-                continue
-            try:
-                with transaction.atomic():
-                    resultado = confrontar_borrador(expediente, borrador)
-            except Exception:
-                resultado = RESULTADO_ERROR
-            registrar_corrida(
-                expediente, borrador, borrador.subido_por, resultado, Corrida.AUTOMATICA
-            )
-            creadas += 1
+        creadas += procesar(pk)
+        if limite and creadas >= limite:
+            break
     return creadas
 
 
