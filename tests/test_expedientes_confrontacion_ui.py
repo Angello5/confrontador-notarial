@@ -2,6 +2,8 @@
 
 import re
 
+from tests.flujo_confrontacion import confrontar_y_ver
+
 import pytest
 from django.test import Client
 
@@ -52,8 +54,8 @@ def test_creador_y_administrador_llegan_al_servicio(
     _, borrador = _documentos(expediente, usuario_ficticio)
     llamados = []
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda expediente, documento: (
+        "expedientes.services.confrontar_borrador",
+        lambda expediente, documento, **kwargs: (
             llamados.append((expediente.pk, documento.pk))
             or {"estado": "RESULTADO", "regla": [], "ortografia": []}
         ),
@@ -61,10 +63,10 @@ def test_creador_y_administrador_llegan_al_servicio(
     ruta = f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
 
     client.force_login(usuario_ficticio)
-    assert client.post(ruta).status_code == 200
+    assert confrontar_y_ver(client, ruta).status_code == 200
     client.force_login(administrador_ficticio)
-    assert client.post(ruta).status_code == 200
-    assert llamados == [(expediente.pk, borrador.pk)] * 2
+    assert confrontar_y_ver(client, ruta).status_code == 200
+    assert llamados == [(expediente.pk, borrador.pk)]  # El segundo clic reutiliza.
 
 
 def test_accion_rechaza_metodo_invalido_y_csrf(client, usuario_ficticio):
@@ -126,8 +128,8 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     )
     _, borrador = _documentos(expediente, usuario_ficticio)
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda *_: {
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
             "estado": "RESULTADO",
             "mensaje": "",
             "regla": [
@@ -152,8 +154,8 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     )
     client.force_login(usuario_ficticio)
 
-    respuesta = client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    respuesta = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     )
     contenido = respuesta.content.decode()
 
@@ -178,8 +180,8 @@ def test_resultado_muestra_aviso_linguistico_sin_bloquear(
     )
     _, borrador = _documentos(expediente, usuario_ficticio)
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda *_: {
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
             "estado": "RESULTADO",
             "mensaje": "",
             "regla": [],
@@ -189,8 +191,8 @@ def test_resultado_muestra_aviso_linguistico_sin_bloquear(
     )
     client.force_login(usuario_ficticio)
 
-    contenido = client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
     assert "Lingüístico" in contenido
@@ -208,8 +210,8 @@ def test_resultado_muestra_verificacion_de_extraccion_sin_texto_completo(
     )
     _, borrador = _documentos(expediente, usuario_ficticio)
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda *_: {
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
             "estado": "RESULTADO",
             "mensaje": "",
             "regla": [],
@@ -250,8 +252,8 @@ def test_resultado_muestra_verificacion_de_extraccion_sin_texto_completo(
     )
     client.force_login(usuario_ficticio)
 
-    contenido = client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
     assert (
@@ -279,8 +281,8 @@ def test_resultado_muestra_personas_una_vez_con_procedencia_segura(
     )
     _, borrador = _documentos(expediente, usuario_ficticio)
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda *_: {
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
             "estado": "RESULTADO",
             "mensaje": "",
             "personas": [
@@ -340,8 +342,8 @@ def test_resultado_muestra_personas_una_vez_con_procedencia_segura(
     )
     client.force_login(usuario_ficticio)
 
-    contenido = client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
     assert "Personas con ficha" in contenido
@@ -405,8 +407,8 @@ def test_tabla_de_regla_no_muestra_columnas_vacias(
     )
     _, borrador = _documentos(expediente, usuario_ficticio)
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda *_: {
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
             "estado": "RESULTADO",
             "mensaje": "",
             "regla": [
@@ -434,8 +436,8 @@ def test_tabla_de_regla_no_muestra_columnas_vacias(
     )
     client.force_login(usuario_ficticio)
 
-    contenido = client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
     encabezado_regla = re.search(
@@ -456,8 +458,8 @@ def test_advertencia_de_correspondencia_es_distinta_de_una_observacion(
     )
     _, borrador = _documentos(expediente, usuario_ficticio)
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda *_: {
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
             "estado": "ADVERTENCIA_CORRESPONDENCIA",
             "mensaje": "aviso seguro ficticio",
             "regla": [],
@@ -466,8 +468,8 @@ def test_advertencia_de_correspondencia_es_distinta_de_una_observacion(
     )
     client.force_login(usuario_ficticio)
 
-    respuesta = client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    respuesta = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     )
     contenido = respuesta.content.decode()
 
@@ -488,13 +490,15 @@ def test_error_de_servicio_se_presenta_de_forma_segura(
     )
     _, borrador = _documentos(expediente, usuario_ficticio)
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda *_: (_ for _ in ()).throw(RuntimeError("detalle privado ficticio")),
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: (_ for _ in ()).throw(
+            RuntimeError("detalle privado ficticio")
+        ),
     )
     client.force_login(usuario_ficticio)
 
-    respuesta = client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    respuesta = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     )
     contenido = respuesta.content.decode()
 
@@ -521,7 +525,7 @@ def test_detalle_distingue_texto_suprimido_de_fallo_de_procesamiento(
     contenido = respuesta.content.decode()
 
     assert respuesta.status_code == 200
-    assert "disabled>Confrontar borrador</button>" in contenido
+    assert respuesta.context["borradores_estado"][0]["puede_solicitar"] is False
     assert "texto del borrador ya no está disponible" in contenido
     assert fuente.pk != borrador.pk
 
@@ -553,8 +557,8 @@ def _post_extraccion(client, usuario, monkeypatch, codigo, extraccion):
     expediente = Expediente.objects.create(codigo=codigo, creado_por=usuario)
     _, borrador = _documentos(expediente, usuario)
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda *_: {
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
             "estado": "RESULTADO",
             "mensaje": "",
             "regla": [],
@@ -568,8 +572,8 @@ def _post_extraccion(client, usuario, monkeypatch, codigo, extraccion):
         },
     )
     client.force_login(usuario)
-    return client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    return confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
 
@@ -676,8 +680,8 @@ def test_resultado_muestra_cabecera_y_metricas_por_capa(
     _, borrador = _documentos(expediente, usuario_ficticio)
     ubicacion = {"linea": None, "fragmento": ""}
     monkeypatch.setattr(
-        "expedientes.views.confrontar_borrador",
-        lambda expediente, documento: {
+        "expedientes.services.confrontar_borrador",
+        lambda expediente, documento, **kwargs: {
             "estado": "RESULTADO",
             "regla": [
                 {
@@ -698,8 +702,8 @@ def test_resultado_muestra_cabecera_y_metricas_por_capa(
     )
     client.force_login(usuario_ficticio)
 
-    contenido = client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
     assert "<h1>EXP-FICTICIO-METRICAS</h1>" in contenido

@@ -6,6 +6,8 @@ import stat
 import zipfile
 
 import pytest
+
+from tests.flujo_confrontacion import confrontar_y_ver
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from django.urls import reverse
@@ -133,8 +135,8 @@ def test_confrontacion_propone_correcciones_con_fuente(escenario):
 def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_ficticio):
     expediente, borrador, _ = escenario
     client.force_login(usuario_ficticio)
-    respuesta = client.post(
-        reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
+    respuesta = confrontar_y_ver(
+        client, reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
     )
     html = respuesta.content.decode()
     assert "Correcciones propuestas" in html
@@ -154,7 +156,9 @@ def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_fi
     from expedientes.models import Corrida
 
     assert f'name="corrida" value="{Corrida.objects.get().pk}"' in html
-    assert "originales" not in html
+    from expedientes.services import ruta_original
+
+    assert str(ruta_original(borrador)) not in html
 
 
 def _aplicar(client, expediente, borrador, datos):
@@ -397,8 +401,8 @@ def test_borrador_sin_original_no_ofrece_aplicar(client, escenario, usuario_fict
     ruta_original(borrador).chmod(0o600)
     ruta_original(borrador).unlink()
     client.force_login(usuario_ficticio)
-    html = client.post(
-        reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
+    html = confrontar_y_ver(
+        client, reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
     ).content.decode()
     assert "Correcciones propuestas" in html
     assert "Aplicar correcciones" not in html

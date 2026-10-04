@@ -1,6 +1,8 @@
 """F20: catálogo de reglas, severidad y manifiesto de auditoría (datos ficticios)."""
 
 import hashlib
+
+from tests.flujo_confrontacion import confrontar_y_ver
 import json
 from datetime import date
 from io import StringIO
@@ -57,8 +59,8 @@ def caso(expediente_confrontacion, crear_documento_listo, monkeypatch):  # noqa:
 
 def _confrontar(client, usuario, expediente, borrador):
     client.force_login(usuario)
-    return client.post(
-        f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    return confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     )
 
 
@@ -262,7 +264,14 @@ def test_corrida_no_disponible_registra_version_y_hashes(
     borrador = crear_documento_listo(
         expediente_confrontacion, Documento.BORRADOR, "borrador-ficticio.txt", "x"
     )
-    _confrontar(client, usuario_ficticio, expediente_confrontacion, borrador)
+    from expedientes.services import confrontar_borrador, registrar_corrida
+
+    registrar_corrida(
+        expediente_confrontacion,
+        borrador,
+        usuario_ficticio,
+        confrontar_borrador(expediente_confrontacion, borrador),
+    )
     corrida = Corrida.objects.get()
     assert corrida.estado == Corrida.NO_DISPONIBLE
     assert corrida.version_catalogo

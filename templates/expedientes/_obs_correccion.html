@@ -5,6 +5,7 @@ que se envía en «Aplicar correcciones».
 {% endcomment %}
 <template x-if="corrDe('{{ prefijo }}{{ numero }}')">
   <div class="obs-correccion">
+    <p class="texto-chico">Esta propuesta se aplica a todas sus apariciones compatibles en el Word. Revise el alcance antes de confirmar.</p>
     {% if resultado.corregible %}
       <label class="casilla">
         <input type="checkbox" :checked="marcadas.includes(corrDe('{{ prefijo }}{{ numero }}').id)" @change="alternar(corrDe('{{ prefijo }}{{ numero }}').id)">

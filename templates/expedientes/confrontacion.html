@@ -16,7 +16,7 @@
       <h1>{{ expediente.codigo }}</h1>
       <p class="cabecera-meta">
         <span><svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>{{ borrador.nombre_original }}</span>
-        {% if resultado.corrida_id %}<span>Corrida {{ resultado.corrida_id }}</span>{% endif %}
+        {% if resultado.corrida_id %}<span>Revisión {{ resultado.corrida_id }}</span>{% endif %}
       </p>
     </div>
     <div class="acciones">
@@ -105,14 +105,16 @@
       <div role="tablist" aria-label="Capas de revisión">
         <button type="button" role="tab" class="capa" :aria-selected="capa === 'TODAS'" @click="capa = 'TODAS'">Todas<span class="capa-num" x-text="contar('TODAS')"></span></button>
         <button type="button" role="tab" class="capa" :aria-selected="capa === 'IDENTIDAD'" @click="capa = 'IDENTIDAD'">Identidad<span class="capa-num" x-text="contar('IDENTIDAD')"></span></button>
-        <button type="button" role="tab" class="capa" :aria-selected="capa === 'REGLA'" @click="capa = 'REGLA'">Regla<span class="capa-num" x-text="contar('REGLA')"></span></button>
-        <button type="button" role="tab" class="capa" :aria-selected="capa === 'LINGUISTICO'" @click="capa = 'LINGUISTICO'" id="ortografia-titulo">Lingüístico<span class="capa-num" x-text="contar('LINGUISTICO')"></span></button>
+        <button type="button" role="tab" class="capa" :aria-selected="capa === 'REGLA'" @click="capa = 'REGLA'">Datos<span class="capa-num" x-text="contar('REGLA')"></span></button>
+        <button type="button" role="tab" class="capa" :aria-selected="capa === 'LINGUISTICO'" @click="capa = 'LINGUISTICO'" id="ortografia-titulo">Texto<span class="capa-num" x-text="contar('LINGUISTICO')"></span></button>
       </div>
       <span class="atajos" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd>recorrer observaciones</span>
     </div>
 
     {# ── Lista + detalle ── #}
-    <div class="revision">
+    <div class="revision revision-documento">
+      {% include "expedientes/_vista_borrador.html" %}
+      <div class="revision-lateral">
       <section class="panel obs-panel" aria-label="Observaciones">
         <ul class="obs-lista" x-ref="lista">
           {% for observacion in resultado.personas %}
@@ -225,7 +227,10 @@
           </article>
         {% endfor %}
       </section>
+      </div>
     </div>
+    {% else %}
+      {% include "expedientes/_vista_borrador.html" %}
     {% endif %}
 
     {# ── Qué se extrajo ── #}
@@ -348,7 +353,7 @@
             <span>Este borrador no admite corrección automática: solo se corrigen borradores Word (.docx) cargados con esta versión. Vuelva a subirlo en Word para corregirlo.</span>
           {% endif %}
         </div>
-        <button type="button" class="btn btn-fantasma" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Reporte de errores</button>
+        
         {% if resultado.corregible %}
           <button type="button" class="btn btn-verde" :disabled="!marcadas.length" @click="modal = 'aplicar'"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Aplicar correcciones</button>
         {% endif %}
@@ -549,6 +554,21 @@
   window.revisionConfrontacion = function () {
     const ORDEN = { ALTA: 0, MEDIA: 1, BAJA: 2 };
     const CAPAS = { IDENTIDAD: 'Identidad', REGLA: 'Regla', LINGUISTICO: 'Lingüístico' };
+    /* F32: vista del borrador. Textos del contrato specs/026-vista-borrador-resaltada. */
+    const VISTA_VACIA = { estado: 'CARGANDO', motivo: null, paginas: [], marcas: {}, no_ubicadas: [] };
+    const MOTIVOS_VISTA = {
+      FORMATO: 'La vista de páginas aún no está disponible para este formato de borrador. Use la lista de observaciones.',
+      SIN_ORIGINAL: 'El archivo del borrador ya no está guardado. Vuelva a cargarlo y a confrontar para ver sus páginas.',
+      VERIFICACION: 'No se pudo verificar que el borrador guardado sea el original. Vuelva a cargarlo.',
+      CONVERSION: 'No se pudo preparar la vista del borrador. Intente de nuevo; si persiste, avise al administrador.',
+      CORRIDA: 'Este resultado es anterior a la vista de páginas. Vuelva a confrontar para verlas.',
+    };
+    const NO_UBICADA = {
+      AUSENTE: 'No ubicada en el borrador: el dato falta en el documento.',
+      NO_EN_PAGINA: 'No ubicada en la página: revise la línea indicada.',
+    };
+    const SEV_TEXTO = { ALTA: 'alta', MEDIA: 'media', BAJA: 'baja' };
+    const cruzan = (a, b) => a.pagina === b.pagina && a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
     const normal = (texto) => String(texto || '').toUpperCase().replace(/\s+/g, ' ').trim();
     const marcar = (el) => {
       const buscado = el.dataset.marcar;
@@ -568,6 +588,7 @@
       obs: [], correcciones: [], marcadas: [],
       generando: false, errorReporte: '',
       rep: { fmt: 'WORD', IDENTIDAD: true, REGLA: true, LINGUISTICO: true, CORRECCIONES: true, EXTRACCION: false },
+      vista: { ...VISTA_VACIA }, zoom: 'ancho', aparicion: 0, desdeMarca: false,
       iniciar() {
         const lista = this.$refs.lista;
         if (lista) {
@@ -592,7 +613,99 @@
         this.$el.querySelectorAll('[data-marcar]').forEach(marcar);
         this.$watch('capa', () => this.ajustarSeleccion());
         this.$watch('sev', () => this.ajustarSeleccion());
+        this.$watch('sel', () => {
+          if (this.desdeMarca) { this.desdeMarca = false; return; }
+          this.aparicion = 0;
+          this.irAMarca();
+        });
         window.addEventListener('afterprint', () => document.body.classList.remove('imprimiendo-reporte'));
+        this.cargarVista();
+      },
+      async cargarVista(intento = 0) {
+        const visor = this.$refs.visor;
+        if (!visor) return;
+        if (!visor.dataset.corrida) { this.vista = { ...VISTA_VACIA, estado: 'NO_DISPONIBLE', motivo: 'CORRIDA' }; return; }
+        try {
+          const r = await fetch(visor.dataset.url + '?corrida=' + encodeURIComponent(visor.dataset.corrida), { headers: { Accept: 'application/json' } });
+          if (!r.ok) throw new Error('vista');
+          this.vista = await r.json();
+        } catch {
+          this.vista = { ...VISTA_VACIA, estado: 'NO_DISPONIBLE', motivo: 'CONVERSION' };
+          return;
+        }
+        /* El worker prepara la vista; se consulta cada 3 s durante 10 min como máximo. */
+        if (this.vista.estado === 'PREPARANDO') {
+          if (intento < 200) setTimeout(() => this.cargarVista(intento + 1), 3000);
+          else this.vista = { ...VISTA_VACIA, estado: 'NO_DISPONIBLE', motivo: 'CONVERSION' };
+        } else if (this.vista.estado === 'LISTA') {
+          this.$nextTick(() => this.irAMarca());
+        }
+      },
+      motivoVista() { return MOTIVOS_VISTA[this.vista.motivo] || MOTIVOS_VISTA.CONVERSION; },
+      urlPagina(n) {
+        const visor = this.$refs.visor;
+        return visor.dataset.url + n + '/?corrida=' + encodeURIComponent(visor.dataset.corrida);
+      },
+      noUbicadas() { return this.vista.no_ubicadas.filter((n) => this.obs.some((o) => o.id === n.id && this.visible(o))); },
+      textoNoUbicadas() {
+        const n = this.noUbicadas().length;
+        return n === 1 ? '1 observación no está marcada en las páginas: revísela en la lista.' : n + ' observaciones no están marcadas en las páginas: revíselas en la lista.';
+      },
+      noUbicadaDe(id) {
+        const n = this.vista.no_ubicadas.find((x) => x.id === id);
+        return n ? NO_UBICADA[n.motivo] : '';
+      },
+      marcasDe(pagina) {
+        const lista = [];
+        for (const o of this.obs) {
+          if (!this.visible(o)) continue;
+          (this.vista.marcas[o.id] || []).forEach((r, i) => {
+            if (r.pagina !== pagina) return;
+            lista.push({
+              ...r, clave: o.id + '-' + i, id: o.id, sev: o.sev,
+              etiqueta: 'Severidad ' + (SEV_TEXTO[o.sev] || '') + ': ' + o.titulo + ', página ' + pagina,
+              estilo: `left:${r.x0 * 100}%;top:${r.y0 * 100}%;width:${(r.x1 - r.x0) * 100}%;height:${(r.y1 - r.y0) * 100}%`,
+            });
+          });
+        }
+        /* Las de mayor severidad se dibujan al final: quedan encima en los solapes. */
+        return lista.sort((a, b) => (ORDEN[b.sev] ?? 3) - (ORDEN[a.sev] ?? 3));
+      },
+      aparicionesSel() {
+        return new Set((this.vista.marcas[this.sel] || []).map((r) => r.aparicion)).size;
+      },
+      cambiarAparicion(d) {
+        const n = this.aparicionesSel();
+        if (!n) return;
+        this.aparicion = (this.aparicion + d + n) % n;
+        this.irAMarca();
+      },
+      elegirMarca(m) {
+        /* Si varias observaciones se solapan, cada clic pasa a la siguiente. */
+        const encima = [...new Set(this.marcasDe(m.pagina).filter((x) => cruzan(x, m)).reverse().map((x) => x.id))];
+        const i = encima.indexOf(this.sel);
+        const id = i >= 0 && encima.length > 1 ? encima[(i + 1) % encima.length] : m.id;
+        const r = (this.vista.marcas[id] || []).find((x) => cruzan(x, m));
+        this.desdeMarca = id !== this.sel;
+        this.aparicion = r ? r.aparicion : 0;
+        this.sel = id;
+        this.$nextTick(() => this.$refs.lista?.querySelector('li[data-id="' + id + '"]')?.scrollIntoView({ block: 'nearest' }));
+      },
+      irAMarca() {
+        if (this.vista.estado !== 'LISTA' || !this.sel) return;
+        this.$nextTick(() => {
+          const caja = this.$refs.paginas;
+          const marca = caja?.querySelector(`.marca-pagina[data-obs="${this.sel}"][data-aparicion="${this.aparicion}"]`);
+          if (!marca) return;
+          const a = caja.getBoundingClientRect(), b = marca.getBoundingClientRect();
+          caja.scrollTo({ top: caja.scrollTop + b.top - a.top - caja.clientHeight / 2, left: caja.scrollLeft + b.left - a.left - caja.clientWidth / 3 });
+        });
+      },
+      pasoPagina(d) {
+        const caja = this.$refs.paginas;
+        if (this.vista.estado !== 'LISTA' || !caja) return false;
+        caja.scrollBy({ top: d * caja.clientHeight * 0.9 });
+        return true;
       },
       visible(d) { return (this.capa === 'TODAS' || d.capa === this.capa) && (this.sev === 'TODAS' || d.sev === this.sev); },
       get visibles() { return this.obs.filter((o) => this.visible(o)); },
@@ -623,6 +736,7 @@
         if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
         if (e.key === 'ArrowDown') { e.preventDefault(); this.paso(1); }
         if (e.key === 'ArrowUp') { e.preventDefault(); this.paso(-1); }
+        if ((e.key === 'PageDown' || e.key === 'PageUp') && this.pasoPagina(e.key === 'PageDown' ? 1 : -1)) e.preventDefault();
       },
       corrDe(id) {
         const o = this.obs.find((o) => o.id === id);
