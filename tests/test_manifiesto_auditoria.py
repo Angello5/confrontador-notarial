@@ -264,14 +264,7 @@ def test_corrida_no_disponible_registra_version_y_hashes(
     borrador = crear_documento_listo(
         expediente_confrontacion, Documento.BORRADOR, "borrador-ficticio.txt", "x"
     )
-    from expedientes.services import confrontar_borrador, registrar_corrida
-
-    registrar_corrida(
-        expediente_confrontacion,
-        borrador,
-        usuario_ficticio,
-        confrontar_borrador(expediente_confrontacion, borrador),
-    )
+    _confrontar(client, usuario_ficticio, expediente_confrontacion, borrador)
     corrida = Corrida.objects.get()
     assert corrida.estado == Corrida.NO_DISPONIBLE
     assert corrida.version_catalogo

@@ -289,3 +289,50 @@ def test_resultado_incluye_el_visor(escenario, corrida, cliente):  # noqa: F811
     assert "Documento original" in pagina
     assert 'class="panel visor-borrador"' in pagina
     assert f'data-corrida="{corrida.pk}"' in pagina
+
+
+def test_vista_de_borrador_suprimido_durante_la_conversion_no_queda(
+    escenario,  # noqa: F811
+    corrida,
+    monkeypatch,
+):
+    from adaptadores import paginas
+    from expedientes.services import (
+        borrar_originales,
+        preparar_vistas,
+        ruta_vista,
+        vista_borrador,
+    )
+
+    _, borrador, _ = escenario
+    vista_borrador(borrador, corrida)
+
+    def convertir(original, destino):
+        # La supresión llega mientras LibreOffice convierte.
+        borrar_originales(borrador.expediente_id, borrador.pk)
+        return pdf_ficticio(destino, ["TEXTO FICTICIO"])
+
+    monkeypatch.setattr(paginas, "a_pdf", convertir)
+    preparar_vistas()
+    assert not ruta_vista(borrador).exists()
+
+
+def test_limpieza_borra_carpetas_de_conversion_huerfanas(settings, tmp_path):
+    import os
+    import time
+
+    settings.EXPEDIENTES_TEMP_DIR = tmp_path
+    hace_25_horas = time.time() - 25 * 3600
+    vieja = tmp_path / "tmpficticio"
+    vieja.mkdir()
+    (vieja / "original.pdf").write_bytes(b"pdf ficticio")
+    os.utime(vieja, (hace_25_horas, hace_25_horas))
+    reciente = tmp_path / "tmpreciente"
+    reciente.mkdir()
+    ajena = tmp_path / "otra-carpeta"
+    ajena.mkdir()
+    os.utime(ajena, (hace_25_horas, hace_25_horas))
+    call_command("limpiar_temporales", stdout=StringIO())
+    assert not vieja.exists()
+    assert reciente.exists()
+    assert ajena.exists()

@@ -44,7 +44,7 @@ def test_lock_excluye_otro_proceso_y_se_libera():
     assert otra_conexion(intentar) is True
 
 
-def test_vista_se_encola_solo_despues_del_commit(usuario_ficticio, settings, tmp_path):
+def test_subir_el_borrador_no_encola_la_vista(usuario_ficticio, settings, tmp_path):
     from django.core.files.uploadedfile import SimpleUploadedFile
     from django.db import transaction
     from expedientes.models import Documento, Expediente
@@ -65,9 +65,9 @@ def test_vista_se_encola_solo_despues_del_commit(usuario_ficticio, settings, tmp
             Documento.BORRADOR,
             usuario_ficticio,
         )
-        assert not list(settings.EXPEDIENTES_TEMP_DIR.glob("vista-*.pedido"))
         assert otra_conexion(preparar_vistas) == 0
-    assert len(list(settings.EXPEDIENTES_TEMP_DIR.glob("vista-*.pedido"))) == 1
+    # La copia en PDF solo se genera cuando alguien abre la vista.
+    assert not list(settings.EXPEDIENTES_TEMP_DIR.glob("vista-*"))
 
 
 def test_no_recupera_documento_lento_con_lock_vivo(usuario_ficticio):

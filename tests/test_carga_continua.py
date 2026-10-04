@@ -218,3 +218,41 @@ def test_cancelacion_exige_permiso_y_post(client, usuario_ficticio, caso):
     client.force_login(usuario_ficticio)
     assert client.get(url).status_code == 405
     assert client.post(url, HTTP_ACCEPT="application/json").status_code == 200
+
+
+def test_recalculo_automatico_no_hereda_usuario_ni_origen_manual(
+    administrador_ficticio, caso, crear_documento_listo
+):
+    from expedientes.models import Corrida, Documento
+    from expedientes.services import confrontar_automaticamente
+    from expedientes.solicitudes import solicitar
+
+    expediente, borrador = caso
+    solicitar(expediente, borrador, administrador_ficticio)
+    assert confrontar_automaticamente() == 1
+    # Otro recaudo llega después: el recálculo no lo pidió quien pulsó antes.
+    crear_documento_listo(
+        expediente, Documento.CLIENTE, "otro-ficticio.txt", "DOCUMENTO FICTICIO"
+    )
+    assert confrontar_automaticamente() == 1
+    ultima = Corrida.objects.order_by("-pk").first()
+    assert ultima.origen == Corrida.AUTOMATICA
+    assert ultima.usuario == borrador.subido_por
+
+
+def test_resultado_de_otro_dia_o_version_sigue_vigente(caso, monkeypatch, settings):
+    from datetime import date
+
+    from expedientes.models import Corrida
+    from expedientes.services import confrontar_automaticamente, corrida_vigente
+
+    expediente, borrador = caso
+    assert confrontar_automaticamente() == 1
+    monkeypatch.setattr(
+        "expedientes.services.timezone.localdate", lambda: date(2025, 7, 3)
+    )
+    settings.ERP_VERSION = "9.9.9-ficticia"
+    # Mismas entradas: no se recalcula cada día ni con cada despliegue.
+    assert corrida_vigente(expediente, borrador) is not None
+    assert confrontar_automaticamente() == 0
+    assert Corrida.objects.count() == 1
