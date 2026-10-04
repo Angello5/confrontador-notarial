@@ -167,7 +167,7 @@ def test_detalle_separa_las_tres_zonas_obligatorias(client, usuario_ficticio):
     assert "Proyecto (borrador)" in contenido
     assert contenido.count("multiple") == 6  # Tres controles y alternativa sin JS.
     assert contenido.count("Obligatorio") >= 3
-    assert "Usaremos los documentos preparados" in contenido
+    assert "Faltan:" in contenido
 
 
 def test_eliminar_sin_confirmacion_conserva_documento_y_temporal(
@@ -269,10 +269,12 @@ def test_riel_marca_el_paso_actual_por_estado(
 
     contenido = client.get(f"/expedientes/{expediente.pk}/").content.decode()
 
-    assert 'class="riel"' not in contenido
-    assert "Adjunte los documentos" in contenido
+    # Diseño anterior del expediente (pedido del usuario) con la carga de F34.
+    assert f'class="riel" data-actual="{actual}"' in contenido
+    nombres = ["Fuentes", "Borrador", "Procesamiento", "Resultado"]
+    assert "Paso actual: <span" in contenido
+    assert f">{nombres[int(actual) - 1]}</span>" in contenido
     assert "js/carga-expediente.js" in contenido
-    assert contenido.count('class="carga-categoria"') == 3
 
 
 def test_detalle_usa_paneles_chips_y_privacidad(client, usuario_ficticio):
@@ -283,11 +285,14 @@ def test_detalle_usa_paneles_chips_y_privacidad(client, usuario_ficticio):
 
     contenido = client.get(f"/expedientes/{expediente.pk}/").content.decode()
 
-    assert "Documentos</h2>" in contenido
-    assert "Confrontar</h2>" in contenido
+    assert "Documentos del expediente" in contenido
+    assert "Borrador a confrontar" in contenido
+    assert "Historial de confrontaciones" in contenido
+    assert 'class="rejilla-detalle"' in contenido
     assert 'class="chip" data-estado="LISTO"' in contenido
     assert "archivos temporales de lectura se eliminan al terminar" in contenido
-    assert contenido.count('class="zona-arrastre"') == 3
+    # Tres zonas con la carga continua y tres de la alternativa sin JavaScript.
+    assert contenido.count('class="zona-arrastre"') == 6
 
 
 def test_lista_muestra_chip_documentos_y_actualizado(client, usuario_ficticio):

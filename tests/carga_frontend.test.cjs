@@ -82,3 +82,33 @@ test('un resultado solicitado abre la revisión, pero una carga pendiente lo pos
     assert.deepEqual(visitas, ['/expedientes/1/documentos/7/resultado/']);
   } finally { globalThis.location = anterior; }
 });
+
+test('resumen, estado y paso del riel se derivan de los documentos', () => {
+  const app = crear();
+  assert.equal(app.estado, 'VACIO');
+  assert.equal(app.pasoActual, 1);
+  app.documentos = [{ id: 1, rol: 'CLIENTE', estado: 'LISTO' }, { id: 2, rol: 'MINUTA', estado: 'LISTO' }];
+  assert.equal(app.pasoActual, 2);
+  app.documentos.push({ id: 3, rol: 'BORRADOR', estado: 'PROCESANDO' });
+  assert.equal(app.estado, 'PROCESANDO');
+  assert.equal(app.pasoActual, 3);
+  assert.deepEqual(app.resumen, { total: 3, pendientes: 0, procesando: 1, listos: 2, errores: 0 });
+  app.documentos[2].estado = 'LISTO';
+  assert.equal(app.estado, 'LISTO');
+  assert.equal(app.pasoActual, 4);
+  app.documentos[0].estado = 'ERROR';
+  assert.equal(app.estado, 'ERROR');
+});
+
+test('faltantes y confrontación en curso usan los roles y la solicitud', () => {
+  const app = crearCarga({ documentos: [], borradores: [], base: '/expedientes/1/', maximo: 25, extensiones: ['txt'], roles: [['CLIENTE', 'Documentos del cliente'], ['MINUTA', 'Minuta'], ['BORRADOR', 'Proyecto (borrador)']] });
+  assert.equal(app.faltan, 'Faltan: Documentos del cliente, Minuta, Proyecto (borrador).');
+  app.documentos = [{ id: 1, rol: 'CLIENTE', estado: 'LISTO' }, { id: 2, rol: 'MINUTA', estado: 'LISTO' }];
+  assert.equal(app.faltan, 'Falta: Proyecto (borrador).');
+  app.confrontaciones = [{ id: 3, solicitada: true }];
+  assert.equal(app.enCurso(3), true);
+  app.confrontaciones = [{ id: 3, solicitada: false, etapa: 'LISTO' }];
+  assert.equal(app.enCurso(3), false);
+  app.intencion = 3;
+  assert.equal(app.enCurso(3), true);
+});

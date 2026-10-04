@@ -38,7 +38,7 @@ Sesión vencida, red interrumpida tras recepción, archivo inválido o repetido,
 - FR-006: Cada resultado corresponde a las entradas comprobadas al inicio y al final del cálculo. Si cambian, se descarta el cálculo y se informa de que hay que confrontar el conjunto actualizado.
 - FR-007: Confrontaciones y vistas preparadas no esperan a vaciar toda la cola. La vista DOCX se solicita al recibir el borrador y se prepara en segundo plano.
 - FR-008: La lectura guardada se reutiliza por archivo y versión; dos consumidores no duplican la extracción simultánea y una tarea viva no vence por tardar mucho.
-- FR-009: Una sola lista por rol; ayuda de formatos una sola vez; acciones secundarias discretas. En resultados, documento principal, observación y fuente lateral, detalles de extracción plegados.
+- FR-009: Una sola lista por rol; acciones secundarias discretas. En resultados, documento principal, observación y fuente lateral, detalles de extracción plegados.
 - FR-010: El aviso de calidad identifica páginas y explica qué revisar; no es porcentaje de certeza jurídica ni altera las reglas.
 - FR-011: Correcciones desde el visor reutilizan las propuestas actuales, muestran alcance y confirmación; no cambian el original ni permiten introducir valores sin fuente.
 - FR-012: Duraciones operativas separadas y sin contenido personal; no presentar las mediciones de desarrollo como rendimiento del servidor de la notaría.
@@ -59,6 +59,8 @@ Documento recibido, texto reutilizable, estado persistente de solicitud por borr
 
 ## Clarifications · 2026-10-03
 La autorización abarca el flujo propuesto y su implementación. Se mantiene la corrección DOCX existente por todas las apariciones compatibles, informando el alcance. La edición libre, corrección exclusiva de una aparición y edición de escaneos se evalúan posteriormente; no se inventan reglas. No se activa la conservación de otros formatos: la constitución indica aprobación pendiente en el PR. La elección y medición en los servidores queda para F8, sin acceso remoto en esta sesión. No se cambian los modelos, resolución ni umbrales OCR.
+
+Diseño del expediente · 2026-10-03: el usuario pidió volver al diseño anterior de la pantalla del expediente (estado en la cabecera, riel de pasos, aviso con recuento, fuentes y borrador en dos columnas, ayuda de formatos en cada zona) conservando la carga continua, la solicitud persistente y la cancelación de F34.
 
 ## Assumptions
 Máximo diez usuarios. Se conserva la preparación automática existente como optimización; Confrontar expresa la intención y espera lo que falta. Un error se reintenta explícitamente, no en bucle. Se prueban dos consumidores en PostgreSQL de prueba antes de recomendar su activación. Esta copia no tiene Git: implementación local y evidencia, integración pendiente en checkout autorizado.

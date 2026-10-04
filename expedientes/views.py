@@ -144,6 +144,7 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
         "base": reverse("expediente_detalle", args=[expediente.pk]),
         "maximo": settings.EXPEDIENTES_MAX_FILE_SIZE,
         "extensiones": [e.strip().lower() for e in formatos_admitidos().split(",")],
+        "roles": [[rol, etiqueta] for rol, etiqueta in Documento.ROLES],
     }
     return render(
         request,

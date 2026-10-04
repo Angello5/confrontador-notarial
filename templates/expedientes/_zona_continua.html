@@ -1,0 +1,49 @@
+{% comment %}
+Zona de carga con el diseño de siempre y la carga continua de F34: cada
+archivo se envía al elegirlo o soltarlo, sin recargar la página. Sin
+JavaScript se oculta (x-cloak) y queda la zona clásica de _zona_carga.html.
+{% endcomment %}
+<section class="zona" aria-label="{{ zona.titulo }}" x-cloak>
+  <div class="zona-cab">
+    <div>
+      <h3>{{ zona.titulo }}</h3>
+      <p>{{ zona.descripcion }}</p>
+    </div>
+    <span class="chip chip-etiqueta">Obligatorio</span>
+  </div>
+  <ul class="archivos" aria-label="Archivos de {{ zona.titulo }}" x-show="delRol('{{ zona.rol }}').length || cargasDelRol('{{ zona.rol }}').length">
+    <template x-for="d in delRol('{{ zona.rol }}')" :key="d.id">
+      <li class="archivo" :data-estado="d.estado">
+        <svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>
+        <div class="archivo-texto">
+          <span class="archivo-nombre" :title="d.nombre" x-text="d.nombre || 'Documento recibido en otra sesión'"></span>
+          <span class="archivo-nota" x-show="d.estado === 'ERROR'">Motivo: no se pudo procesar el archivo. Elimine el documento y vuelva a subirlo.</span>
+        </div>
+        <span class="chip" :data-estado="d.estado" x-text="etiquetas[d.estado]"></span>
+        <button type="button" class="btn-quitar" @click="quitar(d.id)" title="Eliminar documento" :aria-label="'Eliminar ' + (d.nombre || 'documento')"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></button>
+      </li>
+    </template>
+    <template x-for="t in cargasDelRol('{{ zona.rol }}')" :key="t.id">
+      <li class="archivo carga-transferencia" :data-estado="t.estado">
+        <svg class="ico" :class="t.estado === 'SUBIENDO' && 'ico-gira'" aria-hidden="true"><use :href="t.estado === 'SUBIENDO' ? '#i-loader' : '#i-file-text'"/></svg>
+        <div class="archivo-texto">
+          <span class="archivo-nombre" x-text="t.nombre"></span>
+          <span class="archivo-nota" x-text="t.error || (t.estado === 'SUBIENDO' ? (t.progreso === 100 ? 'Confirmando recepción…' : 'Subiendo ' + t.progreso + ' %') : 'Esperando envío')"></span>
+          <progress x-show="t.estado === 'SUBIENDO' && t.progreso < 100" max="100" :value="t.progreso" aria-label="Transferencia del archivo"></progress>
+        </div>
+        <button class="btn btn-sm" type="button" x-show="t.estado === 'SUBIENDO' || t.estado === 'PENDIENTE'" @click="cancelarCarga(t)">Cancelar</button>
+        <button class="btn btn-sm" type="button" x-show="t.estado === 'ERROR' && t.archivo" @click="reintentar(t)">Reintentar</button>
+        <button class="btn-quitar" type="button" x-show="t.estado === 'ERROR' || t.estado === 'CANCELADA'" @click="descartar(t)" aria-label="Retirar aviso de carga"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+      </li>
+    </template>
+  </ul>
+  <div class="zona-arrastre" :data-sobre="sobre === '{{ zona.rol }}' ? 1 : 0" @dragenter="sobre = '{{ zona.rol }}'" @dragleave="sobre = ''" @dragover.prevent @drop.prevent="sobre = ''; adjuntar(Array.from($event.dataTransfer.files), '{{ zona.rol }}')">
+    <svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg>
+    <span>
+      <span class="zona-titulo">{% if zona.rol == "BORRADOR" %}<strong>Adjuntar borrador</strong> · Word (.docx) admite corrección automática{% else %}<strong>Adjuntar {{ zona.titulo|lower }}</strong> · arrastre archivos aquí o pulse para elegir{% endif %}</span>
+      <span class="zona-ayuda">Formatos: {{ formatos_admitidos }} · máximo {{ max_file_size_mb|floatformat:0 }} MB por archivo</span>
+    </span>
+    <input type="file" multiple aria-label="Adjuntar {{ zona.titulo|lower }}" @change="seleccionar($event, '{{ zona.rol }}')">
+  </div>
+</section>
+<noscript>{% include "expedientes/_zona_carga.html" %}</noscript>

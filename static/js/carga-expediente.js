@@ -9,6 +9,35 @@
       revision: 0, resultadoEsperado: (config.borradores || []).find(b => b.solicitada)?.id ?? null,
       etiquetas: { PENDIENTE: 'En cola', PROCESANDO: 'Leyendo', LISTO: 'Preparado', ERROR: 'Necesita atención' },
       etapas: { PREPARANDO: 'Preparando documentos', PREPARADO: 'Documentos preparados', EN_COLA: 'Confrontación solicitada', CONFRONTANDO: 'Confrontando…', LISTO: 'Resultado disponible', CANCELADA: 'Confrontación cancelada', CAMBIADA: 'Documentos actualizados', ERROR: 'Necesita atención' },
+      eliminar: null, sobre: '',
+      textos: { VACIO: 'Sin documentos', PROCESANDO: 'Procesando', LISTO: 'Listo', ERROR: 'Con error' },
+      tonos: { VACIO: 'neutro', PROCESANDO: '', LISTO: 'exito', ERROR: 'peligro' },
+      iconos: { VACIO: '#i-info', PROCESANDO: '#i-loader', LISTO: '#i-circle-check', ERROR: '#i-circle-alert' },
+      get resumen() {
+        const contar = estado => this.documentos.filter(d => d.estado === estado).length;
+        return { total: this.documentos.length, pendientes: contar('PENDIENTE'), procesando: contar('PROCESANDO'), listos: contar('LISTO'), errores: contar('ERROR') };
+      },
+      get estado() {
+        const r = this.resumen;
+        if (!r.total) return 'VACIO';
+        if (r.errores) return 'ERROR';
+        return r.pendientes || r.procesando ? 'PROCESANDO' : 'LISTO';
+      },
+      // Riel: 1 fuentes, 2 borrador, 3 procesamiento, 4 resultado.
+      get pasoActual() {
+        if (!this.delRol('CLIENTE').length || !this.delRol('MINUTA').length) return 1;
+        if (!this.delRol('BORRADOR').length) return 2;
+        return this.estado === 'LISTO' ? 4 : 3;
+      },
+      get faltan() {
+        const faltantes = (config.roles || []).filter(([rol]) => !this.delRol(rol).length).map(([, etiqueta]) => etiqueta);
+        if (!faltantes.length) return '';
+        return (faltantes.length === 1 ? 'Falta: ' : 'Faltan: ') + faltantes.join(', ') + '.';
+      },
+      enCurso(id) {
+        const c = this.estadoDe(id);
+        return Boolean(c.solicitada || c.etapa === 'CONFRONTANDO' || this.intencion === id);
+      },
       get pendientes() { return this.transferencias.some(t => ['PENDIENTE', 'SUBIENDO'].includes(t.estado)); },
       get fallidas() { return this.transferencias.some(t => t.estado === 'ERROR'); },
       delRol(rol) { return this.documentos.filter(d => d.rol === rol); },
