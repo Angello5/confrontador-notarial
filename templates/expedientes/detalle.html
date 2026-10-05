@@ -1,8 +1,8 @@
 {% extends "core/base.html" %}
 {% load static %}
-{% block title %}{{ expediente.codigo }} · Expedientes{% endblock %}
+{% block title %}{{ expediente.codigo }} · Kardex{% endblock %}
 {% block breadcrumb %}<ol>
-  <li><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li><a href="{% url 'expediente_lista' %}">Kardex</a></li>
   <li aria-current="page">{{ expediente.codigo }}</li>
 </ol>{% endblock %}
 {% block cabecera %}{% endblock %}
@@ -13,17 +13,17 @@
   {% csrf_token %}
   <div class="cabecera">
     <div class="cabecera-texto">
-      <p class="eyebrow">Expediente</p>
+      <p class="eyebrow">Kardex</p>
       <div class="cabecera-titulo">
         <h1>{{ expediente.codigo }}</h1>
         <span class="chip chip-lg" data-estado="{{ resumen.estado }}" :data-estado="estado" x-text="textos[estado] || estado">{% if resumen.estado == "VACIO" %}Sin documentos{% elif resumen.estado == "PROCESANDO" %}Procesando{% elif resumen.estado == "LISTO" %}Listo{% else %}Con error{% endif %}</span>
       </div>
-      <p class="subtitulo">Cargue las fuentes y el borrador; puede seguir trabajando mientras se preparan.</p>
+      <p class="subtitulo">Cargue los recaudos y el borrador; puede seguir trabajando mientras se preparan.</p>
     </div>
     <div class="acciones">
       <a class="btn" href="{% url 'expediente_historial' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Historial de confrontaciones</a>
       <a class="btn" href="{% url 'expediente_editar' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>Editar</a>
-      <a class="btn btn-icono btn-peligro-borde" href="{% url 'expediente_eliminar' expediente.pk %}" title="Eliminar expediente" aria-label="Eliminar expediente" @click.prevent="eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></a>
+      <a class="btn btn-icono btn-peligro-borde" href="{% url 'expediente_eliminar' expediente.pk %}" title="Eliminar kardex" aria-label="Eliminar kardex" @click.prevent="eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></a>
     </div>
   </div>
 
@@ -35,8 +35,8 @@
   <section class="aviso" data-tono="{% if resumen.estado == 'VACIO' %}neutro{% elif resumen.estado == 'LISTO' %}exito{% elif resumen.estado == 'ERROR' %}peligro{% endif %}" :data-tono="tonos[estado]" aria-labelledby="estado-expediente">
     <svg class="ico" :class="estado === 'PROCESANDO' && 'ico-gira'" aria-hidden="true"><use href="#i-info" :href="iconos[estado]"/></svg>
     <div class="aviso-texto" aria-live="polite">
-      <h2 id="estado-expediente" class="visually-hidden">Estado del expediente</h2>
-      <strong x-show="estado === 'VACIO'">Este expediente aún no tiene documentos.</strong>
+      <h2 id="estado-expediente" class="visually-hidden">Estado del kardex</h2>
+      <strong x-show="estado === 'VACIO'">Este kardex aún no tiene documentos.</strong>
       <strong x-show="estado === 'PROCESANDO'" x-cloak>Leyendo documentos. Puede seguir adjuntando o salir y volver después.</strong>
       <strong x-show="estado === 'LISTO'" x-cloak>Todos los documentos están listos.</strong>
       <strong x-show="estado === 'ERROR'" x-cloak>No se pudo procesar uno o más documentos. Elimine el documento y vuelva a subirlo.</strong>
@@ -49,8 +49,8 @@
     <section class="panel" aria-labelledby="fuentes-titulo">
       <div class="panel-cab">
         <div>
-          <h2 id="fuentes-titulo">Documentos del expediente</h2>
-          <p>Minuta y documentos del cliente: las fuentes que se usarán para revisar el proyecto.</p>
+          <h2 id="fuentes-titulo">Documentos del kardex</h2>
+          <p>Minuta y recaudos con los que se revisará el proyecto.</p>
         </div>
       </div>
       {% for zona in zonas|slice:":2" %}
@@ -62,7 +62,7 @@
       <div class="panel-cab">
         <div>
           <h2 id="borrador-titulo">Borrador a confrontar</h2>
-          <p>El documento elaborado que se comparará con las fuentes.</p>
+          <p>El documento elaborado que se comparará con los recaudos.</p>
         </div>
       </div>
       {% with zona=zonas|last %}

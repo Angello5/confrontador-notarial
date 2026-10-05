@@ -38,7 +38,7 @@ html, body { margin: 0; padding: 0; }
 body {
   background: var(--ne-bg);
   color: var(--ne-navy);
-  font: 400 15px/1.5 var(--ne-font);
+  font: 400 16px/1.5 var(--ne-font);
   -webkit-font-smoothing: antialiased;
 }
 a { color: var(--ne-navy); text-decoration: underline; text-underline-offset: 2px; }
@@ -119,21 +119,21 @@ table { border-collapse: collapse; }
   border-bottom: 1px solid var(--ne-line); color: var(--ne-navy); text-decoration: none;
 }
 .marca:hover { color: var(--ne-navy); }
-.marca-logo { display: block; width: 176px; max-width: 100%; height: auto; }
+.marca-logo { display: block; width: 212px; max-width: 100%; height: auto; }
 .marca-fila { display: flex; align-items: center; gap: 10px; }
 .marca-sello {
   width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center;
   background: var(--ne-navy); color: var(--ne-green); font: 700 14px var(--ne-display);
 }
-.marca-nombre { display: block; font: 700 17px/1.2 var(--ne-display); color: var(--ne-navy); }
-.marca-sub { display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ne-slate); }
+.marca-nombre { display: block; font: 700 21px/1.2 var(--ne-display); color: var(--ne-navy); }
+.marca-sub { display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ne-slate); }
 .lateral nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 20px; overflow: auto; }
-.menu-seccion { margin: 0 0 6px 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ne-slate); }
+.menu-seccion { margin: 0 0 6px 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ne-slate); }
 .menu { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .menu a {
   display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 12px;
   border-left: 3px solid transparent; border-radius: 0 2px 2px 0;
-  color: var(--ne-navy); font-size: 15px; font-weight: 600; text-decoration: none;
+  color: var(--ne-navy); font-size: 16px; font-weight: 600; text-decoration: none;
   transition: background 0.15s;
 }
 .menu a .ico { font-size: 18px; color: var(--ne-slate); }

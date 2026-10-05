@@ -105,9 +105,9 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
         formularios[rol if rol in formularios else Documento.CLIENTE] = upload_form
     etiquetas = dict(Documento.ROLES)
     descripciones = {
-        Documento.CLIENTE: "DNI, partidas y otros documentos del cliente.",
+        Documento.CLIENTE: "DNI, partidas registrales y demás recaudos.",
         Documento.MINUTA: "Documento del encargo, normalmente Word.",
-        Documento.BORRADOR: "Documento elaborado que se comparará con las fuentes.",
+        Documento.BORRADOR: "Documento elaborado que se confrontará con los recaudos.",
     }
     por_rol = {Documento.BORRADOR: borradores}
     zonas = [
@@ -171,7 +171,7 @@ def expediente_lista(request):
                 form.add_error("codigo", CODIGO_OCUPADO)
             else:
                 messages.success(
-                    request, "Expediente creado. Ahora puede cargar sus documentos."
+                    request, "Kardex creado. Ahora puede cargar sus documentos."
                 )
                 return redirect("expediente_detalle", pk=expediente.pk)
     else:
@@ -212,7 +212,7 @@ def expediente_editar(request, pk):
             except IntegrityError:
                 form.add_error("codigo", CODIGO_OCUPADO)
             else:
-                messages.success(request, "Expediente actualizado.")
+                messages.success(request, "Kardex actualizado.")
                 return redirect("expediente_detalle", pk=expediente.pk)
         status = 400
         # El formulario inválido ya cambió la instancia; la cabecera usa la guardada.
@@ -233,7 +233,7 @@ def expediente_eliminar(request, pk):
         expediente.archivado_el = timezone.now()
         expediente.archivado_por = request.user
         expediente.save(update_fields=["archivado_el", "archivado_por"])
-        messages.success(request, f"Expediente {expediente.codigo} eliminado.")
+        messages.success(request, f"Kardex {expediente.codigo} eliminado.")
         return redirect("expediente_lista")
     contexto = {"expediente": expediente}
     contexto.update(_navegacion_contexto(request))
@@ -254,11 +254,11 @@ def expediente_restaurar(request, pk):
     except IntegrityError:
         messages.error(
             request,
-            "No se puede restaurar: ya existe un expediente activo con el código "
-            f"{expediente.codigo}. Cambie o elimine ese expediente primero.",
+            "No se puede restaurar: ya existe un kardex activo con el número "
+            f"{expediente.codigo}. Cambie o elimine ese kardex primero.",
         )
         return redirect(f"{reverse('expediente_lista')}?archivados=1")
-    messages.success(request, f"Expediente {expediente.codigo} restaurado.")
+    messages.success(request, f"Kardex {expediente.codigo} restaurado.")
     return redirect("expediente_detalle", pk=expediente.pk)
 
 

@@ -1,18 +1,18 @@
 {% extends "core/base.html" %}
 
-{% block title %}Expedientes · {{ erp_nombre }}{% endblock %}
-{% block breadcrumb %}<ol><li aria-current="page">Expedientes</li></ol>{% endblock %}
+{% block title %}Kardex · {{ erp_nombre }}{% endblock %}
+{% block breadcrumb %}<ol><li aria-current="page">Kardex</li></ol>{% endblock %}
 {% block eyebrow %}Módulo{% endblock %}
-{% block heading %}Expedientes{% endblock %}
-{% block subtitle %}Cree un expediente con su código y cargue sus documentos para confrontar.{% endblock %}
-{% block actions %}{% if not archivados %}<button class="btn btn-primario" type="button" @click="$dispatch('nuevo-expediente')" aria-controls="crear-expediente-panel"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo expediente</button>{% endif %}{% endblock %}
+{% block heading %}Kardex{% endblock %}
+{% block subtitle %}Cree un kardex con su número y cargue sus documentos para confrontar.{% endblock %}
+{% block actions %}{% if not archivados %}<button class="btn btn-primario" type="button" @click="$dispatch('nuevo-expediente')" aria-controls="crear-expediente-panel"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo kardex</button>{% endif %}{% endblock %}
 {% block content %}
   {% if not archivados %}
   <div x-data="{ abierto: {% if form.errors %}true{% else %}false{% endif %} }"
        x-init="if (new URLSearchParams(location.search).has('nuevo')) abierto = true; $watch('abierto', v => v && $nextTick(() => $refs.codigo?.querySelector('input')?.focus()))"
        @nuevo-expediente.window="abierto = !abierto">
     <section id="crear-expediente-panel" class="panel panel-cuerpo panel-nuevo" aria-labelledby="crear-expediente" x-show="abierto"{% if not form.errors %} x-cloak{% endif %}>
-      <h2 id="crear-expediente" class="panel-titulo">Crear expediente</h2>
+      <h2 id="crear-expediente" class="panel-titulo">Crear kardex</h2>
       <form method="post" class="formulario-linea" novalidate>
         {% csrf_token %}
         <div class="campo{% if form.codigo.errors %} campo-error{% endif %}" x-ref="codigo">
@@ -22,7 +22,7 @@
           <span class="campo-ayuda" id="codigo-ayuda">{% if form.codigo.help_text %}{{ form.codigo.help_text }}{% else %}Use el código que identifica el trámite.{% endif %}</span>
         </div>
         <div class="acciones">
-          <button class="btn btn-verde btn-alto" type="submit">Crear expediente</button>
+          <button class="btn btn-verde btn-alto" type="submit">Crear kardex</button>
           <button class="btn btn-alto" type="button" @click="abierto = false">Cancelar</button>
         </div>
       </form>
@@ -55,9 +55,9 @@
     }"
     x-init="iniciar()" @click.outside="abierto = null" @keydown.escape="abierto = null">
     <div class="panel-cab">
-      <h2 id="lista-expedientes" class="panel-titulo empuja">{% if archivados %}Expedientes archivados{% else %}Mis expedientes{% endif %}</h2>
+      <h2 id="lista-expedientes" class="panel-titulo empuja">{% if archivados %}Kardex archivados{% else %}Mis kardex{% endif %}</h2>
       {% if es_administrador %}
-        <nav class="segmentado" aria-label="Filtro de expedientes">
+        <nav class="segmentado" aria-label="Filtro de kardex">
           <a href="{% url 'expediente_lista' %}"{% if not archivados %} aria-current="page"{% endif %}>Activos</a>
           <a href="{% url 'expediente_lista' %}?archivados=1"{% if archivados %} aria-current="page"{% endif %}>Archivados</a>
         </nav>
@@ -68,7 +68,7 @@
       <div class="filtros">
         <label class="buscador">
           <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
-          <input type="search" x-model="q" placeholder="Buscar por código" aria-label="Buscar por código">
+          <input type="search" x-model="q" placeholder="Buscar por N.° de kardex" aria-label="Buscar por N.° de kardex">
         </label>
         {% if not archivados %}
           <div class="filtro-chips" role="group" aria-label="Filtrar por estado">
@@ -80,9 +80,9 @@
       </div>
       <div class="tabla-desliza">
         <table class="tabla tabla-media">
-          <caption class="visually-hidden">Expedientes visibles y su estado derivado</caption>
+          <caption class="visually-hidden">Kardex visibles y su estado derivado</caption>
           <thead><tr>
-            <th scope="col">Código</th>
+            <th scope="col">N.° de kardex</th>
             <th scope="col">Estado</th>
             <th scope="col">Documentos</th>
             <th scope="col" :aria-sort="asc ? 'ascending' : 'descending'"><button type="button" class="th-orden" @click="ordenar()">Actualizado<svg class="ico" aria-hidden="true"><use :href="asc ? '#i-arrow-up' : '#i-arrow-down'" href="#i-arrow-down"/></svg></button></th>
@@ -105,8 +105,8 @@
                       <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}" aria-label="Abrir {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Abrir</a>
                       <button type="button" class="btn btn-sm btn-icono" aria-label="Más acciones para {{ expediente.codigo }}" aria-haspopup="menu" :aria-expanded="abierto === {{ expediente.pk }}" @click.stop="abierto = abierto === {{ expediente.pk }} ? null : {{ expediente.pk }}"><svg class="ico" aria-hidden="true"><use href="#i-ellipsis"/></svg></button>
                       <div class="menu-flotante" role="menu" x-show="abierto === {{ expediente.pk }}" x-cloak>
-                        <a role="menuitem" href="{% url 'expediente_editar' expediente.pk %}" aria-label="Editar {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>Editar código</a>
-                        <a role="menuitem" class="peligro" href="{% url 'expediente_eliminar' expediente.pk %}" aria-label="Eliminar {{ expediente.codigo }}" @click.prevent="abierto = null; eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar expediente</a>
+                        <a role="menuitem" href="{% url 'expediente_editar' expediente.pk %}" aria-label="Editar {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>Editar número</a>
+                        <a role="menuitem" class="peligro" href="{% url 'expediente_eliminar' expediente.pk %}" aria-label="Eliminar {{ expediente.codigo }}" @click.prevent="abierto = null; eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar kardex</a>
                       </div>
                     </div>
                   {% endif %}
@@ -118,18 +118,18 @@
       </div>
       <div class="vacio" role="status" x-show="!visibles" x-cloak>
         <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
-        <strong>Ningún expediente coincide con el filtro.</strong>
-        <span>Cambie el código buscado o el estado.</span>
+        <strong>Ningún kardex coincide con el filtro.</strong>
+        <span>Cambie el número buscado o el estado.</span>
       </div>
-      <div class="panel-pie" aria-live="polite"><span x-text="visibles">{{ expedientes|length }}</span> de <span x-text="filas.length">{{ expedientes|length }}</span> expedientes</div>
+      <div class="panel-pie" aria-live="polite"><span x-text="visibles">{{ expedientes|length }}</span> de <span x-text="filas.length">{{ expedientes|length }}</span> kardex</div>
     {% else %}
       <div class="vacio" role="status">
         <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
         {% if archivados %}
-          <strong>No hay expedientes archivados.</strong>
+          <strong>No hay kardex archivados.</strong>
         {% else %}
-          <strong>Aún no hay expedientes visibles.</strong>
-          <span>Cree uno con su código para cargar documentos.</span>
+          <strong>Aún no hay kardex visibles.</strong>
+          <span>Cree uno con su número para cargar documentos.</span>
         {% endif %}
       </div>
     {% endif %}

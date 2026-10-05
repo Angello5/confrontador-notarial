@@ -812,9 +812,9 @@ def _observaciones_personas_legibles(observaciones, texto_borrador):
             "hallado": observacion["documento_hallado"],
             "esperado": observacion["documento_esperado"] or "Sin documento conocido",
             "motivo": (
-                "El documento pertenece a otra persona según las fuentes."
+                "El documento pertenece a otra persona según los recaudos."
                 if observacion["tipo"] == "DOCUMENTO_CRUZADO"
-                else "El documento no pertenece a una persona conocida en las fuentes."
+                else "El documento no pertenece a una persona conocida en los recaudos."
             ),
             "procedencias": _procedencias_legibles(observacion["procedencias"]),
             "ubicacion": ubicar_valor(texto_borrador, observacion["documento_hallado"]),
@@ -1105,7 +1105,7 @@ def confrontar_borrador(
     """
     fecha = fecha or timezone.localdate()
     if borrador.expediente_id != expediente.pk or borrador.rol != Documento.BORRADOR:
-        raise ValueError("El documento no es un borrador de este expediente.")
+        raise ValueError("El documento no es un borrador de este kardex.")
 
     if fuentes_documentos is None:
         fuentes_documentos = list(
@@ -1243,7 +1243,7 @@ def aplicar_correcciones(expediente, borrador, corrida_id, ids, usuario):
         )
     ):
         raise CorreccionNoAplicable(
-            "Las fuentes o el borrador cambiaron. Vuelva a confrontar antes de aplicar."
+            "Los recaudos o el borrador cambiaron. Vuelva a confrontar antes de aplicar."
         )
     original = ruta_original(borrador)
     if not original.is_file() or calcular_hash(original) != borrador.hash_archivo:

@@ -28,7 +28,7 @@
               {% if es_administrador or es_usuario %}
                 <li>
                   <a href="{% url 'expediente_lista' %}"{% if request.resolver_match.route|slice:":12" == "expedientes/" %} aria-current="page"{% endif %}>
-                    <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg><span>Expedientes</span>
+                    <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg><span>Kardex</span>
                   </a>
                 </li>
               {% endif %}

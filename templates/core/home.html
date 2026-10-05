@@ -4,12 +4,12 @@
 {% block breadcrumb %}<ol><li aria-current="page">Inicio</li></ol>{% endblock %}
 {% block eyebrow %}Inicio{% endblock %}
 {% block heading %}Resumen general{% endblock %}
-{% block subtitle %}Estado de sus expedientes y accesos rápidos para su rol.{% endblock %}
-{% block actions %}{% if es_administrador or es_usuario %}<a class="btn btn-primario" href="{% url 'expediente_lista' %}?nuevo=1"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo expediente</a>{% endif %}{% endblock %}
+{% block subtitle %}Estado de sus kardex y accesos rápidos para su rol.{% endblock %}
+{% block actions %}{% if es_administrador or es_usuario %}<a class="btn btn-primario" href="{% url 'expediente_lista' %}?nuevo=1"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo kardex</a>{% endif %}{% endblock %}
 {% block content %}
   <div class="metricas">
     {% url 'expediente_lista' as url_lista %}
-    {% include "core/_metrica.html" with etiqueta="Expedientes" valor=metricas.total apoyo="Visibles para usted" enlace=url_lista %}
+    {% include "core/_metrica.html" with etiqueta="Kardex" valor=metricas.total apoyo="Visibles para usted" enlace=url_lista %}
     {% include "core/_metrica.html" with etiqueta="Procesando" valor=metricas.procesando apoyo="Documentos en cola o en extracción" tono="gris" enlace=url_lista filtro="PROCESANDO" %}
     {% include "core/_metrica.html" with etiqueta="Listos para confrontar" valor=metricas.listos apoyo="Todos sus documentos listos" tono="verde" enlace=url_lista filtro="LISTO" %}
     {% include "core/_metrica.html" with etiqueta="Con error" valor=metricas.errores apoyo="Algún documento no se pudo procesar" tono="rojo" enlace=url_lista filtro="ERROR" %}
@@ -21,7 +21,7 @@
         <div class="panel-cab">
           <div>
             <h2 id="atencion-titulo">Requieren su atención</h2>
-            <p>Expedientes con documentos que no se pudieron procesar.</p>
+            <p>Kardex con documentos que no se pudieron procesar.</p>
           </div>
         </div>
         {% if metricas.errores %}
@@ -33,14 +33,14 @@
                   <strong>{{ expediente.codigo }}</strong>
                   <span>Un documento no se pudo procesar. Elimínelo y vuelva a subirlo.</span>
                 </div>
-                <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}">Abrir expediente</a>
+                <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}">Abrir kardex</a>
               </div>
             {% endif %}
           {% endfor %}
           <div class="atencion">
             <span class="atencion-ico" data-tono="advertencia"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg></span>
             <div>
-              <strong>{{ metricas.errores }} expediente{{ metricas.errores|pluralize }} con error</strong>
+              <strong>{{ metricas.errores }} kardex con error</strong>
               <span>Revise la lista completa filtrada por estado.</span>
             </div>
             <a class="btn btn-sm" href="{% url 'expediente_lista' %}?estado=ERROR">Ver lista</a>
@@ -57,13 +57,13 @@
       <section class="panel" aria-labelledby="ultimos-titulo">
         <div class="panel-cab">
           <div>
-            <h2 id="ultimos-titulo">Últimos expedientes</h2>
+            <h2 id="ultimos-titulo">Últimos kardex</h2>
             <p>Los cinco actualizados más recientemente.</p>
           </div>
           {% if ultimos %}<a class="btn btn-enlace" href="{% url 'expediente_lista' %}">Ver todos<svg class="ico" aria-hidden="true"><use href="#i-chevron-right"/></svg></a>{% endif %}
         </div>
         {% if ultimos %}
-          <ul class="filas" aria-label="Últimos expedientes y su estado">
+          <ul class="filas" aria-label="Últimos kardex y su estado">
             {% for expediente, resumen in ultimos %}
               <li>
                 <a class="fila" href="{% url 'expediente_detalle' expediente.pk %}">
@@ -77,8 +77,8 @@
         {% else %}
           <div class="vacio" role="status">
             <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
-            <strong>Aún no hay expedientes.</strong>
-            <span><a href="{% url 'expediente_lista' %}?nuevo=1">Cree su primer expediente</a> para cargar documentos.</span>
+            <strong>Aún no hay kardex.</strong>
+            <span><a href="{% url 'expediente_lista' %}?nuevo=1">Cree su primer kardex</a> para cargar documentos.</span>
           </div>
         {% endif %}
       </section>
@@ -92,13 +92,13 @@
         <a class="btn btn-verde btn-mayus btn-lg" href="{% url 'admin:index' %}">Administrar usuarios</a>
       {% else %}
         <h2 id="acceso-titulo">Nueva confrontación</h2>
-        <p>Compare el borrador de escritura con la minuta y los documentos del cliente.</p>
+        <p>Compare el borrador de escritura con la minuta y los recaudos.</p>
         <ol>
           <li>Cargue los documentos</li>
           <li>Pulse Confrontar</li>
           <li>Revise las observaciones</li>
         </ol>
-        <a class="btn btn-verde btn-mayus btn-lg" href="{% url 'expediente_lista' %}?nuevo=1">Crear expediente</a>
+        <a class="btn btn-verde btn-mayus btn-lg" href="{% url 'expediente_lista' %}?nuevo=1">Crear kardex</a>
       {% endif %}
     </section>
   </div>

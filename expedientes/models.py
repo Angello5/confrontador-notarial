@@ -62,7 +62,7 @@ class Documento(models.Model):
     BORRADOR = "BORRADOR"
     ROLES_FUENTE = (CLIENTE, MINUTA)
     ROLES = (
-        (CLIENTE, "Documentos del cliente"),
+        (CLIENTE, "Recaudos"),
         (MINUTA, "Minuta"),
         (BORRADOR, "Proyecto (borrador)"),
     )

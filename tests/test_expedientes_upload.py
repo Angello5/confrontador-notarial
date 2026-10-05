@@ -38,7 +38,7 @@ def test_codigo_de_expediente_duplicado_muestra_validacion(client, usuario_ficti
     respuesta = client.post("/expedientes/", {"codigo": "EXP-FICTICIO-DUP-CODIGO"})
 
     assert respuesta.status_code == 200
-    assert "Ya existe un expediente activo con ese código" in respuesta.content.decode()
+    assert "Ya existe un kardex activo con ese número" in respuesta.content.decode()
     assert Expediente.objects.filter(codigo="EXP-FICTICIO-DUP-CODIGO").count() == 1
 
 

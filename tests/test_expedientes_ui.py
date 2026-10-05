@@ -162,7 +162,7 @@ def test_detalle_separa_las_tres_zonas_obligatorias(client, usuario_ficticio):
     respuesta = client.get(f"/expedientes/{expediente.pk}/")
     contenido = respuesta.content.decode()
 
-    assert "Documentos del cliente" in contenido
+    assert "Recaudos" in contenido
     assert "Minuta" in contenido
     assert "Proyecto (borrador)" in contenido
     assert contenido.count("multiple") == 6  # Tres controles y alternativa sin JS.
@@ -271,7 +271,7 @@ def test_riel_marca_el_paso_actual_por_estado(
 
     # Diseño anterior del expediente (pedido del usuario) con la carga de F34.
     assert f'class="riel" data-actual="{actual}"' in contenido
-    nombres = ["Fuentes", "Borrador", "Procesamiento", "Resultado"]
+    nombres = ["Recaudos", "Borrador", "Procesamiento", "Resultado"]
     assert "Paso actual: <span" in contenido
     assert f">{nombres[int(actual) - 1]}</span>" in contenido
     assert "js/carga-expediente.js" in contenido
@@ -285,7 +285,7 @@ def test_detalle_usa_paneles_chips_y_privacidad(client, usuario_ficticio):
 
     contenido = client.get(f"/expedientes/{expediente.pk}/").content.decode()
 
-    assert "Documentos del expediente" in contenido
+    assert "Documentos del kardex" in contenido
     assert "Borrador a confrontar" in contenido
     assert "Historial de confrontaciones" in contenido
     assert 'class="rejilla-detalle"' in contenido
@@ -301,7 +301,7 @@ def test_lista_muestra_chip_documentos_y_actualizado(client, usuario_ficticio):
 
     contenido = client.get("/expedientes/").content.decode()
 
-    assert "Nuevo expediente" in contenido
+    assert "Nuevo kardex" in contenido
     assert 'class="chip" data-estado="ERROR"' in contenido
     assert ">Documentos</th>" in contenido
     assert 'class="th-orden" @click="ordenar()">Actualizado' in contenido

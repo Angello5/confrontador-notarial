@@ -53,6 +53,18 @@ F34 en curso: carga continua, solicitud de confrontación reutilizable, cola sin
 
 F35 en curso: empresa y partidas contra los recaudos. Tras la auditoría visual de los 10 expedientes de prueba, el usuario decidió que la información del cliente está en los recaudos y que la razón social y el domicilio legal de una empresa se corroboran contra su ficha RUC. Es la primera regla para personas jurídicas, que F11 dejó fuera de la extracción de personas. También amplía los formatos de partida y limita su FALTA a la minuta. Alcance y medición en `specs/029-empresa-ficha-ruc/`.
 
+## Continuación autorizada · 2026-10-05
+
+F36: interfaz con lenguaje notarial. El usuario pidió:
+
+- «Kardex» en lugar de «Expedientes»;
+- el subtítulo «Confrontador Notarial»;
+- el nombre y el logo de la notaría más grandes;
+- letra un poco mayor;
+- lenguaje técnico de abogado (recaudos, Dice / Debe decir, confrontación, informe).
+
+Solo cambian los textos y los estilos: las URL y los modelos siguen igual. Alcance y glosario en `specs/030-interfaz-notarial/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

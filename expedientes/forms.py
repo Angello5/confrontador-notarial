@@ -21,24 +21,24 @@ class MultipleFileField(forms.FileField):
         return data if isinstance(data, list) else [data]
 
 
-CODIGO_OCUPADO = "Ya existe un expediente activo con ese código. Ingrese otro código."
+CODIGO_OCUPADO = "Ya existe un kardex activo con ese número. Ingrese otro número."
 
 
 class ExpedienteForm(forms.ModelForm):
     codigo = forms.CharField(
-        max_length=100, error_messages={"required": "Ingrese el código del expediente."}
+        max_length=100, error_messages={"required": "Ingrese el número de kardex."}
     )
 
     class Meta:
         model = Expediente
         fields = ("codigo",)
-        labels = {"codigo": "Código del expediente"}
-        help_texts = {"codigo": "Escriba el código que identifica este expediente."}
+        labels = {"codigo": "Número de kardex"}
+        help_texts = {"codigo": "Escriba el número de kardex."}
 
     def clean_codigo(self):
         codigo = self.cleaned_data["codigo"].strip()
         if not codigo:
-            raise forms.ValidationError("Ingrese el código del expediente.")
+            raise forms.ValidationError("Ingrese el número de kardex.")
         if (
             Expediente.objects.filter(codigo=codigo, archivado_el__isnull=True)
             .exclude(pk=self.instance.pk)
@@ -52,7 +52,7 @@ class DocumentoUploadForm(forms.Form):
     rol = forms.ChoiceField(
         choices=Documento.ROLES,
         label="Rol del documento",
-        help_text="Indica la zona del expediente donde se registrarán los archivos.",
+        help_text="Indica la zona del kardex donde se registrarán los archivos.",
         error_messages={
             "required": "Seleccione el rol del documento.",
             "invalid_choice": "Seleccione un rol válido.",

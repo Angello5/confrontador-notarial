@@ -2,20 +2,20 @@
 
 {% block title %}Historial · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
-  <li><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li><a href="{% url 'expediente_lista' %}">Kardex</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Historial</li>
 </ol>{% endblock %}
-{% block eyebrow %}Expedientes / Historial{% endblock %}
+{% block eyebrow %}Kardex / Historial{% endblock %}
 {% block heading %}Historial de confrontaciones{% endblock %}
-{% block subtitle %}{{ expediente.codigo }} · registro inmutable de cada corrida{% endblock %}
-{% block actions %}<a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al expediente</a>{% endblock %}
+{% block subtitle %}{{ expediente.codigo }} · registro inmutable de cada confrontación{% endblock %}
+{% block actions %}<a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al kardex</a>{% endblock %}
 {% block content %}
   <section class="panel">
     {% if corridas %}
       <div class="tabla-desliza">
         <table class="tabla tabla-media">
-          <caption class="visually-hidden">Corridas de confrontación del expediente</caption>
+          <caption class="visually-hidden">Confrontaciones del kardex</caption>
           <thead><tr>
             <th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Estado</th>
             <th scope="col">Reglas</th>
@@ -36,8 +36,8 @@
                 <td class="num">{{ corrida.severidades.BAJA|default_if_none:"—" }}</td>
                 <td class="fin">
                   <div class="acciones acciones-fila">
-                    <a class="btn btn-sm btn-icono" href="{% url 'corrida_detalle' expediente.pk corrida.pk %}?imprimir=1" title="Imprimir o guardar PDF" aria-label="Imprimir la corrida del {{ corrida.creado_el|date:'d/m/Y H:i' }}"><svg class="ico" aria-hidden="true"><use href="#i-printer"/></svg></a>
-                    <a class="btn btn-sm" href="{% url 'corrida_detalle' expediente.pk corrida.pk %}">Ver corrida</a>
+                    <a class="btn btn-sm btn-icono" href="{% url 'corrida_detalle' expediente.pk corrida.pk %}?imprimir=1" title="Imprimir o guardar PDF" aria-label="Imprimir la confrontación del {{ corrida.creado_el|date:'d/m/Y H:i' }}"><svg class="ico" aria-hidden="true"><use href="#i-printer"/></svg></a>
+                    <a class="btn btn-sm" href="{% url 'corrida_detalle' expediente.pk corrida.pk %}">Ver confrontación</a>
                   </div>
                 </td>
               </tr>

@@ -134,13 +134,13 @@
     const partes = [];
 
     // Portada breve
-    partes.push(parrafo(run('Reporte de observaciones', { b: true, sz: 52, color: C.navy }), { despues: 40 }));
-    partes.push(parrafo([run(`Expediente ${m.codigo}`, { sz: 26, color: C.slate }), run('  ·  Confrontación del borrador', { sz: 26, color: C.subtle })],
+    partes.push(parrafo(run('Informe de observaciones', { b: true, sz: 52, color: C.navy }), { despues: 40 }));
+    partes.push(parrafo([run(`Kardex ${m.codigo}`, { sz: 26, color: C.slate }), run('  ·  Confrontación del borrador', { sz: 26, color: C.subtle })],
       { despues: 240, borde: { color: C.verde, sz: 18, espacio: 8 } }));
 
     // Ficha del reporte
-    const ficha = [['Notaría', m.notaria], ['Expediente', m.codigo], ['Borrador confrontado', m.borrador],
-      ['Corrida', m.corrida ? `N.° ${m.corrida}` : '—'], ['Emitido por', m.usuario], ['Fecha de emisión', m.fecha]];
+    const ficha = [['Notaría', m.notaria], ['Kardex', m.codigo], ['Borrador confrontado', m.borrador],
+      ['Confrontación', m.corrida ? `N.° ${m.corrida}` : '—'], ['Emitido por', m.usuario], ['Fecha de emisión', m.fecha]];
     partes.push(tabla([2600, ANCHO - 2600], ficha.map(([k, v]) => ({
       celdas: [
         celda([parrafo(run(k, { b: true, sz: 16, caps: true, color: C.slate, spacing: 10 }), { despues: 0 })], { ancho: 2600 }),
@@ -199,7 +199,7 @@
       if (filas.length) {
         partes.push(nota('Documentos de identidad del borrador que pertenecen a otra persona o no tienen titular en las fuentes.', true));
         partes.push(tablaDatos(
-          [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Persona', ancho: 2100 }, { titulo: 'Hallado', ancho: 1450 }, { titulo: 'Esperado', ancho: 1450 }, { titulo: 'Procedencia y ubicación', ancho: ANCHO - 5900 }],
+          [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Persona', ancho: 2100 }, { titulo: 'Dice', ancho: 1450 }, { titulo: 'Debe decir', ancho: 1450 }, { titulo: 'Procedencia y ubicación', ancho: ANCHO - 5900 }],
           filas.map((o) => [sev(o), texto(o.persona || o.titulo, { b: true }), texto(o.hallado, { color: C.ALTA.fg }), texto(o.esperado, { color: C.verdeTexto, b: true }),
             [parrafo(run(o.procedencia || 'Fuente no ubicada', { sz: 16, color: C.ink }), { despues: 40 }), ...ubicacion(o)]])));
       } else partes.push(nota('Sin observaciones de identidad.'));
@@ -210,7 +210,7 @@
       if (filas.length) {
         partes.push(nota('Datos del borrador que no coinciden con las fuentes: nombres, documentos, partidas, montos, estado civil y párrafos de la minuta.', true));
         partes.push(tablaDatos(
-          [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Campo', ancho: 1700 }, { titulo: 'Hallado', ancho: 1650 }, { titulo: 'Esperado', ancho: 1650 }, { titulo: 'Ubicación en el borrador', ancho: ANCHO - 5900 }],
+          [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Campo', ancho: 1700 }, { titulo: 'Dice', ancho: 1650 }, { titulo: 'Debe decir', ancho: 1650 }, { titulo: 'Ubicación en el borrador', ancho: ANCHO - 5900 }],
           filas.map((o) => [sev(o),
             [parrafo(run(o.titulo, { b: true, sz: 18 }), { despues: 0 }), ...(o.procedencia ? [parrafo(run(o.procedencia, { sz: 15, color: C.slate }), { despues: 0 })] : [])],
             texto(o.hallado, { color: C.ALTA.fg }), texto(o.esperado, { color: C.verdeTexto, b: true }), ubicacion(o)])));
@@ -246,7 +246,7 @@
       } else partes.push(nota('Ninguna ficha RENIEC o biométrica en el legajo.'));
     }
 
-    partes.push(parrafo(run('Reporte generado por el confrontador notarial a partir de la minuta, los documentos del cliente y el borrador cargados en el expediente. Las decisiones de corrección corresponden al personal de la notaría.',
+    partes.push(parrafo(run('Informe generado por el Confrontador Notarial a partir de la minuta, los recaudos y el borrador cargados en el kardex. Las decisiones de corrección corresponden al personal de la notaría.',
       { sz: 15, i: true, color: C.subtle }), { antes: 360, despues: 0, borde: { color: C.linea, sz: 6, espacio: 1 } }));
 
     const sect = `<w:sectPr><w:headerReference w:type="default" r:id="rIdHeader"/><w:footerReference w:type="default" r:id="rIdFooter"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1531" w:right="1134" w:bottom="1247" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>`;
@@ -263,7 +263,7 @@
     } else {
       marca = run(d.meta.notaria || '', { b: true, sz: 22, color: C.navy });
     }
-    const p = parrafo([marca, run('\t'), run(`Reporte de observaciones · ${d.meta.codigo}`, { sz: 16, color: C.slate })],
+    const p = parrafo([marca, run('\t'), run(`Informe de observaciones · ${d.meta.codigo}`, { sz: 16, color: C.slate })],
       { despues: 0, tabs: [{ tipo: 'right', pos: ANCHO }], borde: { color: C.navy, sz: 6, espacio: 6 } });
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">${p}</w:hdr>`;

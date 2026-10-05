@@ -20,9 +20,7 @@ def solicitar(expediente, borrador, usuario):
         documentos = list(expediente.documentos.all())
         roles = {d.rol for d in documentos}
         if any(rol not in roles for rol, _ in Documento.ROLES):
-            raise ValueError(
-                "Adjunte la minuta, el borrador y los documentos del cliente."
-            )
+            raise ValueError("Adjunte la minuta, el borrador y los recaudos.")
         relevantes = [
             d
             for d in documentos

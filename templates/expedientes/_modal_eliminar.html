@@ -7,7 +7,7 @@ Sin JavaScript, los enlaces siguen llevando a expedientes/eliminar.html.
   <div class="modal-fondo" @click.self="eliminar = null" @keydown.escape.window="eliminar = null">
     <div class="modal" data-tono="peligro" role="alertdialog" aria-modal="true" aria-labelledby="eliminar-titulo" x-init="$nextTick(() => $el.querySelector('[data-cancelar]').focus())">
       <div class="modal-cuerpo">
-        <h2 id="eliminar-titulo">¿Eliminar el expediente <span x-text="eliminar.codigo"></span>?</h2>
+        <h2 id="eliminar-titulo">¿Eliminar el kardex <span x-text="eliminar.codigo"></span>?</h2>
         <p>Dejará de aparecer en la lista y en el inicio, y no admitirá cargas ni confrontaciones. El historial de confrontaciones se conserva para auditoría y un Administrador puede restaurarlo.</p>
       </div>
       <div class="modal-pie">

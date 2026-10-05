@@ -1,14 +1,14 @@
 {% extends "core/base.html" %}
 
-{% block title %}Corrida {{ corrida.pk }} · {{ expediente.codigo }}{% endblock %}
+{% block title %}Confrontación {{ corrida.pk }} · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
-  <li><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li><a href="{% url 'expediente_lista' %}">Kardex</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li><a href="{% url 'expediente_historial' expediente.pk %}">Historial</a></li>
-  <li aria-current="page">Corrida {{ corrida.pk }}</li>
+  <li aria-current="page">Confrontación {{ corrida.pk }}</li>
 </ol>{% endblock %}
-{% block eyebrow %}Expedientes / Historial{% endblock %}
-{% block heading %}Corrida {{ corrida.pk }}{% endblock %}
+{% block eyebrow %}Kardex / Historial{% endblock %}
+{% block heading %}Confrontación {{ corrida.pk }}{% endblock %}
 {% block heading_extra %}{% include "core/_chip.html" with estado=corrida.estado texto=corrida.get_estado_display clase="chip-lg" %}{% endblock %}
 {% block meta %}<p class="cabecera-meta"><span>{{ expediente.codigo }}</span><span>{{ corrida.creado_el|date:"d/m/Y H:i" }}</span><span>Por {{ corrida.usuario.username }}</span><span>Catálogo de reglas {{ corrida.version_catalogo }}</span></p>{% endblock %}
 {% block actions %}<div class="acciones">
@@ -20,16 +20,16 @@
   <section class="panel" aria-labelledby="hallazgos-titulo">
     <div class="panel-cab">
       <div>
-        <h2 id="hallazgos-titulo">Hallazgos {% include "core/_chip.html" with estado="PROCESANDO" texto=filas|length %}</h2>
-        <p>Observaciones registradas en esta corrida.</p>
+        <h2 id="hallazgos-titulo">Observaciones {% include "core/_chip.html" with estado="PROCESANDO" texto=filas|length %}</h2>
+        <p>Observaciones registradas en esta confrontación.</p>
       </div>
     </div>
     {% if filas %}
       <div class="tabla-desliza">
         <table class="tabla tabla-arriba" aria-describedby="hallazgos-titulo">
           <thead><tr>
-            <th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Valor hallado</th>
-            <th scope="col">Valor esperado</th><th scope="col">Ubicación</th>
+            <th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Dice</th>
+            <th scope="col">Debe decir</th><th scope="col">Ubicación</th>
           </tr></thead>
           <tbody>
             {% for observacion in filas %}
@@ -72,7 +72,7 @@
     <div class="panel-cab">
       <div>
         <h2 id="manifiesto-titulo">Manifiesto</h2>
-        <p>Datos que permiten reproducir y auditar esta corrida.</p>
+        <p>Datos que permiten reproducir y auditar esta confrontación.</p>
       </div>
     </div>
     <dl class="definiciones definiciones-panel">
