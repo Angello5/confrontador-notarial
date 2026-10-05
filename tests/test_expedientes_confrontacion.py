@@ -831,6 +831,19 @@ def test_confrontacion_real_identica_no_produce_observaciones_de_regla(
             "No aparece o fue alterado",
             "texto de fuente ficticia…",
         ),
+        (
+            "[SIN_FICHA] «PEDRO PABLO SOTO VERA» sin ficha RENIEC en los recaudos",
+            "SIN_FICHA",
+            "PEDRO PABLO SOTO VERA",
+            "Sin ficha RENIEC en los recaudos",
+        ),
+        (
+            "[SIN_FICHA] «PEDRO PABLO ZOTO VERA» sin ficha RENIEC en los recaudos; "
+            "la minuta dice «PEDRO PABLO SOTO VERA»   (caratula)",
+            "SIN_FICHA",
+            "PEDRO PABLO ZOTO VERA",
+            "Sin ficha RENIEC en los recaudos; la minuta dice «PEDRO PABLO SOTO VERA»",
+        ),
     ],
 )
 def test_parser_de_regla_devuelve_observacion_comun(salida, campo, hallado, esperado):

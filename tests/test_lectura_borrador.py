@@ -49,6 +49,37 @@ def test_persona_sin_ficha_en_los_recaudos_es_aviso_medio():
     assert len(salidas) == 2
 
 
+def test_sin_ficha_muestra_como_escribe_la_minuta_el_nombre():
+    """F39: sin ficha no hay «debe decir», pero se ve lo que dice la minuta."""
+    fuentes = {
+        "reniec-ficticio.pdf": _reniec("90000021", "ANA LUCIA", "PEREZ", "ROJAS")
+    }
+    minuta = (
+        "ANA LUCIA PEREZ ROJAS CON DNI 90000021 Y PEDRO PABLO SOTO VERA "
+        "CON DNI 48172635 CELEBRAN EL CONTRATO FICTICIO."
+    )
+    borrador = (
+        "ANA LUCIA PEREZ ROJAS, DE NACIONALIDAD PERUANA, CON DNI N° 90000021. "
+        "PEDRO PABLO {} VERA, DE NACIONALIDAD PERUANA, CON DNI N° 48172635."
+    )
+    minutas = {"minuta-ficticia.docx": minuta}
+
+    def sin_ficha(apellido):
+        salidas = revisar(
+            catalogo(fuentes), borrador.format(apellido), 90, None, None, minutas
+        )
+        return _de(("[SIN_FICHA] «PEDRO",), salidas)
+
+    assert sin_ficha("ZOTO") == [
+        "[SIN_FICHA] «PEDRO PABLO ZOTO VERA» sin ficha RENIEC en los recaudos; "
+        "la minuta dice «PEDRO PABLO SOTO VERA»"
+    ]
+    # igual que en la minuta: solo el aviso
+    assert sin_ficha("SOTO") == [
+        "[SIN_FICHA] «PEDRO PABLO SOTO VERA» sin ficha RENIEC en los recaudos"
+    ]
+
+
 def test_dni_que_no_tiene_ocho_digitos():
     fuentes = {
         "reniec-ficticio.pdf": _reniec("90000021", "ANA LUCIA", "PEREZ", "ROJAS")
