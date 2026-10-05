@@ -1,0 +1,29 @@
+{% comment %}F40: avance de «Aplicar correcciones» y descarga directa (static/js/aplicar-correcciones.js).{% endcomment %}
+<div class="modal-fondo" x-show="modal === 'aplicando'" x-cloak @click.self="aplicandoTerminado() && (modal = null)" @keydown.escape.window="aplicandoTerminado() && modal === 'aplicando' && (modal = null)">
+  <div class="modal" :data-tono="aplicando.fase === 'ERROR' ? 'peligro' : 'exito'" role="alertdialog" aria-modal="true" aria-labelledby="aplicando-titulo" aria-describedby="aplicando-estado">
+    <div class="modal-cuerpo">
+      <h2 id="aplicando-titulo" x-text="aplicandoTitulo()">Aplicando correcciones</h2>
+      <progress class="progreso" max="100" :value="Math.round(aplicando.progreso)" x-show="aplicando.fase !== 'ERROR'" aria-label="Avance de la aplicación de correcciones"></progress>
+      <p id="aplicando-estado" role="status" aria-live="polite">
+        <span x-show="aplicando.fase === 'APLICANDO'">Se están aplicando <span x-text="marcadas.length"></span> correcciones sobre una copia del borrador; el original no cambia.</span>
+        <span x-show="aplicando.fase === 'DESCARGANDO'">Descargando <strong x-text="aplicando.archivo"></strong>…</span>
+        <span x-show="aplicando.fase === 'LISTO'">El documento corregido ya se descargó en su equipo.</span>
+        <span x-show="aplicando.fase === 'ERROR'" x-text="aplicando.error"></span>
+      </p>
+      <div class="ruta-descarga" x-show="aplicando.fase === 'LISTO'">
+        <span>Se guardó en</span>
+        <code x-text="'Descargas/' + aplicando.archivo"></code>
+        <small>Carpeta de descargas de su navegador. Si la cambió en la configuración, búsquelo allí.</small>
+      </div>
+      <dl class="valores valores-sueltos" x-show="aplicando.fase === 'LISTO'">
+        <div><dt>Aplicadas</dt><dd class="esperado" x-text="aplicando.resumen?.aplicadas"></dd></div>
+        <div><dt>Excluidas por usted</dt><dd x-text="aplicando.resumen?.excluidas"></dd></div>
+        <div><dt>No aplicadas</dt><dd x-text="aplicando.resumen?.no_aplicadas"></dd></div>
+      </dl>
+    </div>
+    <div class="modal-pie" x-show="aplicandoTerminado()">
+      <a class="btn" x-show="aplicando.descarga" :href="aplicando.descarga"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar de nuevo</a>
+      <button type="button" class="btn btn-primario" @click="modal = null">Cerrar</button>
+    </div>
+  </div>
+</div>

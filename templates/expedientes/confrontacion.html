@@ -363,7 +363,7 @@
     {# ── Modal: aplicar correcciones (envía el formulario de F15) ── #}
     {% if resultado.correcciones %}
       <div class="modal-fondo" x-show="modal === 'aplicar'" x-cloak @click.self="modal = null" @keydown.escape="modal = null">
-        <form class="modal" role="alertdialog" aria-modal="true" aria-labelledby="aplicar-titulo" method="post" action="{% url 'correcciones_aplicar' expediente.pk borrador.pk %}">
+        <form class="modal" role="alertdialog" aria-modal="true" aria-labelledby="aplicar-titulo" method="post" action="{% url 'correcciones_aplicar' expediente.pk borrador.pk %}" @submit.prevent="aplicar($el)">
           {% csrf_token %}
           <input type="hidden" name="corrida" value="{{ resultado.corrida_id }}">
           <input type="hidden" name="confirmado" value="1">
@@ -391,6 +391,8 @@
         </form>
       </div>
     {% endif %}
+
+    {% if resultado.correcciones and resultado.corregible %}{% include "expedientes/_modal_aplicando.html" %}{% endif %}
 
     {# ── Modal: reporte ── #}
     <div class="modal-fondo" x-show="modal === 'reporte'" x-cloak @click.self="modal = null" @keydown.escape="modal = null">
@@ -539,6 +541,7 @@
 {% endif %}
 
 <script src="{% static 'js/reporte-docx.js' %}"></script>
+<script src="{% static 'js/aplicar-correcciones.js' %}"></script>
 <script>
   /* Datos del encabezado del reporte (Word); el resto sale del HTML renderizado. */
   const REPORTE = {
@@ -584,6 +587,7 @@
       el.replaceChildren(document.createTextNode(texto.slice(0, i)), mark, document.createTextNode(texto.slice(fin)));
     };
     return {
+      ...window.aplicarCorrecciones(),
       capa: 'TODAS', sev: 'TODAS', sel: null, modal: null,
       obs: [], correcciones: [], marcadas: [],
       generando: false, errorReporte: '',

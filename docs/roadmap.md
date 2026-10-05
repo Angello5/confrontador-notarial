@@ -71,6 +71,8 @@ F38: lectura del borrador y persona sin ficha. El usuario decidió que, cuando l
 
 F39: errores lingüísticos y anexo omitido. El usuario pidió quitar la regla de párrafos y centrar la revisión en los errores lingüísticos. El anexo omitido sigue siendo un error, ahora como una sola alerta por anexo. El anexo insertado como recaudo (Recaudos.pdf) no cuenta como omitido. La capa lingüística detecta el acento grave y deja de reportar ruido, y el texto del .docx se lee como se imprime («Todo mayúsculas» de Word). El aviso de persona sin ficha muestra cómo escribe la minuta el nombre. Alcance en `specs/033-linguistico-tipeo/`.
 
+F40: aplicar correcciones con avance y descarga directa. El usuario pidió que, al aplicar las correcciones, aparezca una ventana con una barra de avance del color de la interfaz y que al terminar el archivo ya esté descargado y se indique dónde quedó. Alcance en `specs/034-correcciones-progreso/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**
