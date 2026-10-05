@@ -18,10 +18,11 @@ La capa lingüística (F23, `specs/017-componente-linguistico/`) mostraba 76 fil
 
 La regla de párrafos daba 9 alertas: 5 eran ruido (sellos, firmas, «HYPERLINK», viñetas) y 4 correspondían al Anexo 1 de dos expedientes.
 
-Al revisar la primera versión en pantalla, el usuario hizo dos observaciones:
+Al revisar la primera versión en pantalla, el usuario hizo tres observaciones:
 
 - **«AvENIDA» marcado, pero el documento dice «AVENIDA».** Los borradores usan el formato «Todo mayúsculas» de Word (`w:caps`). El texto tecleado conserva minúsculas que nunca se imprimen, y el extractor leía el texto tecleado, no el impreso.
 - **El anexo no se omite: va insertado como Recaudos.pdf.** En los créditos que lo traen así, después de «INSERTO:» el borrador pasa directo a las firmas, y la hoja resumen escaneada (con su importe) está entre los recaudos.
+- **Persona sin ficha RENIEC.** Le gusta que no se compare (no hay con qué verificar), pero puede ser contraproducente: el nombre del representante de una empresa estaba mal escrito y solo salía «Sin ficha». Aceptó el término medio: el aviso sigue siendo MEDIA y muestra cómo escribe la minuta el nombre si lo escribe distinto.
 
 ## Comportamiento implementado
 
@@ -37,6 +38,10 @@ Al revisar la primera versión en pantalla, el usuario hizo dos observaciones:
 - **Anexo insertado**:
   - Si el borrador tiene «INSERTO:» y un monto del anexo (desde 1,000.00) figura en los recaudos, el anexo va como documento insertado.
   - En ese caso no se observa como omitido y sus montos no se exigen en el texto del borrador.
+- **Persona sin ficha** (`SIN_FICHA`, MEDIA, de F38):
+  - Si la minuta escribe distinto un nombre que no tiene ficha, el aviso lo muestra: «Sin ficha RENIEC en los recaudos; la minuta dice «…»».
+  - El parecido se busca en ventanas del mismo número de palabras de la minuta, con un parecido de al menos 80. Un nombre de menos de 3 palabras no se busca.
+  - No hay «debe decir» ni corrección automática.
 - **Mayúsculas y minúsculas mezcladas** (capa lingüística):
   - Se reporta una palabra impresa con una minúscula intercalada («lA»), sea cual sea su largo.
   - No se reportan las palabras en mayúsculas, en minúsculas, con mayúscula inicial ni las marcas como «WhatsApp».
@@ -49,7 +54,7 @@ Al revisar la primera versión en pantalla, el usuario hizo dos observaciones:
   - «Nº» y «1ª» no forman palabra con la letra que sigue;
   - la lista de la casa suma siglas (SAC, SAA, SRL, EIRL, UIT, JUS, ICAP) y términos que el diccionario no trae.
 
-Catálogo de reglas `2026.10.05-8`. `ANEXO` tiene severidad MEDIA; la capa lingüística sigue en BAJA.
+Catálogo de reglas `2026.10.05-9`. `ANEXO` tiene severidad MEDIA; la capa lingüística sigue en BAJA.
 
 ## Medición
 
@@ -58,6 +63,7 @@ Confrontación en memoria de los 11 expedientes de prueba, más un borrador con 
 - **Regla**:
   - desaparecen las 9 alertas de párrafo;
   - en los dos expedientes con la hoja resumen insertada como recaudo, el anexo y su monto ya no se observan;
+  - los avisos de persona sin ficha de dos expedientes muestran el nombre que trae la minuta (el representante de la empresa acreedora, con letras cambiadas);
   - el resto de la regla y de personas no cambia;
   - el expediente con errores sembrados sigue con 8 de 8.
 - **Lingüístico** (11 expedientes): pasa de 76 a 19 filas, de las cuales 18 son errores reales:
@@ -89,5 +95,6 @@ Confrontación en memoria de los 11 expedientes de prueba, más un borrador con 
 - `tests/test_docx_tablas.py`: «Todo mayúsculas» directo, desactivado, heredado del estilo de párrafo, en la marca de párrafo y versalitas por estilo de carácter.
 - `tests/test_linguistico.py`: minúscula intercalada, acento grave, palabra repetida y formas válidas (siglas, «Nº», marcas, abreviaturas, topónimos y apellidos repetidos), todo con datos ficticios.
 - `tests/test_anexo_omitido.py`: anexo ausente, anexo presente, párrafo suelto fuera del anexo, minuta sin anexo, dos anexos y anexo insertado como recaudo (con y sin «INSERTO:» y monto).
-- `tests/test_expedientes_confrontacion.py`: la confrontación llama a `anexos_omitidos` y no a `revisar_parrafos`.
+- `tests/test_expedientes_confrontacion.py`: la confrontación llama a `anexos_omitidos` y no a `revisar_parrafos`; la traducción del aviso sin ficha conserva lo que dice la minuta.
+- `tests/test_lectura_borrador.py`: nombre sin ficha escrito distinto e igual que en la minuta.
 - `test_ortografia.py`: «OCUPACIÒN» ahora sale como «acento grave».

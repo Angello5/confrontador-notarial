@@ -60,6 +60,8 @@ _RE_DEBE_DECIR = re.compile(
     r"^debe decir\s+«(?P<esperado>[^»]*)»(?P<resto>.*)$", re.IGNORECASE
 )
 _RE_MOTIVO_CARATULA = re.compile(r"\s+(?P<motivo>\(caratula\))\s*$", re.IGNORECASE)
+# F39: el aviso de persona sin ficha conserva cómo escribe la minuta el nombre
+_RE_MINUTA_DICE = re.compile(r"; la minuta dice «[^»]*»")
 _RE_MOTIVO_MONTO = re.compile(
     r"\s+\(concepto: (?P<concepto>[^;]*); fuente: (?P<archivo>.*), p\. (?P<pagina>\d+)\)\s*$"
 )
@@ -941,7 +943,14 @@ def parsear_observacion_regla(salida, texto_borrador):
             "Posible Ñ por marca de agua; verifique el DNI",
         ):
             if resto.lower().startswith(frase.lower()):
-                return _observacion_regla(campo, hallado, frase, "", texto_borrador)
+                nota = _RE_MINUTA_DICE.search(resto)
+                return _observacion_regla(
+                    campo,
+                    hallado,
+                    frase + (nota[0] if nota else ""),
+                    "",
+                    texto_borrador,
+                )
 
     return {
         "formato": "desconocido",

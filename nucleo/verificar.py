@@ -2247,6 +2247,26 @@ def revisar(
             d for texto in minutas.values() for d in RE_DNI_DOC.findall(norm(texto))
         } | {p.documento for p in getattr(cat, "personas", ())}
     obs, vistos = [], {k: set() for k in cat}
+    palabras_minuta = [
+        re.findall(r"[^\W\d_]+", norm(texto)) for texto in (minutas or {}).values()
+    ]
+
+    def en_minuta(valor):
+        """F39: cómo escribe la minuta un nombre sin ficha, si lo escribe distinto.
+
+        ponytail: ventanas del mismo número de palabras y ratio >= 80; un nombre
+        de menos de 3 palabras se parece a demasiados y no se busca.
+        """
+        n = len(valor.split())
+        ventanas = {
+            " ".join(p[i : i + n])
+            for p in palabras_minuta
+            for i in range(len(p) - n + 1)
+        }
+        if n < 3 or valor in ventanas:
+            return None
+        m = process.extractOne(valor, ventanas, scorer=fuzz.ratio, score_cutoff=80)
+        return m[0] if m else None
 
     def check(campo, valor, ctx=""):
         vistos[campo].add(valor)
@@ -2257,7 +2277,11 @@ def revisar(
             obs.append(f"[{campo}] «{valor}» debe decir «{m[0]}»{ctx}")
         elif campo in ("NOMBRE", "DNI"):
             # Nadie así en los recaudos: no se puede verificar; es aviso, no error.
-            obs.append(f"[SIN_FICHA] «{valor}» sin ficha RENIEC en los recaudos{ctx}")
+            dice = en_minuta(valor) if campo == "NOMBRE" else None
+            nota = f"; la minuta dice «{dice}»" if dice else ""
+            obs.append(
+                f"[SIN_FICHA] «{valor}» sin ficha RENIEC en los recaudos{nota}{ctx}"
+            )
         else:
             obs.append(f"[{campo}] «{valor}» no coincide con ninguna fuente{ctx}")
 
