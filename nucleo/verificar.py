@@ -24,8 +24,9 @@ Persona = namedtuple(
     "Persona",
     "nombre documento procedencias estado estado_civil fecha_nacimiento domicilio distrito "
     "procedencia_estado_civil procedencia_fecha_nacimiento procedencia_domicilio procedencia_distrito "
-    "fecha_emision emisiones_campos adjuntos conyuge procedencia_conyuge",
-    defaults=("CONFIRMADA",) + (None,) * 13,
+    "fecha_emision emisiones_campos adjuntos conyuge procedencia_conyuge "
+    "sexo procedencia_sexo",
+    defaults=("CONFIRMADA",) + (None,) * 15,
 )
 
 
@@ -556,6 +557,14 @@ def _fecha_reniec(valor: str | None) -> date | None:
         return None
 
 
+def _sexo(valor: str | None) -> str | None:
+    """F41: «Sexo: MASCULINO» de la consulta RENIEC; otra lectura no cuenta."""
+    leido = norm(valor or "")
+    if leido.startswith("MASC"):
+        return "MASCULINO"
+    return "FEMENINO" if leido.startswith("FEM") else None
+
+
 def _campos_reniec(pagina: Pagina) -> dict:
     raw = pagina.texto
     civil = _campo_reniec(raw, "ESTADO CIVIL")
@@ -578,12 +587,15 @@ def _campos_reniec(pagina: Pagina) -> dict:
         "distrito": _campo_reniec(raw, "DISTRITO DE DOMICILIO"),
     }
     origen = Procedencia(pagina.fuente, pagina.numero)
+    sexo = _sexo(_campo_reniec(raw, "SEXO"))
     return {
         **valores,
         **{
             f"procedencia_{campo}": origen if valor is not None else None
             for campo, valor in valores.items()
         },
+        "sexo": sexo,
+        "procedencia_sexo": origen if sexo else None,
         "fecha_emision": emision,
         "emisiones_campos": tuple(
             emision if valor is not None else None for valor in valores.values()
@@ -860,6 +872,10 @@ def unificar_personas(personas, tipos=None) -> tuple[Persona, ...]:
             conyuge=existente.conyuge or persona.conyuge,
             procedencia_conyuge=existente.procedencia_conyuge
             or persona.procedencia_conyuge,
+            sexo=existente.sexo or persona.sexo,
+            procedencia_sexo=existente.procedencia_sexo
+            if existente.sexo
+            else persona.procedencia_sexo,
             estado="REVISION_MANUAL"
             if conflicto
             or nombre_dudoso
@@ -1161,6 +1177,98 @@ def _con_filas_de_domicilio(lineas: list[str], i: int) -> str:
     return " ".join(tramo)
 
 
+# F41: concordancia de género con el sexo de RENIEC. El participio tras «haber»
+# es invariable («haberse identificado»); los plurales y «nacionalidad peruana»
+# no se refieren a una persona.
+_PARTICIPIO_PERSONA = re.compile(
+    r"(?<![A-ZÑ])(IDENTIFICAD|DOMICILIAD|CASAD|SOLTER|VIUD|DIVORCIAD)([AO])(?![A-ZÑ])"
+)
+_AUXILIAR = re.compile(r"(?<![A-ZÑ])(?:HABER(?:SE)?|HA|HAN|HABIENDO(?:SE)?|SIDO)\s+$")
+_TITULO = re.compile(r"(?<![A-ZÑ])(SEÑORA|SEÑOR|DOÑA|DON|SRA|SR)\.?\s+$")
+_TITULO_GENERO = {
+    "SEÑORA": "A",
+    "DOÑA": "A",
+    "SRA": "A",
+    "SEÑOR": "O",
+    "DON": "O",
+    "SR": "O",
+}
+_TITULO_EN = {
+    "A": {"SEÑOR": "SEÑORA", "DON": "DOÑA", "SR": "SRA"},
+    "O": {"SEÑORA": "SEÑOR", "DOÑA": "DON", "SRA": "SR"},
+}
+# Fórmulas del notario sobre quien otorga; los términos del contrato («EL
+# CLIENTE», «EL MUTUATARIO») son definidos y no cambian con la persona.
+_FORMULAS_GENERO = (
+    re.compile(
+        r"(?<![A-ZÑ])(EL|AL|DEL|LA)\s+(?:MISM[OA]\s+)?(?:OTORGANTE|COMPARECIENTE)(?![A-ZÑ])"
+    ),
+    re.compile(r"(?<![A-ZÑ])QUEDANDO\s+ADVERTID([OA])(?![A-ZÑ])"),
+    # con artículo: «SOBRE BENEFICIARIO FINAL» nombra la declaración, no a la persona
+    re.compile(r"(?<![A-ZÑ])(EL|LA)\s+BENEFICIARI[OA]\s+FINAL(?![A-ZÑ])"),
+    re.compile(r"(?<![A-ZÑ])ESTA\s+IDENTIFICAD([OA])(?![A-ZÑ])"),
+)
+_ARTICULO_GENERO = {"EL": "O", "AL": "O", "DEL": "O", "LA": "A"}
+_ARTICULO_EN = {"O": {"LA": "EL"}, "A": {"EL": "LA", "AL": "A LA", "DEL": "DE LA"}}
+_CON_GENERO = re.compile(
+    r"(MISM|ADVERTID|BENEFICIARI|IDENTIFICAD|DOMICILIAD|CASAD|SOLTER|VIUD|DIVORCIAD)[AO]"
+)
+
+
+def _en_genero(fragmento: str, genero: str) -> str:
+    """El fragmento con artículo, tratamiento y participio en ``genero`` (O/A)."""
+    palabras = [
+        _ARTICULO_EN[genero].get(p, _TITULO_EN[genero].get(p, p))
+        for p in fragmento.split()
+    ]
+    return _CON_GENERO.sub(lambda m: m[1] + genero, " ".join(palabras))
+
+
+def _genero_persona(clausula: str, nombre: str, otros, genero: str) -> list[str]:
+    """Palabras de la comparecencia de ``nombre`` en el otro género.
+
+    El tratamiento va justo antes del nombre; los participios, después y hasta
+    el nombre de otra persona: el primero de cada clase es el suyo.
+    """
+    propio = re.search(
+        rf"(?<![A-ZÑ]){re.escape(_nombre_clave(nombre))}(?![A-ZÑ])", clausula
+    )
+    if not propio:
+        return []
+    resto = clausula[propio.end() :]
+    cortes = [
+        m.start()
+        for otro in otros
+        if (m := re.search(rf"(?<![A-ZÑ]){re.escape(otro)}(?![A-ZÑ])", resto))
+    ]
+    tramo = resto[: min(cortes, default=len(resto))]
+    titulo = _TITULO.search(clausula[: propio.start()])
+    hallados = [titulo[1]] if titulo and _TITULO_GENERO[titulo[1]] != genero else []
+    vistos = set()
+    for m in _PARTICIPIO_PERSONA.finditer(tramo):
+        # el estado civil es uno: el segundo marcador es de otra persona
+        clase = m[1] if m[1] in ("IDENTIFICAD", "DOMICILIAD") else "CIVIL"
+        if clase in vistos or _AUXILIAR.search(tramo[: m.start()]):
+            continue
+        vistos.add(clase)
+        if m[2] != genero:
+            hallados.append(m[0])
+    return hallados
+
+
+def _genero_formulas(borrador: str, genero: str) -> list[str]:
+    """Fórmulas del notario en el otro género, una vez cada una."""
+    d = norm(borrador)
+    return list(
+        dict.fromkeys(
+            m[0]
+            for patron in _FORMULAS_GENERO
+            for m in patron.finditer(d)
+            if _ARTICULO_GENERO.get(m[1], m[1]) != genero
+        )
+    )
+
+
 def revisar_persona_ampliada(
     cat: Catalogo, borrador: str, hoy: date | None = None, contractuales=()
 ) -> tuple[dict, ...]:
@@ -1181,6 +1289,7 @@ def revisar_persona_ampliada(
     # las direcciones de los recaudos, no con los domicilios RENIEC personales.
     personales = {norm(p.domicilio) for p in cat._registros() if p.domicilio}
     recaudos = [_direccion_tokens(d) for d in cat.direcciones - personales]
+    comparecientes = []
     for persona in cat.personas:
         if (
             persona.estado != "CONFIRMADA"
@@ -1264,6 +1373,24 @@ def revisar_persona_ampliada(
                         "procedencia": persona.procedencia_fecha_nacimiento,
                     }
                 )
+        if persona.sexo:
+            genero = "O" if persona.sexo == "MASCULINO" else "A"
+            otros = [
+                _nombre_clave(o.nombre)
+                for o in cat.personas
+                if o.nombre and _nombre_clave(o.nombre) != _nombre_clave(persona.nombre)
+            ]
+            observaciones.extend(
+                {
+                    **base,
+                    "tipo": "GENERO",
+                    "esperado": f"{persona.sexo} («{_en_genero(palabra, genero)}»)",
+                    "hallado": palabra,
+                    "procedencia": persona.procedencia_sexo,
+                }
+                for palabra in _genero_persona(clausula, persona.nombre, otros, genero)
+            )
+        comparecientes.append(persona)
         if persona.domicilio:
             referencias = [("RENIEC", persona.domicilio)] + [
                 ("Minuta", d) for d in contractuales
@@ -1323,6 +1450,26 @@ def revisar_persona_ampliada(
                         "procedencia": persona.procedencia_domicilio,
                     }
                 )
+    # F41: las fórmulas del notario, si todos los comparecientes tienen el mismo
+    # sexo según RENIEC (con uno desconocido o mezclados no se puede decidir).
+    sexos = {p.sexo for p in comparecientes}
+    if len(sexos) == 1 and None not in sexos:
+        sexo = sexos.pop()
+        genero = "O" if sexo == "MASCULINO" else "A"
+        quien = (
+            comparecientes[0].nombre if len(comparecientes) == 1 else "Comparecientes"
+        )
+        observaciones.extend(
+            {
+                "nombre": quien,
+                "tipo": "GENERO",
+                "esperado": f"{sexo} («{_en_genero(formula, genero)}»)",
+                "hallado": formula,
+                "procedencia": comparecientes[0].procedencia_sexo,
+                "ubicar": formula,
+            }
+            for formula in _genero_formulas(borrador, genero)
+        )
     return tuple(observaciones)
 
 
@@ -1842,6 +1989,23 @@ def _texto_ordinal(n: int, genero: str) -> str:
     return " ".join(r + genero for r in raices)
 
 
+# F41: rótulo con el ordinal mal escrito («OCTAO:», «DECIO:»); se compara con el
+# que toca en la numeración. Desde la segunda cláusula: antes, «PRIMA:» (de un
+# seguro) se parece a «PRIMERA».
+RE_ROTULO = re.compile(r"^(?:CLAUSULA\s+)?([A-Z]{4,}(?:\s+[A-Z]{4,})?)\s*(?:\.-|[.:-])")
+
+
+def _ordinal_mal_escrito(palabra: str, esperado: int) -> str | None:
+    """El ordinal ``esperado`` (masculino o femenino) que ``palabra`` escribe mal."""
+    candidatos = [_texto_ordinal(esperado, genero) for genero in "OA"]
+    candidatos += [c.replace("SEPTIM", "SETIM") for c in candidatos]
+    mejor = max(candidatos, key=lambda c: fuzz.ratio(palabra, c))
+    if esperado < 2 or palabra in candidatos or palabra.removesuffix("S") == mejor:
+        return None
+    # 85: «OCTAO» y «DECIO» (91) sí; «SEGUN» frente a «SEGUNDA» (83) no
+    return mejor if fuzz.ratio(palabra, mejor) >= 85 else None
+
+
 def _clase_inciso(simbolo: str, ultimos: dict) -> tuple[str, int] | None:
     """(clase, valor) del inciso; «I», «V» y «X» son letra o romano según cuál
     continúa su secuencia."""
@@ -1889,6 +2053,16 @@ def _correlativos(destino: str) -> list[str]:
                     f"[CORRELATIVO] «{m[0]}» debe decir "
                     f"«{m[0][: m.start(1)]}{correcto}{m[0][m.end(1) :]}»"
                 )
+            incisos, clausula = {}, ordinal
+        elif (m := RE_ROTULO.match(t)) and (
+            ordinal := _ordinal_mal_escrito(m[1], clausulas.get("*", 0) + 1)
+        ):
+            obs.append(
+                f"[CORRELATIVO] «{m[0]}» debe decir "
+                f"«{m[0][: m.start(1)]}{ordinal}{m[0][m.end(1) :]}»"
+            )
+            # cuenta como el ordinal que toca: la siguiente no salta
+            clausulas["*"] = clausulas[ordinal[-1]] = clausulas.get("*", 0) + 1
             incisos, clausula = {}, ordinal
         elif (m := RE_INCISO.match(t)) and (inciso := _clase_inciso(m[1], incisos)):
             clase, valor = inciso

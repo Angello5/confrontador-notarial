@@ -186,3 +186,29 @@ def test_regla_sin_texto_correcto_no_entra_en_correccion_automatica():
     assert [(c["campo"], c["correcto"]) for c in correcciones(salidas, fuentes)] == [
         ("DATO_REGISTRAL", "REGISTRO DE SOCIEDADES")
     ]
+
+
+def test_ordinal_mal_escrito_cuenta_como_el_que_toca():
+    """F41: el rótulo mal escrito se corrige y la cláusula siguiente no salta."""
+    borrador = "PRIMERA: OBJETO\nSEGUNDA: PRECIO\nTERCRA: PLAZO\nCUARTA: PAGO\n"
+    assert _observaciones("MINUTA FICTICIA", borrador, "CORRELATIVO") == [
+        "[CORRELATIVO] «TERCRA:» debe decir «TERCERA:»",
+    ]
+    ordinales = "PRIMERO SEGUNDO TERCERO CUARTO QUINTO SEXTO SETIMO OCTAO NOVENO DECIO"
+    borrador = "".join(f"{o}: CLAUSULA FICTICIA\n" for o in ordinales.split())
+    assert _observaciones("MINUTA FICTICIA", borrador, "CORRELATIVO") == [
+        "[CORRELATIVO] «OCTAO:» debe decir «OCTAVO:»",
+        "[CORRELATIVO] «DECIO:» debe decir «DECIMO:»",
+    ]
+
+
+def test_rotulo_parecido_que_no_es_ordinal_no_se_marca():
+    borrador = (
+        "PRIMA: S/ 100.00 DEL SEGURO FICTICIO\n"
+        "PRIMERA: OBJETO\n"
+        "SEGUN: LA MINUTA FICTICIA\n"
+        "SEGUNDA: PRECIO\n"
+        "TERCEROS: NO INTERVIENEN\n"
+        "TERCERA: PLAZO\n"
+    )
+    assert _observaciones("MINUTA FICTICIA", borrador, "CORRELATIVO") == []

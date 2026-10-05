@@ -1027,12 +1027,15 @@ def test_persona_f13_anade_campos_al_final_y_catalogo_menciones_vacias():
     origen = (Procedencia("ficticio.pdf", 1),)
     persona = Persona("ALBA LUMARIA ZAFIRO", "90000011", origen)
     assert persona == Persona("ALBA LUMARIA ZAFIRO", "90000011", origen, "CONFIRMADA")
-    assert Persona._fields[-3:] == ("adjuntos", "conyuge", "procedencia_conyuge")
-    assert (persona.adjuntos, persona.conyuge, persona.procedencia_conyuge) == (
-        None,
-        None,
-        None,
+    # F13 y luego F41 (sexo de RENIEC), siempre al final
+    assert Persona._fields[-5:] == (
+        "adjuntos",
+        "conyuge",
+        "procedencia_conyuge",
+        "sexo",
+        "procedencia_sexo",
     )
+    assert persona[-5:] == (None,) * 5
     assert Catalogo((persona,)).menciones == ()
 
 
