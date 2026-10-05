@@ -2432,6 +2432,16 @@ def revisar_parrafos(minutas: list[str], destino: str, umbral: int) -> list[str]
 RE_ANEXO = re.compile(r"(?m)^[^\S\n]*ANEXO\s+(?:N[°º.]?\s*)?(?:\d+|[IVX]+)\b.*$")
 
 
+RE_INSERTO = re.compile(r"\bINSERTO\s*:", re.I)
+RE_MILES = re.compile(r"\d{1,3}(?:,\d{3})+\.\d{2}")  # monto desde 1,000.00
+
+
+def _anexos(src: str):
+    """(encabezado, fin) de cada anexo: llega hasta el siguiente o al final."""
+    cortes = list(RE_ANEXO.finditer(src))
+    return zip(cortes, [s.start() for s in cortes[1:]] + [len(src)])
+
+
 def anexos_omitidos(minutas: list[str], destino: str, umbral: int) -> list[str]:
     """[ANEXO] por cada anexo de la minuta (hoja resumen, cronograma) ausente.
 
@@ -2440,11 +2450,29 @@ def anexos_omitidos(minutas: list[str], destino: str, umbral: int) -> list[str]:
     """
     obs = []
     for src in minutas:
-        cortes = list(RE_ANEXO.finditer(src))
-        for m, sig in zip(cortes, [*cortes[1:], None]):
-            cuerpo = src[m.end() : sig.start() if sig else None]
+        for m, fin in _anexos(src):
+            cuerpo = src[m.end() : fin]
             if len(revisar_parrafos([cuerpo], destino, umbral)) * 2 > len(
                 parrafos(cuerpo)
             ):
                 obs.append(f"[ANEXO] FALTA: «{m[0].strip()}»")
     return obs
+
+
+def sin_anexos_insertados(minutas, destino: str, recaudos) -> list[str]:
+    """La minuta sin los anexos que el borrador inserta como documento.
+
+    Con «INSERTO:» en el borrador, el anexo cuyo monto figura en los recaudos va
+    como el documento escaneado (la hoja resumen de Recaudos.pdf): no se observa
+    como omitido ni se exigen sus montos en el texto del borrador.
+    """
+    if not RE_INSERTO.search(destino):
+        return list(minutas)
+    en_recaudos = {c for texto in recaudos for c in RE_MILES.findall(texto)}
+    salida = []
+    for src in minutas:
+        for m, fin in reversed(list(_anexos(src))):
+            if en_recaudos & set(RE_MILES.findall(src, m.end(), fin)):
+                src = src[: m.start()] + src[fin:]
+        salida.append(src)
+    return salida

@@ -61,7 +61,8 @@ _FORMATO_CACHE = 3
 # Forma del texto extraido que no pasa por la cache de OCR (identidad en la base).
 # 2: cada fila de tabla de un .docx es una linea (F27).
 # 3: el salto manual <w:br/> de un .docx también separa líneas.
-_FORMATO_TEXTO = 3
+# 4: el «Todo mayúsculas» (w:caps) de un .docx se aplica al texto (F39).
+_FORMATO_TEXTO = 4
 
 
 def version_extractor() -> str:
@@ -446,6 +447,101 @@ RE_DOCX_MARCA = re.compile(
     r"</w:p>|<w:br(?=[\s/>])[^>]*>|<w:cr(?=[\s/>])[^>]*>"
     r"|<w:tbl(?=[\s>])|</w:tbl>|</w:tc>|</w:tr>"
 )
+# F39: «Todo mayúsculas» y versalitas. Word imprime «AVENIDA» aunque se tecleara
+# «AvENIDA»; el texto debe decir lo que se imprime.
+RE_CAPS = re.compile(r'<w:(?:caps|smallCaps)(?:\s+w:val="([^"]*)")?\s*/>')
+RE_FORMATO = re.compile(
+    r"<w:p(?=[\s>])[^>]*>|</w:p>|<w:pPr>|</w:pPr>|<w:r(?=[\s>])[^>]*>|</w:r>"
+    r'|<w:(pStyle|rStyle)\s+w:val="([^"]*)"[^>]*>'
+    r'|<w:(?:caps|smallCaps)(?:\s+w:val="([^"]*)")?\s*/>'
+    r"|<w:t(?:\s[^>]*)?>(.*?)</w:t>",
+    re.S,
+)
+# formato anterior de un cambio controlado: no es el que se imprime
+RE_CAMBIO_FORMATO = re.compile(r"<w:(rPrChange|pPrChange)\b.*?</w:\1>", re.S)
+
+
+def _caps(val) -> bool:
+    return val is None or val.lower() not in {"0", "false", "off"}
+
+
+def _estilos_caps(z) -> tuple[dict, bool]:
+    """(caps de cada estilo con su herencia, caps por defecto del documento)."""
+    try:
+        xml = z.read("word/styles.xml").decode("utf-8", "ignore")
+    except KeyError:
+        return {}, False
+    propios, base = {}, {}
+    for m in re.finditer(
+        r'<w:style\b[^>]*\bw:styleId="([^"]+)"[^>]*>(.*?)</w:style>', xml, re.S
+    ):
+        rpr = re.search(r"<w:rPr>(.*?)</w:rPr>", m[2], re.S)
+        caps = RE_CAPS.search(rpr[1]) if rpr else None
+        propios[m[1]] = _caps(caps[1]) if caps else None
+        if padre := re.search(r'<w:basedOn\s+w:val="([^"]+)"', m[2]):
+            base[m[1]] = padre[1]
+
+    def heredado(estilo):
+        for _ in range(20):  # cadena basedOn; el tope corta un ciclo
+            if estilo is None or propios.get(estilo) is not None:
+                return propios.get(estilo)
+            estilo = base.get(estilo)
+        return None
+
+    defecto = re.search(r"<w:rPrDefault>(.*?)</w:rPrDefault>", xml, re.S)
+    caps = RE_CAPS.search(defecto[1]) if defecto else None
+    return {e: heredado(e) for e in propios}, bool(caps and _caps(caps[1]))
+
+
+def _con_mayusculas(xml: str, estilos: dict, defecto: bool) -> str:
+    """Pone en mayúsculas el texto de cada run que Word imprime así.
+
+    Precedencia: formato directo del run, su estilo de carácter, el estilo del
+    párrafo y el defecto del documento. El rPr dentro de pPr es de la marca de
+    párrafo y no toca el texto. Pilas: un cuadro de texto anida párrafos y runs.
+    ponytail: sin el XOR de propiedades alternables entre estilos de Word.
+    """
+    from html import escape, unescape
+
+    xml = RE_CAMBIO_FORMATO.sub("", xml)
+    partes, desde, parrafos, runs, ppr = [], 0, [], [], 0
+    for m in RE_FORMATO.finditer(xml):
+        marca = m[0]
+        if m[4] is not None:
+            run = runs[-1] if runs else {}
+            heredados = (
+                run.get("caps"),
+                estilos.get(run.get("estilo")),
+                estilos.get(parrafos[-1] if parrafos else None),
+            )
+            caps = next((c for c in heredados if c is not None), defecto)
+            if caps and m[4] != m[4].upper():
+                texto = escape(unescape(m[4]).upper(), quote=False)
+                partes += [xml[desde : m.start(4)], texto]
+                desde = m.end(4)
+        elif m[1] == "pStyle":
+            if parrafos:
+                parrafos[-1] = m[2]
+        elif marca in ("<w:pPr>", "</w:pPr>"):
+            ppr += 1 if marca == "<w:pPr>" else -1
+        elif marca == "</w:p>":
+            if parrafos:
+                parrafos.pop()
+        elif marca.startswith("<w:p"):
+            parrafos.append(None)
+        elif ppr:
+            continue  # rStyle y caps de la marca de párrafo
+        elif marca == "</w:r>":
+            if runs:
+                runs.pop()
+        elif m[1] == "rStyle":
+            if runs:
+                runs[-1]["estilo"] = m[2]
+        elif marca.startswith("<w:r"):
+            runs.append({})
+        elif runs:
+            runs[-1]["caps"] = _caps(m[3])
+    return "".join(partes) + xml[desde:]
 
 
 def _docx(p: Path) -> str:
@@ -458,12 +554,13 @@ def _docx(p: Path) -> str:
 
     lineas = []
     with zipfile.ZipFile(p) as z:
+        estilos, defecto = _estilos_caps(z)
         nombres = sorted(
             (n for n in z.namelist() if PARTES_DOCX.fullmatch(n)),
             key=lambda n: (n != "word/document.xml", n),
         )
         for n in nombres:
-            xml = z.read(n).decode("utf-8", "ignore")
+            xml = _con_mayusculas(z.read(n).decode("utf-8", "ignore"), estilos, defecto)
             xml = RE_TAB.sub("<w:t>  </w:t>", RE_FALLBACK.sub("", xml))
             # F27: dentro de una tabla, cada fila es una linea con sus celdas
             # separadas por dos espacios, como ocr_lineas; una tabla anidada se

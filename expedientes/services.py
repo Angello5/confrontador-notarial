@@ -1158,6 +1158,16 @@ def confrontar_borrador(
         for documento in fuentes_documentos
         if documento.rol == Documento.MINUTA
     ]
+    # F39: el anexo que el borrador inserta como documento (Recaudos.pdf)
+    minutas_sin_insertos = verificar.sin_anexos_insertados(
+        minutas,
+        texto_borrador,
+        [
+            documento.texto_extraido.texto
+            for documento in fuentes_documentos
+            if documento.rol == Documento.CLIENTE
+        ],
+    )
     reglas = verificar.revisar(
         catalogo,
         texto_borrador,
@@ -1165,14 +1175,16 @@ def confrontar_borrador(
         verificar.nombres_exigibles(catalogo, minutas)
         if isinstance(catalogo, verificar.Catalogo)
         else None,
-        verificar.montos_exigibles(minutas),
+        verificar.montos_exigibles(minutas_sin_insertos),
         {
             documento.nombre_original: documento.texto_extraido.texto
             for documento in fuentes_documentos
             if documento.rol == Documento.MINUTA
         },
     )
-    reglas.extend(verificar.anexos_omitidos(minutas, texto_borrador, _UMBRAL_PARRAFO))
+    reglas.extend(
+        verificar.anexos_omitidos(minutas_sin_insertos, texto_borrador, _UMBRAL_PARRAFO)
+    )
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     correcciones = correccion.correcciones(reglas, fuentes)
     original = ruta_original(borrador)
