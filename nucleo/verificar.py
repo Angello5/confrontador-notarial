@@ -1013,6 +1013,7 @@ def _direccion_palabras(texto: str) -> list[str]:
     sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes).replace("#", " INTERIOR ")
     # RENIEC abrevia «ASENT.H.» y «AA.HH.», y pega el número: «LT6», «MZ.44».
     sin_tildes = re.sub(r"\b(?:ASENT\.?\s*H|AA\.?\s*HH)\b\.?", " AAHH ", sin_tildes)
+    sin_tildes = re.sub(r"\bP\.?\s*J\b\.?", " PUEBLO JOVEN ", sin_tildes)
     sin_tildes = re.sub(r"\b(MZ|LT|DPTO|INT)(?=\d)", r"\1 ", sin_tildes)
     tokens = re.findall(r"[A-Z0-9]+", sin_tildes)
     # «LOTE 05» y «LT.5» son el mismo número.
@@ -1022,6 +1023,23 @@ def _direccion_palabras(texto: str) -> list[str]:
 
 def _direccion_tokens(texto: str) -> Counter:
     return Counter(_direccion_palabras(texto))
+
+
+# F37: tipo de habilitación urbana; omitirlo o cambiarlo es un aviso leve.
+_HABILITACION = Counter(
+    "ASENTAMIENTO HUMANO PUEBLO JOVEN URBANIZACION ASOCIACION COOPERATIVA "
+    "CONJUNTO HABITACIONAL AGRUPACION FAMILIAR".split()
+)
+RE_DOMICILIO_CONTRACTUAL = re.compile(
+    r"DOMICILIO\s+PARA\s+(?:LOS\s+)?EFECTOS\s+(?:DE\s+ESTE|DEL\s+PRESENTE)\s+"
+    r"CONTRATO\s+EN\s+(.{5,200}?)"
+    r"(?=,\s*(?:DISTRITO|PROVINCIA|DEPARTAMENTO)\b|,\s*CON\s+DOMICILIO|;)"
+)
+
+
+def domicilios_contractuales(textos) -> list[str]:
+    """F37: domicilios que la minuta fija «para efectos de este contrato»."""
+    return [m[1] for t in textos for m in RE_DOMICILIO_CONTRACTUAL.finditer(norm(t))]
 
 
 _ROTULO_DIRECCION_FUENTE = re.compile(
@@ -1124,9 +1142,13 @@ def _direcciones_observadas(
 
 
 def revisar_persona_ampliada(
-    cat: Catalogo, borrador: str, hoy: date | None = None
+    cat: Catalogo, borrador: str, hoy: date | None = None, contractuales=()
 ) -> tuple[dict, ...]:
-    """Observaciones F12 puras: la fecha de referencia siempre llega del llamador."""
+    """Observaciones F12 puras: la fecha de referencia siempre llega del llamador.
+
+    F37: el domicilio vale si es el de RENIEC o uno que la minuta fija para el
+    contrato (``contractuales``); si solo omite o cambia el tipo de habilitación,
+    es un aviso leve."""
     observaciones = []
     # F22: la aparición errónea ya sale como [DIRECCION] en revisar().
     observadas = {
@@ -1199,7 +1221,9 @@ def revisar_persona_ampliada(
                     }
                 )
         if persona.domicilio:
-            direccion = _direccion_tokens(persona.domicilio)
+            referencias = [("RENIEC", persona.domicilio)] + [
+                ("Minuta", d) for d in contractuales
+            ]
             # ponytail: busca en la línea del compareciente; ampliar al párrafo si hay domicilios multilínea.
             # F16: cualquier línea con su nombre exacto o su DNI exacto.
             dni = re.compile(rf"(?<!\d){re.escape(persona.documento)}(?!\d)")
@@ -1213,12 +1237,34 @@ def revisar_persona_ampliada(
                 and any(d <= _direccion_tokens(oracion) for d in recaudos if d)
                 for oracion in oraciones
             )
-            if (
-                not representada
-                and not any(
-                    direccion <= _direccion_tokens(oracion) for oracion in oraciones
+            en_oraciones = [_direccion_tokens(oracion) for oracion in oraciones]
+            if any(
+                _direccion_tokens(d) <= t for _, d in referencias for t in en_oraciones
+            ):
+                continue
+            casi = next(
+                (
+                    (fuente, d)
+                    for fuente, d in referencias
+                    for t in en_oraciones
+                    if (sin_tipo := _direccion_tokens(d) - _HABILITACION)
+                    and sin_tipo <= t - _HABILITACION
+                ),
+                None,
+            )
+            if casi:
+                observaciones.append(
+                    {
+                        **base,
+                        "tipo": "DOMICILIO_HABILITACION",
+                        "esperado": casi[1],
+                        "referencia": casi[0],
+                        "hallado": "Omite o cambia el tipo de habilitación",
+                        "procedencia": persona.procedencia_domicilio,
+                    }
                 )
-                and (_clave_direccion(persona.domicilio) not in observadas)
+            elif not representada and (
+                _clave_direccion(persona.domicilio) not in observadas
             ):
                 observaciones.append(
                     {

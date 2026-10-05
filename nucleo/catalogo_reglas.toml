@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.10.05-2"
+version = "2026.10.05-3"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -53,6 +53,10 @@ severidad = "MEDIA"
 
 [reglas.MENOR_DE_EDAD]
 descripcion = "Compareciente menor de edad a la fecha de referencia."
+severidad = "MEDIA"
+
+[reglas.DOMICILIO_HABILITACION]
+descripcion = "Domicilio que coincide salvo el tipo de habilitación (asentamiento humano, pueblo joven…)."
 severidad = "MEDIA"
 
 [reglas.DOMICILIO_NO_ENCONTRADO]

@@ -990,7 +990,9 @@ def _observaciones_f12_legibles(observaciones, texto_borrador):
             esperado = f"Fecha de nacimiento: {observacion['esperado'].isoformat()}"
         else:
             hallado = f"{nombre}: {observacion['hallado']}"
-            esperado = f"RENIEC: {observacion['esperado']}"
+            esperado = (
+                f"{observacion.get('referencia', 'RENIEC')}: {observacion['esperado']}"
+            )
         filas.append(
             {
                 "formato": "regla",
@@ -1181,7 +1183,12 @@ def confrontar_borrador(
     if isinstance(catalogo, verificar.Catalogo):
         observaciones_regla.extend(
             _observaciones_f12_legibles(
-                verificar.revisar_persona_ampliada(catalogo, texto_borrador, fecha),
+                verificar.revisar_persona_ampliada(
+                    catalogo,
+                    texto_borrador,
+                    fecha,
+                    verificar.domicilios_contractuales(minutas),
+                ),
                 texto_borrador,
             )
         )
