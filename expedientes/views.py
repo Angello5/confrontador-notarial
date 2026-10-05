@@ -456,9 +456,7 @@ def correcciones_aplicar(request, pk, doc_id):
     contexto.update(_navegacion_contexto(request))
     if request.POST.get("confirmado") != "1":
         contexto["error"] = "Confirme la aplicación de las correcciones para continuar."
-        return render(
-            request, "expedientes/correccion_aplicada.html", contexto, status=400
-        )
+        return _respuesta_aplicacion(request, contexto, status=400)
     try:
         contexto["aplicacion"] = aplicar_correcciones(
             expediente,
@@ -469,10 +467,34 @@ def correcciones_aplicar(request, pk, doc_id):
         )
     except CorreccionNoAplicable as exc:
         contexto["error"] = str(exc)
+        return _respuesta_aplicacion(request, contexto, status=400)
+    return _respuesta_aplicacion(request, contexto)
+
+
+def _nombre_corregido(decision):
+    return f"{Path(decision.corrida.entradas[0]['nombre']).stem}-corregido.docx"
+
+
+def _respuesta_aplicacion(request, contexto, status=200):
+    """F40: el popup pide JSON para descargar directo; sin JavaScript, la página."""
+    if not _quiere_json(request):
         return render(
-            request, "expedientes/correccion_aplicada.html", contexto, status=400
+            request, "expedientes/correccion_aplicada.html", contexto, status=status
         )
-    return render(request, "expedientes/correccion_aplicada.html", contexto)
+    if "error" in contexto:
+        return JsonResponse({"error": contexto["error"]}, status=status)
+    aplicacion = contexto["aplicacion"]
+    return JsonResponse(
+        {
+            "archivo": _nombre_corregido(aplicacion),
+            "descarga": reverse(
+                "correccion_descargar", args=(contexto["expediente"].pk, aplicacion.pk)
+            ),
+            "aplicadas": len(aplicacion.apariciones),
+            "excluidas": len(aplicacion.correcciones_excluidas),
+            "no_aplicadas": len(aplicacion.correcciones_no_aplicadas),
+        }
+    )
 
 
 @login_required
@@ -488,11 +510,8 @@ def correccion_descargar(request, pk, decision_id):
     ruta = ruta_corregido(decision)
     if not decision.hash_corregido or not ruta.is_file():
         raise Http404
-    borrador = decision.corrida.entradas[0]["nombre"]
     return FileResponse(
-        ruta.open("rb"),
-        as_attachment=True,
-        filename=f"{Path(borrador).stem}-corregido.docx",
+        ruta.open("rb"), as_attachment=True, filename=_nombre_corregido(decision)
     )
 
 
