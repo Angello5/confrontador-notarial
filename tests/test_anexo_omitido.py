@@ -1,6 +1,6 @@
 """F39: el anexo de la minuta omitido en el borrador, con datos ficticios."""
 
-from nucleo.verificar import anexos_omitidos
+from nucleo.verificar import anexos_omitidos, montos_exigibles, sin_anexos_insertados
 
 _CLAUSULA = (
     "PRIMERA: LAS PARTES FICTICIAS CELEBRAN EL PRESENTE CONTRATO DE MUTUO "
@@ -43,4 +43,26 @@ def test_cada_anexo_se_evalua_por_separado():
     cronograma = "ANEXO II CRONOGRAMA\n" + "CUOTA FICTICIA MENSUAL DE CIEN SOLES " * 3
     assert anexos_omitidos([f"{_MINUTA}\n{cronograma}"], _MINUTA, 88) == [
         "[ANEXO] FALTA: «ANEXO II CRONOGRAMA»"
+    ]
+
+
+_CON_MONTO = f"{_MINUTA}MONTO DEL CREDITO FICTICIO: S/ 12,345.67\n"
+_INSERTO = f"{_CLAUSULA}\nINSERTO: =====\nSIGUE UNA FIRMA ILEGIBLE"
+
+
+def test_anexo_insertado_como_recaudo_no_se_observa_ni_exige_sus_montos():
+    """F39: la hoja resumen escaneada va como inserto (Recaudos.pdf)."""
+    recaudo = "HOJA RESUMEN ESCANEADA  IMPORTE  12,345.67"
+    minutas = sin_anexos_insertados([_CON_MONTO], _INSERTO, [recaudo])
+
+    assert anexos_omitidos(minutas, _INSERTO, 88) == []
+    assert not any("12,345.67" in m for m in montos_exigibles(minutas))
+    assert _CLAUSULA in minutas[0]
+
+
+def test_sin_inserto_o_sin_el_monto_en_los_recaudos_el_anexo_cuenta():
+    recaudo = "HOJA RESUMEN ESCANEADA  IMPORTE  12,345.67"
+    assert sin_anexos_insertados([_CON_MONTO], _CLAUSULA, [recaudo]) == [_CON_MONTO]
+    assert sin_anexos_insertados([_CON_MONTO], _INSERTO, ["OTRO 99,999.99"]) == [
+        _CON_MONTO
     ]
