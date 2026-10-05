@@ -22,7 +22,7 @@ Antes, «Aplicar correcciones» llevaba a la página «Documento corregido» y l
 - **Fases**:
   - **Aplicando**: el servidor no informa su avance, así que la barra se acerca al 60 % mientras responde.
   - **Descargando**: la barra avanza del 60 al 100 % según los bytes recibidos.
-  - **Listo**: el archivo `<borrador>-corregido.docx` ya se descargó. La ventana indica «Se guardó en Descargas/<archivo>» y muestra las cifras de antes: aplicadas, excluidas por usted y no aplicadas. Ofrece «Descargar de nuevo» y «Cerrar».
+  - **Listo**: el archivo `<borrador>-corregido.docx` ya se descargó. La ventana indica «Se guardó en Descargas/<archivo>» y resume en una línea las cifras de antes: aplicadas, excluidas por usted y no aplicadas. Ofrece «Descargar de nuevo» y «Cerrar».
   - **Error**: el borde pasa al color de peligro y la ventana muestra el mismo mensaje que daba la página («Vuelva a confrontar…»).
 - **Cierre**: mientras dura el trabajo, la ventana no se cierra con Esc ni con un clic fuera.
 - **Servidor**:

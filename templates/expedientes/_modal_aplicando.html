@@ -15,11 +15,11 @@
         <code x-text="'Descargas/' + aplicando.archivo"></code>
         <small>Carpeta de descargas de su navegador. Si la cambió en la configuración, búsquelo allí.</small>
       </div>
-      <dl class="valores valores-sueltos" x-show="aplicando.fase === 'LISTO'">
-        <div><dt>Aplicadas</dt><dd class="esperado" x-text="aplicando.resumen?.aplicadas"></dd></div>
-        <div><dt>Excluidas por usted</dt><dd x-text="aplicando.resumen?.excluidas"></dd></div>
-        <div><dt>No aplicadas</dt><dd x-text="aplicando.resumen?.no_aplicadas"></dd></div>
-      </dl>
+      <p class="cifras-aplicacion" x-show="aplicando.fase === 'LISTO'">
+        <strong x-text="aplicando.resumen?.aplicadas"></strong> aplicadas ·
+        <strong x-text="aplicando.resumen?.excluidas"></strong> excluidas por usted ·
+        <strong x-text="aplicando.resumen?.no_aplicadas"></strong> no aplicadas
+      </p>
     </div>
     <div class="modal-pie" x-show="aplicandoTerminado()">
       <a class="btn" x-show="aplicando.descarga" :href="aplicando.descarga"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar de nuevo</a>
