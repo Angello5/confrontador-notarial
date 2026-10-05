@@ -89,6 +89,7 @@ def pytest_sessionfinish(session, exitstatus):
             "expedientes/solicitudes.py",
             "expedientes/bloqueos.py",
             "expedientes/migrations/0009_carga_continua.py",
+            "expedientes/migrations/0010_rol_recaudos.py",
             "expedientes/urls.py",
             "expedientes/views.py",
             "expedientes/management/__init__.py",
