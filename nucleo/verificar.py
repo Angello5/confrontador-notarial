@@ -2425,3 +2425,26 @@ def revisar_parrafos(minutas: list[str], destino: str, umbral: int) -> list[str]
                     else f"[PARRAFO] falta: {p[:100]}…"
                 )
     return obs
+
+
+# F39: el ERP ya no compara parrafo por parrafo (sellos, firmas y viñetas de la
+# minuta daban ruido); solo observa el anexo que el borrador omite entero.
+RE_ANEXO = re.compile(r"(?m)^[^\S\n]*ANEXO\s+(?:N[°º.]?\s*)?(?:\d+|[IVX]+)\b.*$")
+
+
+def anexos_omitidos(minutas: list[str], destino: str, umbral: int) -> list[str]:
+    """[ANEXO] por cada anexo de la minuta (hoja resumen, cronograma) ausente.
+
+    Ausente = falta la mayoria de sus parrafos (``parrafos``) en el borrador.
+    ponytail: un anexo hecho solo de filas cortas (< 80 caracteres) no se evalua.
+    """
+    obs = []
+    for src in minutas:
+        cortes = list(RE_ANEXO.finditer(src))
+        for m, sig in zip(cortes, [*cortes[1:], None]):
+            cuerpo = src[m.end() : sig.start() if sig else None]
+            if len(revisar_parrafos([cuerpo], destino, umbral)) * 2 > len(
+                parrafos(cuerpo)
+            ):
+                obs.append(f"[ANEXO] FALTA: «{m[0].strip()}»")
+    return obs

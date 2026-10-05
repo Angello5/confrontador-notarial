@@ -69,6 +69,8 @@ F37: domicilio contractual y tipo de habilitación. El usuario decidió que el d
 
 F38: lectura del borrador y persona sin ficha. El usuario decidió que, cuando la información del cliente no está en los recaudos, la app diga «Sin ficha RENIEC en los recaudos» como aviso MEDIA, y recordó que el DNI siempre tiene 8 dígitos. Alcance en `specs/032-lectura-borrador/`.
 
+F39: errores lingüísticos y anexo omitido. El usuario pidió quitar la regla de párrafos y centrar la revisión en los errores lingüísticos. El anexo omitido sigue siendo un error, ahora como una sola alerta por anexo. La capa lingüística detecta las minúsculas intercaladas y el acento grave, y deja de reportar ruido. Alcance en `specs/033-linguistico-tipeo/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

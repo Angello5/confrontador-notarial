@@ -48,6 +48,23 @@ def tildada(w: str) -> bool:
     )
 
 
+# F39: errores de tipeo. La errata llega como una letra en minuscula dentro de
+# la palabra (lA, HIzo, CREDITOz) o con acento grave (SÈTIMA, CLÀUSULA).
+_LETRAS = r"[^\W\d_ºª]"  # Nº y 1ª no son palabras
+_GRAVES = str.maketrans("àèìòùÀÈÌÒÙ", "áéíóúÁÉÍÓÚ")
+# el abogado que autoriza la minuta: nombre propio fuera del A.3 y de las fuentes
+_RE_AUTORIZA = re.compile(r"AUTORIZA\s*:\s*([^,\n]{3,80}?)\s*,\s*ABOGAD[OA]", re.I)
+# iniciales del digitador en la linea de cierre: «-/@/ -/@/ XYZ / -/@/»
+_RE_ENTRE_BARRAS = re.compile(r"/[^\S\n]*[^\W\d_]{2,6}[^\S\n]*(?=/)")
+
+
+def _mezclada(w: str) -> bool:
+    """lA, HIzo, CREDITOz. No: AVENIDA, Avenida, avenida ni marcas como WhatsApp."""
+    if w.isupper() or w.islower() or w.istitle():
+        return False
+    return "".join(re.findall(r"[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+", w)) != w
+
+
 def revisar(
     texto: str, d, lemas: list[str], lista: set[str], extra: set[str] = frozenset()
 ) -> list[tuple[str, str, str]]:
@@ -57,12 +74,23 @@ def revisar(
     partes, que ya valida la capa de reglas contra el DNI y la minuta.
     """
     aceptadas = lista | {e.upper() for e in extra}
+    aceptadas |= {
+        p.upper()
+        for m in _RE_AUTORIZA.finditer(texto)
+        for p in re.findall(rf"{_LETRAS}+", m[1])
+    }
     fuera = []
-    for w in dict.fromkeys(re.findall(r"[^\W\d_]{3,}", texto)):
+    sin_iniciales = _RE_ENTRE_BARRAS.sub("/", texto)
+    for w in dict.fromkeys(re.findall(rf"{_LETRAS}{{3,}}", sin_iniciales)):
+        if _mezclada(w):
+            continue  # la reporta redaccion, sin limite de largo (lA)
         # se consulta TAL CUAL antes que en minuscula: hunspell acepta el nombre
         # propio solo capitalizado (Peru falla, Perú y PERÚ pasan) y el documento
         # notarial ya viene en mayusculas
         if w.upper() in aceptadas or d.lookup(w) or d.lookup(w.lower()):
+            continue
+        if (aguda := w.translate(_GRAVES)) != w:
+            fuera.append((w, "acento grave", aguda))  # correccion exacta
             continue
         base = plano(w)
         if not tildada(w):
@@ -92,8 +120,11 @@ _FEMENINOS = {
 # PARTE no entra: «EL PARTE» notarial es correcto
 _MASCULINOS = {"CONTRATO", "INMUEBLE", "PRECIO", "PREDIO", "VENDEDOR", "COMPRADOR"}
 _CORRECTO = {"EL": "LA", "DEL": "DE LA", "AL": "A LA", "LA": "EL"}
+# Solo palabras gramaticales: LIMA LIMA (provincia y departamento) y ZAFIRO
+# ZAFIRO (apellidos iguales) son correctos.
+_GRAMATICALES = "EL|LA|LOS|LAS|LO|UNA|UN|DEL|DE|AL|A|EN|CON|POR|PARA|SIN|SOBRE|QUE|SE|SUS|SU|NI|Y|E|O|U"
 _REGLAS = (
-    (rf"\b({_PALABRA}{{2,}})[^\S\n]+(\1)\b", "palabra repetida"),
+    (rf"\b({_GRAMATICALES})[^\S\n]+(\1)\b", "palabra repetida"),
     (rf"{_PALABRA}+ +(?:[,;:]|\.(?!\.))", "espacio antes de signo"),
     (rf"\b(EL|DEL|AL|LA)[^\S\n]+({_PALABRA}+)\b", "concordancia de artículo"),
 )
@@ -143,6 +174,15 @@ def redaccion(texto: str, protegidos) -> list[tuple[str, str, str]]:
                     f"{correcto if m[1].isupper() else correcto.lower()} {m[2]}"
                 )
             hallazgos.append((inicio, fin, fragmento, motivo, sugerencia))
+    palabras = set(re.findall(rf"{_LETRAS}+", texto))
+    for m in re.finditer(rf"{_LETRAS}+", texto):
+        w = m[0]
+        if _mezclada(w):
+            # la mayuscula solo se sugiere si la palabra ya existe asi en el texto
+            sugerencia = w.upper() if w.upper() in palabras else "?"
+            hallazgos.append(
+                (*m.span(), w, "mayúsculas y minúsculas mezcladas", sugerencia)
+            )
     desde = 0
     for linea in texto.splitlines(keepends=True):
         if motivo := _sin_cerrar(linea):

@@ -1172,7 +1172,7 @@ def confrontar_borrador(
             if documento.rol == Documento.MINUTA
         },
     )
-    reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
+    reglas.extend(verificar.anexos_omitidos(minutas, texto_borrador, _UMBRAL_PARRAFO))
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     correcciones = correccion.correcciones(reglas, fuentes)
     original = ruta_original(borrador)
