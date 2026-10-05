@@ -47,6 +47,25 @@ def test_monedas_antes_y_despues_de_la_cifra():
     }
 
 
+def test_usd_antes_y_despues_de_la_cifra_es_dolar():
+    texto = "IMPORTE USD 12,345.67 Y CUOTA 8.90 USD. NO ES MONEDA: USDA 1.00"
+    assert catalogo({"m.txt": texto})["MONTO"] == {"US$ 12,345.67", "US$ 8.90"}
+
+
+def test_importe_en_usd_del_anexo_que_falta_en_el_borrador():
+    minuta = "ANEXO 1 HOJA RESUMEN. IMPORTE USD 12,345.67. PLAZO 24 MESES."
+    salidas = revisar(
+        catalogo({"minuta.txt": minuta}),
+        "EL BORRADOR NO INSERTA LA HOJA RESUMEN.",
+        90,
+        montos_exigibles=montos_exigibles([minuta]),
+    )
+    assert (
+        "[MONTO] FALTA: «US$ 12,345.67» esta en las fuentes y no aparece en el destino"
+        in salidas
+    )
+
+
 def test_soles_y_dolares_del_mismo_importe_son_distintos():
     assert _montos("PRECIO S/ 100.00.", "PRECIO US$ 100.00.") == [
         "[MONTO] «100.00» debe decir «US$ 100.00»"
