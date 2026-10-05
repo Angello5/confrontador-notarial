@@ -226,11 +226,24 @@ RE_CANTIDAD = re.compile(
 
 
 def cantidades_de(t: str) -> list[tuple[str, str]]:
-    """F30: (concepto, cifra) de cada precio, tasación, valor o hipoteca."""
-    return [
-        (next(c for c, _ in _CONCEPTOS if m[c]), m["cifra"])
-        for m in RE_CANTIDAD.finditer(t)
-    ]
+    """F30: (concepto, cifra) de cada precio, tasación, valor o hipoteca.
+
+    La cifra es el monto de la hipoteca solo con la fórmula «hasta por» o el
+    rótulo «monto del gravamen / de la hipoteca»: levantarla, cancelarla o la
+    penalidad por no levantarla nombran la hipoteca sin dar su monto.
+    """
+    pares = []
+    for m in RE_CANTIDAD.finditer(t):
+        concepto = next(c for c, _ in _CONCEPTOS if m[c])
+        if concepto == "HIPOTECA" and not (
+            "HASTA POR" in t[m.end(concepto) : m.start("cifra")]
+            or re.search(
+                r"MONTO DE(?:L| LA)\s*$", t[max(0, m.start() - 15) : m.start()]
+            )
+        ):
+            continue
+        pares.append((concepto, m["cifra"]))
+    return pares
 
 
 _ZONAS_REGISTRALES = (
