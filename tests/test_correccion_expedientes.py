@@ -451,3 +451,74 @@ def test_eliminar_y_suprimir_borran_originales(escenario):
     ruta_original(borrador).write_bytes(b"x")
     eliminar_documento(borrador, confirmado=True)
     assert not ruta_original(borrador).parent.exists()
+
+
+def _aplicar_json(client, expediente, borrador, datos):
+    return client.post(
+        reverse("correcciones_aplicar", args=(expediente.pk, borrador.pk)),
+        datos,
+        HTTP_ACCEPT="application/json",
+    )
+
+
+def test_popup_aplica_y_recibe_la_descarga_en_json(client, escenario, usuario_ficticio):
+    """F40: el popup aplica, descarga directo e indica el archivo."""
+    from expedientes.models import DecisionCorreccion
+
+    expediente, borrador, _ = escenario
+    correcciones, corrida_id = _propuesta(expediente, borrador)
+    dni = next(c for c in correcciones if c["erroneo"] == "90000002")
+    client.force_login(usuario_ficticio)
+
+    respuesta = _aplicar_json(
+        client,
+        expediente,
+        borrador,
+        {"corrida": corrida_id, "confirmado": "1", "aplicar": [dni["id"]]},
+    )
+
+    assert respuesta.status_code == 200
+    aplicacion = DecisionCorreccion.objects.get()
+    assert respuesta.json() == {
+        "archivo": "borrador-ficticio-corregido.docx",
+        "descarga": reverse(
+            "correccion_descargar", args=(expediente.pk, aplicacion.pk)
+        ),
+        "aplicadas": 1,
+        "excluidas": len(correcciones) - 1,
+        "no_aplicadas": 0,
+    }
+
+
+def test_error_en_el_popup_tambien_es_json(client, escenario, usuario_ficticio):
+    from expedientes.models import DecisionCorreccion
+
+    expediente, borrador, _ = escenario
+    _, corrida_id = _propuesta(expediente, borrador)
+    client.force_login(usuario_ficticio)
+
+    sin_confirmar = _aplicar_json(client, expediente, borrador, {"corrida": corrida_id})
+    ajena = _aplicar_json(
+        client, expediente, borrador, {"corrida": "abc", "confirmado": "1"}
+    )
+
+    assert sin_confirmar.status_code == ajena.status_code == 400
+    assert "Confirme" in sin_confirmar.json()["error"]
+    assert "Vuelva a confrontar" in ajena.json()["error"]
+    assert not DecisionCorreccion.objects.exists()
+
+
+def test_resultado_ofrece_el_popup_de_avance(client, escenario, usuario_ficticio):
+    """F40: sin JavaScript el formulario sigue enviándose como antes."""
+    expediente, borrador, _ = escenario
+    _propuesta(expediente, borrador)
+    client.force_login(usuario_ficticio)
+
+    html = client.get(
+        reverse("documento_resultado", args=(expediente.pk, borrador.pk))
+    ).content.decode()
+
+    assert '@submit.prevent="aplicar($el)"' in html
+    assert "modal === 'aplicando'" in html
+    assert "js/aplicar-correcciones.js" in html
+    assert '<progress class="progreso"' in html
