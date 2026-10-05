@@ -122,12 +122,43 @@ _MASCULINOS = {"CONTRATO", "INMUEBLE", "PRECIO", "PREDIO", "VENDEDOR", "COMPRADO
 _CORRECTO = {"EL": "LA", "DEL": "DE LA", "AL": "A LA", "LA": "EL"}
 # Solo palabras gramaticales: LIMA LIMA (provincia y departamento) y ZAFIRO
 # ZAFIRO (apellidos iguales) son correctos.
-_GRAMATICALES = "EL|LA|LOS|LAS|LO|UNA|UN|DEL|DE|AL|A|EN|CON|POR|PARA|SIN|SOBRE|QUE|SE|SUS|SU|NI|Y|E|O|U"
+_GRAMATICALES = frozenset(
+    "EL LA LOS LAS LO UNA UN DEL DE AL A EN CON POR PARA SIN SOBRE QUE SE SUS SU NI"
+    " Y E O U".split()
+)
 _REGLAS = (
-    (rf"\b({_GRAMATICALES})[^\S\n]+(\1)\b", "palabra repetida"),
+    (rf"\b({_PALABRA}+)[^\S\n]+(\1)\b", "palabra repetida"),
     (rf"{_PALABRA}+ +(?:[,;:]|\.(?!\.))", "espacio antes de signo"),
     (rf"\b(EL|DEL|AL|LA)[^\S\n]+({_PALABRA}+)\b", "concordancia de artículo"),
 )
+
+
+def _sugerencia(motivo: str, m) -> str | None:
+    """Corrección de cada regla cerrada; None si la coincidencia no es error."""
+    if motivo == "palabra repetida":
+        return m[1] if m[1].upper() in _GRAMATICALES else None
+    if motivo == "espacio antes de signo":
+        return m[0].split()[0] + m[0][-1]
+    articulo, nombre = m[1].upper(), plano(m[2]).upper()
+    if nombre not in (_MASCULINOS if articulo == "LA" else _FEMENINOS):
+        return None
+    correcto = _CORRECTO[articulo]
+    return f"{correcto if m[1].isupper() else correcto.lower()} {m[2]}"
+
+
+def _mezcladas(texto: str) -> list[tuple]:
+    """(inicio, fin, palabra, motivo, sugerencia) de cada minúscula intercalada.
+
+    La mayúscula solo se sugiere si la palabra ya existe así en el texto.
+    """
+    palabras = set(re.findall(rf"{_LETRAS}+", texto))
+    return [
+        (*m.span(), m[0], "mayúsculas y minúsculas mezcladas", m[0].upper())
+        if m[0].upper() in palabras
+        else (*m.span(), m[0], "mayúsculas y minúsculas mezcladas", "?")
+        for m in re.finditer(rf"{_LETRAS}+", texto)
+        if _mezclada(m[0])
+    ]
 
 
 def _sin_cerrar(linea: str) -> str | None:
@@ -154,35 +185,12 @@ def redaccion(texto: str, protegidos) -> list[tuple[str, str, str]]:
         if (palabras := valor.split())
         for m in re.finditer(r"\s+".join(map(re.escape, palabras)), texto, re.I)
     ]
-    hallazgos = []
-    for patron, motivo in _REGLAS:
-        for m in re.finditer(patron, texto, re.I):
-            inicio, fin = m.span()
-            fragmento = m[0]
-            if motivo == "palabra repetida":
-                sugerencia = m[1]
-            elif motivo == "espacio antes de signo":
-                sugerencia = fragmento.split()[0] + fragmento[-1]
-            else:
-                articulo, nombre = m[1].upper(), plano(m[2]).upper()
-                if articulo == "LA" and nombre not in _MASCULINOS:
-                    continue
-                if articulo != "LA" and nombre not in _FEMENINOS:
-                    continue
-                correcto = _CORRECTO[articulo]
-                sugerencia = (
-                    f"{correcto if m[1].isupper() else correcto.lower()} {m[2]}"
-                )
-            hallazgos.append((inicio, fin, fragmento, motivo, sugerencia))
-    palabras = set(re.findall(rf"{_LETRAS}+", texto))
-    for m in re.finditer(rf"{_LETRAS}+", texto):
-        w = m[0]
-        if _mezclada(w):
-            # la mayuscula solo se sugiere si la palabra ya existe asi en el texto
-            sugerencia = w.upper() if w.upper() in palabras else "?"
-            hallazgos.append(
-                (*m.span(), w, "mayúsculas y minúsculas mezcladas", sugerencia)
-            )
+    hallazgos = [
+        (*m.span(), m[0], motivo, sugerencia)
+        for patron, motivo in _REGLAS
+        for m in re.finditer(patron, texto, re.I)
+        if (sugerencia := _sugerencia(motivo, m)) is not None
+    ] + _mezcladas(texto)
     desde = 0
     for linea in texto.splitlines(keepends=True):
         if motivo := _sin_cerrar(linea):

@@ -450,19 +450,28 @@ RE_DOCX_MARCA = re.compile(
 # F39: «Todo mayúsculas» y versalitas. Word imprime «AVENIDA» aunque se tecleara
 # «AvENIDA»; el texto debe decir lo que se imprime.
 RE_CAPS = re.compile(r'<w:(?:caps|smallCaps)(?:\s+w:val="([^"]*)")?\s*/>')
-RE_FORMATO = re.compile(
-    r"<w:p(?=[\s>])[^>]*>|</w:p>|<w:pPr>|</w:pPr>|<w:r(?=[\s>])[^>]*>|</w:r>"
-    r'|<w:(pStyle|rStyle)\s+w:val="([^"]*)"[^>]*>'
-    r'|<w:(?:caps|smallCaps)(?:\s+w:val="([^"]*)")?\s*/>'
-    r"|<w:t(?:\s[^>]*)?>(.*?)</w:t>",
-    re.S,
-)
+RE_ETIQUETA = re.compile(r"<(/?)w:(p|pPr|pStyle|r|rStyle|caps|smallCaps|t)\b([^>]*)>")
+RE_VAL = re.compile(r'w:val="([^"]*)"')
 # formato anterior de un cambio controlado: no es el que se imprime
 RE_CAMBIO_FORMATO = re.compile(r"<w:(rPrChange|pPrChange)\b.*?</w:\1>", re.S)
 
 
 def _caps(val) -> bool:
     return val is None or val.lower() not in {"0", "false", "off"}
+
+
+def _val(atributos):
+    m = RE_VAL.search(atributos)
+    return m[1] if m else None
+
+
+def _heredado(estilo, propios: dict, base: dict):
+    """Caps del estilo o del primero de su cadena basedOn que lo defina."""
+    for _ in range(20):  # el tope corta un ciclo
+        if estilo is None or propios.get(estilo) is not None:
+            return propios.get(estilo)
+        estilo = base.get(estilo)
+    return None
 
 
 def _estilos_caps(z) -> tuple[dict, bool]:
@@ -475,72 +484,77 @@ def _estilos_caps(z) -> tuple[dict, bool]:
     for m in re.finditer(
         r'<w:style\b[^>]*\bw:styleId="([^"]+)"[^>]*>(.*?)</w:style>', xml, re.S
     ):
-        rpr = re.search(r"<w:rPr>(.*?)</w:rPr>", m[2], re.S)
-        caps = RE_CAPS.search(rpr[1]) if rpr else None
+        rpr = re.search(r"<w:rPr>.*?</w:rPr>", m[2], re.S)
+        caps = rpr and RE_CAPS.search(rpr[0])
         propios[m[1]] = _caps(caps[1]) if caps else None
         if padre := re.search(r'<w:basedOn\s+w:val="([^"]+)"', m[2]):
             base[m[1]] = padre[1]
+    defecto = re.search(r"<w:rPrDefault>.*?</w:rPrDefault>", xml, re.S)
+    caps = defecto and RE_CAPS.search(defecto[0])
+    estilos = {e: _heredado(e, propios, base) for e in propios}
+    return estilos, bool(caps and _caps(caps[1]))
 
-    def heredado(estilo):
-        for _ in range(20):  # cadena basedOn; el tope corta un ciclo
-            if estilo is None or propios.get(estilo) is not None:
-                return propios.get(estilo)
-            estilo = base.get(estilo)
-        return None
 
-    defecto = re.search(r"<w:rPrDefault>(.*?)</w:rPrDefault>", xml, re.S)
-    caps = RE_CAPS.search(defecto[1]) if defecto else None
-    return {e: heredado(e) for e in propios}, bool(caps and _caps(caps[1]))
+def _seguir(pila: dict, cierre: str, nombre: str, atributos: str) -> None:
+    """Abre o cierra párrafos («p») y runs («r») y anota su estilo y su caps.
+
+    El fondo de cada pila es el documento y no se saca. El rPr dentro de pPr es
+    de la marca de párrafo y no toca el texto.
+    """
+    if nombre == "pPr":
+        pila["ppr"] += -1 if cierre else 1
+    elif nombre in ("p", "r"):
+        abiertos = pila[nombre]
+        if cierre:
+            del abiertos[max(1, len(abiertos) - 1) :]
+        elif not atributos.endswith("/"):
+            abiertos.append({})
+    elif nombre == "pStyle":
+        pila["p"][-1]["estilo"] = _val(atributos)
+    elif pila["ppr"]:
+        return
+    elif nombre == "rStyle":
+        pila["r"][-1]["estilo"] = _val(atributos)
+    else:  # caps o smallCaps
+        pila["r"][-1]["caps"] = _caps(_val(atributos))
+
+
+def _caps_efectivo(pila: dict, estilos: dict, defecto: bool) -> bool:
+    """Formato directo del run, su estilo de carácter, el del párrafo o el defecto."""
+    run, parrafo = pila["r"][-1], pila["p"][-1]
+    for caps in (
+        run.get("caps"),
+        estilos.get(run.get("estilo")),
+        estilos.get(parrafo.get("estilo")),
+    ):
+        if caps is not None:
+            return caps
+    return defecto
 
 
 def _con_mayusculas(xml: str, estilos: dict, defecto: bool) -> str:
     """Pone en mayúsculas el texto de cada run que Word imprime así.
 
-    Precedencia: formato directo del run, su estilo de carácter, el estilo del
-    párrafo y el defecto del documento. El rPr dentro de pPr es de la marca de
-    párrafo y no toca el texto. Pilas: un cuadro de texto anida párrafos y runs.
+    Pilas: un cuadro de texto anida párrafos y runs dentro de otro run.
     ponytail: sin el XOR de propiedades alternables entre estilos de Word.
     """
     from html import escape, unescape
 
     xml = RE_CAMBIO_FORMATO.sub("", xml)
-    partes, desde, parrafos, runs, ppr = [], 0, [], [], 0
-    for m in RE_FORMATO.finditer(xml):
-        marca = m[0]
-        if m[4] is not None:
-            run = runs[-1] if runs else {}
-            heredados = (
-                run.get("caps"),
-                estilos.get(run.get("estilo")),
-                estilos.get(parrafos[-1] if parrafos else None),
-            )
-            caps = next((c for c in heredados if c is not None), defecto)
-            if caps and m[4] != m[4].upper():
-                texto = escape(unescape(m[4]).upper(), quote=False)
-                partes += [xml[desde : m.start(4)], texto]
-                desde = m.end(4)
-        elif m[1] == "pStyle":
-            if parrafos:
-                parrafos[-1] = m[2]
-        elif marca in ("<w:pPr>", "</w:pPr>"):
-            ppr += 1 if marca == "<w:pPr>" else -1
-        elif marca == "</w:p>":
-            if parrafos:
-                parrafos.pop()
-        elif marca.startswith("<w:p"):
-            parrafos.append(None)
-        elif ppr:
-            continue  # rStyle y caps de la marca de párrafo
-        elif marca == "</w:r>":
-            if runs:
-                runs.pop()
-        elif m[1] == "rStyle":
-            if runs:
-                runs[-1]["estilo"] = m[2]
-        elif marca.startswith("<w:r"):
-            runs.append({})
-        elif runs:
-            runs[-1]["caps"] = _caps(m[3])
+    partes, desde, pila = [], 0, {"p": [{}], "r": [{}], "ppr": 0}
+    for m in RE_ETIQUETA.finditer(xml):
+        cierre, nombre, atributos = m.groups()
+        if nombre != "t":
+            _seguir(pila, cierre, nombre, atributos)
+        elif not cierre and not atributos.endswith("/"):
+            fin = xml.find("</w:t>", m.end())
+            texto = xml[m.end() : fin]
+            if texto != texto.upper() and _caps_efectivo(pila, estilos, defecto):
+                partes += [
+                    xml[desde : m.end()],
+                    escape(unescape(texto).upper(), quote=False),
+                ]
+                desde = fin
     return "".join(partes) + xml[desde:]
 
 
