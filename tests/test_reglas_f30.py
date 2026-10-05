@@ -1,7 +1,7 @@
 """Reglas F30 con textos inventados y sin adaptadores ni documentos reales."""
 
 from nucleo.correccion import correcciones
-from nucleo.verificar import catalogo, datos_registrales, revisar
+from nucleo.verificar import cantidades_de, catalogo, datos_registrales, revisar
 
 
 def _observaciones(fuente: str, borrador: str, campo: str) -> list[str]:
@@ -124,6 +124,24 @@ def test_precio_sin_moneda_se_compara_por_concepto():
         "[MONTO] «25,000.00» debe decir «250,000.00»   (concepto: PRECIO)"
     ]
     assert _observaciones(fuente, fuente, "MONTO") == []
+
+
+def test_monto_de_hipoteca_solo_hasta_por_o_monto_del_gravamen():
+    fuente = (
+        "SE ENTREGA S/ 25,000.00 MEDIANTE CHEQUE.\n"
+        "CONSTITUYEN PRIMERA HIPOTECA SOBRE EL INMUEBLE, HASTA POR LA SUMA DE "
+        "S/ 100,000.00. SI NO GESTIONASEN EL LEVANTAMIENTO DE HIPOTECA EN 30 DIAS, "
+        "ABONARAN UNA PENALIDAD DE S/ 150.00 DIARIOS."
+    )
+    cancelacion = (
+        "\nLOS ACREEDORES PROCEDEN A CANCELAR Y LEVANTAR LA HIPOTECA, SIEMPRE QUE "
+        "SE PAGUE S/ 25,000.00."
+    )
+    assert cantidades_de(fuente + cancelacion) == [("HIPOTECA", "100,000.00")]
+    assert cantidades_de("MONTO DEL GRAVAMEN : US$ 8,500.00") == [
+        ("HIPOTECA", "8,500.00")
+    ]
+    assert _observaciones(fuente, fuente + cancelacion, "MONTO") == []
 
 
 def test_registro_y_zona_con_fuente_y_sede_conocida():
