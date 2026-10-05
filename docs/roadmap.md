@@ -65,6 +65,8 @@ F36: interfaz con lenguaje notarial. El usuario pidió:
 
 Solo cambian los textos y los estilos: las URL y los modelos siguen igual. Alcance y glosario en `specs/030-interfaz-notarial/`.
 
+F37: domicilio contractual y tipo de habilitación. El usuario decidió que el domicilio que la minuta fija «para efectos de este contrato» y el de la declaración jurada son válidos en la comparecencia, y que omitir o cambiar el tipo de habilitación es un aviso leve. La declaración jurada manuscrita queda pendiente porque el OCR no la lee. Alcance en `specs/031-domicilio-contractual/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**
