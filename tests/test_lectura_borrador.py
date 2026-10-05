@@ -111,3 +111,38 @@ def test_oficina_pegada_a_la_linea_siguiente_del_certificado():
     borrador = "INSCRITA EN LA OFICINA REGISTRAL DE LIMA."
     salidas = revisar(catalogo({"certificado-ficticio.pdf": fuente}), borrador, 90)
     assert _de(("[DATO_REGISTRAL]",), salidas) == []
+
+
+def test_enie_de_la_ficha_escaneada_es_aviso_de_marca_de_agua():
+    fuentes = {
+        "reniec-ficticio.pdf": _reniec("90000021", "LUIS DAÑIEL", "ROJAS", "PAZ")
+    }
+    borrador = "LUIS DANIEL ROJAS PAZ, DE NACIONALIDAD PERUANA, CON DNI N° 90000021."
+    minuta = {"minuta.txt": "LUIS DANIEL ROJAS PAZ, DE NACIONALIDAD PERUANA."}
+    salidas = revisar(catalogo(fuentes), borrador, 90, minutas=minuta)
+    assert _de(("[NOMBRE", "[SIN_FICHA]"), salidas) == [
+        "[NOMBRE_MARCA_AGUA] «LUIS DANIEL ROJAS PAZ» posible Ñ por marca de agua; "
+        "verifique el DNI"
+    ]
+    # Si la minuta trae la Ñ, el borrador que la omite sigue en error.
+    con_enie = {"minuta.txt": "LUIS DAÑIEL ROJAS PAZ, DE NACIONALIDAD PERUANA."}
+    salidas = revisar(catalogo(fuentes), borrador, 90, minutas=con_enie)
+    assert (
+        "[NOMBRE] «LUIS DANIEL ROJAS PAZ» debe decir «LUIS DAÑIEL ROJAS PAZ»" in salidas
+    )
+
+
+def test_casado_que_interviene_sin_conyuge_por_bien_propio_es_aviso():
+    persona = Persona(
+        "LUIS RAMOS DIAZ",
+        "90000031",
+        (ORIGEN,),
+        estado_civil="CASADO",
+        procedencia_estado_civil=ORIGEN,
+    )
+    linea = (
+        "LUIS RAMOS DIAZ, CON DNI N° 90000031, DE ESTADO CIVIL CASADO, SIN LA "
+        "INTERVENCION DE SU CONYUGE POR SER BIEN PROPIO."
+    )
+    observaciones = revisar_persona_ampliada(Catalogo((persona,)), linea, HOY)
+    assert [fila["tipo"] for fila in observaciones] == ["CONYUGE_BIEN_PROPIO"]

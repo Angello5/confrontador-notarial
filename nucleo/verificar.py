@@ -1143,6 +1143,9 @@ def _direcciones_observadas(
     return obs
 
 
+_BIEN_PROPIO = re.compile(
+    r"SIN\s+(?:LA\s+)?INTERVENCION\s+DE\s+SU\s+CONYUGE|BIEN(?:ES)?\s+PROPIOS?"
+)
 _FILA_DOMICILIO = re.compile(r"(?:CON\s+)?(?:DOMICILIO|DIRECCION)\b")
 
 
@@ -1215,6 +1218,15 @@ def revisar_persona_ampliada(
                     if marcadores
                     else "CONYUGE_NO_MENCIONADO"
                 )
+                # Decisión 2026-10-05: declarar bien propio es un aviso a confirmar.
+                if tipo == "CONYUGE_NO_MENCIONADO" and any(
+                    _BIEN_PROPIO.search(norm(linea))
+                    for linea in borrador.splitlines()
+                    if persona.documento in linea
+                    or _nombre_clave(persona.nombre) in norm(linea)
+                ):
+                    tipo = "CONYUGE_BIEN_PROPIO"
+                    hallado = "Interviene sin su cónyuge por ser bien propio"
             elif persona.estado_civil == "SOLTERO" and any(
                 m.startswith("CASAD") for m in marcadores
             ):
@@ -2347,7 +2359,38 @@ def revisar(
             obs.append(
                 f"[{campo}] FALTA: «{falta}» esta en las fuentes y no aparece en el destino"
             )
-    return obs
+    return _enie_marca_de_agua(obs, d, minutas)
+
+
+def _enie_marca_de_agua(obs: list[str], d: str, minutas) -> list[str]:
+    """Una Ñ que solo trae la ficha escaneada: la marca de agua la dibuja sobre
+    una N («DAÑIEL»). Si la minuta y el borrador dicen lo mismo con N, es un
+    aviso para verificar con el DNI, sin corrección automática (decisión
+    2026-10-05). Si la minuta trae la Ñ, omitirla en el borrador sigue siendo
+    un error."""
+    minuta = " ".join(norm(t) for t in (minutas or {}).values())
+    salida, avisados = [], set()
+    for o in obs:
+        m = re.match(r"\[NOMBRE\] (FALTA: )?«([^»]+)»(?: debe decir «([^»]+)»)?", o)
+        ficha = m and (m[2] if m[1] else m[3])
+        con_n = ficha and ficha.replace("Ñ", "N")
+        nombre_con_n = ficha and rf"(?<![A-ZÑ]){re.escape(con_n)}(?![A-ZÑ])"
+        if (
+            not (ficha and "Ñ" in ficha)
+            or not re.search(nombre_con_n, minuta)
+            or not (
+                (not m[1] and m[2] == con_n) or (m[1] and re.search(nombre_con_n, d))
+            )
+        ):
+            salida.append(o)
+            continue
+        if con_n not in avisados:
+            avisados.add(con_n)
+            salida.append(
+                f"[NOMBRE_MARCA_AGUA] «{con_n}» posible Ñ por marca de agua; "
+                "verifique el DNI"
+            )
+    return salida
 
 
 def parrafos(t: str) -> list[str]:

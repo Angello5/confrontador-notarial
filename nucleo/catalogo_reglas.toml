@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.10.05-5"
+version = "2026.10.05-6"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -39,6 +39,10 @@ severidad = "ALTA"
 descripcion = "Nombre o DNI del borrador de una persona sin ficha RENIEC en los recaudos."
 severidad = "MEDIA"
 
+[reglas.NOMBRE_MARCA_AGUA]
+descripcion = "Nombre que solo difiere de la ficha escaneada en una Ñ (posible marca de agua): verificar con el DNI."
+severidad = "MEDIA"
+
 [reglas.RUC]
 descripcion = "RUC distinto del de las fuentes."
 severidad = "ALTA"
@@ -53,6 +57,10 @@ severidad = "MEDIA"
 
 [reglas.CONYUGE_NO_MENCIONADO]
 descripcion = "Cónyuge de RENIEC no mencionado en el borrador."
+severidad = "MEDIA"
+
+[reglas.CONYUGE_BIEN_PROPIO]
+descripcion = "Casado según RENIEC que interviene sin su cónyuge por declarar bien propio: confirmar."
 severidad = "MEDIA"
 
 [reglas.MENOR_DE_EDAD]
