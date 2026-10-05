@@ -49,6 +49,10 @@ F31: calidad de lectura OCR, avisos persistentes y medición con casos ficticios
 
 F34 en curso: carga continua, solicitud de confrontación reutilizable, cola sin espera global y simplificación del visor con correcciones DOCX. Usuario autorizó implementar la propuesta tras el diagnóstico. Alcance en `specs/028-carga-continua/`; actualiza la interacción de F26 y F32 sin cambiar reglas ni ampliar retención. Despliegue y medición en servidores siguen en F8. Se integra por PR junto con la parte `.docx` de F32, de la que depende; la constitución 1.8.0 queda fuera y sigue pendiente de aprobación.
 
+## Continuación autorizada · 2026-10-04
+
+F35 en curso: empresa y partidas contra los recaudos. Tras la auditoría visual de los 10 expedientes de prueba, el usuario decidió que la información del cliente está en los recaudos y que la razón social y el domicilio legal de una empresa se corroboran contra su ficha RUC. Es la primera regla para personas jurídicas, que F11 dejó fuera de la extracción de personas. También amplía los formatos de partida y limita su FALTA a la minuta. Alcance y medición en `specs/029-empresa-ficha-ruc/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

@@ -9,8 +9,15 @@ _RE_DEBE_DECIR = re.compile(
     r"^\[(?P<campo>[^]]+)\]\s+«(?P<erroneo>[^»]*)»\s+debe decir\s+«(?P<correcto>[^»]*)»"
 )
 # Su «debe decir» es la cifra, no un texto que reemplace al erróneo (FR-005).
-_SIN_TEXTO_CORRECTO = {"NUMERO_EN_LETRAS", "AREA", "CORRELATIVO", "COPROPIEDAD"}
+_SIN_TEXTO_CORRECTO = {
+    "NUMERO_EN_LETRAS",
+    "AREA",
+    "CORRELATIVO",
+    "COPROPIEDAD",
+    "DOMICILIO_FISCAL",
+}
 # F30: reemplazar «CUARTA» o «50%» en todo el documento cambiaría texto ajeno.
+# F35: el domicilio de la ficha RUC viene en formato SUNAT, no en la redacción notarial.
 _PALABRA = "A-ZÑ0-9"
 
 
