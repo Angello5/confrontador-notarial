@@ -65,6 +65,32 @@ def _mezclada(w: str) -> bool:
     return "".join(re.findall(r"[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]+", w)) != w
 
 
+def _falta(w: str, d, lemas: list[str], aceptadas: set[str]):
+    """(palabra, motivo, sugerencia) si ``w`` no es castellano válido; si no, None."""
+    # la minúscula intercalada la reporta redaccion, sin límite de largo (lA).
+    # Se consulta TAL CUAL antes que en minúscula: hunspell acepta el nombre
+    # propio solo capitalizado (Peru falla, Perú y PERÚ pasan) y el documento
+    # notarial ya viene en mayúsculas
+    if _mezclada(w) or w.upper() in aceptadas or d.lookup(w) or d.lookup(w.lower()):
+        return None
+    if (aguda := w.translate(_GRAVES)) != w:
+        return (w, "acento grave", aguda)  # corrección exacta
+    base = plano(w)
+    if tildada(w):
+        if d.lookup(base) or d.lookup(base.upper()):
+            return (w, "tilde mal puesta", base)  # corrección exacta
+    elif any(
+        d.lookup(v) or d.lookup(v.upper())
+        for i, c in enumerate(base)
+        if c in VOCALES
+        for v in [base[:i] + AGUDA[c] + base[i + 1 :]]
+    ):
+        # sin tilde: si alguna forma tildada existe, es la convención de mayúsculas
+        return None
+    m = process.extractOne(base, lemas, scorer=fuzz.ratio)
+    return (w, "no existe en castellano", m[0] if m and m[1] >= 75 else "?")
+
+
 def revisar(
     texto: str, d, lemas: list[str], lista: set[str], extra: set[str] = frozenset()
 ) -> list[tuple[str, str, str]]:
@@ -79,35 +105,9 @@ def revisar(
         for m in _RE_AUTORIZA.finditer(texto)
         for p in re.findall(rf"{_LETRAS}+", m[1])
     }
-    fuera = []
     sin_iniciales = _RE_ENTRE_BARRAS.sub("/", texto)
-    for w in dict.fromkeys(re.findall(rf"{_LETRAS}{{3,}}", sin_iniciales)):
-        if _mezclada(w):
-            continue  # la reporta redaccion, sin limite de largo (lA)
-        # se consulta TAL CUAL antes que en minuscula: hunspell acepta el nombre
-        # propio solo capitalizado (Peru falla, Perú y PERÚ pasan) y el documento
-        # notarial ya viene en mayusculas
-        if w.upper() in aceptadas or d.lookup(w) or d.lookup(w.lower()):
-            continue
-        if (aguda := w.translate(_GRAVES)) != w:
-            fuera.append((w, "acento grave", aguda))  # correccion exacta
-            continue
-        base = plano(w)
-        if not tildada(w):
-            # sin tilde: si alguna forma tildada existe, es la convencion de mayusculas
-            if any(
-                d.lookup(v) or d.lookup(v.upper())
-                for i, c in enumerate(base)
-                if c in VOCALES
-                for v in [base[:i] + AGUDA[c] + base[i + 1 :]]
-            ):
-                continue
-        elif d.lookup(base) or d.lookup(base.upper()):
-            fuera.append((w, "tilde mal puesta", base))  # correccion exacta
-            continue
-        m = process.extractOne(base, lemas, scorer=fuzz.ratio)
-        fuera.append((w, "no existe en castellano", m[0] if m and m[1] >= 75 else "?"))
-    return fuera
+    palabras = dict.fromkeys(re.findall(rf"{_LETRAS}{{3,}}", sin_iniciales))
+    return [f for w in palabras if (f := _falta(w, d, lemas, aceptadas))]
 
 
 # F23: gramatica y redaccion con reglas cerradas. Lo completo necesita un motor
