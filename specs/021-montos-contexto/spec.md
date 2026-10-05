@@ -44,3 +44,9 @@
 
 - **SC-001**: En los 10 expedientes del revisor, se verifican los importes en dólares y se detecta una cuota intercambiada o un precio sustituido por otro importe válido del documento (medición del revisor, fuera del repositorio).
 - **SC-002**: Paridad literal de `revisar()` sobre los fixtures ficticios, salvo las observaciones MONTO nuevas.
+
+## Ampliación · 2026-10-05 (USD)
+
+La hoja resumen de los anexos escribe el importe como «IMPORTE USD 12,345.67». «USD», antes o después de la cifra y como palabra completa, se lee ahora como dólar (`US$`), igual que «US$» o «DÓLARES». Así, si el borrador omite el anexo, su importe se exige como cualquier otro monto de la minuta (F24).
+
+En los 10 expedientes de prueba, el kardex cuyo borrador omite el Anexo 1 en dólares ahora marca el importe faltante. Ningún otro hallazgo cambia. Catálogo `2026.10.05-4`.

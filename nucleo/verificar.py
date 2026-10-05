@@ -182,15 +182,17 @@ RE_PARTIDA = re.compile(
 # comió un cero, no un monto, y nunca debe proponerse como corrección.
 _CIFRA = r"(?<![\d,.])(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}(?!\d|,\d)"
 RE_MONTO = re.compile(
-    rf"(US\$|S/\.?|\$|(?<![A-ZÑ])(?:SOLES|DOLARES(?: AMERICANOS)?))\s*({_CIFRA})"
-    rf"|({_CIFRA})\s*(US\$|SOLES|DOLARES(?: AMERICANOS)?)"
+    rf"(US\$|S/\.?|\$|(?<![A-ZÑ])(?:USD|SOLES|DOLARES(?: AMERICANOS)?))\s*({_CIFRA})"
+    rf"|({_CIFRA})\s*(US\$|(?:USD|SOLES|DOLARES(?: AMERICANOS)?)(?![A-ZÑ]))"
 )
 # F27: moneda antes o después de la cifra. [NEEDS CLARIFICATION] "$" = dólares.
+# «USD» (hoja resumen de los anexos) también es dólar.
 # Para emparejar por posición, la lectura mal formada ocupa su lugar (ILEGIBLE):
 # sin ella, los importes siguientes se correrían y se cruzarían con otro.
 RE_MONTO_LEIDO = re.compile(
-    r"(US\$|S/\.?|\$|(?<![A-ZÑ])(?:SOLES|DOLARES(?: AMERICANOS)?))\s*(\d[\d,]*\.\d{2})"
-    r"|(\d[\d,]*\.\d{2})\s*(US\$|SOLES|DOLARES(?: AMERICANOS)?)"
+    r"(US\$|S/\.?|\$|(?<![A-ZÑ])(?:USD|SOLES|DOLARES(?: AMERICANOS)?))"
+    r"\s*(\d[\d,]*\.\d{2})"
+    r"|(\d[\d,]*\.\d{2})\s*(US\$|(?:USD|SOLES|DOLARES(?: AMERICANOS)?)(?![A-ZÑ]))"
 )
 ILEGIBLE = object()
 
