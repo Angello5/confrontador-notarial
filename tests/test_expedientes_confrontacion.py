@@ -225,7 +225,7 @@ def test_cliente_documento_de_texto_no_se_compara_como_parrafo(
     )
     monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
     monkeypatch.setattr(
-        "expedientes.services.verificar.revisar_parrafos",
+        "expedientes.services.verificar.anexos_omitidos",
         lambda minutas, *_: llamadas.append(minutas) or [],
     )
 
@@ -278,10 +278,10 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
         ),
     )
     monkeypatch.setattr(
-        "expedientes.services.verificar.revisar_parrafos",
+        "expedientes.services.verificar.anexos_omitidos",
         lambda minutas, texto, umbral: (
             llamadas["parrafos"].append((minutas, umbral))
-            or ["[PARRAFO] falta: fragmento ficticio…"]
+            or ["[ANEXO] FALTA: «ANEXO 1 FICTICIO»"]
         ),
     )
     documentos_antes = Documento.objects.count()
@@ -296,7 +296,7 @@ def test_orquestacion_conserva_nombres_extensiones_y_umbral(
     assert set(llamadas["diagnostico"][0][0]) == set(llamadas["catalogo"][0])
     assert llamadas["parrafos"] == [(["fuente de texto ficticia"], 88)] * 2
     assert llamadas["revisar"] == [88] * 2
-    assert [item["campo"] for item in resultado["regla"]] == ["DNI", "PARRAFO"]
+    assert [item["campo"] for item in resultado["regla"]] == ["DNI", "ANEXO"]
     assert resultado["ortografia"] == []
     assert repetido == resultado
     assert Documento.objects.count() == documentos_antes
@@ -498,9 +498,7 @@ def test_confrontacion_devuelve_catalogo_y_aporte_por_documento(
     monkeypatch.setattr("expedientes.services.verificar.catalogo", catalogo)
     monkeypatch.setattr("expedientes.services.verificar.diagnostico", lambda *_: None)
     monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
-    monkeypatch.setattr(
-        "expedientes.services.verificar.revisar_parrafos", lambda *_: []
-    )
+    monkeypatch.setattr("expedientes.services.verificar.anexos_omitidos", lambda *_: [])
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
@@ -570,9 +568,7 @@ def test_confrontacion_detecta_documentos_intercambiados_en_personas(
     )
     monkeypatch.setattr("expedientes.services.verificar.diagnostico", lambda *_: None)
     monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
-    monkeypatch.setattr(
-        "expedientes.services.verificar.revisar_parrafos", lambda *_: []
-    )
+    monkeypatch.setattr("expedientes.services.verificar.anexos_omitidos", lambda *_: [])
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 
@@ -623,7 +619,7 @@ def test_diagnostico_bloqueante_detiene_toda_ejecucion(
         "expedientes.services.verificar.revisar", lambda *_: llamadas.append("regla")
     )
     monkeypatch.setattr(
-        "expedientes.services.verificar.revisar_parrafos",
+        "expedientes.services.verificar.anexos_omitidos",
         lambda *_: llamadas.append("parrafos"),
     )
 
@@ -662,7 +658,7 @@ def test_diagnostico_real_bloquea_borrador_ajeno_antes_de_comparar(
         "borrador-ajeno-ficticio.txt",
         "BRUNO SOL PAREDES ROJAS DNI 90000002 DNI 90000003",
     )
-    for nombre in ("revisar", "revisar_parrafos"):
+    for nombre in ("revisar", "anexos_omitidos"):
         monkeypatch.setattr(
             f"expedientes.services.verificar.{nombre}",
             lambda *_: pytest.fail("no se compara un borrador ajeno"),
@@ -712,9 +708,7 @@ def test_anexo_sin_identidades_no_bloquea_diagnostico(
         "ANA LUZ QUISPE MAMANI DNI 90000001",
     )
     monkeypatch.setattr("expedientes.services.verificar.revisar", lambda *_: [])
-    monkeypatch.setattr(
-        "expedientes.services.verificar.revisar_parrafos", lambda *_: []
-    )
+    monkeypatch.setattr("expedientes.services.verificar.anexos_omitidos", lambda *_: [])
 
     resultado = confrontar_borrador(expediente_confrontacion, borrador)
 

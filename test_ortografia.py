@@ -17,7 +17,7 @@ ERRORES = {
     "DÍARIA": "tilde mal puesta",
     "SÉXTA": "tilde mal puesta",
     "INVALIDÉZ": "tilde mal puesta",
-    "OCUPACIÒN": "no existe en castellano",
+    "OCUPACIÒN": "acento grave",  # F39: correccion exacta, OCUPACIÓN
 }
 # lo que NO puede marcarse: convencion de mayusculas, nombres propios, la lista
 CORRECTAS = [
