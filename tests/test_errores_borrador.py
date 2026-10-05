@@ -30,9 +30,9 @@ def test_dni_con_digito_de_mas_y_rotulo_corto():
     assert obs.startswith("[DNI] «900000222» debe decir «90000022»")
 
 
-def test_dni_lejano_no_coincide_con_ninguna_fuente():
+def test_dni_lejano_de_otra_longitud_debe_tener_ocho_digitos():
     (obs,) = _discrepancias(_CAT, "CON D.N.I. NRO 123456", "DNI")
-    assert obs.startswith("[DNI] «123456» no coincide con ninguna fuente")
+    assert obs.startswith("[DNI] «123456» debe tener 8 dígitos")
 
 
 def test_numero_suelto_sin_rotulo_no_es_dni():

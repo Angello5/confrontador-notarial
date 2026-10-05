@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.10.05-4"
+version = "2026.10.05-5"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -34,6 +34,10 @@ severidad = "ALTA"
 [reglas.DOCUMENTO_SIN_TITULAR]
 descripcion = "Documento de identidad que no pertenece a ninguna persona de las fuentes."
 severidad = "ALTA"
+
+[reglas.SIN_FICHA]
+descripcion = "Nombre o DNI del borrador de una persona sin ficha RENIEC en los recaudos."
+severidad = "MEDIA"
 
 [reglas.RUC]
 descripcion = "RUC distinto del de las fuentes."

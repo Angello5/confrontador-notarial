@@ -34,7 +34,7 @@ def test_persona_sin_ficha_en_los_recaudos_es_aviso_medio():
     }
     borrador = (
         "ANA LUCIA PEREZ ROJAS, DE NACIONALIDAD PERUANA, CON DNI N° 90000021. "
-        "PEDRO PABLO SOTO VERA, DE NACIONALIDAD PERUANA, CON DNI N° 90000077."
+        "PEDRO PABLO SOTO VERA, DE NACIONALIDAD PERUANA, CON DNI N° 48172635."
     )
     salidas = _de(
         ("[NOMBRE]", "[DNI]", "[SIN_FICHA]"), revisar(catalogo(fuentes), borrador, 90)
@@ -44,7 +44,7 @@ def test_persona_sin_ficha_en_los_recaudos_es_aviso_medio():
         == "[SIN_FICHA] «PEDRO PABLO SOTO VERA» sin ficha RENIEC en los recaudos"
     )
     assert salidas[1].startswith(
-        "[SIN_FICHA] «90000077» sin ficha RENIEC en los recaudos"
+        "[SIN_FICHA] «48172635» sin ficha RENIEC en los recaudos"
     )
     assert len(salidas) == 2
 
@@ -69,6 +69,22 @@ def test_estado_civil_es_el_que_sigue_al_nombre_de_la_persona():
     linea = (
         "EL SEÑOR CARLOS SOTO VERA, DE ESTADO CIVIL SOLTERO, Y LA SEÑORA ANA LUCIA "
         "PEREZ ROJAS, CON DNI N° 90000099, DE ESTADO CIVIL CASADA CON LUIS RAMOS DIAZ."
+    )
+    assert revisar_persona_ampliada(Catalogo((persona,)), linea, HOY) == ()
+
+
+def test_conyuge_presentada_en_la_clausula_del_otro_esta_casada():
+    persona = Persona(
+        "ANA LUCIA PEREZ ROJAS",
+        "90000021",
+        (ORIGEN,),
+        estado_civil="CASADO",
+        procedencia_estado_civil=ORIGEN,
+    )
+    linea = (
+        "EL SEÑOR CARLOS SOTO VERA, DE ESTADO CIVIL SOLTERO; EL SEÑOR LUIS RAMOS "
+        "DIAZ, DE ESTADO CIVIL CASADO CON LA SEÑORA ANA LUCIA PEREZ ROJAS, CON DNI "
+        "N° 90000021, DE OCUPACION INDEPENDIENTE."
     )
     assert revisar_persona_ampliada(Catalogo((persona,)), linea, HOY) == ()
 
