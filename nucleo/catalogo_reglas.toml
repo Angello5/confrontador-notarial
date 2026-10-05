@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.10.05-9"
+version = "2026.10.05-10"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -96,6 +96,10 @@ severidad = "ALTA"
 [reglas.DATO_REGISTRAL]
 descripcion = "Zona registral, registro, oficina o provincia distinta de la de las fuentes."
 severidad = "ALTA"
+
+[reglas.GENERO]
+descripcion = "Tratamiento, participio o fórmula del notario en el género contrario al sexo de RENIEC."
+severidad = "MEDIA"
 
 [reglas.CORRELATIVO]
 descripcion = "Cláusula o inciso que salta o repite su número."

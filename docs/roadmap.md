@@ -73,6 +73,8 @@ F39: errores lingüísticos y anexo omitido. El usuario pidió quitar la regla d
 
 F40: aplicar correcciones con avance y descarga directa. El usuario pidió que, al aplicar las correcciones, aparezca una ventana con una barra de avance del color de la interfaz y que al terminar el archivo ya esté descargado y se indique dónde quedó. Alcance en `specs/034-correcciones-progreso/`.
 
+F41: concordancia de género con RENIEC y ordinales mal escritos. El usuario pidió revisar el género con el sexo de la ficha RENIEC y detectar los números de cláusula mal escritos. Alcance en `specs/035-genero-ordinales/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

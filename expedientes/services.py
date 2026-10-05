@@ -1010,7 +1010,9 @@ def _observaciones_f12_legibles(observaciones, texto_borrador):
                 "esperado": esperado,
                 "motivo": f"Fuente: {archivo}{pagina}",
                 "porcentaje": "",
-                "ubicacion": ubicar_valor(texto_borrador, nombre),
+                "ubicacion": ubicar_valor(
+                    texto_borrador, observacion.get("ubicar", nombre)
+                ),
             }
         )
     return filas
