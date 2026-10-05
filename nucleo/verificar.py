@@ -16,6 +16,8 @@ SEPARADOR_PAGINA = "\f"
 Procedencia = namedtuple("Procedencia", "fuente pagina")
 Pagina = namedtuple("Pagina", "fuente numero texto")
 PaginaDescartada = namedtuple("PaginaDescartada", "fuente pagina tipo")
+# F35: datos de una ficha RUC; ``numeros`` son las cifras de su domicilio fiscal.
+Empresa = namedtuple("Empresa", "ruc razon domicilio numeros nro")
 
 
 Persona = namedtuple(
@@ -42,6 +44,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         "vocabulario",
         "cantidades",
         "registrales",
+        "empresas",
         "_fijo",
     )
 
@@ -58,6 +61,7 @@ class Catalogo(Mapping[str, frozenset[str]]):
         vocabulario=(),
         cantidades=frozenset(),
         registrales=frozenset(),
+        empresas=frozenset(),
     ):
         object.__setattr__(self, "personas", tuple(personas))
         object.__setattr__(self, "partidas", frozenset(partidas))
@@ -80,6 +84,8 @@ class Catalogo(Mapping[str, frozenset[str]]):
         # F30: (concepto, cifra) y (clase, valor); sin FALTA, por eso no son campos.
         object.__setattr__(self, "cantidades", frozenset(cantidades))
         object.__setattr__(self, "registrales", frozenset(registrales))
+        # F35: fichas RUC de los recaudos; sin FALTA, como las de F30.
+        object.__setattr__(self, "empresas", frozenset(empresas))
         object.__setattr__(self, "_fijo", True)
 
     def __setattr__(self, campo, valor):
@@ -159,16 +165,18 @@ _ROTULO_RUC = (
     r"\s*(?:(?:N[O°]?|NUMERO|NRO[.]?)\s*)?(?:[:,.]\s*)?(?<!\d)"
 )
 # [NEEDS CLARIFICATION] prefijos válidos del RUC; por defecto 10/15/16/17/20.
-RE_RUC_DOC = re.compile(_ROTULO_RUC + r"((?:10|15|16|17|20)\d{9})(?!\d)")
+_RUC = r"(?:10|15|16|17|20)\d{9}"
+RE_RUC_DOC = re.compile(_ROTULO_RUC + rf"({_RUC})(?!\d)")
 RE_RUC_BORRADOR = re.compile(_ROTULO_RUC + r"(\d{9,13})(?!\d)")
 # F22: como el DNI de F19, en el borrador el rótulo basta.
 
 RE_PARTIDA = re.compile(
     r"(?<![A-ZÑ])(?:PARTIDA\s*(?:ELECTRONICA|REGISTRAL)?|FICHA\s*(?:REGISTRAL)?)"
-    r"\s*N[O°]?\.?\s*(\d{5,})"
+    r"\s*(?:(?:N[O°]?|NUMERO|NRO)[.]?\s*)?(?:[:,.]\s*)?(P?\d{5,})"
 )
 # La forma corta PARTIDA N° también es valida en algunos actos.
 # F30: la FICHA (sistema anterior a la partida electrónica) es el mismo dato.
+# F35: también «NUMERO», «:» o sin rótulo de número, y el prefijo P de los predios.
 
 # Miles en grupos de tres o sin separador: «47,00.00» es una lectura OCR que se
 # comió un cero, no un monto, y nunca debe proponerse como corrección.
@@ -1247,6 +1255,81 @@ def _pegar(anclas, registros) -> tuple[tuple[Persona, ...], tuple[Persona, ...]]
     )
 
 
+_FORMA_SOCIETARIA = (
+    r"S\.?\s?A\.?\s?C|S\.?\s?A\.?\s?A|S\.?\s?C\.?\s?R\.?\s?L|S\.?\s?R\.?\s?L"
+    r"|E\.?\s?I\.?\s?R\.?\s?L|S\.?\s?A|SOCIEDAD ANONIMA(?: CERRADA| ABIERTA)?"
+    r"|SOCIEDAD (?:COMERCIAL )?DE RESPONSABILIDAD LIMITADA"
+    r"|EMPRESA INDIVIDUAL DE RESPONSABILIDAD LIMITADA"
+)
+RE_FORMA_SOCIETARIA = re.compile(rf"(?<![A-ZÑ])(?:{_FORMA_SOCIETARIA})\.?(?![A-ZÑ])")
+# Campos del domicilio fiscal de la ficha RUC y su prefijo al mostrarlo.
+_DOMICILIO_FISCAL = (
+    ("TIPO Y NOMBRE VIA", ""),
+    ("NRO", "NRO "),
+    ("KM", "KM "),
+    ("MZ", "MZ "),
+    ("LOTE", "LT "),
+    ("DPTO", "DPTO "),
+    ("INTERIOR", "INT "),
+    ("OTRAS REFERENCIAS", ""),
+    ("TIPO Y NOMBRE ZONA", ""),
+)
+
+
+def _distintivo(razon: str) -> str:
+    """La razón social sin su forma societaria, que se escribe larga o abreviada."""
+    formas = list(RE_FORMA_SOCIETARIA.finditer(razon))
+    return razon[: formas[-1].start()].strip(" .,-") if formas else razon
+
+
+def fichas_ruc(raw: str) -> list[Empresa]:
+    """F35: razón social y domicilio fiscal de cada ficha RUC de SUNAT del texto.
+
+    Reporte de Ficha RUC: la razón social y debajo el RUC solo en su línea.
+    Constancia (CIR): «FICHA RUC : <ruc>» y la razón social en hasta dos líneas.
+    El domicilio puede seguir en la página siguiente: se lee hasta otra ficha.
+    """
+    empresas = []
+    for tramo in re.split(r"(?i)(?=REPORTE DE FICHA RUC|FICHA RUC\s*:)", raw)[1:]:
+        filas = [
+            [norm(celda) for celda in re.split(r"\s{2,}", linea.strip())]
+            for linea in tramo.splitlines()
+            if linea.strip()
+        ]
+        ruc = razon = None
+        if filas[0][0].startswith("REPORTE") and len(filas) > 2:
+            if re.fullmatch(_RUC, filas[2][0]):
+                ruc, razon = filas[2][0], filas[1][0]
+        elif m := re.match(rf"FICHA RUC\s*:\s*({_RUC})$", filas[0][0]):
+            partes = []
+            for fila in filas[1:3]:
+                if ":" in fila[0] or fila[0].startswith("NUMERO DE TRANSACCION"):
+                    break
+                partes.append(fila[0])
+            ruc, razon = m[1], " ".join(partes)
+        if not (ruc and razon):
+            continue
+        campos = {}
+        for fila in filas:
+            campos.setdefault(fila[0].rstrip(" :"), " ".join(fila[1:]).strip(" :-"))
+        domicilio = " ".join(
+            prefijo + campos[campo]
+            for campo, prefijo in _DOMICILIO_FISCAL
+            if campos.get(campo)
+        )
+        nro = campos.get("NRO", "")
+        empresas.append(
+            Empresa(
+                ruc,
+                razon,
+                domicilio,
+                frozenset(int(n) for n in re.findall(r"\d+", domicilio)),
+                int(nro) if nro.isdigit() else None,
+            )
+        )
+    return empresas
+
+
 def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
     anclas = []
     tipos = []
@@ -1314,6 +1397,7 @@ def catalogo(fuentes: Mapping[str, str]) -> Catalogo:
         vocabulario,
         cantidades,
         registrales,
+        empresas=frozenset(e for raw in fuentes.values() for e in fichas_ruc(raw)),
     )
 
 
@@ -1942,6 +2026,51 @@ def _montos_por_posicion(minutas: Mapping[str, str], destino: str, umbral: int):
     return pares
 
 
+def _empresas_observadas(empresas, d: str) -> list[str]:
+    """F35: razón social y domicilio del borrador contra la ficha RUC.
+
+    La razón social se busca en las palabras que preceden a cada forma
+    societaria (E.I.R.L., S.A.C., …), para no confundirla con otra palabra.
+    El domicilio es el que sigue al RUC («… <ruc>, CON DOMICILIO LEGAL EN …»):
+    sus cifras deben estar en la ficha y el número de la ficha, en él. Una
+    ficha sin cifras en su domicilio no permite comparar.
+    """
+    obs, vistos = [], set()
+    formas = list(RE_FORMA_SOCIETARIA.finditer(d))
+    for empresa in sorted(empresas):
+        distintivo = _distintivo(empresa.razon)
+        nombre = " ".join(re.findall(r"[A-ZÑ0-9]+", distintivo))
+        k = len(nombre.split())
+        for forma in formas:
+            previo = re.findall(
+                r"[A-ZÑ0-9]+", d[max(0, forma.start() - 200) : forma.start()]
+            )
+            hallado = " ".join(previo[-k:])
+            if (
+                hallado != nombre
+                and hallado not in vistos
+                and fuzz.ratio(hallado, nombre) >= 85
+            ):
+                vistos.add(hallado)
+                obs.append(
+                    f"[RAZON_SOCIAL] «{hallado}» debe decir «{distintivo}»   (ficha RUC)"
+                )
+        for m in empresa.numeros and re.finditer(
+            rf"{empresa.ruc}\W+(?:[A-Z]+\W+){{0,2}}?DOMICILIO(?: LEGAL| FISCAL)? EN "
+            r"(.{3,150}?)(?=,? (?:DISTRITO|PROVINCIA|DEPARTAMENTO|DEBIDAMENTE)\b|;|$)",
+            d,
+        ):
+            numeros = {int(n) for n in re.findall(r"\d+", m[1])}
+            if numeros - empresa.numeros or (
+                empresa.nro and empresa.nro not in numeros
+            ):
+                obs.append(
+                    f"[DOMICILIO_FISCAL] «{m[1]}» debe decir «{empresa.domicilio}»   "
+                    "(ficha RUC)"
+                )
+    return obs
+
+
 def _mismo_importe_mal_leido(valor: str, leido: str) -> bool:
     """Misma moneda y un dígito de diferencia: el cero que el OCR se comió."""
     moneda = lambda s: s.startswith("US$")  # noqa: E731
@@ -1961,8 +2090,14 @@ def revisar(
 ) -> list[str]:
     """``exigibles`` y ``montos_exigibles`` limitan el FALTA de NOMBRE (F16) y
     de MONTO (F24); ``None`` exige todos. ``minutas`` ({archivo: texto}) activa
-    la verificacion de montos por posicion (F27)."""
+    la verificacion de montos por posicion (F27) y limita el FALTA de PARTIDA a
+    las partidas de la minuta (F35): las fuentes traen también antecedentes."""
     d = norm(destino)
+    partidas_minuta = None
+    if minutas is not None:
+        partidas_minuta = {
+            p for texto in minutas.values() for p in RE_PARTIDA.findall(norm(texto))
+        }
     obs, vistos = [], {k: set() for k in cat}
 
     def check(campo, valor, ctx=""):
@@ -2048,6 +2183,7 @@ def revisar(
     obs += _cantidades_observadas(getattr(cat, "cantidades", ()), d, obs)
     obs += _areas_en_letras(d)
     obs += _registrales_observados(getattr(cat, "registrales", ()), d)
+    obs += _empresas_observadas(getattr(cat, "empresas", ()), d)
     obs += _correlativos(destino)
     obs += _copropiedad(destino)
 
@@ -2058,6 +2194,8 @@ def revisar(
             vals = vals & exigibles
         if campo == "MONTO" and montos_exigibles is not None:
             vals = vals & montos_exigibles
+        if campo == "PARTIDA" and partidas_minuta is not None:
+            vals = vals & partidas_minuta
         for falta in sorted(vals - vistos[campo]):
             obs.append(
                 f"[{campo}] FALTA: «{falta}» esta en las fuentes y no aparece en el destino"

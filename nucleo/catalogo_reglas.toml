@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.10.02-2"
+version = "2026.10.04-1"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -83,3 +83,12 @@ severidad = "MEDIA"
 [reglas.COPROPIEDAD]
 descripcion = "Cuotas de copropiedad que no suman 100 %."
 severidad = "MEDIA"
+
+# F35
+[reglas.RAZON_SOCIAL]
+descripcion = "Razón social distinta de la de la ficha RUC de los recaudos."
+severidad = "ALTA"
+
+[reglas.DOMICILIO_FISCAL]
+descripcion = "Domicilio de la empresa con números distintos de su ficha RUC."
+severidad = "ALTA"
