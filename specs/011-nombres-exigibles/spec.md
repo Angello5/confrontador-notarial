@@ -40,3 +40,21 @@
 - «Cláusula» = línea del borrador, como en F12. El DNI se reconoce como número completo (no dentro de otro número).
 - Si el nombre exacto no aparece en ninguna parte del borrador, las reglas F12 de la persona siguen sin evaluarse (sin cambio).
 - `correspondencia()` y `diagnostico()` siguen contando todos los nombres; no forman parte de esta decisión.
+
+## Ampliación · 2026-10-05
+
+Una auditoría visual de los 10 expedientes de prueba encontró 14 falsos positivos de nombre y DNI. El usuario confirmó que los nombres salen del OCR de RENIEC y que ese OCR nunca trae «SEÑORA».
+
+- **FR-A1 (tratamientos)**: el nombre leído del borrador o de una fuente pierde, en sus bordes, el tratamiento, el rótulo y la forma de intervenir:
+  - tratamientos: «SEÑOR», «SEÑORA», «SEÑORITA», «DON», «DOÑA», «SR.», «SRA.»;
+  - rótulo de cuadro: «NOMBRE»;
+  - forma de intervenir: «POR», «PROCEDE POR DERECHO PROPIO», «REPRESENTADO/A», «DEBIDAMENTE».
+
+  Vale también para los nombres sueltos de la carátula y de los cuadros.
+- **FR-A2 (nombres cortados)**: un nombre que es un tramo del nombre de una ficha es una lectura cortada (salto de línea, sello, OCR). Por eso no se exige ni genera una segunda observación, aunque sigue reservando su tramo en el borrador. El nombre de una ficha nunca se descarta. Sin fichas (catálogo antiguo), el completo es el nombre más largo que lo contiene.
+- **FR-A3 (DNI exigible)**: como en los nombres, las menciones reconocen y no exigen. El FALTA de DNI se limita a los documentos de las fichas RENIEC o biométricas y a los DNI escritos en la minuta. El DNI de una declaración jurada, una vigencia o un certificado SUNARP se sigue usando para validar un DNI del borrador, pero no se exige: suele ser de un cónyuge, un socio u otro apoderado que no comparece, o una lectura OCR con un dígito distinto. Sin minuta, el comportamiento anterior se conserva.
+- **Medición** (10 expedientes, confrontación en memoria):
+  - desaparecen 14 falsos positivos: 7 DNI de menciones, 4 nombres con prefijo o rótulo y 3 nombres cortados o duplicados;
+  - no hay hallazgos nuevos;
+  - el expediente con errores sembrados sigue con 8 de 8.
+- **Pendiente**: el cónyuge de la declaración jurada conserva el rótulo «O CONVIVIENTE:». Limpiarlo deja a la vista nombres de cónyuge con OCR dañado que hoy generarían sugerencias falsas; requiere su propio tratamiento.
