@@ -377,17 +377,38 @@ STOP = {
     "CELEBRAN",
     "OTORGA",
     "PERUANA",
+    # Tratamientos, rótulos y forma de intervenir: la ficha RENIEC no los trae.
+    *"SEÑORA SENORA SEÑORITA SENORITA DON DOÑA DONA SR SRA SRTA NOMBRE NOMBRES".split(),
+    *"POR PROCEDE DERECHO PROPIO REPRESENTADA REPRESENTADO DEBIDAMENTE".split(),
 }
+
+
+def _sin_bordes(palabras: list[str]) -> list[str]:
+    """Quita de los bordes artículos, tratamientos y la forma de intervenir."""
+    while palabras and palabras[0] in STOP:
+        palabras = palabras[1:]
+    while palabras and palabras[-1] in STOP:
+        palabras = palabras[:-1]
+    return palabras
+
+
+def _sin_fragmentos(cat) -> frozenset[str]:
+    """Sin los nombres que son un tramo de otro completo: lecturas cortadas.
+
+    Con fichas, el completo es el de la ficha, que nunca se descarta."""
+    fichas = {p.nombre for p in getattr(cat, "personas", ()) if p.nombre}
+    completos = fichas or cat["NOMBRE"]
+    return frozenset(
+        n
+        for n in cat["NOMBRE"]
+        if n in fichas or not any(n != c and f" {n} " in f" {c} " for c in completos)
+    )
 
 
 def nombres(t: str) -> list[str]:
     out = []
     for a, b in RE_NOMBRE.findall(norm(t)):
-        w = [x for x in (a or b).split() if len(x) > 1 or x in STOP]
-        while w and w[0] in STOP:
-            w.pop(0)
-        while w and w[-1] in STOP:
-            w.pop()
+        w = _sin_bordes([x for x in (a or b).split() if len(x) > 1 or x in STOP])
         if 2 <= len(w) <= 7:
             out.append(" ".join(w))
     return out
@@ -1929,8 +1950,11 @@ def _registrales_observados(fuente, d: str) -> list[str]:
     return obs
 
 
-def _nombres_por_ventana(conocidos, d: str, ya_vistos) -> list[str]:
-    """F19: la ventana del borrador más parecida a cada nombre de las fuentes."""
+def _nombres_por_ventana(conocidos, d: str, ya_vistos, solo=None) -> list[str]:
+    """F19: la ventana del borrador más parecida a cada nombre de las fuentes.
+
+    ``solo`` limita los nombres que se observan; todos los conocidos reservan
+    sus apariciones exactas (un nombre cortado sigue protegiendo su tramo)."""
     # Solo letras: un signo que arrastra el OCR («NOMBRE:») no es una diferencia.
     conocidos = {" ".join(re.findall(r"[A-ZÑ]+", norm(n))) for n in conocidos} - {""}
     tokens = re.findall(r"[A-ZÑ]+", d)
@@ -1947,8 +1971,13 @@ def _nombres_por_ventana(conocidos, d: str, ya_vistos) -> list[str]:
         if v == n
         for j in range(i, i + len(n.split()))
     }
+    observables = (
+        conocidos
+        if solo is None
+        else {" ".join(re.findall(r"[A-ZÑ]+", norm(n))) for n in solo}
+    )
     obs = []
-    for n in sorted(conocidos):
+    for n in sorted(conocidos & observables):
         k = len(n.split())
         libres = {
             i: v
@@ -2104,13 +2133,18 @@ def revisar(
     """``exigibles`` y ``montos_exigibles`` limitan el FALTA de NOMBRE (F16) y
     de MONTO (F24); ``None`` exige todos. ``minutas`` ({archivo: texto}) activa
     la verificacion de montos por posicion (F27) y limita el FALTA de PARTIDA a
-    las partidas de la minuta (F35): las fuentes traen también antecedentes."""
+    las partidas de la minuta (F35): las fuentes traen también antecedentes. El
+    de DNI, a las fichas y la minuta (F16): no al de una mención."""
     d = norm(destino)
-    partidas_minuta = None
+    partidas_minuta = dnis_exigibles = None
     if minutas is not None:
         partidas_minuta = {
             p for texto in minutas.values() for p in RE_PARTIDA.findall(norm(texto))
         }
+        # F16: menciones y adjuntos reconocen, no exigen; tampoco su DNI.
+        dnis_exigibles = {
+            d for texto in minutas.values() for d in RE_DNI_DOC.findall(norm(texto))
+        } | {p.documento for p in getattr(cat, "personas", ())}
     obs, vistos = [], {k: set() for k in cat}
 
     def check(campo, valor, ctx=""):
@@ -2134,7 +2168,7 @@ def revisar(
     for linea in map(norm, destino.splitlines()):
         if not (4 < len(linea) < 60):
             continue
-        cand = linea.rstrip(",.")
+        cand = " ".join(_sin_bordes(linea.rstrip(",.").split()))
         if cand in vistos["NOMBRE"] or cand in vistos_caratula:
             continue
         if not 2 <= len(cand.split()) <= 7 or not cand.replace(" ", "").isalpha():
@@ -2144,7 +2178,10 @@ def revisar(
             obs.append(f"[NOMBRE] «{cand}» debe decir «{m[0]}»   (caratula)")
             vistos_caratula.add(cand)
             vistos["NOMBRE"].add(m[0])
-    obs += _nombres_por_ventana(cat["NOMBRE"], d, vistos["NOMBRE"] | vistos_caratula)
+    completos = _sin_fragmentos(cat)
+    obs += _nombres_por_ventana(
+        cat["NOMBRE"], d, vistos["NOMBRE"] | vistos_caratula, completos
+    )
     for m in RE_DNI_BORRADOR.finditer(d):
         v, ctx = m.group(1), f"   …{d[max(0, m.start() - 55) : m.end()][-70:]}"
         if len(v) == 8:
@@ -2205,6 +2242,10 @@ def revisar(
             continue
         if campo in ("NOMBRE", "RUC") and exigibles is not None:
             vals = vals & exigibles
+        if campo == "NOMBRE":
+            vals = vals & completos
+        if campo == "DNI" and dnis_exigibles is not None:
+            vals = vals & dnis_exigibles
         if campo == "MONTO" and montos_exigibles is not None:
             vals = vals & montos_exigibles
         if campo == "PARTIDA" and partidas_minuta is not None:
