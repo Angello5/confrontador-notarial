@@ -3,7 +3,7 @@
 
 {% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
-  <li><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li><a href="{% url 'expediente_lista' %}">Kardex</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Confrontación</li>
 </ol>{% endblock %}
@@ -21,9 +21,9 @@
     </div>
     <div class="acciones">
       <a class="btn" href="{% url 'expediente_historial' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Historial</a>
-      <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al expediente</a>
+      <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al kardex</a>
       {% if resultado.estado == "RESULTADO" %}
-        <button type="button" class="btn btn-primario" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar reporte</button>
+        <button type="button" class="btn btn-primario" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar informe</button>
       {% endif %}
     </div>
   </div>
@@ -35,8 +35,8 @@
       <div class="aviso-texto">
         <h2>Revise los documentos</h2>
         <p>{{ resultado.mensaje }}</p>
-        <p>No se muestran diferencias campo por campo. Revise que el borrador y las fuentes pertenezcan al mismo expediente.</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del expediente</a></div>
+        <p>No se muestran diferencias campo por campo. Revise que el borrador y los recaudos pertenezcan al mismo kardex.</p>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
       </div>
     </section>
   {% elif resultado.estado == "NO_DISPONIBLE" %}
@@ -45,7 +45,7 @@
       <div class="aviso-texto">
         <h2>No se puede confrontar todavía</h2>
         <p>{{ resultado.mensaje }}</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del expediente</a></div>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
       </div>
     </section>
   {% elif resultado.estado == "ERROR_SEGURO" %}
@@ -54,7 +54,7 @@
       <div class="aviso-texto">
         <h2>No se pudo completar la confrontación</h2>
         <p>No se pudo completar la confrontación. Intente nuevamente.</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del expediente</a></div>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
       </div>
     </section>
   {% elif resultado.estado == "RESULTADO" %}
@@ -173,8 +173,8 @@
               </div>
             </div>
             <dl class="valores">
-              <div><dt>Documento hallado</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
-              <div><dt>Documento esperado</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
+              <div><dt>Dice</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
+              <div><dt>Debe decir</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
               <div><dt>Persona</dt><dd>{{ observacion.nombre }}</dd></div>
             </dl>
             {% include "expedientes/_obs_correccion.html" with prefijo="p" numero=forloop.counter %}
@@ -194,8 +194,8 @@
               {% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}
             </div>
             <dl class="valores">
-              <div><dt>Valor hallado</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
-              <div><dt>Valor esperado</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
+              <div><dt>Dice</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
+              <div><dt>Debe decir</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
             </dl>
             {% include "expedientes/_obs_correccion.html" with prefijo="r" numero=forloop.counter %}
           </article>
@@ -397,7 +397,7 @@
       <div class="modal modal-ancho" data-tono="exito" role="dialog" aria-modal="true" aria-labelledby="reporte-titulo">
         <div class="modal-cab">
           <div>
-            <h2 id="reporte-titulo">Descargar reporte de errores</h2>
+            <h2 id="reporte-titulo">Descargar informe de observaciones</h2>
             <p>{{ expediente.codigo }} · {{ borrador.nombre_original }}</p>
           </div>
           <button type="button" class="modal-cerrar" aria-label="Cerrar" @click="modal = null"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
@@ -420,7 +420,7 @@
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.CORRECCIONES"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Correcciones propuestas</span><em x-text="correcciones.length"></em></label>
             <label class="casilla casilla-chica" x-show="rep.fmt !== 'EXCEL'"><input type="checkbox" x-model="rep.EXTRACCION"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Personas extraídas y procedencia</span><em>{{ resultado.extraccion.personas|length }}</em></label>
           </fieldset>
-          <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El reporte registra expediente, borrador, corrida, usuario y fecha de emisión.</span></p>
+          <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El informe registra kardex, borrador, confrontación, usuario y fecha de emisión.</span></p>
         </div>
         <div class="modal-pie">
           <button type="button" class="btn" @click="modal = null">Cancelar</button>
@@ -437,15 +437,15 @@
   {# Reporte imprimible: oculto en pantalla; «Imprimir o guardar PDF» lo muestra solo al imprimir. #}
   <section class="solo-impresion reporte" aria-hidden="true">
     {% if erp_logo %}<img class="marca-logo" src="{{ erp_logo }}" alt="">{% endif %}
-    <h1>Reporte de observaciones · {{ expediente.codigo }}</h1>
+    <h1>Informe de observaciones · {{ expediente.codigo }}</h1>
     {% include "expedientes/_calidad_lectura.html" %}
-    <p class="reporte-meta">{{ erp_nombre }} · Borrador: {{ borrador.nombre_original }}{% if resultado.corrida_id %} · Corrida {{ resultado.corrida_id }}{% endif %} · Emitido por {{ user.username }} el {% now "d/m/Y H:i" %}</p>
+    <p class="reporte-meta">{{ erp_nombre }} · Borrador: {{ borrador.nombre_original }}{% if resultado.corrida_id %} · Confrontación {{ resultado.corrida_id }}{% endif %} · Emitido por {{ user.username }} el {% now "d/m/Y H:i" %}</p>
 
     <div data-seccion="IDENTIDAD">
       <h2>Identidad</h2>
       {% if resultado.personas %}
         <table>
-          <thead><tr><th scope="col">Persona</th><th scope="col">Severidad</th><th scope="col">Documento hallado</th><th scope="col">Documento esperado</th><th scope="col">Procedencia</th><th scope="col">Ubicación</th></tr></thead>
+          <thead><tr><th scope="col">Persona</th><th scope="col">Severidad</th><th scope="col">Dice</th><th scope="col">Debe decir</th><th scope="col">Procedencia</th><th scope="col">Ubicación</th></tr></thead>
           <tbody>
             {% for observacion in resultado.personas %}
               <tr>
@@ -466,7 +466,7 @@
       <h2 id="regla-titulo">Regla</h2>
       {% if resultado.regla %}
         <table aria-describedby="regla-titulo">
-          <thead><tr><th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Valor hallado</th><th scope="col">Valor esperado</th><th scope="col">Ubicación</th></tr></thead>
+          <thead><tr><th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Dice</th><th scope="col">Debe decir</th><th scope="col">Ubicación</th></tr></thead>
           <tbody>
             {% for observacion in resultado.regla %}
               <tr>
@@ -793,7 +793,7 @@
           if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; /* evita fórmulas al abrir en Excel */
           return '"' + t.replaceAll('"', '""') + '"';
         };
-        const filas = [['Capa', 'Severidad', 'Campo', 'Valor hallado', 'Valor esperado', 'Línea', 'Persona', 'Procedencia', 'Fragmento del borrador']];
+        const filas = [['Capa', 'Severidad', 'Campo', 'Dice', 'Debe decir', 'Línea', 'Persona', 'Procedencia', 'Fragmento del borrador']];
         this.obs.filter((o) => this.rep[o.capa]).forEach((o) => filas.push([CAPAS[o.capa], o.sev, o.campo, o.hallado, o.esperado, o.linea, o.persona, o.procedencia, o.fragmento]));
         if (this.rep.CORRECCIONES) this.correcciones.forEach((c) => filas.push(['Corrección propuesta', '', '', c.erroneo, c.correcto, '', '', c.fuente, c.apariciones]));
         const texto = '﻿' + filas.map((f) => f.map(celda).join(';')).join('\r\n');

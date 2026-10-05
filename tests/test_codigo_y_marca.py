@@ -71,7 +71,7 @@ def test_crear_o_editar_con_codigo_de_un_activo_da_error(client, usuario_fictici
     for ruta in ("/expedientes/", f"/expedientes/{otro.pk}/editar/"):
         respuesta = client.post(ruta, {"codigo": CODIGO})
         assert respuesta.status_code in {200, 400}
-        assert "Ya existe un expediente activo con ese código" in (
+        assert "Ya existe un kardex activo con ese número" in (
             respuesta.content.decode()
         )
     assert Expediente.objects.filter(codigo=CODIGO).count() == 1
@@ -99,7 +99,7 @@ def test_restaurar_con_codigo_ocupado_muestra_mensaje_sin_cambios(
 
     assert respuesta.status_code == 200
     assert (
-        f"No se puede restaurar: ya existe un expediente activo con el código {CODIGO}"
+        f"No se puede restaurar: ya existe un kardex activo con el número {CODIGO}"
         in respuesta.content.decode()
     )
     archivado.refresh_from_db()
@@ -123,7 +123,7 @@ def test_marca_configurable_en_base_y_login(client, usuario_ficticio):
         assert '<span class="marca-sello" aria-hidden="true">NF</span>' in contenido
         assert (
             '<span class="marca-nombre">Notaria Ficticia de Prueba</span>'
-            '<span class="marca-sub">ERP</span>'
+            '<span class="marca-sub">Confrontador Notarial</span>'
         ) in contenido
         assert "Notaria Ficticia de Prueba</title>" in contenido
         assert "ERP Notarial" not in contenido and "CONFRONTADOR" not in contenido

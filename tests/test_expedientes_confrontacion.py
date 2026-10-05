@@ -162,7 +162,7 @@ def test_precondiciones_no_confrontan_texto_vacio_ni_documento_no_listo(
 @pytest.mark.parametrize(
     ("roles", "texto_faltante"),
     [
-        (("MINUTA", "BORRADOR"), "Documentos del cliente"),
+        (("MINUTA", "BORRADOR"), "Recaudos"),
         (("CLIENTE", "BORRADOR"), "Minuta"),
         (("CLIENTE", "MINUTA"), "Proyecto (borrador)"),
     ],

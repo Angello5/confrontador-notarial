@@ -1,25 +1,25 @@
 {% extends "core/base.html" %}
 
-{% block title %}Editar {{ expediente.codigo }} · Expedientes{% endblock %}
+{% block title %}Editar {{ expediente.codigo }} · Kardex{% endblock %}
 {% block breadcrumb %}<ol>
-  <li><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li><a href="{% url 'expediente_lista' %}">Kardex</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Editar</li>
 </ol>{% endblock %}
-{% block eyebrow %}Expediente{% endblock %}
+{% block eyebrow %}Kardex{% endblock %}
 {% block heading %}Editar {{ expediente.codigo }}{% endblock %}
 {% block subtitle %}Cambie el código que identifica el trámite.{% endblock %}
 {% block content %}
   <div class="pila" x-data="{ eliminar: null }">
     <section class="panel angosto" aria-labelledby="editar-expediente">
-      <h2 id="editar-expediente" class="visually-hidden">Editar expediente</h2>
+      <h2 id="editar-expediente" class="visually-hidden">Editar kardex</h2>
       <form method="post" class="formulario panel-cuerpo" novalidate>
         {% csrf_token %}
         <div class="campo{% if form.codigo.errors %} campo-error{% endif %}">
           <label for="{{ form.codigo.id_for_label }}">{{ form.codigo.label }} *</label>
           {{ form.codigo }}
           {% for error in form.codigo.errors %}<span class="campo-error-texto" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>{{ error }}</span>{% endfor %}
-          <span class="campo-ayuda">{% if form.codigo.help_text %}{{ form.codigo.help_text }}{% else %}Tras archivar un expediente, su código puede reutilizarse.{% endif %}</span>
+          <span class="campo-ayuda">{% if form.codigo.help_text %}{{ form.codigo.help_text }}{% else %}Tras archivar un kardex, su número puede reutilizarse.{% endif %}</span>
         </div>
         <div class="formulario-pie">
           <button class="btn btn-primario" type="submit">Guardar cambios</button>
@@ -29,7 +29,7 @@
     </section>
     <section class="panel panel-peligro angosto" aria-labelledby="zona-eliminar">
       <div>
-        <h2 id="zona-eliminar">Eliminar expediente</h2>
+        <h2 id="zona-eliminar">Eliminar kardex</h2>
         <p>El historial de confrontaciones se conserva para auditoría y un Administrador puede restaurarlo.</p>
       </div>
       <a class="btn btn-peligro-borde" href="{% url 'expediente_eliminar' expediente.pk %}" @click.prevent="eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar {{ expediente.codigo }}</a>

@@ -232,7 +232,7 @@ def test_inicio_lista_los_cinco_mas_recientes_sin_datos_sensibles(
     assert "EXP-FICTICIO-U1<" not in content
     assert "hash" not in content.lower()
     assert "ficticio-0.txt" not in content
-    assert 'aria-label="Últimos expedientes y su estado"' in content
+    assert 'aria-label="Últimos kardex y su estado"' in content
     assert "Nueva confrontación" in content
     assert "Control administrativo" not in content
 
@@ -244,7 +244,7 @@ def test_inicio_vacio_ofrece_crear_el_primero(client, usuario_ficticio):
 
     assert "<table" not in content
     assert 'href="/expedientes/"' in content
-    assert "primer expediente" in content
+    assert "primer kardex" in content
 
 
 def test_inicio_de_administrador_ofrece_control_administrativo(

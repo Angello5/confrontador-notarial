@@ -1,17 +1,17 @@
 {% extends "core/base.html" %}
 
-{% block title %}Eliminar {{ expediente.codigo }} · Expedientes{% endblock %}
+{% block title %}Eliminar {{ expediente.codigo }} · Kardex{% endblock %}
 {% block breadcrumb %}<ol>
-  <li><a href="{% url 'expediente_lista' %}">Expedientes</a></li>
+  <li><a href="{% url 'expediente_lista' %}">Kardex</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Eliminar</li>
 </ol>{% endblock %}
-{% block eyebrow %}Expediente{% endblock %}
+{% block eyebrow %}Kardex{% endblock %}
 {% block heading %}Eliminar {{ expediente.codigo }}{% endblock %}
 {% block content %}
   <section class="modal modal-pagina" data-tono="peligro" aria-labelledby="eliminar-expediente">
     <div class="modal-cuerpo">
-      <h2 id="eliminar-expediente">¿Eliminar el expediente {{ expediente.codigo }}?</h2>
+      <h2 id="eliminar-expediente">¿Eliminar el kardex {{ expediente.codigo }}?</h2>
       <p>Dejará de aparecer en la lista y en el inicio, y no admitirá cargas ni confrontaciones. El historial de confrontaciones se conserva para auditoría y un Administrador puede restaurarlo.</p>
     </div>
     <form method="post" class="modal-pie">
