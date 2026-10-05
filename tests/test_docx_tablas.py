@@ -206,3 +206,36 @@ def test_reextraer_expediente_inexistente():
 
     with pytest.raises(CommandError):
         call_command("reextraer_expediente", "EXP-FICTICIO-NO")
+
+
+def test_todo_mayusculas_de_word_se_lee_como_se_imprime(tmp_path):
+    """F39: «AvENIDA» con «Todo mayúsculas» (w:caps) se imprime AVENIDA."""
+    caps = "<w:rPr><w:caps/></w:rPr>"
+    cuerpo = (
+        f"<w:p><w:r>{caps}<w:t>AvENIDA Sol &amp; luna</w:t></w:r></w:p>"
+        '<w:p><w:r><w:rPr><w:caps w:val="0"/></w:rPr><w:t>Avenida</w:t></w:r></w:p>'
+        '<w:p><w:pPr><w:pStyle w:val="Titulo"/></w:pPr>'
+        "<w:r><w:t>clausula primera</w:t></w:r></w:p>"
+        # el rPr de la marca de párrafo no toca el texto
+        f"<w:p><w:pPr>{caps}</w:pPr><w:r><w:t>Sin estilo</w:t></w:r></w:p>"
+        '<w:p><w:r><w:rPr><w:rStyle w:val="Versal"/></w:rPr>'
+        "<w:t>versalita</w:t></w:r></w:p>"
+    )
+    estilos = (
+        f'<w:style w:type="paragraph" w:styleId="Base">{caps}</w:style>'
+        '<w:style w:type="paragraph" w:styleId="Titulo">'
+        '<w:basedOn w:val="Base"/></w:style>'
+        '<w:style w:type="character" w:styleId="Versal">'
+        "<w:rPr><w:smallCaps/></w:rPr></w:style>"
+    )
+    ruta = _docx(tmp_path / "c.docx", cuerpo)
+    with zipfile.ZipFile(ruta, "a") as z:
+        z.writestr("word/styles.xml", f"<w:styles>{estilos}</w:styles>")
+
+    assert extraccion.leer(ruta).splitlines() == [
+        "AVENIDA SOL & LUNA",
+        "Avenida",
+        "CLAUSULA PRIMERA",
+        "Sin estilo",
+        "VERSALITA",
+    ]

@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.10.05-6"
+version = "2026.10.05-9"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -77,6 +77,11 @@ severidad = "MEDIA"
 
 [reglas.PARRAFO]
 descripcion = "Párrafo de la minuta ausente o alterado en el borrador."
+severidad = "MEDIA"
+
+# F39: el ERP ya no ejecuta PARRAFO (lo usan app.py y app_ortografia.py)
+[reglas.ANEXO]
+descripcion = "Anexo de la minuta (hoja resumen, cronograma) omitido en el borrador."
 severidad = "MEDIA"
 
 [reglas.ORTOGRAFIA]

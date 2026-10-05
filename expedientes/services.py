@@ -60,6 +60,8 @@ _RE_DEBE_DECIR = re.compile(
     r"^debe decir\s+«(?P<esperado>[^»]*)»(?P<resto>.*)$", re.IGNORECASE
 )
 _RE_MOTIVO_CARATULA = re.compile(r"\s+(?P<motivo>\(caratula\))\s*$", re.IGNORECASE)
+# F39: el aviso de persona sin ficha conserva cómo escribe la minuta el nombre
+_RE_MINUTA_DICE = re.compile(r"; la minuta dice «[^»]*»")
 _RE_MOTIVO_MONTO = re.compile(
     r"\s+\(concepto: (?P<concepto>[^;]*); fuente: (?P<archivo>.*), p\. (?P<pagina>\d+)\)\s*$"
 )
@@ -941,7 +943,14 @@ def parsear_observacion_regla(salida, texto_borrador):
             "Posible Ñ por marca de agua; verifique el DNI",
         ):
             if resto.lower().startswith(frase.lower()):
-                return _observacion_regla(campo, hallado, frase, "", texto_borrador)
+                nota = _RE_MINUTA_DICE.search(resto)
+                return _observacion_regla(
+                    campo,
+                    hallado,
+                    frase + (nota[0] if nota else ""),
+                    "",
+                    texto_borrador,
+                )
 
     return {
         "formato": "desconocido",
@@ -1158,6 +1167,16 @@ def confrontar_borrador(
         for documento in fuentes_documentos
         if documento.rol == Documento.MINUTA
     ]
+    # F39: el anexo que el borrador inserta como documento (Recaudos.pdf)
+    minutas_sin_insertos = verificar.sin_anexos_insertados(
+        minutas,
+        texto_borrador,
+        [
+            documento.texto_extraido.texto
+            for documento in fuentes_documentos
+            if documento.rol == Documento.CLIENTE
+        ],
+    )
     reglas = verificar.revisar(
         catalogo,
         texto_borrador,
@@ -1165,14 +1184,16 @@ def confrontar_borrador(
         verificar.nombres_exigibles(catalogo, minutas)
         if isinstance(catalogo, verificar.Catalogo)
         else None,
-        verificar.montos_exigibles(minutas),
+        verificar.montos_exigibles(minutas_sin_insertos),
         {
             documento.nombre_original: documento.texto_extraido.texto
             for documento in fuentes_documentos
             if documento.rol == Documento.MINUTA
         },
     )
-    reglas.extend(verificar.revisar_parrafos(minutas, texto_borrador, _UMBRAL_PARRAFO))
+    reglas.extend(
+        verificar.anexos_omitidos(minutas_sin_insertos, texto_borrador, _UMBRAL_PARRAFO)
+    )
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     correcciones = correccion.correcciones(reglas, fuentes)
     original = ruta_original(borrador)

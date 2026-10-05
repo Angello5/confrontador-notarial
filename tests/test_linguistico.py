@@ -2,7 +2,7 @@
 
 import pytest
 
-from nucleo.ortografia import redaccion
+from nucleo.ortografia import redaccion, revisar
 
 
 @pytest.mark.parametrize(
@@ -65,4 +65,78 @@ def test_parentesis_se_evalua_por_linea_y_en_orden():
     assert redaccion(texto, ()) == [
         ("EL PRECIO (DOS", "paréntesis sin cerrar", "?"),
         ("LA CONTRATO", "concordancia de artículo", "EL CONTRATO"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("texto", "esperado"),
+    [
+        # F39: la letra cambiada se marca en minúscula dentro de la palabra
+        (
+            "LA PARTE Y lA OTORGANTE",
+            [("lA", "mayúsculas y minúsculas mezcladas", "LA")],
+        ),
+        (
+            "EMPRESA DE CREDITOz",
+            [("CREDITOz", "mayúsculas y minúsculas mezcladas", "?")],
+        ),
+        ("PAGA A EL EL/LOS ACREEDOR/ES", [("EL EL", "palabra repetida", "EL")]),
+    ],
+)
+def test_errores_de_tipeo(texto, esperado):
+    assert redaccion(texto, ()) == esperado
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "AVISOS POR WhatsApp AL 900000001",
+        "INSCRITO EN EL ASIENTO NºD00002 Y EN EL Nº 5",
+        "Mz. A Lt. 5, Jr. Sol, Av. Luna, AVENIDA Avenida avenida",
+        # departamento, provincia y distrito homónimos; apellidos iguales
+        "DISTRITO DE LUNARIA, PROVINCIA LUNARIA LUNARIA",
+        "ALBA ZAFIRO ZAFIRO",
+    ],
+)
+def test_formas_validas_no_son_tipeo(texto):
+    assert redaccion(texto, ()) == []
+
+
+class _Diccionario:
+    """Castellano mínimo de los textos ficticios."""
+
+    COMUNES = {
+        "autoriza",
+        "abogada",
+        "con",
+        "empresa",
+        "de",
+        "inscrito",
+        "en",
+        "el",
+        "asiento",
+        "reg",
+    }
+
+    def lookup(self, palabra):
+        return palabra.lower() in self.COMUNES
+
+
+def test_ortografia_omite_iniciales_abogado_y_minuscula_intercalada():
+    texto = (
+        "AUTORIZA: ZELMA QUIRVANTA OLMEDA, ABOGADA CON REG. Nº 1\n"
+        "-/@/ -/@/ XQZ / -/@/\n"
+        "EMPRESA DE CREDITOz INSCRITO EN EL ASIENTO NºD00002 ZELMORIND"
+    )
+    assert revisar(texto, _Diccionario(), ["zelmorinda"], set()) == [
+        ("ZELMORIND", "no existe en castellano", "zelmorinda")
+    ]
+
+
+def test_acento_grave_con_correccion_exacta_salvo_si_esta_en_las_fuentes():
+    """F39; FR-002b: lo que la minuta ya trae se da por conocido."""
+    texto = "CLÀUSULA SÈTIMA, la resoluciòn"
+    assert revisar(texto, _Diccionario(), [], set(), extra={"CLÀUSULA"}) == [
+        ("SÈTIMA", "acento grave", "SÉTIMA"),
+        ("resoluciòn", "acento grave", "resolución"),
     ]
