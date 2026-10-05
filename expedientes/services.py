@@ -938,6 +938,7 @@ def parsear_observacion_regla(salida, texto_borrador):
             "No coincide con ninguna fuente",
             "Sin ficha RENIEC en los recaudos",
             "Debe tener 8 dígitos",
+            "Posible Ñ por marca de agua; verifique el DNI",
         ):
             if resto.lower().startswith(frase.lower()):
                 return _observacion_regla(campo, hallado, frase, "", texto_borrador)
