@@ -934,14 +934,13 @@ def parsear_observacion_regla(salida, texto_borrador):
                 motivo.group("motivo") if motivo else "",
                 texto_borrador,
             )
-        if resto.lower().startswith("no coincide con ninguna fuente"):
-            return _observacion_regla(
-                campo,
-                hallado,
-                "No coincide con ninguna fuente",
-                "",
-                texto_borrador,
-            )
+        for frase in (
+            "No coincide con ninguna fuente",
+            "Sin ficha RENIEC en los recaudos",
+            "Debe tener 8 dígitos",
+        ):
+            if resto.lower().startswith(frase.lower()):
+                return _observacion_regla(campo, hallado, frase, "", texto_borrador)
 
     return {
         "formato": "desconocido",

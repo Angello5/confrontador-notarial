@@ -1143,6 +1143,21 @@ def _direcciones_observadas(
     return obs
 
 
+_FILA_DOMICILIO = re.compile(r"(?:CON\s+)?(?:DOMICILIO|DIRECCION)\b")
+
+
+def _con_filas_de_domicilio(lineas: list[str], i: int) -> str:
+    """La línea de la persona y las filas de domicilio que la siguen en un cuadro
+    (sin otro DNI): el domicilio de otra persona no satisface el suyo."""
+    tramo = [lineas[i]]
+    for siguiente in lineas[i + 1 : i + 3]:
+        n = norm(siguiente)
+        if not _FILA_DOMICILIO.match(n) or RE_DNI_DOC.search(n):
+            break
+        tramo.append(siguiente)
+    return " ".join(tramo)
+
+
 def revisar_persona_ampliada(
     cat: Catalogo, borrador: str, hoy: date | None = None, contractuales=()
 ) -> tuple[dict, ...]:
@@ -1175,7 +1190,22 @@ def revisar_persona_ampliada(
             continue
         base = {"nombre": persona.nombre}
         if persona.estado_civil:
-            marcadores = _CIVIL_BORRADOR.findall(clausula)
+            # Varias personas en la línea: vale el estado civil que sigue a su nombre.
+            propio = re.search(
+                rf"(?<![A-ZÑ]){re.escape(_nombre_clave(persona.nombre))}(?![A-ZÑ])",
+                clausula,
+            )
+            # Presentada como cónyuge de otro («CASADO CON LA SEÑORA …»): casada.
+            conyuge_de_otro = propio and re.search(
+                r"CASAD[AO]\s+CON\s+(?:(?:LA|EL)\s+)?(?:SEÑORA?|SRA?\.?|DOÑA|DON)?\s*$",
+                clausula[: propio.start()],
+            )
+            marcadores = (
+                ["CASADO CON"]
+                if conyuge_de_otro
+                else (propio and _CIVIL_BORRADOR.findall(clausula[propio.end() :]))
+                or _CIVIL_BORRADOR.findall(clausula)
+            )
             hallado = marcadores[0] if marcadores else "Sin marcador de estado civil"
             if persona.estado_civil == "CASADO" and (
                 not marcadores or any(m.startswith("SOLTER") for m in marcadores)
@@ -1226,20 +1256,24 @@ def revisar_persona_ampliada(
             referencias = [("RENIEC", persona.domicilio)] + [
                 ("Minuta", d) for d in contractuales
             ]
-            # ponytail: busca en la línea del compareciente; ampliar al párrafo si hay domicilios multilínea.
-            # F16: cualquier línea con su nombre exacto o su DNI exacto.
+            # F16: cualquier línea con su nombre exacto o su DNI exacto. En un
+            # cuadro el domicilio va en la fila siguiente: se suma si la rotula.
             dni = re.compile(rf"(?<!\d){re.escape(persona.documento)}(?!\d)")
-            oraciones = [
-                linea
-                for linea in borrador.splitlines()
+            lineas = borrador.splitlines()
+            propias = [
+                i
+                for i, linea in enumerate(lineas)
                 if _nombre_clave(persona.nombre) in norm(linea) or dni.search(linea)
             ]
+            oraciones = [lineas[i] for i in propias]
             representada = any(
                 _REPRESENTACION.search(norm(oracion))
                 and any(d <= _direccion_tokens(oracion) for d in recaudos if d)
                 for oracion in oraciones
             )
-            en_oraciones = [_direccion_tokens(oracion) for oracion in oraciones]
+            en_oraciones = [
+                _direccion_tokens(_con_filas_de_domicilio(lineas, i)) for i in propias
+            ]
             if any(
                 _direccion_tokens(d) <= t for _, d in referencias for t in en_oraciones
             ):
@@ -1983,6 +2017,13 @@ def _registrales_observados(fuente, d: str) -> list[str]:
         esperados = por_clase.get(clase, set())
         if not esperados or valor in esperados:
             continue
+        # «LIMA» y «LIMA SUPERINTENDENCIA NACIONAL» (pegada a la línea siguiente
+        # del certificado) son el mismo lugar.
+        if clase in {"OFICINA", "PROVINCIA"} and any(
+            f" {e} ".startswith(f" {valor} ") or f" {valor} ".startswith(f" {e} ")
+            for e in esperados
+        ):
+            continue
         cercano, parecido, _ = process.extractOne(
             valor, sorted(esperados), scorer=fuzz.ratio
         )
@@ -2200,12 +2241,13 @@ def revisar(
         if valor in cat[campo]:
             return
         m = process.extractOne(valor, cat[campo], scorer=fuzz.ratio)
-        esperado = (
-            f"debe decir «{m[0]}»"
-            if m and m[1] >= 65
-            else "no coincide con ninguna fuente"
-        )
-        obs.append(f"[{campo}] «{valor}» {esperado}{ctx}")
+        if m and m[1] >= 65:
+            obs.append(f"[{campo}] «{valor}» debe decir «{m[0]}»{ctx}")
+        elif campo in ("NOMBRE", "DNI"):
+            # Nadie así en los recaudos: no se puede verificar; es aviso, no error.
+            obs.append(f"[SIN_FICHA] «{valor}» sin ficha RENIEC en los recaudos{ctx}")
+        else:
+            obs.append(f"[{campo}] «{valor}» no coincide con ninguna fuente{ctx}")
 
     for n in nombres(d):
         check("NOMBRE", n)
@@ -2235,7 +2277,10 @@ def revisar(
         if len(v) == 8:
             check("DNI", v, ctx)
             continue
-        obs.append(f"[DNI] «{v}» {_esperado_cercano(v, cat['DNI'])}{ctx}")
+        esperado = _esperado_cercano(v, cat["DNI"])
+        if esperado.startswith("no coincide"):
+            esperado = "debe tener 8 dígitos"
+        obs.append(f"[DNI] «{v}» {esperado}{ctx}")
     for v in RE_PARTIDA.findall(d):
         check("PARTIDA", v)
     valores = montos_de(d)

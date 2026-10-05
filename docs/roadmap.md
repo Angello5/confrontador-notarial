@@ -67,6 +67,8 @@ Solo cambian los textos y los estilos: las URL y los modelos siguen igual. Alcan
 
 F37: domicilio contractual y tipo de habilitación. El usuario decidió que el domicilio que la minuta fija «para efectos de este contrato» y el de la declaración jurada son válidos en la comparecencia, y que omitir o cambiar el tipo de habilitación es un aviso leve. La declaración jurada manuscrita queda pendiente porque el OCR no la lee. Alcance en `specs/031-domicilio-contractual/`.
 
+F38: lectura del borrador y persona sin ficha. El usuario decidió que, cuando la información del cliente no está en los recaudos, la app diga «Sin ficha RENIEC en los recaudos» como aviso MEDIA, y recordó que el DNI siempre tiene 8 dígitos. Alcance en `specs/032-lectura-borrador/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**
