@@ -194,21 +194,21 @@
     // Detalle por capa
     const sev = (o) => chipSeveridad(o.sev);
     if (d.incluir.IDENTIDAD) {
-      partes.push(titulo2('Observaciones de identidad'));
+      partes.push(titulo2('Generales de ley'));
       const filas = por('IDENTIDAD');
       if (filas.length) {
-        partes.push(nota('Documentos de identidad del borrador que pertenecen a otra persona o no tienen titular en las fuentes.', true));
+        partes.push(nota('Datos de los comparecientes que no coinciden con las fuentes: nombres, documentos de identidad, RUC y razón social, estado civil, cónyuge, domicilio y género.', true));
         partes.push(tablaDatos(
-          [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Persona', ancho: 2100 }, { titulo: 'Dice', ancho: 1450 }, { titulo: 'Debe decir', ancho: 1450 }, { titulo: 'Procedencia y ubicación', ancho: ANCHO - 5900 }],
-          filas.map((o) => [sev(o), texto(o.persona || o.titulo, { b: true }), texto(o.hallado, { color: C.ALTA.fg }), texto(o.esperado, { color: C.verdeTexto, b: true }),
+          [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Dato', ancho: 2100 }, { titulo: 'Dice', ancho: 1450 }, { titulo: 'Debe decir', ancho: 1450 }, { titulo: 'Procedencia y ubicación', ancho: ANCHO - 5900 }],
+          filas.map((o) => [sev(o), texto(o.persona || o.campo, { b: true }), texto(o.hallado, { color: C.ALTA.fg }), texto(o.esperado, { color: C.verdeTexto, b: true }),
             [parrafo(run(o.procedencia || 'Fuente no ubicada', { sz: 16, color: C.ink }), { despues: 40 }), ...ubicacion(o)]])));
-      } else partes.push(nota('Sin observaciones de identidad.'));
+      } else partes.push(nota('Sin observaciones de generales de ley.'));
     }
     if (d.incluir.REGLA) {
       partes.push(titulo2('Observaciones de regla'));
       const filas = por('REGLA');
       if (filas.length) {
-        partes.push(nota('Datos del borrador que no coinciden con las fuentes: nombres, documentos, partidas, montos, estado civil y párrafos de la minuta.', true));
+        partes.push(nota('Datos del acto que no coinciden con las fuentes: partidas, montos, números en letras, datos registrales, numeración de cláusulas y anexos.', true));
         partes.push(tablaDatos(
           [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Campo', ancho: 1700 }, { titulo: 'Dice', ancho: 1650 }, { titulo: 'Debe decir', ancho: 1650 }, { titulo: 'Ubicación en el borrador', ancho: ANCHO - 5900 }],
           filas.map((o) => [sev(o),
