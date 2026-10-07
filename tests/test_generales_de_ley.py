@@ -14,7 +14,17 @@ pytestmark = pytest.mark.django_db
 
 @pytest.mark.parametrize(
     "campo",
-    ["NOMBRE", "DNI", "ESTADO_CIVIL_DISCREPANTE", "GENERO", "RAZON_SOCIAL", "RUC"],
+    [
+        "NOMBRE",
+        "DNI",
+        "ESTADO_CIVIL_DISCREPANTE",
+        "GENERO",
+        "RAZON_SOCIAL",
+        "RUC",
+        # Decisión del usuario (2026-10-07): partida y dirección también.
+        "PARTIDA",
+        "DIRECCION",
+    ],
 )
 def test_datos_del_compareciente_son_generales_de_ley(campo):
     from expedientes.services import capa_de
@@ -22,7 +32,7 @@ def test_datos_del_compareciente_son_generales_de_ley(campo):
     assert capa_de(campo) == "IDENTIDAD"
 
 
-@pytest.mark.parametrize("campo", ["PARTIDA", "MONTO", "ANEXO", "CORRELATIVO"])
+@pytest.mark.parametrize("campo", ["MONTO", "NUMERO_EN_LETRAS", "ANEXO", "CORRELATIVO"])
 def test_datos_del_acto_siguen_en_datos(campo):
     from expedientes.services import capa_de
 
