@@ -1389,7 +1389,8 @@ class CorridaNoReconstruible(ValueError):
 
 
 # F42: «generales de ley» son los datos del compareciente, persona natural o
-# jurídica. Lo demás (partidas, montos, anexos, cláusulas) es dato del acto.
+# jurídica; por decisión del usuario también la partida y la dirección. Lo demás
+# (montos, anexos, cláusulas) es dato del acto.
 _GENERALES_DE_LEY = frozenset(
     {
         "NOMBRE",
@@ -1408,6 +1409,8 @@ _GENERALES_DE_LEY = frozenset(
         "DOMICILIO_NO_ENCONTRADO",
         "DOMICILIO_HABILITACION",
         "GENERO",
+        "PARTIDA",
+        "DIRECCION",
     }
 )
 

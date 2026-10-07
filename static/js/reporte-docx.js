@@ -197,7 +197,7 @@
       partes.push(titulo2('Generales de ley'));
       const filas = por('IDENTIDAD');
       if (filas.length) {
-        partes.push(nota('Datos de los comparecientes que no coinciden con las fuentes: nombres, documentos de identidad, RUC y razón social, estado civil, cónyuge, domicilio y género.', true));
+        partes.push(nota('Datos de los comparecientes que no coinciden con las fuentes: nombres, documentos de identidad, RUC y razón social, estado civil, cónyuge, domicilio, dirección, partida registral y género.', true));
         partes.push(tablaDatos(
           [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Dato', ancho: 2100 }, { titulo: 'Dice', ancho: 1450 }, { titulo: 'Debe decir', ancho: 1450 }, { titulo: 'Procedencia y ubicación', ancho: ANCHO - 5900 }],
           filas.map((o) => [sev(o), texto(o.persona || o.campo, { b: true }), texto(o.hallado, { color: C.ALTA.fg }), texto(o.esperado, { color: C.verdeTexto, b: true }),
@@ -208,7 +208,7 @@
       partes.push(titulo2('Observaciones de regla'));
       const filas = por('REGLA');
       if (filas.length) {
-        partes.push(nota('Datos del acto que no coinciden con las fuentes: partidas, montos, números en letras, datos registrales, numeración de cláusulas y anexos.', true));
+        partes.push(nota('Datos del acto que no coinciden con las fuentes: montos, números en letras, datos registrales, numeración de cláusulas y anexos.', true));
         partes.push(tablaDatos(
           [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Campo', ancho: 1700 }, { titulo: 'Dice', ancho: 1650 }, { titulo: 'Debe decir', ancho: 1650 }, { titulo: 'Ubicación en el borrador', ancho: ANCHO - 5900 }],
           filas.map((o) => [sev(o),
