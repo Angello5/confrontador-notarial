@@ -34,7 +34,10 @@ def test_pantalla_agrupa_el_nombre_en_generales_de_ley(escenario, usuario_fictic
 
     expediente, borrador, _ = escenario
     registrar_corrida(
-        expediente, borrador, usuario_ficticio, confrontar_borrador(expediente, borrador)
+        expediente,
+        borrador,
+        usuario_ficticio,
+        confrontar_borrador(expediente, borrador),
     )
     cliente = Client()
     cliente.force_login(usuario_ficticio)

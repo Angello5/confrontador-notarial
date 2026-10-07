@@ -75,6 +75,8 @@ F40: aplicar correcciones con avance y descarga directa. El usuario pidió que, 
 
 F41: concordancia de género con RENIEC y ordinales mal escritos. El usuario pidió revisar el género con el sexo de la ficha RENIEC y detectar los números de cláusula mal escritos. Alcance en `specs/035-genero-ordinales/`.
 
+F42: pestaña «Generales de ley». El usuario pidió reunir en ella toda la información del cliente (nombres, documentos, estado civil, domicilio, género, RUC y razón social), que antes caía en «Datos». Alcance en `specs/036-generales-de-ley/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

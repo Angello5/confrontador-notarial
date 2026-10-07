@@ -135,11 +135,12 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
             "regla": [
                 {
                     "formato": "regla",
-                    "campo": "DNI",
-                    "hallado": "90000002",
-                    "esperado": "90000001",
+                    # F42: un dato del acto; el DNI ya va en «Generales de ley».
+                    "campo": "PARTIDA",
+                    "hallado": "80000002",
+                    "esperado": "80000001",
                     "motivo": "",
-                    "ubicacion": {"linea": 1, "fragmento": "DNI 90000002."},
+                    "ubicacion": {"linea": 1, "fragmento": "PARTIDA 80000002."},
                 }
             ],
             "ortografia": [
@@ -166,7 +167,7 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     assert "palabraficticia" in contenido
     assert "Lingüístico" in contenido
     assert "ortografia-titulo" in contenido
-    assert "[DNI]" not in contenido
+    assert "[PARTIDA]" not in contenido
 
 
 def test_resultado_muestra_aviso_linguistico_sin_bloquear(

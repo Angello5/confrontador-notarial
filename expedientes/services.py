@@ -1388,6 +1388,35 @@ class CorridaNoReconstruible(ValueError):
     """Falta un texto de entrada o cambió desde la corrida."""
 
 
+# F42: «generales de ley» son los datos del compareciente, persona natural o
+# jurídica. Lo demás (partidas, montos, anexos, cláusulas) es dato del acto.
+_GENERALES_DE_LEY = frozenset(
+    {
+        "NOMBRE",
+        "DNI",
+        "SIN_FICHA",
+        "NOMBRE_MARCA_AGUA",
+        "DOCUMENTO_CRUZADO",
+        "DOCUMENTO_SIN_TITULAR",
+        "RUC",
+        "RAZON_SOCIAL",
+        "DOMICILIO_FISCAL",
+        "ESTADO_CIVIL_DISCREPANTE",
+        "CONYUGE_NO_MENCIONADO",
+        "CONYUGE_BIEN_PROPIO",
+        "MENOR_DE_EDAD",
+        "DOMICILIO_NO_ENCONTRADO",
+        "DOMICILIO_HABILITACION",
+        "GENERO",
+    }
+)
+
+
+def capa_de(campo):
+    """Pestaña de la observación: generales de ley (IDENTIDAD) o datos (REGLA)."""
+    return "IDENTIDAD" if campo in _GENERALES_DE_LEY else "REGLA"
+
+
 def severidad(campo):
     regla = CATALOGO_REGLAS["reglas"].get(campo)
     return regla["severidad"] if regla else CATALOGO_REGLAS["default_severidad"]
@@ -1493,8 +1522,18 @@ def registrar_corrida(
 
 def resultado_de_corrida(corrida):
     """Resultado para la pantalla de confrontación, sin recalcular (F26)."""
+    hallazgos = json.loads(corrida.hallazgos)
+    # F42: la pestaña es presentación; no entra en la huella de la corrida.
+    regla = [
+        {**fila, "capa": capa_de(fila.get("campo"))}
+        for fila in hallazgos.get("regla", [])
+    ]
     return {
-        **json.loads(corrida.hallazgos),
+        **hallazgos,
+        "regla": regla,
+        "hay_generales": bool(hallazgos.get("personas"))
+        or any(fila["capa"] == "IDENTIDAD" for fila in regla),
+        "hay_datos": any(fila["capa"] == "REGLA" for fila in regla),
         **corrida.presentacion,
         "corrida_id": corrida.pk,
         "correcciones": corrida.presentacion.get("correcciones", []),

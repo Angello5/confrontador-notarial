@@ -104,7 +104,7 @@
     <div class="capas">
       <div role="tablist" aria-label="Capas de revisión">
         <button type="button" role="tab" class="capa" :aria-selected="capa === 'TODAS'" @click="capa = 'TODAS'">Todas<span class="capa-num" x-text="contar('TODAS')"></span></button>
-        <button type="button" role="tab" class="capa" :aria-selected="capa === 'IDENTIDAD'" @click="capa = 'IDENTIDAD'">Identidad<span class="capa-num" x-text="contar('IDENTIDAD')"></span></button>
+        <button type="button" role="tab" class="capa" :aria-selected="capa === 'IDENTIDAD'" @click="capa = 'IDENTIDAD'">Generales de ley<span class="capa-num" x-text="contar('IDENTIDAD')"></span></button>
         <button type="button" role="tab" class="capa" :aria-selected="capa === 'REGLA'" @click="capa = 'REGLA'">Datos<span class="capa-num" x-text="contar('REGLA')"></span></button>
         <button type="button" role="tab" class="capa" :aria-selected="capa === 'LINGUISTICO'" @click="capa = 'LINGUISTICO'" id="ortografia-titulo">Texto<span class="capa-num" x-text="contar('LINGUISTICO')"></span></button>
       </div>
@@ -120,7 +120,7 @@
           {% for observacion in resultado.personas %}
             <li data-id="p{{ forloop.counter }}" data-capa="IDENTIDAD" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="Documento de identidad" data-titulo="{{ observacion.nombre }}" data-hallado="{{ observacion.hallado }}" data-esperado="{{ observacion.esperado }}" data-persona="{{ observacion.nombre }}" data-procedencia="{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
               <button type="button" class="obs-item" :aria-current="sel === 'p{{ forloop.counter }}'" @click="elegir('p{{ forloop.counter }}')">
-                <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Identidad</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
+                <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Generales de ley</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.nombre }}</strong>
                 <span class="cambio"><span class="tachado">{{ observacion.hallado }}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="correcto">{{ observacion.esperado }}</span></span>
                 <span class="obs-marca" x-show="estaMarcadaObs('p{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
@@ -128,9 +128,9 @@
             </li>
           {% endfor %}
           {% for observacion in resultado.regla %}
-            <li data-id="r{{ forloop.counter }}" data-capa="REGLA" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{{ observacion.hallado }}" data-esperado="{{ observacion.esperado }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{{ observacion.hallado }}" data-esperado="{{ observacion.esperado }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
               <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
-                <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Regla</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
+                <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %}</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
                 <span class="cambio"><span class="tachado">{{ observacion.hallado }}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="correcto">{{ observacion.esperado }}</span></span>
                 <span class="obs-marca" x-show="estaMarcadaObs('r{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
@@ -155,7 +155,7 @@
           <article class="obs-detalle" x-show="sel === 'p{{ forloop.counter }}'" x-cloak>
             <div class="obs-detalle-cab">
               <div>
-                <span class="obs-etiquetas">{% include "core/_chip.html" with estado=observacion.severidad texto="Severidad "|add:observacion.severidad clase="sev" %}<span class="eyebrow">Identidad · Documento</span></span>
+                <span class="obs-etiquetas">{% include "core/_chip.html" with estado=observacion.severidad texto="Severidad "|add:observacion.severidad clase="sev" %}<span class="eyebrow">Generales de ley · Documento</span></span>
                 <h2>{{ observacion.nombre }}</h2>
                 <p>{{ observacion.motivo }}</p>
               </div>
@@ -184,7 +184,7 @@
           <article class="obs-detalle" x-show="sel === 'r{{ forloop.counter }}'" x-cloak>
             <div class="obs-detalle-cab">
               <div>
-                <span class="obs-etiquetas">{% include "core/_chip.html" with estado=observacion.severidad texto="Severidad "|add:observacion.severidad clase="sev" %}<span class="eyebrow">Regla · {% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</span></span>
+                <span class="obs-etiquetas">{% include "core/_chip.html" with estado=observacion.severidad texto="Severidad "|add:observacion.severidad clase="sev" %}<span class="eyebrow">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %} · {% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</span></span>
                 <h2>{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</h2>
                 {% if observacion.motivo %}<p>{{ observacion.motivo }}</p>{% endif %}
               </div>
@@ -416,7 +416,7 @@
           <p class="aviso" role="alert" x-show="errorReporte" x-text="errorReporte" x-cloak></p>
           <fieldset class="opciones-reporte">
             <legend>Contenido</legend>
-            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.IDENTIDAD"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones de identidad</span><em x-text="contarCapa('IDENTIDAD')"></em></label>
+            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.IDENTIDAD"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Generales de ley</span><em x-text="contarCapa('IDENTIDAD')"></em></label>
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.REGLA"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones de regla</span><em x-text="contarCapa('REGLA')"></em></label>
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.LINGUISTICO"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones lingüísticas</span><em x-text="contarCapa('LINGUISTICO')"></em></label>
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.CORRECCIONES"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Correcciones propuestas</span><em x-text="correcciones.length"></em></label>
@@ -444,10 +444,10 @@
     <p class="reporte-meta">{{ erp_nombre }} · Borrador: {{ borrador.nombre_original }}{% if resultado.corrida_id %} · Confrontación {{ resultado.corrida_id }}{% endif %} · Emitido por {{ user.username }} el {% now "d/m/Y H:i" %}</p>
 
     <div data-seccion="IDENTIDAD">
-      <h2>Identidad</h2>
-      {% if resultado.personas %}
+      <h2>Generales de ley</h2>
+      {% if resultado.hay_generales %}
         <table>
-          <thead><tr><th scope="col">Persona</th><th scope="col">Severidad</th><th scope="col">Dice</th><th scope="col">Debe decir</th><th scope="col">Procedencia</th><th scope="col">Ubicación</th></tr></thead>
+          <thead><tr><th scope="col">Dato</th><th scope="col">Severidad</th><th scope="col">Dice</th><th scope="col">Debe decir</th><th scope="col">Procedencia</th><th scope="col">Ubicación</th></tr></thead>
           <tbody>
             {% for observacion in resultado.personas %}
               <tr>
@@ -459,18 +459,28 @@
                 <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
               </tr>
             {% endfor %}
+            {% for observacion in resultado.regla %}{% if observacion.capa == "IDENTIDAD" %}
+              <tr>
+                <td>{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</td>
+                <td>{{ observacion.severidad }}</td>
+                <td>{{ observacion.hallado }}</td>
+                <td>{{ observacion.esperado }}</td>
+                <td>{{ observacion.motivo|default:"—" }}</td>
+                <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
+              </tr>
+            {% endif %}{% endfor %}
           </tbody>
         </table>
-      {% else %}<p>No se encontraron observaciones de identidad.</p>{% endif %}
+      {% else %}<p>No se encontraron observaciones de generales de ley.</p>{% endif %}
     </div>
 
     <div data-seccion="REGLA">
       <h2 id="regla-titulo">Regla</h2>
-      {% if resultado.regla %}
+      {% if resultado.hay_datos %}
         <table aria-describedby="regla-titulo">
           <thead><tr><th scope="col">Campo</th><th scope="col">Severidad</th><th scope="col">Dice</th><th scope="col">Debe decir</th><th scope="col">Ubicación</th></tr></thead>
           <tbody>
-            {% for observacion in resultado.regla %}
+            {% for observacion in resultado.regla %}{% if observacion.capa != "IDENTIDAD" %}
               <tr>
                 <td>{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</td>
                 <td>{{ observacion.severidad }}</td>
@@ -478,7 +488,7 @@
                 <td>{{ observacion.esperado }}{% if observacion.motivo %}<br><small>{{ observacion.motivo }}</small>{% endif %}</td>
                 <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
               </tr>
-            {% endfor %}
+            {% endif %}{% endfor %}
           </tbody>
         </table>
       {% else %}<p>No se encontraron observaciones de regla.</p>{% endif %}
@@ -556,7 +566,7 @@
      Lee todo del HTML ya renderizado (atributos data-*), así no expone datos extra. */
   window.revisionConfrontacion = function () {
     const ORDEN = { ALTA: 0, MEDIA: 1, BAJA: 2 };
-    const CAPAS = { IDENTIDAD: 'Identidad', REGLA: 'Regla', LINGUISTICO: 'Lingüístico' };
+    const CAPAS = { IDENTIDAD: 'Generales de ley', REGLA: 'Regla', LINGUISTICO: 'Lingüístico' };
     /* F32: vista del borrador. Textos del contrato specs/026-vista-borrador-resaltada. */
     const VISTA_VACIA = { estado: 'CARGANDO', motivo: null, paginas: [], marcas: {}, no_ubicadas: [] };
     const MOTIVOS_VISTA = {
