@@ -88,6 +88,8 @@ Probado con dos kardex de transferencia locales (sin versionar). Cambios:
 
 - **Dirección del oficio notarial.** El tramo «UBICADO EN» del oficio notarial llegaba hasta el domicilio de la parte y salía como «Dirección» ALTA. Ahora un tramo termina en el rótulo siguiente y la dirección del oficio notarial no se compara. Además, «COOP.» se lee como COOPERATIVA, lo que quita también un falso «domicilio no encontrado».
 
+- **Imagen con la extensión de otro formato.** Un JPEG guardado como .png se rechazaba porque el contenido no coincidía con la extensión. Ahora una imagen vale con la firma de cualquier formato de imagen admitido, porque el OCR lee el contenido. Un PDF o un archivo que no es imagen con extensión de imagen se sigue rechazando.
+
 Catálogo `2026.10.09-14`.
 
 **Regresión:**

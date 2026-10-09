@@ -434,9 +434,15 @@ def validar_archivo(archivo):
         ".doc": (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",),
         ".rtf": (b"{\\rtf",),
     }
-    if extension in firmas and not any(
-        contenido.startswith(firma) for firma in firmas[extension]
-    ):
+    # F45: el celular o el escáner guarda a veces un JPEG como .png; el OCR lee
+    # el contenido, así que una imagen vale con la firma de cualquier imagen.
+    imagenes = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".webp")
+    validas = (
+        tuple(firma for formato in imagenes for firma in firmas[formato])
+        if extension in imagenes
+        else firmas.get(extension)
+    )
+    if validas and not contenido.startswith(validas):
         raise ValueError("El contenido del archivo no coincide con su formato.")
     return contenido
 
