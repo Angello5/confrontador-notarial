@@ -326,6 +326,8 @@ def datos_registrales(t: str) -> list[tuple[str, str, re.Match]]:
 RE_NOMBRE = re.compile(
     r"([A-ZÑ][A-ZÑ ]{8,60}?)[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
     r"|CASAD[AO]\s+CON\s+([A-ZÑ][A-ZÑ ]{8,60}?)[,.]"
+    # F45: las actas vehiculares escriben «NOMBRE, PERUANO,»; hasta 6 palabras.
+    r"|\b((?:[A-ZÑ]+ ){1,5}[A-ZÑ]+),\s*PERUAN[OA]\b"
 )
 # Nombre en mayusculas antes de NACIONALIDAD o despues de CASAD@ CON.
 RE_NOMBRE_APELLIDOS = re.compile(
@@ -379,6 +381,8 @@ STOP = {
     "AMBOS",
     "CELEBRAN",
     "OTORGA",
+    "ENTRE",  # F45: «CELEBRADA ENTRE NOMBRE, PERUANO»
+    "CELEBRADA",
     "PERUANA",
     # Tratamientos, rótulos y forma de intervenir: la ficha RENIEC no los trae.
     *"SEÑORA SENORA SEÑORITA SENORITA DON DOÑA DONA SR SRA SRTA NOMBRE NOMBRES".split(),
@@ -410,8 +414,9 @@ def _sin_fragmentos(cat) -> frozenset[str]:
 
 def nombres(t: str) -> list[str]:
     out = []
-    for a, b in RE_NOMBRE.findall(norm(t)):
-        w = _sin_bordes([x for x in (a or b).split() if len(x) > 1 or x in STOP])
+    for grupos in RE_NOMBRE.findall(norm(t)):
+        nombre = next(g for g in grupos if g)
+        w = _sin_bordes([x for x in nombre.split() if len(x) > 1 or x in STOP])
         if 2 <= len(w) <= 7:
             out.append(" ".join(w))
     return out
@@ -989,6 +994,7 @@ _VIAS = {
     "AAHH": "ASENTAMIENTO HUMANO",
     "ASENT": "ASENTAMIENTO",
     "ASOC": "ASOCIACION",
+    "COOP": "COOPERATIVA",  # F45: RENIEC abrevia «COOP.»
     "DPTO": "DEPARTAMENTO",
     "INT": "INTERIOR",
     "N": "NUMERO",
@@ -1074,15 +1080,26 @@ _ROTULO_DIRECCION_BORRADOR = re.compile(
 _PALABRAS_VIA = {via.split()[0] for via in _VIAS.values()} - {"NUMERO", "SIN"}
 
 
+_OFICIO_NOTARIAL = re.compile(r"(?:OFICIO|DESPACHO) NOTARIAL\s*$|NOTARIA\s*$")
+
+
 def _direcciones(texto: str, rotulo: re.Pattern) -> list[str]:
-    """F22: tramos tras el rótulo hasta el fin de cláusula, línea por línea."""
+    """F22: tramos tras el rótulo hasta el fin de cláusula, línea por línea.
+
+    F45: un tramo termina en el rótulo siguiente («UBICADO EN … CON DOMICILIO
+    EN …» son dos direcciones) y la del oficio notarial no es de ninguna parte.
+    """
     out = []
     for linea in texto.splitlines():
         # Dos espacios separan celdas (``ocr_lineas``): una celda cierra el tramo.
         t = norm(" | ".join(re.split(r"\s{2,}", linea.strip())))
-        for m in rotulo.finditer(t):
+        rotulos = list(rotulo.finditer(t))
+        for m, siguiente in zip(rotulos, [*rotulos[1:], None]):
+            if _OFICIO_NOTARIAL.search(t[max(0, m.start() - 40) : m.start()]):
+                continue
             tramo = re.split(
-                r"\||;|,\s*(?:DISTRITO|PROVINCIA|DEPARTAMENTO)\b", t[m.end() :]
+                r"\||;|,\s*(?:DISTRITO|PROVINCIA|DEPARTAMENTO)\b",
+                t[m.end() : siguiente.start() if siguiente else None],
             )[0]
             # ponytail: un punto tras palabra de hasta 4 letras es abreviatura
             # (AV., JR., MZ.); si una vía corta cierra la cláusula, se arrastra texto

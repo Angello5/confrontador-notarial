@@ -1,7 +1,7 @@
 """F43: transferencia vehicular.
 
 Compara el acta con la boleta informativa SUNARP (placa, partida, propietario y
-características) y con el monto de los cheques; el precio debe constar en el
+características) y con el monto de cheques y depósitos; el precio debe constar en el
 acta. Devuelve observaciones con el formato de ``verificar.revisar`` para
 reutilizar su presentación y correcciones.
 """
@@ -35,7 +35,8 @@ _ROTULOS = (
 _CODIGOS = {"SERIE", "VIN", "MOTOR", "ANIO_FABRICACION", "ANIO_MODELO"}
 _MENCION = {
     "MARCA": r"MARCA",
-    "MODELO": r"MODELO",
+    # «AÑO MODELO 2020» es el año, no el modelo.
+    "MODELO": r"(?<!AÑO )(?<!ANO )(?<!AÑO DE )(?<!ANO DE )MODELO",
     "ANIO_FABRICACION": r"A[ÑN]O DE FABRICACION",
     "ANIO_MODELO": r"A[ÑN]O(?: DE)? MODELO",
     "SERIE": rf"(?:{_NUM}(?:DE )?)?SERIE",
@@ -49,13 +50,22 @@ _RE_PLACA = re.compile(
     rf"\bPLACA(?: DE RODAJE)?\s*[:.]?\s*(?:{_NUM})?([A-Z0-9]{{1,4}}(?:-?[A-Z0-9]{{2,4}})?)\b"
 )
 _RE_PARTIDA = re.compile(
-    rf"\bPARTIDA(?: REGISTRAL| ELECTRONICA)?\s*(?:{_NUM})?[:.]?\s*(\d{{6,9}})\b"
+    rf"\bPARTIDA(?: REGISTRAL| ELECTRONICA)?\s*(?:{_NUM})?[:.]?\s*(\d{{3,9}})\b"
+)
+# En un acta en tabla («MARCA:  X  MODELO:  Y») el valor termina en el rótulo siguiente.
+_SIGUIENTE = (
+    r"\s+(?:PLACA|PARTIDA|MARCA|MODELO|SERIE|VIN|MOTOR|COLOR|CATEGORIA"
+    rf"|CARROCERIA|A[ÑN]O|PRECIO|{_NUM}(?:DE )?(?:SERIE|MOTOR))\b"
 )
 _CERCA_DE_PLACA = 400  # caracteres: la partida del vehículo sigue a su placa
 # Las características se buscan junto a la placa: más lejos, «número de serie»
 # es el de la foja notarial.
 _ZONA_PLACA = (200, 800)
-_RE_CHEQUE = re.compile(r"CHE[QD]UE|PAGUE(?:SE)? A LA ORDEN|A LA ORDEN DE")
+# Cheque o constancia de depósito: el usuario decidió (2026-10-09) que el
+# monto de ambos debe coincidir con el acta.
+_RE_CHEQUE = re.compile(
+    r"CHE[QD]UE|PAGUE(?:SE)? A LA ORDEN|A LA ORDEN DE|CUENTA A ABONAR|DEPOSITO"
+)
 # El OCR lee el importe del cheque con «.» de miles: *****70.000.00
 _RE_IMPORTE_CHEQUE = re.compile(r"\*{2,}\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\b")
 _RE_PRECIO = re.compile(r"\bPRECIO\b")
@@ -112,7 +122,7 @@ def boletas(fuentes: Mapping[str, str]) -> list[dict]:
 
 
 def cheques(fuentes: Mapping[str, str]) -> list[dict]:
-    """Importe legible de cada cheque entre las fuentes."""
+    """Importe legible de cada cheque o constancia de depósito de las fuentes."""
     salida = []
     for texto in fuentes.values():
         for pagina in texto.split(SEPARADOR_PAGINA):
@@ -163,18 +173,28 @@ def _partida(boleta, d):
     ]
 
 
+def _zonas_vehiculo(d):
+    """Texto alrededor de cada placa, hasta el precio: lo que sigue (un vehículo
+    entregado a cuenta del pago) describe otro vehículo."""
+    antes, despues = _ZONA_PLACA
+    for m in _RE_PLACA.finditer(d):
+        fin = m.start() + despues
+        if precio := _RE_PRECIO.search(d, m.end()):
+            fin = min(fin, precio.start())
+        yield d[max(0, m.start() - antes) : fin]
+
+
 def _caracteristicas(boleta, d):
     obs = []
-    antes, despues = _ZONA_PLACA
-    zonas = [
-        d[max(0, m.start() - antes) : m.start() + despues]
-        for m in _RE_PLACA.finditer(d)
-    ]
+    zonas = list(_zonas_vehiculo(d))
     for campo, mencion in _MENCION.items():
         esperado = boleta.get(campo)
         if not esperado:
             continue
-        patron = rf"\b{mencion}\b\s*(?:{_NUM})?[:.]?\s*([A-Z0-9Ñ][A-Z0-9Ñ /-]*?)(?=\s*(?:[,;=]|\.\s|\.?$))"
+        patron = (
+            rf"\b{mencion}\b\s*(?:{_NUM})?[:.]?\s*([A-Z0-9Ñ][A-Z0-9Ñ /-]*?)"
+            rf"(?=\s*(?:[,;=]|\.\s|\.?$)|{_SIGUIENTE})"
+        )
         for m in (m for zona in zonas for m in re.finditer(patron, zona)):
             hallado = m.group(1).strip()
             iguales = (
@@ -188,37 +208,48 @@ def _caracteristicas(boleta, d):
 
 
 def _propietarios(boleta, d):
+    """El propietario registral debe aparecer en el acta.
+
+    La boleta lista a una persona natural con los apellidos primero y el acta
+    con los nombres primero: el mismo nombre en otro orden también vale. Si
+    solo se le parece en otro orden no hay corrección literal que proponer: la
+    da la regla NOMBRE con la ficha RENIEC.
+    """
     obs = []
     tokens = list(re.finditer(r"[A-ZÑ0-9]+", d))
     for esperado in boleta.get("PROPIETARIO", ()):
         buscado = " ".join(re.findall(r"[A-ZÑ0-9]+", esperado))
         k = len(buscado.split())
-        if not k:
+        ventanas = [
+            (
+                " ".join(t.group() for t in tokens[i : i + k]),
+                tokens[i].start(),
+                tokens[i + k - 1].end(),
+            )
+            for i in range(len(tokens) - k + 1)
+        ]
+        orden = sorted(buscado.split())
+        if not k or any(
+            v == buscado or sorted(v.split()) == orden for v, _, _ in ventanas
+        ):
             continue
-        mejor = None
-        for i in range(len(tokens) - k + 1):
-            ventana = " ".join(t.group() for t in tokens[i : i + k])
-            if ventana == buscado:
-                mejor = None
-                break
-            puntaje = fuzz.ratio(ventana, buscado)
-            if puntaje >= 85 and (mejor is None or puntaje > mejor[0]):
-                mejor = (puntaje, tokens[i].start(), tokens[i + k - 1].end())
-        else:
-            if mejor is None:
-                obs.append(
-                    f"[PROPIETARIO] FALTA: «{esperado}» esta en las fuentes "
-                    "y no aparece en el destino"
-                )
-            else:
-                _, inicio, fin = mejor
-                fin += esperado.endswith(".") and d[fin : fin + 1] == "."
-                obs.append(f"[PROPIETARIO] «{d[inicio:fin]}» debe decir «{esperado}»")
+        mejor = max(
+            ventanas, key=lambda v: fuzz.token_sort_ratio(v[0], buscado), default=None
+        )
+        if mejor is None or fuzz.token_sort_ratio(mejor[0], buscado) < 85:
+            obs.append(
+                f"[PROPIETARIO] FALTA: «{esperado}» esta en las fuentes "
+                "y no aparece en el destino"
+            )
+        elif fuzz.ratio(mejor[0], buscado) >= 85:
+            _, inicio, fin = mejor
+            fin += esperado.endswith(".") and d[fin : fin + 1] == "."
+            obs.append(f"[PROPIETARIO] «{d[inicio:fin]}» debe decir «{esperado}»")
     return obs
 
 
 def _cheques(montos_cheques, d):
-    """El monto transferido con cada cheque debe constar en el acta (decisión
+    """El monto de cada cheque o depósito debe constar en el acta (decisión
     del usuario, 2026-10-09: no se comparan número, banco ni beneficiario)."""
     montos = set(montos_de(d))
     return [

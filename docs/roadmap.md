@@ -81,6 +81,8 @@ F43: transferencia vehicular. El usuario pidió un submenú «Transferencia vehi
 
 F44: «Transferencia vehicular» como submenú visible de «Kardex» y el informe Word sin minuta en las transferencias. Alcance en `specs/037-transferencia-vehicular/` (sección F44).
 
+F45: ajustes de la transferencia vehicular con dos actas reales más: actas en tabla, vehículo entregado a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO». Alcance en `specs/037-transferencia-vehicular/` (sección F45).
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

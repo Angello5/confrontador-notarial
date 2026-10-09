@@ -50,6 +50,10 @@ def test_reglas_reciben_texto_sintetico():
     assert nombres("ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA") == [
         "ALBA ZURBELIA LUMARIA"
     ]
+    # F45: las actas vehiculares escriben «, PERUANO,» sin «DE NACIONALIDAD».
+    assert nombres("ENTRE ALBA ZURBELIA LUMARIA, PERUANA, IDENTIFICADA") == [
+        "ALBA ZURBELIA LUMARIA"
+    ]
     assert (
         nombre_reniec(
             "NOMBRES  ALBA\nAPELLIDO PATERNO  ZURBELIA\nAPELLIDO MATERNO  LUMARIA"

@@ -434,9 +434,15 @@ def validar_archivo(archivo):
         ".doc": (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",),
         ".rtf": (b"{\\rtf",),
     }
-    if extension in firmas and not any(
-        contenido.startswith(firma) for firma in firmas[extension]
-    ):
+    # F45: el celular o el escáner guarda a veces un JPEG como .png; el OCR lee
+    # el contenido, así que una imagen vale con la firma de cualquier imagen.
+    imagenes = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".webp")
+    validas = (
+        tuple(firma for formato in imagenes for firma in firmas[formato])
+        if extension in imagenes
+        else firmas.get(extension)
+    )
+    if validas and not contenido.startswith(validas):
         raise ValueError("El contenido del archivo no coincide con su formato.")
     return contenido
 
@@ -939,6 +945,7 @@ def parsear_observacion_regla(salida, texto_borrador):
         for frase in (
             "No coincide con ninguna fuente",
             "Sin ficha RENIEC en los recaudos",
+            "Sin ficha RUC en los recaudos",  # F45: transferencia vehicular
             "Debe tener 8 dígitos",
             "Posible Ñ por marca de agua; verifique el DNI",
         ):
@@ -1202,6 +1209,16 @@ def confrontar_borrador(
         reglas = [
             regla for regla in reglas if not regla.startswith(("[PARTIDA]", "[MONTO]"))
         ] + vehicular.revisar(fuentes, texto_borrador)
+        if not getattr(catalogo, "rucs", None):
+            # F45: sin ficha RUC entre la información el RUC no se puede verificar.
+            reglas = [
+                re.sub(
+                    r"^\[RUC\] «([^»]+)» no coincide con ninguna fuente",
+                    r"[SIN_FICHA] «\1» sin ficha RUC en los recaudos",
+                    regla,
+                )
+                for regla in reglas
+            ]
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     correcciones = correccion.correcciones(reglas, fuentes)
     original = ruta_original(borrador)

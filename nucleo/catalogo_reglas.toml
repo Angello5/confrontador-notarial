@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.10.09-12"
+version = "2026.10.09-14"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -136,5 +136,5 @@ descripcion = "El acta no indica el precio de la transferencia."
 severidad = "ALTA"
 
 [reglas.CHEQUE]
-descripcion = "Monto transferido con un cheque que no consta en el acta."
+descripcion = "Monto de un cheque o de una constancia de depósito que no consta en el acta."
 severidad = "ALTA"
