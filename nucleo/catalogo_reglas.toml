@@ -131,6 +131,10 @@ severidad = "ALTA"
 descripcion = "Transferente distinto del propietario registral de la boleta."
 severidad = "ALTA"
 
+[reglas.PRECIO]
+descripcion = "El acta no indica el precio de la transferencia."
+severidad = "ALTA"
+
 [reglas.CHEQUE]
-descripcion = "Importe o número de cheque del acta distinto de los cheques."
+descripcion = "Monto transferido con un cheque que no consta en el acta."
 severidad = "ALTA"
