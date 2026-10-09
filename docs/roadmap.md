@@ -77,6 +77,8 @@ F41: concordancia de género con RENIEC y ordinales mal escritos. El usuario pid
 
 F42: pestaña «Generales de ley». El usuario pidió reunir en ella toda la información del cliente (nombres, documentos, estado civil, domicilio, género, RUC y razón social), que antes caía en «Datos». Alcance en `specs/036-generales-de-ley/`.
 
+F43: transferencia vehicular. El usuario pidió un submenú «Transferencia vehicular» bajo «Kardex», sin minuta, que compare la boleta informativa, los DNI y los cheques con el acta. Alcance en `specs/037-transferencia-vehicular/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

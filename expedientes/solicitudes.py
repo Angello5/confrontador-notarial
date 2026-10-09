@@ -19,8 +19,12 @@ def solicitar(expediente, borrador, usuario):
         Expediente.objects.select_for_update().get(pk=expediente.pk)
         documentos = list(expediente.documentos.all())
         roles = {d.rol for d in documentos}
-        if any(rol not in roles for rol, _ in Documento.ROLES):
-            raise ValueError("Adjunte la minuta, el borrador y los recaudos.")
+        if any(rol not in roles for rol, _ in expediente.roles):
+            raise ValueError(
+                "Adjunte la información y el borrador."
+                if expediente.tipo == Expediente.VEHICULAR
+                else "Adjunte la minuta, el borrador y los recaudos."
+            )
         relevantes = [
             d
             for d in documentos

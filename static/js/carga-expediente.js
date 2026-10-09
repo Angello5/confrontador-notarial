@@ -25,7 +25,9 @@
       },
       // Riel: 1 fuentes, 2 borrador, 3 procesamiento, 4 resultado.
       get pasoActual() {
-        if (!this.delRol('CLIENTE').length || !this.delRol('MINUTA').length) return 1;
+        // F43: el kardex vehicular no tiene zona de minuta.
+        const conMinuta = (config.roles || []).some(([rol]) => rol === 'MINUTA');
+        if (!this.delRol('CLIENTE').length || (conMinuta && !this.delRol('MINUTA').length)) return 1;
         if (!this.delRol('BORRADOR').length) return 2;
         return this.estado === 'LISTO' ? 4 : 3;
       },

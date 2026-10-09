@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.10.05-10"
+version = "2026.10.09-11"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]
@@ -116,4 +116,21 @@ severidad = "ALTA"
 
 [reglas.DOMICILIO_FISCAL]
 descripcion = "Domicilio de la empresa con números distintos de su ficha RUC."
+severidad = "ALTA"
+
+# F43: transferencia vehicular, contra la boleta informativa y los cheques.
+[reglas.PLACA]
+descripcion = "Placa del acta distinta de la boleta informativa, o ausente."
+severidad = "ALTA"
+
+[reglas.VEHICULO]
+descripcion = "Característica del vehículo (marca, modelo, serie, VIN, motor, color, año) distinta de la boleta."
+severidad = "ALTA"
+
+[reglas.PROPIETARIO]
+descripcion = "Transferente distinto del propietario registral de la boleta."
+severidad = "ALTA"
+
+[reglas.CHEQUE]
+descripcion = "Importe o número de cheque del acta distinto de los cheques."
 severidad = "ALTA"

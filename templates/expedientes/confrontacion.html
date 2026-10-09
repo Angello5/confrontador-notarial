@@ -3,7 +3,7 @@
 
 {% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
-  <li><a href="{% url 'expediente_lista' %}">Kardex</a></li>
+  <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Confrontación</li>
 </ol>{% endblock %}

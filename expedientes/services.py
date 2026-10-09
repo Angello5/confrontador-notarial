@@ -22,7 +22,7 @@ from django.db.models import F, Q
 from .bloqueos import exclusivo
 
 from adaptadores import diccionario, docx_corregido, extraccion, paginas
-from nucleo import correccion, ortografia, verificar
+from nucleo import correccion, ortografia, vehicular, verificar
 
 from .models import Corrida, DecisionCorreccion, Documento, Expediente, TextoExtraido
 
@@ -1040,7 +1040,7 @@ def estado_confrontacion(expediente, borrador, fuentes=None):
     if borrador is not None:
         documentos.append(borrador)
     roles = {documento.rol for documento in documentos}
-    faltantes = [etiqueta for rol, etiqueta in Documento.ROLES if rol not in roles]
+    faltantes = [etiqueta for rol, etiqueta in expediente.roles if rol not in roles]
     if faltantes:
         verbo = "Falta" if len(faltantes) == 1 else "Faltan"
         return {
@@ -1196,6 +1196,12 @@ def confrontar_borrador(
     reglas.extend(
         verificar.anexos_omitidos(minutas_sin_insertos, texto_borrador, _UMBRAL_PARRAFO)
     )
+    if expediente.tipo == Expediente.VEHICULAR:
+        # F43: sin minuta, la partida y los importes se cotejan con la boleta
+        # informativa y los cheques; los de un poder no están entre las fuentes.
+        reglas = [
+            regla for regla in reglas if not regla.startswith(("[PARTIDA]", "[MONTO]"))
+        ] + vehicular.revisar(fuentes, texto_borrador)
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     correcciones = correccion.correcciones(reglas, fuentes)
     original = ruta_original(borrador)
@@ -1356,11 +1362,13 @@ def expedientes_visibles(usuario, archivados=False):
     return queryset.filter(creado_por=usuario)
 
 
-def expedientes_con_resumen(usuario, archivados=False):
+def expedientes_con_resumen(usuario, archivados=False, tipo=None):
     """Expedientes visibles, del más reciente al más antiguo, con su resumen."""
     expedientes = expedientes_visibles(usuario, archivados).order_by(
         "-actualizado_el", "-pk"
     )
+    if tipo:
+        expedientes = expedientes.filter(tipo=tipo)
     return [(expediente, resumen_expediente(expediente)) for expediente in expedientes]
 
 
@@ -1596,7 +1604,7 @@ def estado_borrador(expediente, borrador, fuentes=None):
         else list(expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE))
     )
     roles = {d.rol for d in documentos} | {borrador.rol}
-    puede = all(rol in roles for rol, _ in Documento.ROLES) and not any(
+    puede = all(rol in roles for rol, _ in expediente.roles) and not any(
         d.estado == Documento.ERROR
         or (d.estado == Documento.LISTO and _texto_listo(d) is None)
         for d in [borrador, *documentos]

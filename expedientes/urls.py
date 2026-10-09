@@ -9,6 +9,12 @@ urlpatterns = [
         name="documento_cancelar_confrontacion",
     ),
     path("", views.expediente_lista, name="expediente_lista"),
+    path(
+        "vehicular/",
+        views.expediente_lista,
+        {"tipo": "VEHICULAR"},
+        name="vehicular_lista",
+    ),
     path("<int:pk>/", views.expediente_detalle, name="expediente_detalle"),
     path("<int:pk>/editar/", views.expediente_editar, name="expediente_editar"),
     path("<int:pk>/eliminar/", views.expediente_eliminar, name="expediente_eliminar"),

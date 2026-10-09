@@ -97,18 +97,27 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
                 expediente, documento, fuentes
             )
     estado_general = estado_confrontacion(expediente, None, fuentes)
+    roles = expediente.roles
     formularios = {
-        rol: DocumentoUploadForm(expected_role=rol) for rol, _ in Documento.ROLES
+        rol: DocumentoUploadForm(expected_role=rol, roles=roles) for rol, _ in roles
     }
     if upload_form is not None:
         rol = upload_form.expected_role or upload_form.data.get("rol")
         formularios[rol if rol in formularios else Documento.CLIENTE] = upload_form
-    etiquetas = dict(Documento.ROLES)
+    etiquetas = dict(roles)
     descripciones = {
         Documento.CLIENTE: "DNI, partidas registrales y demás recaudos.",
         Documento.MINUTA: "Documento del encargo, normalmente Word.",
         Documento.BORRADOR: "Documento elaborado que se confrontará con los recaudos.",
     }
+    vehicular = expediente.tipo == Expediente.VEHICULAR
+    if vehicular:
+        # F43: la transferencia vehicular se confronta con la información, sin minuta.
+        etiquetas[Documento.CLIENTE] = "Información"
+        descripciones[Documento.CLIENTE] = "Boleta informativa, DNI y cheques."
+        descripciones[Documento.BORRADOR] = (
+            "Acta elaborada que se confrontará con la información."
+        )
     por_rol = {Documento.BORRADOR: borradores}
     zonas = [
         {
@@ -118,7 +127,7 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
             "documentos": por_rol.get(rol, [d for d in documentos if d.rol == rol]),
             "form": formularios[rol],
         }
-        for rol, _ in Documento.ROLES
+        for rol, _ in roles
     ]
     borradores_estado = [
         {"id": borrador.pk, **borrador.confrontacion_estado} for borrador in borradores
@@ -132,6 +141,9 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
         "polling": _sondear(resumen, borradores_estado),
         "estado_general": estado_general,
         "zonas": zonas,
+        "zonas_fuente": zonas[:-1],
+        "zona_borrador": zonas[-1],
+        "vehicular": vehicular,
         "documentos_estado": [
             {**resumen_documento(d), "nombre": d.nombre_original} for d in documentos
         ],
@@ -146,7 +158,7 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
         "base": reverse("expediente_detalle", args=[expediente.pk]),
         "maximo": settings.EXPEDIENTES_MAX_FILE_SIZE,
         "extensiones": [e.strip().lower() for e in formatos_admitidos().split(",")],
-        "roles": [[rol, etiqueta] for rol, etiqueta in Documento.ROLES],
+        "roles": [[rol, etiquetas[rol]] for rol, _ in roles],
     }
     return render(
         request,
@@ -157,10 +169,10 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
 
 
 @login_required
-def expediente_lista(request):
+def expediente_lista(request, tipo=Expediente.NOTARIAL):
     _requiere_rol(request)
     if request.method == "POST":
-        form = ExpedienteForm(request.POST)
+        form = ExpedienteForm(request.POST, instance=Expediente(tipo=tipo))
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -181,7 +193,8 @@ def expediente_lista(request):
     contexto.update(
         form=form,
         archivados=archivados,
-        expedientes=expedientes_con_resumen(request.user, archivados),
+        expedientes=expedientes_con_resumen(request.user, archivados, tipo),
+        vehicular=tipo == Expediente.VEHICULAR,
     )
     return render(
         request,
@@ -271,6 +284,7 @@ def documento_subir(request, pk):
         request.POST,
         request.FILES,
         expected_role=request.POST.get("rol"),
+        roles=expediente.roles,
     )
     if not form.is_valid():
         if _quiere_json(request):

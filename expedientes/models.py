@@ -6,7 +6,13 @@ import uuid
 
 
 class Expediente(models.Model):
+    NOTARIAL = "NOTARIAL"
+    VEHICULAR = "VEHICULAR"
+    TIPOS = ((NOTARIAL, "Kardex"), (VEHICULAR, "Transferencia vehicular"))
+
     codigo = models.CharField(max_length=100)
+    # F43: la transferencia vehicular se confronta sin minuta.
+    tipo = models.CharField(max_length=10, choices=TIPOS, default=NOTARIAL)
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -25,10 +31,10 @@ class Expediente(models.Model):
     )
 
     class Meta:
-        # F28: el código es único solo entre expedientes activos.
+        # F28: el código es único solo entre expedientes activos de su tipo.
         constraints = [
             models.UniqueConstraint(
-                fields=("codigo",),
+                fields=("codigo", "tipo"),
                 condition=Q(archivado_el__isnull=True),
                 name="expediente_codigo_activo_unico",
             )
@@ -37,6 +43,23 @@ class Expediente(models.Model):
     def save(self, *args, **kwargs):
         self.codigo = self.codigo.strip()
         super().save(*args, **kwargs)
+
+    @property
+    def roles(self):
+        """Zonas de carga del kardex; la transferencia vehicular no lleva minuta."""
+        return tuple(
+            (rol, etiqueta)
+            for rol, etiqueta in Documento.ROLES
+            if not (self.tipo == self.VEHICULAR and rol == Documento.MINUTA)
+        )
+
+    @property
+    def url_lista(self):
+        from django.urls import reverse
+
+        return reverse(
+            "vehicular_lista" if self.tipo == self.VEHICULAR else "expediente_lista"
+        )
 
 
 class TextoExtraido(models.Model):

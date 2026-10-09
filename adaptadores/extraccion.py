@@ -62,7 +62,8 @@ _FORMATO_CACHE = 3
 # 2: cada fila de tabla de un .docx es una linea (F27).
 # 3: el salto manual <w:br/> de un .docx también separa líneas.
 # 4: el «Todo mayúsculas» (w:caps) de un .docx se aplica al texto (F39).
-_FORMATO_TEXTO = 4
+# 5: la capa de texto de un PDF se lee por filas, como el OCR (F43).
+_FORMATO_TEXTO = 5
 
 
 def version_extractor() -> str:
@@ -273,6 +274,31 @@ def _pdf_paginas(p: Path) -> tuple[str, ...]:
     return tuple(pagina["texto"] for pagina in _pdf_informe(p))
 
 
+def _filas_pdf(pg, tol=4):
+    """Capa de texto por filas, como el OCR (F43).
+
+    En una boleta SUNARP el rótulo y su valor son bloques sueltos y el orden de
+    la capa los separa («Placa» lejos de «: AXC000»). Se juntan las líneas de
+    la misma altura de izquierda a derecha. El texto en diagonal (marca de
+    agua de la consulta) se descarta, como las cajas inclinadas del OCR.
+    """
+    lineas = sorted(
+        ((y0 + y1) / 2, x0, texto)
+        for bloque in pg.get_text("dict")["blocks"]
+        for linea in bloque.get("lines", ())
+        if abs(linea["dir"][1]) < 0.05
+        and (texto := "".join(s["text"] for s in linea["spans"]).strip())
+        for x0, y0, _, y1 in (linea["bbox"],)
+    )
+    filas = []
+    for y, x, texto in lineas:
+        if filas and y - filas[-1][0] <= tol:
+            filas[-1][1].append((x, texto))
+        else:
+            filas.append((y, [(x, texto)]))
+    return "\n".join("  ".join(t for _, t in sorted(celdas)) for _, celdas in filas)
+
+
 def _pdf_informe(p):
     import pymupdf
 
@@ -302,7 +328,7 @@ def _pdf_informe(p):
                         txt, "texto_pdf", ["capa_dudosa_sin_mejora"]
                     )
             else:
-                informe = _informe_nativo(txt, "texto_pdf")
+                informe = _informe_nativo(_filas_pdf(pg), "texto_pdf")
             paginas.append(informe)
     return tuple(paginas)
 

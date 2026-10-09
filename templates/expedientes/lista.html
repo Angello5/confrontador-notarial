@@ -1,10 +1,10 @@
 {% extends "core/base.html" %}
 
-{% block title %}Kardex · {{ erp_nombre }}{% endblock %}
-{% block breadcrumb %}<ol><li aria-current="page">Kardex</li></ol>{% endblock %}
+{% block title %}{% if vehicular %}Transferencia vehicular{% else %}Kardex{% endif %} · {{ erp_nombre }}{% endblock %}
+{% block breadcrumb %}<ol>{% if vehicular %}<li><a href="{% url 'expediente_lista' %}">Kardex</a></li><li aria-current="page">Transferencia vehicular</li>{% else %}<li aria-current="page">Kardex</li>{% endif %}</ol>{% endblock %}
 {% block eyebrow %}Módulo{% endblock %}
-{% block heading %}Kardex{% endblock %}
-{% block subtitle %}Cree un kardex con su número y cargue sus documentos para confrontar.{% endblock %}
+{% block heading %}{% if vehicular %}Transferencia vehicular{% else %}Kardex{% endif %}{% endblock %}
+{% block subtitle %}{% if vehicular %}Cree el kardex de la transferencia y cargue la información (boleta informativa, DNI y cheques) y el acta para confrontar.{% else %}Cree un kardex con su número y cargue sus documentos para confrontar.{% endif %}{% endblock %}
 {% block actions %}{% if not archivados %}<button class="btn btn-primario" type="button" @click="$dispatch('nuevo-expediente')" aria-controls="crear-expediente-panel"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo kardex</button>{% endif %}{% endblock %}
 {% block content %}
   {% if not archivados %}
@@ -58,8 +58,8 @@
       <h2 id="lista-expedientes" class="panel-titulo empuja">{% if archivados %}Kardex archivados{% else %}Mis kardex{% endif %}</h2>
       {% if es_administrador %}
         <nav class="segmentado" aria-label="Filtro de kardex">
-          <a href="{% url 'expediente_lista' %}"{% if not archivados %} aria-current="page"{% endif %}>Activos</a>
-          <a href="{% url 'expediente_lista' %}?archivados=1"{% if archivados %} aria-current="page"{% endif %}>Archivados</a>
+          <a href="{{ request.path }}"{% if not archivados %} aria-current="page"{% endif %}>Activos</a>
+          <a href="{{ request.path }}?archivados=1"{% if archivados %} aria-current="page"{% endif %}>Archivados</a>
         </nav>
       {% endif %}
     </div>

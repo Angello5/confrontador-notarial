@@ -10,6 +10,8 @@ from tests.test_vehicular import BOLETA, BORRADOR, CHEQUE
 
 pytestmark = pytest.mark.django_db
 
+DNI = "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.\n"
+
 
 def _texto(contenido):
     from expedientes.models import TextoExtraido
@@ -48,11 +50,13 @@ def vehicular(usuario_ficticio):
     )
     _documento(expediente, Documento.CLIENTE, "boleta.pdf", BOLETA, usuario_ficticio)
     _documento(expediente, Documento.CLIENTE, "cheque.jpg", CHEQUE, usuario_ficticio)
+    # Sin una identidad en común el diagnóstico de correspondencia bloquea.
+    _documento(expediente, Documento.CLIENTE, "dni.pdf", DNI, usuario_ficticio)
     borrador = _documento(
         expediente,
         Documento.BORRADOR,
         "acta-ficticia.docx",
-        BORRADOR.replace("PLACA: QWE123", "PLACA: QWE128"),
+        BORRADOR.replace("PLACA: QWE123", "PLACA: QWE128") + DNI,
         usuario_ficticio,
     )
     return expediente, borrador
