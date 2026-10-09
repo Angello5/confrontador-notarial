@@ -561,6 +561,7 @@
     usuario: '{{ user.username|escapejs }}',
     notaria: '{{ erp_nombre|escapejs }}',
     logo: '{{ erp_logo|escapejs }}',
+    vehicular: '{{ expediente.tipo|escapejs }}' === 'VEHICULAR',
   };
   /* Resultado de la confrontación: filtros, selección, teclado, correcciones y reporte.
      Lee todo del HTML ya renderizado (atributos data-*), así no expone datos extra. */

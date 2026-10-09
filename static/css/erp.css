@@ -140,9 +140,10 @@ table { border-collapse: collapse; }
 .menu a:hover { background: var(--ne-line); }
 .menu a[aria-current="page"] { background: var(--ne-line); border-left-color: var(--ne-green); font-weight: 800; }
 .menu a[aria-current="page"] .ico { color: var(--ne-navy); }
-/* F43: submenú de Kardex (Transferencia vehicular). */
-.submenu { list-style: none; margin: 2px 0 0; padding: 0 0 0 30px; display: flex; flex-direction: column; gap: 2px; }
-.submenu a { font-size: 14px; }
+/* F43/F44: submenú de Kardex; cuelga de una guía vertical alineada con el ícono. */
+.submenu { list-style: none; margin: 2px 0 4px 21px; padding: 0; border-left: 1px solid var(--ne-border); display: flex; flex-direction: column; gap: 2px; }
+.menu .submenu a { height: 34px; margin-left: -2px; padding-left: 18px; font-size: 14px; font-weight: 600; color: var(--ne-slate); }
+.menu .submenu a[aria-current="page"] { color: var(--ne-navy); font-weight: 800; }
 .lateral-pie { padding: 14px 16px; border-top: 1px solid var(--ne-border); display: flex; align-items: center; gap: 10px; }
 .lateral-pie form { margin: 0; }
 .avatar {

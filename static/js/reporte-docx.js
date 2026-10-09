@@ -153,7 +153,7 @@
     const alta = cuenta('ALTA'), media = cuenta('MEDIA'), baja = cuenta('BAJA');
     const ncorr = (d.correcciones || []).length;
     const frase = total
-      ? `La confrontación del borrador «${m.borrador}» contra la minuta y los documentos del cliente encontró ${total} observaci${total === 1 ? 'ón' : 'ones'}: ${alta} de severidad alta, ${media} media y ${baja} baja.${ncorr ? ` Se proponen ${ncorr} correcci${ncorr === 1 ? 'ón' : 'ones'} automática${ncorr === 1 ? '' : 's'} a partir de las fuentes.` : ''}`
+      ? `La confrontación del borrador «${m.borrador}» contra ${m.vehicular ? 'la información de la transferencia (boleta informativa, DNI y cheques)' : 'la minuta y los documentos del cliente'} encontró ${total} observaci${total === 1 ? 'ón' : 'ones'}: ${alta} de severidad alta, ${media} media y ${baja} baja.${ncorr ? ` Se proponen ${ncorr} correcci${ncorr === 1 ? 'ón' : 'ones'} automática${ncorr === 1 ? '' : 's'} a partir de las fuentes.` : ''}`
       : `La confrontación del borrador «${m.borrador}» no encontró observaciones en los datos detectados.`;
     partes.push(parrafo(run(frase, { sz: 21 }), { despues: 200, interlineado: 276 }));
     if ((d.calidad || []).length) {
@@ -246,7 +246,7 @@
       } else partes.push(nota('Ninguna ficha RENIEC o biométrica en el legajo.'));
     }
 
-    partes.push(parrafo(run('Informe generado por el Confrontador Notarial a partir de la minuta, los recaudos y el borrador cargados en el kardex. Las decisiones de corrección corresponden al personal de la notaría.',
+    partes.push(parrafo(run(`Informe generado por el Confrontador Notarial a partir de ${m.vehicular ? 'la información y el acta' : 'la minuta, los recaudos y el borrador'} cargados en el kardex. Las decisiones de corrección corresponden al personal de la notaría.`,
       { sz: 15, i: true, color: C.subtle }), { antes: 360, despues: 0, borde: { color: C.linea, sz: 6, espacio: 1 } }));
 
     const sect = `<w:sectPr><w:headerReference w:type="default" r:id="rIdHeader"/><w:footerReference w:type="default" r:id="rIdFooter"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1531" w:right="1134" w:bottom="1247" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>`;

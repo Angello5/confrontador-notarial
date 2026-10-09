@@ -166,7 +166,7 @@ def test_resultado_vehicular_avisa_al_informe(client, usuario_ficticio, vehicula
     html = client.get(
         reverse("documento_resultado", args=[expediente.pk, borrador.pk])
     ).content.decode()
-    assert "vehicular: true," in html
+    assert "vehicular: 'VEHICULAR' === 'VEHICULAR'," in html
 
 
 def test_transferencia_vehicular_es_submenu_de_kardex(client, usuario_ficticio):
