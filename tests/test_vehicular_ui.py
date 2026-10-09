@@ -176,3 +176,21 @@ def test_transferencia_vehicular_es_submenu_de_kardex(client, usuario_ficticio):
     submenu = html.index('<ul class="submenu"', kardex)
     assert html.index("Transferencia vehicular", kardex) > submenu
     assert '<ul class="submenu" aria-label="Kardex">' in html
+
+
+def test_ruc_sin_ficha_ruc_no_es_error_en_vehicular(vehicular):
+    """F45: sin ficha RUC entre la información el RUC no se puede verificar."""
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    expediente, borrador = vehicular
+    texto = borrador.texto_extraido
+    texto.texto += "LA EMPRESA FICTICIA DEMO S.A.C., CON RUC 20000000001.\n"
+    texto.save()
+    borrador = Documento.objects.get(pk=borrador.pk)
+    ruc = [
+        o
+        for o in confrontar_borrador(expediente, borrador)["regla"]
+        if "20000000001" in o["hallado"]
+    ]
+    assert [o["campo"] for o in ruc] == ["SIN_FICHA"]
