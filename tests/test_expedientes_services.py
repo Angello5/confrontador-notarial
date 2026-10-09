@@ -124,6 +124,21 @@ def test_validar_archivo_rechaza_firma_incompatible(nombre, contenido):
         validar_archivo(SimpleUploadedFile(nombre, contenido))
 
 
+@pytest.mark.parametrize(
+    ("nombre", "contenido"),
+    [
+        # F45: el celular o el escáner guarda un JPEG con extensión .png.
+        ("soat-ficticio.png", b"\xff\xd8\xff\xe0contenido"),
+        ("dni-ficticio.jpeg", b"\x89PNG\r\n\x1a\ncontenido"),
+        ("cheque-ficticio.jpg", b"RIFF0000WEBPcontenido"),
+    ],
+)
+def test_validar_archivo_acepta_imagen_con_extension_de_otra_imagen(nombre, contenido):
+    from expedientes.services import validar_archivo
+
+    assert validar_archivo(SimpleUploadedFile(nombre, contenido))
+
+
 def test_validar_archivo_rechaza_archivo_vacio():
     from expedientes.services import validar_archivo
 
