@@ -1,8 +1,8 @@
 {% extends "core/base.html" %}
 {% load static %}
-{% block title %}{{ expediente.codigo }} · Kardex{% endblock %}
+{% block title %}{{ expediente.codigo }} · {{ expediente.get_tipo_display }}{% endblock %}
 {% block breadcrumb %}<ol>
-  <li><a href="{% url 'expediente_lista' %}">Kardex</a></li>
+  <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li aria-current="page">{{ expediente.codigo }}</li>
 </ol>{% endblock %}
 {% block cabecera %}{% endblock %}
@@ -13,12 +13,12 @@
   {% csrf_token %}
   <div class="cabecera">
     <div class="cabecera-texto">
-      <p class="eyebrow">Kardex</p>
+      <p class="eyebrow">{{ expediente.get_tipo_display }}</p>
       <div class="cabecera-titulo">
         <h1>{{ expediente.codigo }}</h1>
         <span class="chip chip-lg" data-estado="{{ resumen.estado }}" :data-estado="estado" x-text="textos[estado] || estado">{% if resumen.estado == "VACIO" %}Sin documentos{% elif resumen.estado == "PROCESANDO" %}Procesando{% elif resumen.estado == "LISTO" %}Listo{% else %}Con error{% endif %}</span>
       </div>
-      <p class="subtitulo">Cargue los recaudos y el borrador; puede seguir trabajando mientras se preparan.</p>
+      <p class="subtitulo">{% if vehicular %}Cargue la información y el acta{% else %}Cargue los recaudos y el borrador{% endif %}; puede seguir trabajando mientras se preparan.</p>
     </div>
     <div class="acciones">
       <a class="btn" href="{% url 'expediente_historial' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Historial de confrontaciones</a>
@@ -27,8 +27,8 @@
     </div>
   </div>
 
-  {% if not zonas.0.documentos or not zonas.1.documentos %}{% include "core/_riel.html" with actual=1 x_actual="pasoActual" %}
-  {% elif not zonas.2.documentos %}{% include "core/_riel.html" with actual=2 x_actual="pasoActual" %}
+  {% if not zonas.0.documentos or not vehicular and not zonas.1.documentos %}{% include "core/_riel.html" with actual=1 x_actual="pasoActual" %}
+  {% elif not zona_borrador.documentos %}{% include "core/_riel.html" with actual=2 x_actual="pasoActual" %}
   {% elif resumen.estado == "LISTO" %}{% include "core/_riel.html" with actual=4 x_actual="pasoActual" %}
   {% else %}{% include "core/_riel.html" with actual=3 x_actual="pasoActual" %}{% endif %}
 
@@ -49,11 +49,11 @@
     <section class="panel" aria-labelledby="fuentes-titulo">
       <div class="panel-cab">
         <div>
-          <h2 id="fuentes-titulo">Documentos del kardex</h2>
-          <p>Minuta y recaudos con los que se revisará el proyecto.</p>
+          <h2 id="fuentes-titulo">{% if vehicular %}Información de la transferencia{% else %}Documentos del kardex{% endif %}</h2>
+          <p>{% if vehicular %}Boleta informativa, DNI y cheques con los que se revisará el acta.{% else %}Minuta y recaudos con los que se revisará el proyecto.{% endif %}</p>
         </div>
       </div>
-      {% for zona in zonas|slice:":2" %}
+      {% for zona in zonas_fuente %}
         {% include "expedientes/_zona_continua.html" %}
       {% endfor %}
     </section>
@@ -62,10 +62,10 @@
       <div class="panel-cab">
         <div>
           <h2 id="borrador-titulo">Borrador a confrontar</h2>
-          <p>El documento elaborado que se comparará con los recaudos.</p>
+          <p>El documento elaborado que se comparará con {% if vehicular %}la información{% else %}los recaudos{% endif %}.</p>
         </div>
       </div>
-      {% with zona=zonas|last %}
+      {% with zona=zona_borrador %}
         {% include "expedientes/_zona_continua.html" %}
       {% endwith %}
       <div class="confrontar" aria-label="Confrontación">

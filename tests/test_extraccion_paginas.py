@@ -72,3 +72,35 @@ def test_la_llave_de_cache_cambia_con_el_formato_y_con_el_motor(monkeypatch):
     original = llave_actual()
     monkeypatch.setattr(extraccion, "_FORMATO_CACHE", extraccion._FORMATO_CACHE + 1)
     assert llave_actual() != original, "cambiar el formato debe invalidar la caché"
+
+
+def test_pdf_con_capa_de_texto_se_lee_por_filas_sin_marca_de_agua(
+    tmp_path, monkeypatch
+):
+    """F43: rótulo y valor de una boleta son bloques sueltos en la misma fila."""
+    ruta = tmp_path / "boleta-ficticia.pdf"
+    documento = pymupdf.open()
+    pagina = documento.new_page()
+    pagina.insert_text((20, 100), "Placa")
+    pagina.insert_text((80, 100), ": QWE123")
+    pagina.insert_text((211, 101), "OFICINA FICTICIA")
+    pagina.insert_text((20, 114), "Marca")
+    pagina.insert_text((80, 114), ": MARCAFICTA")
+    pagina.insert_text(
+        (20, 160), "TEXTO FICTICIO SUFICIENTE PARA QUE LA CAPA NO SEA DUDOSA"
+    )
+    # Marca de agua en diagonal: como en el OCR, no es texto del documento.
+    pagina.insert_text(
+        (100, 400),
+        "USUARIO FICTICIO 00000000",
+        morph=(pymupdf.Point(100, 400), pymupdf.Matrix(45)),
+    )
+    documento.save(ruta)
+    documento.close()
+    monkeypatch.setattr("adaptadores.extraccion.CACHE", tmp_path / "cache")
+
+    lineas = leer(ruta).splitlines()
+
+    assert "Placa  : QWE123  OFICINA FICTICIA" in lineas
+    assert "Marca  : MARCAFICTA" in lineas
+    assert not any("USUARIO FICTICIO" in linea for linea in lineas)

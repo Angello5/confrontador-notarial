@@ -40,7 +40,9 @@ class ExpedienteForm(forms.ModelForm):
         if not codigo:
             raise forms.ValidationError("Ingrese el número de kardex.")
         if (
-            Expediente.objects.filter(codigo=codigo, archivado_el__isnull=True)
+            Expediente.objects.filter(
+                codigo=codigo, tipo=self.instance.tipo, archivado_el__isnull=True
+            )
             .exclude(pk=self.instance.pk)
             .exists()
         ):
@@ -69,10 +71,12 @@ class DocumentoUploadForm(forms.Form):
         },
     )
 
-    def __init__(self, *args, expected_role=None, **kwargs):
+    def __init__(self, *args, expected_role=None, roles=Documento.ROLES, **kwargs):
         if expected_role in dict(Documento.ROLES):
             kwargs.setdefault("auto_id", f"id_{expected_role.lower()}_%s")
         super().__init__(*args, **kwargs)
+        # F43: el kardex vehicular no acepta minuta.
+        self.fields["rol"].choices = roles
         self.expected_role = expected_role
         self.errores_archivos = []
         if expected_role in dict(Documento.ROLES):

@@ -7,6 +7,7 @@ from pathlib import Path
 NUCLEO = Path(__file__).resolve().parents[1] / "nucleo"
 IMPORTS_PERMITIDOS = {
     "collections",
+    "nucleo",  # F43: un módulo del núcleo usa otro; todos pasan esta revisión.
     "datetime",  # date valida fechas; el núcleo no consulta el reloj.
     "hashlib",  # F21: ids estables de corrección; sin E/S.
     "rapidfuzz",
