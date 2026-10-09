@@ -224,3 +224,28 @@ def test_propietario_ausente():
         "[PROPIETARIO] FALTA: «ZURBELIA LUMARIA ALBA» esta en las fuentes "
         "y no aparece en el destino"
     ]
+
+
+# F45: constancia de depósito (abono) leída por OCR; decisión del usuario
+# (2026-10-09): su monto debe coincidir con el acta, como el de un cheque.
+ABONO = (
+    "BCP\n"
+    "SERVICIO DE RECAUDACION\n"
+    "Empresa afiliada  EMPRESA FICTICIA DEMO S.A.C.\n"
+    "Cuenta a Abonar\n"
+    "CLIENTES SOLES\n"
+    "Inporte  S/*****12,345.00\n"
+    "Comisión  S/**********.00\n"
+)
+
+
+def test_monto_del_abono_presente():
+    fuentes = {"boleta-ficticia.pdf": BOLETA, "abono-ficticio.jpeg": ABONO}
+    assert vehicular.revisar(fuentes, BORRADOR) == []
+
+
+def test_monto_del_abono_ausente():
+    fuentes = {"boleta-ficticia.pdf": BOLETA, "abono-ficticio.jpeg": ABONO}
+    assert vehicular.revisar(fuentes, BORRADOR.replace("12,345.00", "12,354.00")) == [
+        "[CHEQUE] FALTA: «S/ 12,345.00» esta en las fuentes y no aparece en el destino"
+    ]
