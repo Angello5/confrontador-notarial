@@ -70,3 +70,28 @@ Catálogo de reglas `2026.10.09-11`.
 - **Submenú.** «Transferencia vehicular» cuelga de «Kardex» con sangría, una guía vertical y letra menor (`.submenu`). Antes se veía como otra entrada del menú.
 - **Informe Word.** En una transferencia vehicular, el resumen dice que se confrontó contra «la información de la transferencia (boleta informativa, DNI y cheques)». El pie dice «la información y el acta». Ya no menciona la minuta.
 - **Catálogo** `2026.10.09-12`. La regla `PRECIO` entró sin subir la versión, así que las corridas hechas con la `-11` no la aplicaban; ahora se recalculan.
+
+## F45 · Ajustes con dos actas reales más (2026-10-09)
+
+Probado con dos kardex de transferencia locales (sin versionar). Cambios:
+
+- **Acta en tabla** («MARCA:  X  MODELO:  Y»): el valor de una característica termina en el rótulo siguiente. Antes no se capturaba y un modelo mal escrito pasaba sin aviso.
+- **Vehículo entregado a cuenta del pago:** las características se buscan desde la placa hasta el precio. Lo que sigue describe otro vehículo y daba 3 falsos positivos.
+- **«AÑO MODELO 2027»** es el año, no el modelo.
+- **Partida corta** (4 dígitos): sale «debe decir» en lugar de «falta».
+- **Propietario persona natural:** la boleta lista apellidos y luego nombres. El mismo nombre en otro orden vale. Si solo se parece en otro orden, lo observa la regla NOMBRE con la ficha RENIEC, porque no hay corrección literal que proponer.
+- **RUC sin ficha RUC entre la información:** pasa a aviso MEDIA («Sin ficha RUC en los recaudos»). Antes salía como ALTA «no coincide con ninguna fuente».
+- **Nombres con «, PERUANO,»:** se reconocen como compareciente, como «DE NACIONALIDAD». Hasta 6 palabras; se quitan «ENTRE» y «CELEBRADA» de los bordes. Daba un falso «Nombre no aparece» (ALTA) en las tres actas.
+- **Lista notarial:** se suman TRANSFERENTE, ADQUIRENTE, ADQUIRIENTE, CANCELATORIO y SOAT.
+
+Catálogo `2026.10.09-13`.
+
+**Regresión:**
+- Los 12 borradores notariales locales dan los mismos hallazgos.
+- La transferencia de ejemplo pierde 2 falsos positivos.
+
+**Pendiente** (motor general):
+- el DNI electrónico fotografiado no se lee como ficha (el cónyuge queda «sin ficha»);
+- la dirección del oficio notarial se compara con el domicilio de una parte;
+- las abreviaturas de dirección (COOP./COOPERATIVA, ASENT.H./ASENTAMIENTO HUMANO);
+- la numeración de los firmantes («1.- 2.- 3.-») se lee como cláusulas.
