@@ -64,3 +64,9 @@ Catálogo de reglas `2026.10.09-11`.
 - **Nombre que falta (falso):** el compareciente presentado como «PERUANO», sin «DE NACIONALIDAD», no se reconoce como nombre y sale como que falta.
 - **Domicilio de los representantes:** se pide aunque el acta solo declara el de las empresas.
 - **Estado civil:** con el nombre mal escrito, se toma de otra persona.
+
+## F44 · Ajustes tras la primera prueba (2026-10-09)
+
+- **Submenú.** «Transferencia vehicular» cuelga de «Kardex» con sangría, una guía vertical y letra menor (`.submenu`). Antes se veía como otra entrada del menú.
+- **Informe Word.** En una transferencia vehicular, el resumen dice que se confrontó contra «la información de la transferencia (boleta informativa, DNI y cheques)». El pie dice «la información y el acta». Ya no menciona la minuta.
+- **Catálogo** `2026.10.09-12`. La regla `PRECIO` entró sin subir la versión, así que las corridas hechas con la `-11` no la aplicaban; ahora se recalculan.

@@ -30,7 +30,7 @@
                   <a href="{% url 'expediente_lista' %}"{% if request.resolver_match.route|slice:":12" == "expedientes/" and request.resolver_match.url_name != "vehicular_lista" and expediente.tipo != "VEHICULAR" %} aria-current="page"{% endif %}>
                     <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg><span>Kardex</span>
                   </a>
-                  <ul class="submenu">
+                  <ul class="submenu" aria-label="Kardex">
                     <li>
                       <a href="{% url 'vehicular_lista' %}"{% if request.resolver_match.url_name == "vehicular_lista" or expediente.tipo == "VEHICULAR" %} aria-current="page"{% endif %}>
                         <span>Transferencia vehicular</span>

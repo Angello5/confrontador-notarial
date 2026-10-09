@@ -15,12 +15,24 @@ test('Word includes reading warnings without asserting agreement', async () => {
   assert.doesNotMatch(contents, /el borrador concuerda con las fuentes/);
 });
 
+test('F43: the vehicle-transfer report does not mention a minuta', async () => {
+  const report = require('../static/js/reporte-docx.js');
+  const observacion = { capa: 'REGLA', sev: 'ALTA', titulo: 'Placa', campo: 'Placa', hallado: 'QWE128', esperado: 'QWE123' };
+  const blob = report.generar({meta: {codigo:'VEH-FICTICIO',borrador:'acta.docx',vehicular:true},
+    observaciones:[observacion],correcciones:[],personas:[],incluir:{REGLA:true},calidad:[]});
+  const contents = Buffer.from(await blob.arrayBuffer()).toString('utf8');
+  assert.match(contents, /contra la información de la transferencia/);
+  assert.doesNotMatch(contents, /minuta/);
+});
+
 // Execute the actual template controller with a minimal DOM; all data is fictional.
 function revision(observations, corrections) {
   const html = fs.readFileSync(path.join(__dirname, '../templates/expedientes/confrontacion.html'), 'utf8');
   const script = html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
-  const context = { window: { addEventListener() {} }, document: { querySelectorAll: () => [] } };
-  vm.runInNewContext(script, context);
+  const context = vm.createContext({ window: { addEventListener() {} }, document: { querySelectorAll: () => [] } });
+  // F40: el mixin de «Aplicar correcciones» vive en su propio archivo.
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../static/js/aplicar-correcciones.js'), 'utf8'), context);
+  vm.runInContext(script, context);
   const state = context.window.revisionConfrontacion();
   const nodes = observations.map(dataset => ({ dataset }));
   state.$refs = { lista: { querySelectorAll: () => nodes, appendChild() {} } };

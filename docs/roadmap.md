@@ -79,6 +79,8 @@ F42: pestaña «Generales de ley». El usuario pidió reunir en ella toda la inf
 
 F43: transferencia vehicular. El usuario pidió un submenú «Transferencia vehicular» bajo «Kardex», sin minuta, que compare la boleta informativa, los DNI y los cheques con el acta. Alcance en `specs/037-transferencia-vehicular/`.
 
+F44: «Transferencia vehicular» como submenú visible de «Kardex» y el informe Word sin minuta en las transferencias. Alcance en `specs/037-transferencia-vehicular/` (sección F44).
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**
