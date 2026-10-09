@@ -994,6 +994,7 @@ _VIAS = {
     "AAHH": "ASENTAMIENTO HUMANO",
     "ASENT": "ASENTAMIENTO",
     "ASOC": "ASOCIACION",
+    "COOP": "COOPERATIVA",  # F45: RENIEC abrevia «COOP.»
     "DPTO": "DEPARTAMENTO",
     "INT": "INTERIOR",
     "N": "NUMERO",
@@ -1079,15 +1080,26 @@ _ROTULO_DIRECCION_BORRADOR = re.compile(
 _PALABRAS_VIA = {via.split()[0] for via in _VIAS.values()} - {"NUMERO", "SIN"}
 
 
+_OFICIO_NOTARIAL = re.compile(r"(?:OFICIO|DESPACHO) NOTARIAL\s*$|NOTARIA\s*$")
+
+
 def _direcciones(texto: str, rotulo: re.Pattern) -> list[str]:
-    """F22: tramos tras el rótulo hasta el fin de cláusula, línea por línea."""
+    """F22: tramos tras el rótulo hasta el fin de cláusula, línea por línea.
+
+    F45: un tramo termina en el rótulo siguiente («UBICADO EN … CON DOMICILIO
+    EN …» son dos direcciones) y la del oficio notarial no es de ninguna parte.
+    """
     out = []
     for linea in texto.splitlines():
         # Dos espacios separan celdas (``ocr_lineas``): una celda cierra el tramo.
         t = norm(" | ".join(re.split(r"\s{2,}", linea.strip())))
-        for m in rotulo.finditer(t):
+        rotulos = list(rotulo.finditer(t))
+        for m, siguiente in zip(rotulos, [*rotulos[1:], None]):
+            if _OFICIO_NOTARIAL.search(t[max(0, m.start() - 40) : m.start()]):
+                continue
             tramo = re.split(
-                r"\||;|,\s*(?:DISTRITO|PROVINCIA|DEPARTAMENTO)\b", t[m.end() :]
+                r"\||;|,\s*(?:DISTRITO|PROVINCIA|DEPARTAMENTO)\b",
+                t[m.end() : siguiente.start() if siguiente else None],
             )[0]
             # ponytail: un punto tras palabra de hasta 4 letras es abreviatura
             # (AV., JR., MZ.); si una vía corta cierra la cláusula, se arrastra texto

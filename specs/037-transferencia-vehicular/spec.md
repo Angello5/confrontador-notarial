@@ -86,7 +86,9 @@ Probado con dos kardex de transferencia locales (sin versionar). Cambios:
 - **Constancia de depósito (abono):** su monto también debe constar en el acta, como el de un cheque. Lo decidió el usuario el 2026-10-09. En pantalla el campo se llama «Medio de pago».
 - **Domicilio en un rango de numeración:** el acta dice «AV. X 1537» y RENIEC «AV. X 1501-1551». El usuario confirmó que es un error, y ya sale como «domicilio no encontrado».
 
-Catálogo `2026.10.09-13`.
+- **Dirección del oficio notarial.** El tramo «UBICADO EN» del oficio notarial llegaba hasta el domicilio de la parte y salía como «Dirección» ALTA. Ahora un tramo termina en el rótulo siguiente y la dirección del oficio notarial no se compara. Además, «COOP.» se lee como COOPERATIVA, lo que quita también un falso «domicilio no encontrado».
+
+Catálogo `2026.10.09-14`.
 
 **Regresión:**
 - Los 12 borradores notariales locales dan los mismos hallazgos.
@@ -94,6 +96,4 @@ Catálogo `2026.10.09-13`.
 
 **Pendiente** (motor general):
 - el DNI electrónico fotografiado no se lee como ficha (el cónyuge queda «sin ficha»);
-- la dirección del oficio notarial se compara con el domicilio de una parte;
-- las abreviaturas de dirección (COOP./COOPERATIVA, ASENT.H./ASENTAMIENTO HUMANO);
 - la numeración de los firmantes («1.- 2.- 3.-») se lee como cláusulas.
