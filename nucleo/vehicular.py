@@ -1,8 +1,9 @@
 """F43: transferencia vehicular.
 
 Compara el acta con la boleta informativa SUNARP (placa, partida, propietario y
-características) y con los cheques del pago. Devuelve observaciones con el
-formato de ``verificar.revisar`` para reutilizar su presentación y correcciones.
+características) y con el monto de los cheques; el precio debe constar en el
+acta. Devuelve observaciones con el formato de ``verificar.revisar`` para
+reutilizar su presentación y correcciones.
 """
 
 import re
@@ -55,10 +56,10 @@ _CERCA_DE_PLACA = 400  # caracteres: la partida del vehículo sigue a su placa
 # es el de la foja notarial.
 _ZONA_PLACA = (200, 800)
 _RE_CHEQUE = re.compile(r"CHE[QD]UE|PAGUE(?:SE)? A LA ORDEN|A LA ORDEN DE")
-_RE_NUMERO_CHEQUE = re.compile(rf"{_NUM}(\d{{8}})\b")
 # El OCR lee el importe del cheque con «.» de miles: *****70.000.00
 _RE_IMPORTE_CHEQUE = re.compile(r"\*{2,}\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\b")
-_RE_CHEQUE_EN_ACTA = re.compile(rf"CHEQUE[^.]{{0,150}}?{_NUM}[:.]?\s*(\d{{6,10}})\b")
+_RE_PRECIO = re.compile(r"\bPRECIO\b")
+_CERCA_DEL_PRECIO = 400  # caracteres: «EL PRECIO ... ES DE: ... (US$ 0.00)»
 
 
 def _clave(valor: str) -> str:
@@ -111,27 +112,21 @@ def boletas(fuentes: Mapping[str, str]) -> list[dict]:
 
 
 def cheques(fuentes: Mapping[str, str]) -> list[dict]:
-    """Número e importe legibles de cada cheque entre las fuentes."""
+    """Importe legible de cada cheque entre las fuentes."""
     salida = []
     for texto in fuentes.values():
         for pagina in texto.split(SEPARADOR_PAGINA):
             plano = norm(pagina)
             if not _RE_CHEQUE.search(plano):
                 continue
-            numero = _RE_NUMERO_CHEQUE.search(plano)
             importe = _RE_IMPORTE_CHEQUE.search(plano)
-            monto = None
             if importe:
                 digitos = re.sub(r"\D", "", importe.group(1))
                 cifra = f"{int(digitos[:-2]):,}.{digitos[-2:]}"
-                monto = (
+                salida.append(
                     f"US$ {cifra}"
                     if re.search(r"DOLARES|US\$", plano) and "SOLES" not in plano
                     else cifra
-                )
-            if numero or monto:
-                salida.append(
-                    {"numero": numero.group(1) if numero else None, "monto": monto}
                 )
     return salida
 
@@ -222,23 +217,27 @@ def _propietarios(boleta, d):
     return obs
 
 
-def _cheques(lista, d):
-    obs = []
+def _cheques(montos_cheques, d):
+    """El monto transferido con cada cheque debe constar en el acta (decisión
+    del usuario, 2026-10-09: no se comparan número, banco ni beneficiario)."""
     montos = set(montos_de(d))
-    for cheque in lista:
-        monto = cheque["monto"]
-        if monto and monto not in montos:
-            visible = monto if monto.startswith("US$") else f"S/ {monto}"
-            obs.append(
-                f"[CHEQUE] FALTA: «{visible}» esta en las fuentes y no aparece en el destino"
-            )
-    numeros = [c["numero"] for c in lista if c["numero"]]
-    for m in _RE_CHEQUE_EN_ACTA.finditer(d):
-        hallado = m.group(1)
-        if numeros and hallado not in numeros:
-            esperado = max(numeros, key=lambda n: fuzz.ratio(n, hallado))
-            obs.append(f"[CHEQUE] «{hallado}» debe decir «{esperado}»")
-    return obs
+    return [
+        "[CHEQUE] FALTA: "
+        f"«{monto if monto.startswith('US$') else f'S/ {monto}'}» "
+        "esta en las fuentes y no aparece en el destino"
+        for monto in montos_cheques
+        if monto not in montos
+    ]
+
+
+def _precio(d):
+    """El precio debe constar en el acta, aunque se pague por transferencia."""
+    if any(
+        montos_de(d[m.end() : m.end() + _CERCA_DEL_PRECIO])
+        for m in _RE_PRECIO.finditer(d)
+    ):
+        return []
+    return ["[PRECIO] FALTA: «Precio de la transferencia» no aparece en el acta"]
 
 
 def revisar(fuentes: Mapping[str, str], destino: str) -> list[str]:
@@ -250,5 +249,6 @@ def revisar(fuentes: Mapping[str, str], destino: str) -> list[str]:
         obs += _partida(boleta, d)
         obs += _caracteristicas(boleta, d)
         obs += _propietarios(boleta, d)
+    obs += _precio(d)
     obs += _cheques(cheques(fuentes), d)
     return list(dict.fromkeys(obs))

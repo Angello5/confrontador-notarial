@@ -33,9 +33,8 @@ El usuario pidió el 2026-10-09 la transferencia vehicular:
     - Se revisan solo si el acta los menciona junto a la placa (200 caracteres antes y 800 después).
     - Más lejos, «número de serie» es el de la foja notarial.
   - `PROPIETARIO`: el propietario registral debe aparecer en el acta. Si una ventana se le parece (≥ 85), sale «debe decir».
-  - `CHEQUE`:
-    - El importe legible de cada cheque debe aparecer en el acta. El OCR lee «*****70.000.00» y se interpreta como 70,000.00.
-    - Si el acta cita el número de un cheque, debe ser el de alguno de los cheques.
+  - `PRECIO`: el acta debe indicar el precio, un importe con moneda hasta 400 caracteres después de «PRECIO». También si se paga por transferencia.
+  - `CHEQUE`: el monto transferido con cada cheque debe aparecer en el acta. El OCR lee «*****70.000.00» y se interpreta como 70,000.00. No se comparan número, banco ni beneficiario.
 - **Reglas del motor general** que siguen activas: nombres, DNI, RUC, estado civil, domicilio, género y la capa lingüística. En modo vehicular no se usan:
   - la regla general de partidas: las de los poderes no vienen en la información;
   - la regla general de montos: el precio se coteja con los cheques.
@@ -50,12 +49,15 @@ Catálogo de reglas `2026.10.09-11`.
   - Con errores sembrados en el acta (placa, partida y modelo), las tres se detectan.
 - **El 71856**, único documento local con capa de texto, da los mismos hallazgos que antes con la lectura por filas.
 
+## Decisiones del usuario (2026-10-09)
+
+- **Cheques:** se compara el monto transferido; no se comparan número, banco ni beneficiario.
+- **Precio:** debe estar en el acta, también cuando se paga por transferencia.
+- **Severidad:** ALTA para las reglas vehiculares.
+
 ## [NEEDS CLARIFICATION]
 
-- **Cheques:** no se comparan el banco ni el beneficiario («a la orden de»). ¿El beneficiario debe ser la transferente?
-- **Sin cheques:** el precio no se coteja. ¿Debe compararse con otro medio de pago (constancia de transferencia)?
 - **Otros documentos:** tarjeta de propiedad, SOAT, papeletas, copia literal y vigencia de poder se pueden subir, pero no tienen reglas propias.
-- **Severidad:** las cuatro reglas son ALTA.
 
 ## Límites conocidos del motor general en actas vehiculares
 

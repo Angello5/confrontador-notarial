@@ -133,9 +133,21 @@ def test_monto_del_cheque_ausente():
     ]
 
 
-def test_numero_de_cheque_distinto():
+def test_del_cheque_solo_se_compara_el_monto_transferido():
+    """Decisión del usuario (2026-10-09): ni número, ni banco, ni beneficiario."""
     obs = vehicular.revisar(_fuentes(), BORRADOR.replace("N° 00000001", "N° 00000007"))
-    assert obs == ["[CHEQUE] «00000007» debe decir «00000001»"]
+    assert obs == []
+
+
+def test_el_precio_debe_estar_en_el_acta():
+    """Decisión del usuario (2026-10-09), también si se paga por transferencia."""
+    sin_precio = BORRADOR.replace(
+        "EL PRECIO ES DE S/ 12,345.00 (DOCE MIL TRESCIENTOS CUARENTA Y CINCO Y 00/100 SOLES)",
+        "EL PRECIO ES EL PACTADO",
+    )
+    assert vehicular.revisar({"boleta-ficticia.pdf": BOLETA}, sin_precio) == [
+        "[PRECIO] FALTA: «Precio de la transferencia» no aparece en el acta"
+    ]
 
 
 def test_sin_cheques_no_se_exige_monto():
