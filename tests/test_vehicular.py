@@ -249,3 +249,21 @@ def test_monto_del_abono_ausente():
     assert vehicular.revisar(fuentes, BORRADOR.replace("12,345.00", "12,354.00")) == [
         "[CHEQUE] FALTA: «S/ 12,345.00» esta en las fuentes y no aparece en el destino"
     ]
+
+
+def test_la_direccion_del_oficio_notarial_no_es_la_de_una_parte():
+    """F45: el tramo «UBICADO EN» del oficio notarial llegaba hasta el domicilio
+    del transferente y se comparaba con su ficha (falso ALTA)."""
+    from collections import Counter
+
+    from nucleo.verificar import _direcciones_observadas
+
+    acta = (
+        "EN MI OFICIO NOTARIAL UBICADO EN CALLE FICTICIA 100, SAN ISIDRO, YO "
+        "NOTARIO FICTICIO, EXTIENDO LA PRESENTE ACTA CELEBRADA ENTRE ALBA "
+        "ZURBELIA LUMARIA, PERUANA, CON DOMICILIO EN COOPERATIVA SANTA ROSA "
+        "ASENTAMIENTO HUMANO MANZANA A1 LOTE 2, DISTRITO DE LIMA.\n"
+    )
+    # La ficha llega cortada tras «ASENT.» y «COOP» se lee dos veces en ella.
+    fuente = {"COOP. SANTA ROSA ASENT"}
+    assert _direcciones_observadas(fuente, acta, Counter({"COOP": 2})) == []
