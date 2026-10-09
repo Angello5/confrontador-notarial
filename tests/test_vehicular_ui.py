@@ -149,3 +149,30 @@ def test_kardex_notarial_sigue_pidiendo_minuta(usuario_ficticio):
     estado = estado_confrontacion(expediente, borrador)
     assert not estado["disponible"]
     assert "Minuta" in estado["mensaje"]
+
+
+def test_resultado_vehicular_avisa_al_informe(client, usuario_ficticio, vehicular):
+    """F44: el informe Word no habla de minuta en una transferencia vehicular."""
+    from expedientes.services import confrontar_borrador, registrar_corrida
+
+    expediente, borrador = vehicular
+    registrar_corrida(
+        expediente,
+        borrador,
+        usuario_ficticio,
+        confrontar_borrador(expediente, borrador),
+    )
+    client.force_login(usuario_ficticio)
+    html = client.get(
+        reverse("documento_resultado", args=[expediente.pk, borrador.pk])
+    ).content.decode()
+    assert "vehicular: true," in html
+
+
+def test_transferencia_vehicular_es_submenu_de_kardex(client, usuario_ficticio):
+    client.force_login(usuario_ficticio)
+    html = client.get(reverse("vehicular_lista")).content.decode()
+    kardex = html.index(">Kardex</span>")
+    submenu = html.index('<ul class="submenu"', kardex)
+    assert html.index("Transferencia vehicular", kardex) > submenu
+    assert '<ul class="submenu" aria-label="Kardex">' in html
