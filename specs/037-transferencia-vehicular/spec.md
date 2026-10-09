@@ -83,6 +83,8 @@ Probado con dos kardex de transferencia locales (sin versionar). Cambios:
 - **RUC sin ficha RUC entre la información:** pasa a aviso MEDIA («Sin ficha RUC en los recaudos»). Antes salía como ALTA «no coincide con ninguna fuente».
 - **Nombres con «, PERUANO,»:** se reconocen como compareciente, como «DE NACIONALIDAD». Hasta 6 palabras; se quitan «ENTRE» y «CELEBRADA» de los bordes. Daba un falso «Nombre no aparece» (ALTA) en las tres actas.
 - **Lista notarial:** se suman TRANSFERENTE, ADQUIRENTE, ADQUIRIENTE, CANCELATORIO y SOAT.
+- **Constancia de depósito (abono):** su monto también debe constar en el acta, como el de un cheque. Lo decidió el usuario el 2026-10-09. En pantalla el campo se llama «Medio de pago».
+- **Domicilio en un rango de numeración:** el acta dice «AV. X 1537» y RENIEC «AV. X 1501-1551». El usuario confirmó que es un error, y ya sale como «domicilio no encontrado».
 
 Catálogo `2026.10.09-13`.
 

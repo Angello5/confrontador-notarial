@@ -1,7 +1,7 @@
 """F43: transferencia vehicular.
 
 Compara el acta con la boleta informativa SUNARP (placa, partida, propietario y
-características) y con el monto de los cheques; el precio debe constar en el
+características) y con el monto de cheques y depósitos; el precio debe constar en el
 acta. Devuelve observaciones con el formato de ``verificar.revisar`` para
 reutilizar su presentación y correcciones.
 """
@@ -61,7 +61,11 @@ _CERCA_DE_PLACA = 400  # caracteres: la partida del vehículo sigue a su placa
 # Las características se buscan junto a la placa: más lejos, «número de serie»
 # es el de la foja notarial.
 _ZONA_PLACA = (200, 800)
-_RE_CHEQUE = re.compile(r"CHE[QD]UE|PAGUE(?:SE)? A LA ORDEN|A LA ORDEN DE")
+# Cheque o constancia de depósito: el usuario decidió (2026-10-09) que el
+# monto de ambos debe coincidir con el acta.
+_RE_CHEQUE = re.compile(
+    r"CHE[QD]UE|PAGUE(?:SE)? A LA ORDEN|A LA ORDEN DE|CUENTA A ABONAR|DEPOSITO"
+)
 # El OCR lee el importe del cheque con «.» de miles: *****70.000.00
 _RE_IMPORTE_CHEQUE = re.compile(r"\*{2,}\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\b")
 _RE_PRECIO = re.compile(r"\bPRECIO\b")
@@ -118,7 +122,7 @@ def boletas(fuentes: Mapping[str, str]) -> list[dict]:
 
 
 def cheques(fuentes: Mapping[str, str]) -> list[dict]:
-    """Importe legible de cada cheque entre las fuentes."""
+    """Importe legible de cada cheque o constancia de depósito de las fuentes."""
     salida = []
     for texto in fuentes.values():
         for pagina in texto.split(SEPARADOR_PAGINA):
@@ -245,7 +249,7 @@ def _propietarios(boleta, d):
 
 
 def _cheques(montos_cheques, d):
-    """El monto transferido con cada cheque debe constar en el acta (decisión
+    """El monto de cada cheque o depósito debe constar en el acta (decisión
     del usuario, 2026-10-09: no se comparan número, banco ni beneficiario)."""
     montos = set(montos_de(d))
     return [
