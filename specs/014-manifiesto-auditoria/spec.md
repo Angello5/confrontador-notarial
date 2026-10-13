@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #51)
 
 **Input**: Anexo A del contrato, fase CONSTRUCCIÓN: capa 5 «Motor de reglas: catálogo versionado y legible», capa 6 «asignación de severidad», capa 7 «Manifiesto de auditoría: registro inmutable de la corrida». Anexo B: P-01 (tres corridas idénticas → informes idénticos), P-06 (100 % de corridas con versión del catálogo y hashes de entrada), P-07 (interrupción → estado recuperable sin pérdida), P-08 (100 % de los casos reconstruible desde el manifiesto). Hoy `confrontar_borrador()` no persiste nada y las severidades no existen.
 

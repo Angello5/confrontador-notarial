@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #56)
 
 **Actualización F34 (2026-10-03)**: «Confrontar» ya no calcula en la petición: registra una solicitud persistente que atiende el worker. Si existe una corrida vigente que no es `ERROR` para las mismas entradas, se abre sin recalcular (sustituye a FR-006 «Volver a confrontar» y a la aclaración que creaba siempre una corrida `MANUAL` nueva). Tras un `ERROR`, el reintento es explícito. Detalle en `specs/028-carga-continua/`.
 

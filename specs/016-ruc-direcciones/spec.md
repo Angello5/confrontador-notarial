@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #53, #66 y #67). Pendiente: medición del revisor T008
 
 **Input**: Contrato, Anexo A.3: el software verifica por código, contra los documentos fuente, «b. Número de Registro Único de Contribuyentes» y «f. Direcciones», «sobre cada aparición del dato en el borrador, y no sobre su mera existencia». Anexo B P-02: el 100 % de estos datos alterados en el borrador se detecta con su valor correcto construido desde la fuente; P-05: cero observaciones sobre datos correctos. Hoy el RUC no se verifica (solo descarta formularios SISGEN) y la dirección solo se comprueba para el domicilio RENIEC de personas con ficha (`DOMICILIO_NO_ENCONTRADO`, por presencia).
 

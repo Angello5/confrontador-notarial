@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-20
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #20)
 
 **Input**: User description: "Un usuario crea un expediente y sube desde su PC las fuentes (documentos del cliente, minuta) y el borrador. El servidor extrae el texto en segundo plano, muestra el avance y borra los archivos al terminar, conservando solo el hash de cada uno."
 

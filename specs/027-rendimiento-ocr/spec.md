@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-03
 
-**Status**: Implementado y verificado localmente; integración por PR, CI y Quality Gate pendientes.
+**Status**: Implementado e integrado (PR #63).
 
 **Input**: «Verificar si se puede mejorar el tiempo del OCR para que no sea tan pesado para el cliente», a partir de las mediciones de `docs/ocr-tiempos-2026-10-02.md`. Mejoras aprobadas: 1, 2, 3 (solo hojas totalmente blancas) y 5.
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #17)
 
 **Input**: User description: "Convertir los módulos actuales (extraer, verificar, léxico, ortografía) en un núcleo de funciones puras, sin interfaz, conservando exactamente el resultado medido en el expediente de referencia. La capa de prosa (revisor_llm.py, bench_llm.py) se mueve a experimental/. Se atiende la deuda registrada en docs/deuda-f3.md (code smells de SonarCloud, riesgo residual de antlr4, API key en query de revisor_llm) y la decisión sobre actualizar RapidOCR (PR de Dependabot #11, bloqueado por cambio de modelos con hash), que exige medición de calidad de OCR antes de cambiar la configuración."
 

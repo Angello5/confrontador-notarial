@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #58)
 
 **Input**: (1) Bug del propietario: tras «Eliminar» (archivado lógico, F25) no puede volver a crear un expediente con el mismo kardex porque `Expediente.codigo` es `unique=True` también para los archivados. (2) La barra lateral y el ingreso muestran fijo «CN · CONFRONTADOR / ERP NOTARIAL»; el propietario quiere el nombre de su notaría.
 

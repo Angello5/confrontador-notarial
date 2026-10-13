@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-27
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #45)
 
 **Input**: Tras F13, cada ficha RENIEC o biométrica es un ancla. En los 10 expedientes medidos, 28 documentos distintos producen 32 anclas: **4 personas aparecen dos veces** porque el OCR leyó el nombre de su ficha biométrica con una diferencia mínima frente a la RENIEC (un espacio leído como «I», una «M» leída como «V», un espacio perdido) o truncado. Hoy quedan como dos anclas del mismo DNI en revisión manual, y el propietario ve personas duplicadas. Caso reportado: expediente 71856, una persona con dos fichas y un carácter de diferencia.
 

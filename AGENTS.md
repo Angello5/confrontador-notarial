@@ -55,8 +55,8 @@ Usar Python 3.13 y aprovisionar OCR/diccionario según
 fixtures ficticios. En Linux, `.doc`/`.rtf` requieren LibreOffice (`soffice`).
 La medición privada exige `-o addopts= -m local_reference --tb=no` y está
 prohibida en CI. La política y excepciones individuales de Ruff están documentadas
-en `specs/001-base-devsecops/quickstart.md`. La activación de pre-commit queda
-para la etapa 5.
+en `specs/001-base-devsecops/quickstart.md`. Pre-commit está configurado en
+`.pre-commit-config.yaml` y se activa con `python -m pre_commit install`.
 
 En el workflow de CI nunca usar **Re-run failed jobs**: usar **Re-run all jobs**,
 porque `sonar` necesita la cobertura generada en el mismo `run_attempt`. Al

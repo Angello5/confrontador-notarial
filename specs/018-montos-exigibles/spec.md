@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #52). Pendiente: medición del revisor T006
 
 **Input**: Anexo B P-05 exige cero observaciones sobre datos correctos en el conjunto de prueba controlado. El revisor midió 9 expedientes reales sin errores intencionados: 303 observaciones, de las que 268 son `[MONTO] FALTA: … esta en las fuentes y no aparece en el destino` (un solo expediente aporta 259). Son importes de recaudos (liquidaciones, vigencias, tasas, hojas de cálculo) que el borrador no tiene por qué citar.
 

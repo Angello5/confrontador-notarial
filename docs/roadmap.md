@@ -5,41 +5,76 @@ pequeña que se termina completa antes de empezar la siguiente: pasa por el
 ciclo de Spec Kit en su propio worktree de Orca y se integra a `main` por Pull
 Request. Las reglas están en `.specify/memory/constitution.md`.
 
+## Estado al 2026-10-12
+
+Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-notarial/pull/88)
+(2026-10-09). F17 no existe: la numeración la saltó.
+
+### Terminadas
+
+| Fase | Resultado visible | Decisión que se tomó | PR | Spec |
+|---|---|---|---|---|
+| **F1** · Base DevSecOps | Cada PR corre tests, SonarQube y escaneos de seguridad; `main` protegida | SonarQube Cloud privado, análisis desde CI | #8, #14, #15 | 001 |
+| **F2** · Esqueleto del ERP | Login, menú lateral según rol, AdminLTE 4 | Roles | #16 | 002 |
+| **F3** · Migración del código actual | extraer, verificar, léxico y ortografía como núcleo puro con pytest; mismo resultado medido | — | #17 | 003 |
+| **F4** · Expedientes | Subir archivos desde la PC, extracción en segundo plano, borrado del archivo al terminar | Retención del texto extraído: **indefinida**, con supresión a solicitud (constitución 1.6.0) | #20 | 004 |
+| **F5** · Confrontación | Observaciones en pantalla, agrupadas por capa | Capas incluidas: regla y ortografía; el léxico se aplaza a F10 | #22 | 005 |
+| **F6** · Historial y auditoría | Cubierta por F20: cada corrida guarda usuario, fecha y hashes; pantalla «Historial» por kardex | — | #51 | 014 |
+| **F7** · Informe exportable | Cubierta por F29: informe Word de las observaciones | Formato Word (`.docx`), generado en el navegador | #61 | 023 |
+| **F11** · Extracción por personas | El sistema deja de cruzar documentos entre comparecientes | Alcance: personas naturales; las jurídicas quedan fuera | #31 | 006 |
+| **F12** · Persona ampliada | Estado civil, fecha de nacimiento y domicilio entran en la confrontación | Reglas de cónyuge, minoría de edad y domicilio | #40 | 007 |
+| **F13** · Anclaje por ficha oficial | Cada ficha RENIEC o biométrica es una persona; el resto solo se adjunta | — | #42 | 008 |
+| **F14** · Rediseño de interfaz | Todas las pantallas con la paleta y disposición del diseño de Figma | Sin IA, sin fuentes remotas, sin módulos futuros en el menú | #43 | 009 |
+| **F15** · Una persona por DNI entre fichas | RENIEC y biométrica del mismo DNI son una sola persona; revisión solo si el nombre difiere mucho | Mismo DNI = misma persona, nombre RENIEC | #45 | 010 |
+| **F16** · Nombres exigibles | Solo se exigen al borrador los nombres de fichas y minuta; el domicilio se busca también por DNI | Menciones y adjuntos reconocen, no exigen | #46, #73 | 011 |
+| **F18** · Lectura de fichas RENIEC escaneadas | Fechas con ruido OCR, valores en la línea siguiente y fichas sin nombre legible aportan sus campos | Los datos de las personas salen de las fichas, también escaneadas | #48 | 012 |
+| **F19** · Errores del borrador fuera de la comparecencia | DNI de longitud incorrecta, nombres mal escritos en cualquier cláusula y números en letras distintos de su cifra | Reconocimiento anclado a rótulo, a nombre de la fuente o a cifra entre paréntesis | #49 | 013 |
+| **F20** · Manifiesto de auditoría | Cada confrontación deja una corrida inmutable y cada observación lleva severidad | Catálogo de reglas versionado con severidad ALTA, MEDIA o BAJA | #51 | 014 |
+| **F21** · Capa de corrección y documento corregido | Correcciones propuestas con su fuente, una sola confirmación y descarga del `.docx` corregido; el original no cambia | Se conserva el borrador `.docx` (constitución 1.7.0) | #54 | 015 |
+| **F22** · RUC y direcciones | Cada aparición del RUC y de la dirección en el borrador se compara con las fuentes | Reconocimiento anclado a rótulo, como el DNI de F19 | #53, #66, #67 | 016 |
+| **F23** · Componente lingüístico local | Ortografía, tildes y redacción con un componente local | Sin autoridad sobre los datos obligatorios; sin modelos ni dependencias | #50 | 017 |
+| **F24** · Montos exigibles | Solo se exigen al borrador los montos de la minuta | — | #52 | 018 |
+| **F25** · Panel de expedientes | Abrir, editar y eliminar desde la lista | Eliminar es un archivado lógico | #55 | 019 |
+| **F26** · Confrontación automática | La confrontación se hace al terminar la carga | No se repite si las entradas no cambian | #56 | 020 |
+| **F27** · Montos por posición | Cada importe se compara con el de la misma posición en la minuta, con moneda y concepto | Las demás fuentes solo deciden cuando el importe no tiene par en la minuta | #57, #68, #76 | 021 |
+| **F28** · Kardex reutilizable y notaría configurable | Un kardex archivado libera su código; el nombre de la notaría sale de la configuración | — | #58 | 022 |
+| **F29** · Interfaz con la marca | Logo de la notaría, carga múltiple con estado, filtro por severidad e informe Word | — | #61 | 023 |
+| **F30** · Reglas de la escritura | Área, números en letras, correlativos, copropiedad, importes por concepto y datos registrales | — | #61, #64, #72 | 024 |
+| **F31** · Calidad de lectura OCR | Lectura dudosa distinguida de discrepancia, avisos persistentes y medición | La precisión jurídica real requiere etiquetas revisadas por la notaría | #61, #65 | 025 |
+| **F33** · Rendimiento del OCR | Escaneos más rápidos con el mismo texto, páginas giradas con menos lecturas, hojas blancas sin OCR | Solo se saltan hojas con ≤ 0,001 % de píxeles oscuros | #63 | 027 |
+| **F34** · Carga continua | Adjuntar sin interrupciones, confrontación solicitada reutilizable y visor simplificado | Sin cambiar reglas ni ampliar retención | #69 | 028 |
+| **F35** · Empresa y partidas | Razón social y domicilio legal de la empresa contra su ficha RUC; más formatos de partida | Primera regla para personas jurídicas; la información del cliente está en los recaudos | #70 | 029 |
+| **F36** · Interfaz con lenguaje notarial | «Kardex», «Confrontador Notarial», logo y letra mayores, lenguaje de abogado | Solo cambian textos y estilos | #71 | 030 |
+| **F37** · Domicilio contractual | El domicilio «para efectos de este contrato» y el de la declaración jurada valen en la comparecencia | Omitir o cambiar el tipo de habilitación es aviso leve | #75 | 031 |
+| **F38** · Lectura del borrador y persona sin ficha | Aviso «Sin ficha RENIEC en los recaudos» | Aviso MEDIA; el DNI siempre tiene 8 dígitos | #77, #78 | 032 |
+| **F39** · Errores lingüísticos y anexo omitido | Acento grave, texto del `.docx` como se imprime, una alerta por anexo omitido | Se quita la regla de párrafos | #79 | 033 |
+| **F40** · Correcciones con avance | Ventana con barra de avance y descarga directa del corregido | — | #80 | 034 |
+| **F41** · Género y ordinales | Concordancia de género con la ficha RENIEC y números de cláusula mal escritos | — | #81 | 035 |
+| **F42** · Generales de ley | Pestaña con nombres, documentos, estado civil, domicilio, género, RUC y razón social | — | #82 | 036 |
+| **F43** · Transferencia vehicular | Submenú bajo «Kardex» que compara boleta informativa, DNI y cheques con el acta | Sin minuta; precio obligatorio en el acta; cheques por monto transferido | #85, #86 | 037 |
+| **F44** · Submenú e informe vehicular | Submenú visible e informe Word sin minuta | — | #87 | 037 |
+| **F45** · Ajustes vehiculares | Actas en tabla, vehículo a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO» | — | #88 | 037 |
+
+### En curso o pendientes
+
 | Fase | Qué se construye | Resultado visible | Depende de | Decisión que se toma |
 |---|---|---|---|---|
-| **F1 · terminada** | Base DevSecOps | Cada PR corre tests, SonarQube y escaneos de seguridad; `main` protegida | — | SonarQube Cloud privado, análisis desde CI |
-| **F2 · terminada (PR #16)** | Esqueleto del ERP | Login, menú lateral según rol, AdminLTE 4 | F1 | Roles |
-| **F3 · terminada (PR #17)** | Migración del código actual | extraer, verificar, léxico y ortografía como núcleo puro con pytest; mismo resultado medido; T028 depende del CI remoto | F1 | — |
-| **F4 · terminada (PR #20)** | Expedientes | Subir archivos desde la PC, extracción en segundo plano, borrado del archivo al terminar | F2, F3 | Retención del texto extraído: **indefinida**, con supresión a solicitud (constitución 1.6.0) |
-| **F5 · terminada (PR #22)** | Confrontación | Observaciones en pantalla, agrupadas por capa | F4 | Capas incluidas: regla y ortografía; el léxico se aplaza |
-| **F11 · terminada (PR #31)** | Extracción por personas | El sistema deja de cruzar documentos entre comparecientes | F5 | Alcance: personas naturales; las jurídicas quedan fuera |
-| **F12 · terminada (PR #40)** | Persona ampliada | Estado civil, fecha de nacimiento y domicilio entran en la confrontación | F11 | Reglas de cónyuge, minoría de edad y domicilio |
-| **F13 · terminada (PR #42)** | Anclaje por ficha oficial | Cada ficha RENIEC o biométrica es una persona; el resto solo se adjunta | F12 | — |
-| **F14 · terminada (PR #43)** | Rediseño de interfaz | Todas las pantallas con la paleta y disposición del diseño de Figma | F13 | Sin IA, sin fuentes remotas, sin módulos futuros en el menú |
-| **F15 · terminada (PR #45)** | Una persona por DNI entre fichas | RENIEC y biométrica del mismo DNI son una sola persona; revisión solo si el nombre difiere mucho | F13 | Mismo DNI = misma persona, nombre RENIEC |
-| **F16 · en curso** | Nombres exigibles | Solo se exigen al borrador los nombres de fichas y minuta; el domicilio se busca también por DNI | F15 | Menciones y adjuntos reconocen, no exigen |
-| **F18 · en curso** | Lectura de fichas RENIEC escaneadas | Fechas con ruido OCR, valores en la línea siguiente y fichas sin nombre legible aportan sus campos | F15 | Los datos de las personas salen de las fichas, también escaneadas |
-| **F19 · en curso** | Errores del borrador fuera de la comparecencia | DNI de longitud incorrecta, nombres mal escritos en cualquier cláusula y números en letras distintos de su cifra | F16 | Reconocimiento anclado a rótulo, a nombre de la fuente o a cifra entre paréntesis |
-| **F21 · en curso** | Capa de corrección y documento corregido | Correcciones propuestas con su fuente, una sola confirmación y descarga del `.docx` corregido; el original no cambia | F19 | Se conserva el borrador `.docx` (constitución 1.7.0) |
-| **F32 · en curso** | Vista del borrador con errores resaltados | La página del borrador en pantalla con cada observación marcada en su sitio: alta en rojo, media en amarillo, baja en tono neutro. Hecho para `.docx`; escaneados pendientes | F21, F31 | Conservar el borrador en cualquier formato exige la constitución 1.8.0 (redactada aparte, pendiente de aprobación); spec en `specs/026-vista-borrador-resaltada/` |
-| **F33 · en curso** | Rendimiento del OCR | Escaneos leídos más rápido con el mismo texto, páginas giradas con menos lecturas y en orden, hojas totalmente blancas sin OCR y conversión de `.doc`/`.rtf` sin preparar LibreOffice cada vez | F31 | Solo se saltan hojas con ≤ 0,001 % de píxeles oscuros; spec en `specs/027-rendimiento-ocr/` |
-| **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
-| **F6** | Historial y auditoría | Quién confrontó qué, cuándo y con qué hash | F5 | — |
-| **F7** | Informe exportable | Descargar o imprimir las observaciones | F5 | Formato |
+| **F32 · parcial (PR #69)** | Vista del borrador con errores resaltados | Hecho para `.docx`. Escaneados y demás formatos (T018–T024) pendientes | F21, F31 | Conservar el borrador en cualquier formato exige la constitución 1.8.0, redactada y pendiente de aprobación |
 | **F8** | Despliegue | Funciona en el Windows Server, con respaldo diario | F5 | VM + Docker o nativo |
-| **F9** | Catálogo por tipo de acto | Campos a verificar definidos por tipo (donación, mutuo…) | F5 | Tipos de acto iniciales |
+| **F9** | Catálogo por tipo de acto | Campos a verificar definidos por tipo (donación, mutuo…) | F5 | Tipos de acto iniciales. La transferencia vehicular (F43–F45) ya tiene flujo propio |
+| **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 
-F1 terminó con el [PR #8](https://github.com/Angello5/confrontador-notarial/pull/8)
-y el [PR #14](https://github.com/Angello5/confrontador-notarial/pull/14): Quality
-Gate y protección de `main` verificados. F2 terminó con el
-[PR #16](https://github.com/Angello5/confrontador-notarial/pull/16). F3 terminó con el
-[PR #17](https://github.com/Angello5/confrontador-notarial/pull/17). F4 terminó con el
-[PR #20](https://github.com/Angello5/confrontador-notarial/pull/20), que enmendó la
-constitución a 1.6.0. F5 deja fuera la capa de léxico: necesita un corpus de
-escrituras firmadas y todavía no está decidido de dónde sale, así que pasa a ser
-la fase F10.
+### Pendiente fuera de las fases
 
-Criterio de MVP (del README): medir cobertura sobre 10 expedientes cerrados.
+- **Mediciones privadas del revisor**, fuera del repositorio: 007 T027, 011 T007,
+  016 T008, 018 T006 y 021 T006.
+- **Criterio de MVP** (del README): medir cobertura sobre 10 expedientes cerrados.
+- **Aclaraciones abiertas** (`[NEEDS CLARIFICATION]`): severidades, versión y
+  orden de hallazgos en `specs/014-manifiesto-auditoria/spec.md`; FR-005 en
+  `specs/015-capa-correccion/spec.md`; prioridad de procesamiento y progreso
+  por página en `docs/ocr-tiempos-2026-10-02.md`.
+- **Versión del ERP**: `ERP_VERSION` sigue en `0.20.0` desde F20 y
+  `sonar-project.properties` no define `sonar.projectVersion`.
 
 ## Continuación autorizada · 2026-10-02
 

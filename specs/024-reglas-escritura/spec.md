@@ -1,7 +1,7 @@
 # F30 · Reglas adicionales de la escritura
 
 **Fecha**: 2026-10-02  
-**Estado**: implementado en el núcleo; cobertura con datos ficticios.  
+**Estado**: implementado en el núcleo e integrado (PR #61, #64 y #72); cobertura con datos ficticios.  
 **Alcance**: `nucleo/verificar.py`, `nucleo/correccion.py`, catálogo de reglas y pruebas puras.
 
 ## Comportamiento implementado

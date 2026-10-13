@@ -1,7 +1,7 @@
 # F31 · Calidad de lectura y medición de discrepancias
 
 **Created**: 2026-10-02
-**Status**: Implementado y verificado localmente; integración por CI/SonarQube pendiente.
+**Status**: Implementado e integrado (PR #61 y #65).
 **Input**: Mejorar OCR a partir de los 12 casos auditados y distinguir lectura dudosa de discrepancia.
 
 ## User Scenarios & Testing

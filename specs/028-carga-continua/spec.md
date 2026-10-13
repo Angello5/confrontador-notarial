@@ -1,7 +1,7 @@
 # F34 · Carga continua y revisión centrada en el documento
 
 **Created**: 2026-10-03
-**Status**: Especificación aprobada mediante «Okey procede a implementar todo» sobre la propuesta del diagnóstico.
+**Status**: Implementado e integrado (PR #69).
 **Input**: Adjuntar sin interrupciones, adelantar lectura, concentrar espera en Confrontar, reutilizar trabajo y simplificar resultados.
 
 ## User Scenarios & Testing

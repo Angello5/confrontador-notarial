@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-27
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #49)
 
 **Input**: El revisor comparó el expediente de referencia con errores intencionados (lista oficial de 8) con la confrontación actual: se detectan 3 (nombres alterados junto a «DE NACIONALIDAD»). Faltan 5 por tres huecos: (A) DNI con un dígito de menos en el borrador, que `RE_DNI_DOC` no reconoce porque exige 8 dígitos; (B) nombre mal escrito fuera de «DE NACIONALIDAD» (p. ej. «EN REPRESENTACION DE …»); (C) número en letras distinto de su cifra entre paréntesis.
 

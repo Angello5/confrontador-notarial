@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-25
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #42)
 
 **Input**: Medido sobre los recaudos de los 10 expedientes reales (369 páginas): 55 fichas oficiales, de las que 49 se leen completas y cubren 28 documentos distintos, terminan en 47 personas confirmadas mezcladas con registros de otras fuentes, y alrededor aparecen 47 registros con nombre sin documento, 33 con documento sin nombre y 64 marcas de revisión manual: **unas tres filas por persona real**. El propietario fija el principio: un legajo puede traer varios DNI de varias personas, y lo que identifica a cada una es **la estructura de la ficha RENIEC y la de la biométrica**.
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Implemented
+**Status**: Implementado e integrado (PR #50)
 
 **Input**: Anexo A.4 del contrato (literal): «La revisión ortográfica, de tildes, gramatical y de redacción se resuelve mediante componente de ejecución local. Dicho componente carece de autoridad sobre los datos de validación obligatoria del punto A.3 y carece de permiso de escritura directa sobre el documento.» La ortografía (`nucleo/ortografia.py`) existe pero su llamada quedó comentada y su sección oculta a pedido del propietario (2026-09-27, `044b5ef`). El contrato la exige.
 

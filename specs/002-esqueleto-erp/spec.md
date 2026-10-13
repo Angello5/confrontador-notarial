@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #16)
 
 **Input**: User description: "Los usuarios de la notaría inician sesión y ven un layout con menú lateral cuyas opciones dependen de su rol. Un administrador crea y desactiva usuarios y les asigna rol. Sin funcionalidad de negocio todavía."
 

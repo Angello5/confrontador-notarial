@@ -26,7 +26,7 @@
 ## Verificación
 - [x] T014 Tests completos, Ruff y checks Django; registrar evidencia en docs/carga-continua-2026-10-03.md (SC-001/006).
 - [x] T015 Revisión de seguridad, permisos y regresiones; coherencia de specs F26/F32 y F34.
-- [ ] T016 Integración por PR y CI/Quality Gate en checkout Git (bloqueo de entorno documentado).
+- [X] T016 Integración por PR y CI/Quality Gate en checkout Git: PR #69, CI y Quality Gate en verde.
 
 ## Dependencias y estrategia
 T001→T002→T003; pruebas antes de cada cambio. T004/T006/T011 independientes; implementación secuencial para no competir sobre servicios. US1 primero, luego US2 y concurrencia, luego US3 y validación conjunta. No se despliega sin T016. Pruebas independientes por historia descritas en spec.md y quickstart.md.

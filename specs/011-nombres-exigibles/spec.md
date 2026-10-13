@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-27
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #46 y #73). Pendiente: medición del revisor T007
 
 **Input**: El revisor midió dos falsos positivos en un expediente real. (A) De 5 nombres de la proyección `NOMBRE`, 3 vienen de menciones sin ficha (declaración jurada manuscrita, OCR ilegible) y 1 es la variante adjunta de la biométrica (F15); ninguno está en la minuta ni en el borrador y los cuatro salen como «FALTA … no aparece en el destino». (B) `DOMICILIO_NO_ENCONTRADO` falso: el borrador escribe mal el nombre en la comparecencia, la regla toma otra línea donde el nombre sí está bien (sin dirección) y avisa, aunque la cláusula correcta contiene el DNI de la ficha y la dirección equivalente (AVENIDA = AV.).
 
