@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-27
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #43)
 
 **Input**: El propietario diseñó en Figma «Confrontador Notarial — ERP Dashboard» (9 pantallas) y pide que el ERP «sea de ese color, de manera similar». Las capturas de referencia viven fuera del repositorio en `~/pruebas-confrontador/figma/` (`s01-dashboard.png`, `s02-nueva-confrontacion.png`, `s03-shell-confrontacion.png`, `s04-admin-inicio.png`) y la estructura de capas de las 9 pantallas en `metadata.xml` del mismo directorio. No se versionan: llevan un nombre comercial y datos de maqueta.
 

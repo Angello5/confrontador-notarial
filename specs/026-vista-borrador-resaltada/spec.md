@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-02
 
-**Status**: Tramo A (US1 `.docx` y US3) implementado y verificado localmente el 2026-10-02 con datos ficticios. US2 (escaneados y demás formatos) bloqueado hasta aprobar la constitución 1.8.0. Se integra por PR junto con F34 (`specs/028-carga-continua/`), que depende de este tramo.
+**Status**: Tramo A (US1 `.docx` y US3) integrado en el PR #69. US2 (escaneados y demás formatos) bloqueado hasta aprobar la constitución 1.8.0.
 
 **Input**: User description: "Al ejecutar la confrontación, el digitador ve en pantalla la imagen real de cada página del borrador (.docx renderizado a página, PDF con texto o PDF/imagen escaneada leída por OCR) y sobre ella cada observación resaltada en su posición exacta, sin imprimir el reporte. Color por severidad: alta en rojo, media en amarillo, baja (incluida la capa lingüística) en un tono neutro. Al elegir una observación en la lista, la vista salta a la página y al recuadro; al hacer clic en un recuadro, se selecciona la observación. Si una observación no se puede ubicar en la página, se indica claramente. Requisito previo: enmienda de la constitución (principio IV, hoy 1.7.0) para conservar el borrador escaneado además del .docx."
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-25
 
-**Status**: In Progress
+**Status**: Implementado e integrado (PR #40). Pendiente: medición privada T027, gate del propietario
 
 **Input**: `docs/catalogo-datos.md` midió sobre 435 páginas que solo la consulta RENIEC aporta estado civil, fecha de nacimiento, domicilio y distrito de domicilio con las coberturas documentadas, y que el ERP los descarta. Decisión del propietario: incorporarlos a la persona y usarlos en la confrontación.
 

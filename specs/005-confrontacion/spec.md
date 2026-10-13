@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-20
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #22)
 
 **Input**: User description: "Con el texto extraído, el sistema ejecuta las capas de regla, léxico y ortografía y muestra las observaciones agrupadas por capa, con la ubicación en el borrador y el valor esperado según la fuente."
 

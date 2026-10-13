@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-17
 
-**Status**: Especificación validada
+**Status**: Implementado e integrado (PR #8, #14 y #15)
 
 **Input**: User description: "Cada Pull Request y cada push a main ejecutan automáticamente: lint con ruff (incluidas reglas de seguridad), tests con cobertura, análisis de SonarQube con Quality Gate, auditoría de dependencias (pip-audit) y búsqueda de secretos (gitleaks). Un PR no se puede mergear si algo falla. Antes del primer análisis se eliminan de los tests los DNI y apellidos reales, reemplazándolos por datos ficticios. También se configura pre-commit y Dependabot."
 

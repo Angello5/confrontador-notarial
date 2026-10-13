@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-22
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #31)
 
 **Input**: El notario detectó que el sistema asigna un documento de identidad a la persona equivocada. La causa no es la expresión regular: el catálogo guarda nombres y documentos en conjuntos separados, sin ningún vínculo entre persona y documento, y además incorpora identidades que no son parte del acto.
 

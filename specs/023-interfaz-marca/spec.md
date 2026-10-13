@@ -2,7 +2,7 @@
 
 **Created**: 2026-10-02
 
-**Status**: Plantillas, CSS, marca del backend y revisión de correcciones verificados localmente el 2026-10-02. Véase `docs/auditoria-2026-10-02.md` para evidencia y límites.
+**Status**: Implementado e integrado (PR #61). Evidencia y límites en `docs/auditoria-2026-10-02.md`.
 
 **Input**: Handoff de diseño «Confrontador Notarial» (Claude Design) y acuerdos de la reunión de construcción del 2026-09-28: logo de cada notaría, carga de varios archivos con su estado, lista de errores imprimible o descargable en Excel/PDF.
 

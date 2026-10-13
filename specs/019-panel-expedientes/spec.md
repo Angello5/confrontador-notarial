@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #55)
 
 **Input**: «Cuando estoy en el panel de expediente se debe poder abrir, editar y eliminar con botones». Hoy la lista (estilo F14) solo tiene «Abrir».
 

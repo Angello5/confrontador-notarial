@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-27
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #48)
 
 **Input**: Principio del propietario: la información de las personas sale de las fichas RENIEC y biométricas, y el sistema DEBE cubrir las fichas **escaneadas** (OCR), no solo las digitales. El revisor midió las 55 fichas reales: el OCR sí lee los valores, pero el lector no los asocia a su rótulo en cuatro casos: ruido dentro del año, valor en la línea siguiente, nombre desplazado por otra columna y ficha RENIEC sin nombre legible.
 

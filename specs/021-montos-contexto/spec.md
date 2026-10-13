@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #57, #68 y #76). Pendiente: medición del revisor T006
 
 **Input**: Anexo A.3 d) exige verificar los montos «sobre cada aparición del dato en el borrador, y no sobre su mera existencia». Anexo B P-02: 100 % de datos alterados detectados con su valor correcto construido desde la fuente. Medición del revisor en 10 expedientes reales: `RE_MONTO` solo reconoce `S/ 9.99` (11 importes en dólares sin verificar; en 2 expedientes el único importe es en dólares); la verificación es por conjunto, así que una cuota con el importe de otra cuota o un precio sustituido por otro importe válido del documento no se detecta (2 observaciones MONTO en 10 expedientes); la observación no dice el concepto ni el documento fuente.
 

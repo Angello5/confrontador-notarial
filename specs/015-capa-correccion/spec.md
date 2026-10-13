@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implementado e integrado (PR #54)
 
 **Input**: Anexo A.3 del contrato (fase CONSTRUCCIÓN): «EL SOFTWARE conserva la capa de corrección sobre el documento, la cual identifica aquellas correcciones cuyo valor correcto difiere del valor erróneo, respetando los límites de palabra y descartando los reemplazos que truncarían un texto a uno de sus propios prefijos. Concluida la corrida, EL SOFTWARE presenta al usuario, en una única vista consolidada, la relación de correcciones propuestas, indicando respecto de cada una el valor erróneo detectado, el valor correcto propuesto y el documento fuente del que este último fue construido. La aplicación de las correcciones se produce mediante una sola acción de confirmación del usuario respecto de la totalidad de la relación, sin perjuicio de que este pueda excluir individualmente cualquier corrección antes de confirmar. EL SOFTWARE conserva el documento original en versión inalterable y genera el documento corregido como archivo distinto. El manifiesto de auditoría registra, respecto de cada corrida, la identidad del usuario que confirmó la aplicación, la fecha y la hora, y las correcciones que hubieran sido excluidas.» Anexo B: P-03, P-04, P-10.
 

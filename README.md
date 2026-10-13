@@ -36,6 +36,21 @@ Para la capa de prosa, copia `.env.example` a `.env` y pon tu clave, o exporta
 
 ## Uso
 
+### ERP (Django)
+
+```bash
+python manage.py migrate
+python manage.py bootstrap_admin                 # primera vez: crea la cuenta local
+python manage.py runserver 127.0.0.1:8000
+python manage.py procesar_documentos             # worker de extracción, en otra terminal
+```
+
+Requiere `DJANGO_SECRET_KEY` y la conexión PostgreSQL (`POSTGRES_*`) fuera del
+repositorio. El worker procesa la cola y termina: prográmalo cada minuto o
+ejecútalo en bucle. Detalle en [la guía F4](specs/004-expedientes/quickstart.md).
+
+### Prueba de concepto
+
 Dos interfaces, según la vía:
 
 ```bash
@@ -123,11 +138,12 @@ expedientes es responsabilidad de la notaría, fuera de este repositorio.
 
 ## Estado
 
-Prueba de concepto validada sobre **dos expedientes reales**, de los cuales solo
-uno tiene versión corregida contra la cual medir cobertura. Eso significa que
-sabemos qué encuentra, no qué se le escapa.
+ERP en desarrollo, integrado en `main` hasta la fase F45 (PR #88,
+2026-10-09). Ya tiene control de accesos por rol (F2), kardex con extracción en
+segundo plano (F4), historial de corridas (F20), corrección del `.docx` (F21),
+informe Word (F29) y flujo de transferencia vehicular (F43–F45). El detalle por
+fase está en [docs/roadmap.md](docs/roadmap.md).
 
 Lo que falta para llamarlo MVP: medir cobertura sobre 10 expedientes cerrados,
-un catálogo declarativo de campos por tipo de acto (hoy las reglas están
-escritas a mano para donación y mutuo), persistencia, informe exportable y
-control de accesos.
+el despliegue en el servidor de la notaría con respaldo diario (F8) y un
+catálogo declarativo de campos por tipo de acto (F9).
