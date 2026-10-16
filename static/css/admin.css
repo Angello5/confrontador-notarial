@@ -151,7 +151,8 @@ html[data-theme="dark"] {
 .marca-sub { display: block; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #4b5d8c; }
 .admin-seccion { padding-left: 16px; border-left: 1px solid #c3c9d9; font: 700 1.125rem var(--ne-display); color: #0f2765; }
 #content h1 { font-family: var(--ne-display); font-weight: 700; }
-.login #container { width: 36em; } /* cabe la marca en una línea; en móvil manda responsive.css */
+/* Cabe la marca en una línea (en móvil manda responsive.css); F49: borde visible sobre blanco. */
+.login #container { width: 36em; border-color: var(--border-color); }
 
 /* Botón principal verde con texto tinta (blanco sobre verde no llega a AA). */
 .button.default, input[type=submit].default, .submit-row input.default { color: #00112c; font-weight: 800; }
@@ -171,8 +172,7 @@ html[data-theme="dark"] {
 div.breadcrumbs, .module h2, .module caption { --acento: #44d880; } /* sobre marino el verde AA no llega a 3:1 */
 input[type=checkbox], input[type=radio] { accent-color: var(--acento); }
 
-/* Ingreso: página blanca, caja con borde y botón principal a todo el ancho. */
-.login #container { border-color: var(--border-color); }
+/* Ingreso: botón principal a todo el ancho. */
 .login .submit-row input[type=submit] {
   width: 100%; padding: 12px 15px; background: var(--default-button-bg); color: #00112c; font-weight: 800;
 }
