@@ -31,3 +31,7 @@ Sin cambios. El grupo se muestra con las mismas condiciones que la entrada anter
   - el orden de los dos hijos;
   - el `aria-current` en la lista vehicular.
 - `tests/test_shell.py` sigue comprobando que «Kardex» queda activo en la lista y en el detalle.
+
+## Seguimiento · versión de los estáticos (2026-10-16)
+
+Tras mergear F47, el navegador siguió usando el `erp.css` anterior y «Expedientes» se vio sin estilo: Django sirve los estáticos solo con `Last-Modified` y el navegador los reutiliza durante horas. Desde ahora cada enlace a un CSS o JS propio lleva `?v=` con una huella corta del contenido de `static/` (`core.context_processors.version_estaticos`, expuesta como `static_v`). Se calcula al arrancar el servidor, así que basta reiniciarlo tras actualizar. En el despliegue (F8) puede sustituirse por `ManifestStaticFilesStorage`. Pruebas en `tests/test_version_estaticos.py`.
