@@ -39,7 +39,7 @@ class UserAdmin(DjangoUserAdmin):
             },
         ),
     )
-    list_display = ("username", "role_name", "is_active", "failed_login_attempts")
+    list_display = ("username", "role_name", "is_active", "intentos_fallidos")
     list_filter = ("is_active",)
     search_fields = ("username",)
     ordering = ("username",)
@@ -49,6 +49,11 @@ class UserAdmin(DjangoUserAdmin):
         return obj.groups.filter(name__in=ROLES).first()
 
     role_name.short_description = "Rol"
+
+    # F49: cabecera en español sin migración (el verbose_name sigue en inglés).
+    @admin.display(description="Intentos fallidos", ordering="failed_login_attempts")
+    def intentos_fallidos(self, obj):
+        return obj.failed_login_attempts
 
     def get_fieldsets(self, request, obj=None):
         return self.add_fieldsets if obj is None else self.fieldsets

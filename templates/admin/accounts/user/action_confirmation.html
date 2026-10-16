@@ -1,5 +1,7 @@
 {% extends "admin/base_site.html" %}
-{% load admin_urls %}
+{% load admin_urls static %}
+{# F49: forms.css da a .submit-row el mismo aspecto que en los formularios. #}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/forms.css' %}?v={{ static_v }}">{% endblock %}
 {% block content %}
 <p>La acción cambiará el estado de las cuentas seleccionadas. ¿Desea continuar?</p>
 <ul>
@@ -14,7 +16,15 @@
   {% for user in queryset %}
     <input type="hidden" name="_selected_action" value="{{ user.pk }}">
   {% endfor %}
-  <button type="submit" class="default">Confirmar</button>
-  <a href="{% url opts|admin_urlname:'changelist' %}">Cancelar</a>
+  {% with total=queryset|length %}
+  <div class="submit-row">
+    {% if action_name == "deactivate_accounts" %}
+      <input type="submit" class="peligro" value="Desactivar {{ total }} cuenta{{ total|pluralize }}">
+    {% else %}
+      <input type="submit" value="Reactivar {{ total }} cuenta{{ total|pluralize }}">
+    {% endif %}
+    <a href="{% url opts|admin_urlname:'changelist' %}" class="closelink">Volver sin cambios</a>
+  </div>
+  {% endwith %}
 </form>
 {% endblock %}
