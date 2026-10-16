@@ -1,6 +1,7 @@
 """F43: submenú, kardex sin minuta y confrontación vehicular (datos ficticios)."""
 
 import hashlib
+import re
 
 import pytest
 from django.urls import reverse
@@ -169,13 +170,23 @@ def test_resultado_vehicular_avisa_al_informe(client, usuario_ficticio, vehicula
     assert "vehicular: 'VEHICULAR' === 'VEHICULAR'," in html
 
 
-def test_transferencia_vehicular_es_submenu_de_kardex(client, usuario_ficticio):
+def test_menu_expedientes_agrupa_kardex_y_transferencia_vehicular(
+    client, usuario_ficticio
+):
+    """F47: «Expedientes» solo rotula el grupo; sus hijos son los destinos."""
     client.force_login(usuario_ficticio)
     html = client.get(reverse("vehicular_lista")).content.decode()
-    kardex = html.index(">Kardex</span>")
-    submenu = html.index('<ul class="submenu"', kardex)
-    assert html.index("Transferencia vehicular", kardex) > submenu
-    assert '<ul class="submenu" aria-label="Kardex">' in html
+    grupo = html.index(">Expedientes</span>")
+    submenu = html.index('<ul class="submenu" aria-label="Expedientes">', grupo)
+    assert "<a" not in html[html.rindex("<li>", 0, grupo) : submenu]
+    kardex = f'href="{reverse("expediente_lista")}"'
+    vehicular = f'href="{reverse("vehicular_lista")}"'
+    fin = html.index("</ul>", submenu)
+    assert submenu < html.index(kardex, submenu) < html.index(vehicular, submenu) < fin
+    assert ">Kardex</span>" in html[submenu:fin]
+    assert ">Transferencia vehicular</span>" in html[submenu:fin]
+    assert re.search(vehicular + r'[^>]*aria-current="page"', html)
+    assert not re.search(kardex + r"[^>]*aria-current", html)
 
 
 def test_ruc_sin_ficha_ruc_no_es_error_en_vehicular(vehicular):

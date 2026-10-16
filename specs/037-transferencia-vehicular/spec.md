@@ -68,6 +68,7 @@ Catálogo de reglas `2026.10.09-11`.
 ## F44 · Ajustes tras la primera prueba (2026-10-09)
 
 - **Submenú.** «Transferencia vehicular» cuelga de «Kardex» con sangría, una guía vertical y letra menor (`.submenu`). Antes se veía como otra entrada del menú.
+  F47 (`specs/039-menu-expedientes/spec.md`) lo reorganiza: el grupo se llama «Expedientes» y cuelgan de él «Kardex» y «Transferencia vehicular».
 - **Informe Word.** En una transferencia vehicular, el resumen dice que se confrontó contra «la información de la transferencia (boleta informativa, DNI y cheques)». El pie dice «la información y el acta». Ya no menciona la minuta.
 - **Catálogo** `2026.10.09-12`. La regla `PRECIO` entró sin subir la versión, así que las corridas hechas con la `-11` no la aplicaban; ahora se recalculan.
 
