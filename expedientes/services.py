@@ -254,22 +254,38 @@ def vista_borrador(borrador, corrida):
         }
     hojas = paginas.paginas(pdf)
     segmentos = [paginas.segmentos(pdf, hoja["numero"]) for hoja in hojas]
+
+    def rectangulos_de(valor):
+        rectangulos, previas = [], 0
+        for numero, de_pagina in enumerate(segmentos, 1):
+            en_pagina = correccion.marcas(de_pagina, valor)
+            rectangulos += [
+                {**r, "pagina": numero, "aparicion": r["aparicion"] + previas}
+                for r in en_pagina
+            ]
+            previas += len({r["aparicion"] for r in en_pagina})
+        return rectangulos
+
     resultado = resultado_de_corrida(corrida)
     marcas, no_ubicadas = {}, []
     for prefijo, clave, campo in _VALOR_OBSERVADO:
         for i, observacion in enumerate(resultado.get(clave) or [], 1):
             identificador = f"{prefijo}{i}"
-            if not (observacion.get("ubicacion") or {}).get("linea"):
+            ubicacion = observacion.get("ubicacion") or {}
+            if not ubicacion.get("linea"):
                 no_ubicadas.append({"id": identificador, "motivo": "AUSENTE"})
                 continue
-            rectangulos, previas = [], 0
-            for numero, de_pagina in enumerate(segmentos, 1):
-                en_pagina = correccion.marcas(de_pagina, observacion.get(campo) or "")
-                rectangulos += [
-                    {**r, "pagina": numero, "aparicion": r["aparicion"] + previas}
-                    for r in en_pagina
+            rectangulos = rectangulos_de(observacion.get(campo) or "")
+            if not rectangulos and "inicio" in ubicacion:
+                # F52: el «Dice» no es texto del borrador (persona: «NOMBRE: …»).
+                # Se marca lo que el panel resalta en la línea, y solo su primera
+                # aparición, que es la de esa línea (ubicar_valor toma la primera).
+                resaltado = ubicacion["fragmento"][
+                    ubicacion["inicio"] : ubicacion["fin"]
                 ]
-                previas += len({r["aparicion"] for r in en_pagina})
+                rectangulos = [
+                    r for r in rectangulos_de(resaltado) if r["aparicion"] == 0
+                ]
             if rectangulos:
                 marcas[identificador] = rectangulos
             else:
