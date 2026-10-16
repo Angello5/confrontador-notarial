@@ -23,13 +23,16 @@ class Command(BaseCommand):
         parser.add_argument("codigo")
 
     def handle(self, *args, **options):
-        try:
-            expediente = Expediente.objects.get(codigo=options["codigo"])
-        except Expediente.DoesNotExist as exc:
-            raise CommandError("El expediente no existe.") from exc
+        # F50: un archivado puede repetir el código del activo (F28); se releen
+        # los documentos de todos.
+        documentos = Documento.objects.filter(
+            expediente__codigo=options["codigo"]
+        ).order_by("id")
+        if not Expediente.objects.filter(codigo=options["codigo"]).exists():
+            raise CommandError("El expediente no existe.")
 
         encolados = 0
-        for documento in expediente.documentos.order_by("id"):
+        for documento in documentos:
             archivo = _archivo(documento)
             if archivo is None:
                 self.stdout.write(f"Sin archivo: {documento.nombre_original}")

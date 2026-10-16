@@ -98,3 +98,49 @@ Confrontación en memoria de los 11 expedientes de prueba, más un borrador con 
 - `tests/test_expedientes_confrontacion.py`: la confrontación llama a `anexos_omitidos` y no a `revisar_parrafos`; la traducción del aviso sin ficha conserva lo que dice la minuta.
 - `tests/test_lectura_borrador.py`: nombre sin ficha escrito distinto e igual que en la minuta.
 - `test_ortografia.py`: «OCUPACIÒN» ahora sale como «acento grave».
+
+## F50 · Falsas «mayúsculas y minúsculas mezcladas» en un kardex ya cargado
+
+**Fecha**: 2026-10-16  
+**Alcance**: `expedientes/management/commands/reextraer_expediente.py` y pruebas.
+
+### Origen
+
+En un kardex real, la capa lingüística mostraba 2 observaciones BAJA «mayúsculas y minúsculas mezcladas» (p. ej. `OCHENTa`, sin sugerencia). En el documento impreso y en el visor la palabra está entera en mayúsculas.
+
+### Causa
+
+- **El formato ya se resolvía.** El run lleva su «Todo mayúsculas» directo (`<w:rPr>…<w:caps/>…</w:rPr>`) dentro de un párrafo cuyo estilo no tiene caps. Es el caso que resolvió F39, y el extractor actual lee la palabra entera en mayúsculas. Los 2 casos del borrador tienen esa estructura.
+- **El texto guardado era anterior a F39.** El borrador se extrajo el 2026-09-28, antes de F39 (2026-10-05). Al volver a confrontar se reutiliza el texto ya guardado del documento, aunque la versión del extractor haya cambiado. En la base local, ningún documento (144) tiene el texto de la versión actual del extractor.
+- **El remedio fallaba en este kardex.** `reextraer_expediente <código>` buscaba el expediente con `get(codigo=…)`. Aquí hay un expediente archivado con el mismo código (F28 lo permite), así que el comando fallaba con `MultipleObjectsReturned`.
+
+### Comportamiento implementado
+
+- `reextraer_expediente` vuelve a poner en cola los documentos de todos los expedientes con ese código, archivados incluidos. Si no existe ninguno, sigue respondiendo «El expediente no existe.».
+- El extractor no cambia: no sube la versión del texto ni la del formato de caché.
+
+### Cómo se ve el arreglo en un kardex ya cargado
+
+1. `python manage.py reextraer_expediente <código>`: el borrador se relee desde su original conservado (F21).
+2. El worker lo procesa.
+3. Volver a confrontar.
+
+Los documentos del cliente y la minuta ya no tienen archivo temporal, así que salen como «Sin archivo» y conservan su texto.
+
+### Pendiente
+
+- [NEEDS CLARIFICATION] Cuando cambia la versión del extractor, ¿debe la confrontación releer sola el borrador conservado, o al menos avisar de que el texto es de una versión anterior? Hoy se confronta con el texto guardado sin avisar.
+- [NEEDS CLARIFICATION] `suprimir_texto_expediente` tiene el mismo `get(codigo=…)` y falla igual con un código repetido. No se cambia aquí: decidir si la supresión alcanza a todos los expedientes con ese código o si debe elegirse uno.
+
+### Medición
+
+- **Capa lingüística del kardex de la queja**, con las mismas fuentes:
+  - con el texto guardado en la base: 12 filas, 2 de ellas «mezcladas»;
+  - con el texto actual: 10 filas, ninguna «mezclada».
+- **9 casos de prueba**: con el extractor actual hay 0 filas «mezcladas». `main` y esta rama dan los mismos recuentos, 37 filas lingüísticas en total, porque el núcleo y el extractor no cambian.
+
+### Verificación
+
+- `tests/test_docx_tablas.py`:
+  - `test_reextraer_con_codigo_repetido_por_un_archivado`: falla en `main` con `MultipleObjectsReturned`.
+  - `test_mezcladas_solo_si_word_no_las_imprime_en_mayusculas`: es la estructura del caso con valores ficticios. Ya pasaba en `main` y queda como regresión. La palabra tecleada sin «Todo mayúsculas» sigue marcándose.
