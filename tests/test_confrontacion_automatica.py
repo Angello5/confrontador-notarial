@@ -339,3 +339,91 @@ def test_worker_no_confronta_expedientes_archivados(administrador_ficticio, caso
     _worker()
 
     assert not Corrida.objects.exists()
+
+
+BORRADOR_DOCX = "ALBA LUMARIA ZAFIRO, DNI 90000011, CEDE EL (OCHENTa POR CIENTO)"
+
+
+def _borrador_docx(expediente, crear, texto_guardado, nombre="borrador-ficticio"):
+    """Borrador .docx con «Todo mayúsculas», texto leído por una versión anterior
+    y su original conservado (F21)."""
+    import io
+    import zipfile
+
+    from expedientes.models import Documento
+    from expedientes.services import calcular_hash, ruta_original
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as z:
+        z.writestr(
+            "word/document.xml",
+            "<w:document><w:body><w:p><w:r><w:rPr><w:caps/></w:rPr>"
+            f"<w:t>{BORRADOR_DOCX}</w:t></w:r></w:p></w:body></w:document>",
+        )
+    borrador = crear(expediente, Documento.BORRADOR, f"{nombre}.docx", texto_guardado)
+    original = ruta_original(borrador)
+    original.parent.mkdir(parents=True)
+    original.write_bytes(buffer.getvalue())
+    borrador.hash_archivo = calcular_hash(original)
+    borrador.save(update_fields=("hash_archivo",))
+    return borrador
+
+
+def test_worker_relee_el_borrador_de_otra_version_y_vuelve_a_confrontar(
+    tmp_path, settings, caso, crear_documento_listo
+):
+    """F50: el texto guardado antes de una mejora del extractor no se reutiliza."""
+    from adaptadores import extraccion
+    from expedientes import services, solicitudes
+    from expedientes.models import Corrida
+
+    settings.EXPEDIENTES_TEMP_DIR = tmp_path / "temporales"
+    settings.EXPEDIENTES_ORIGINALES_DIR = tmp_path / "originales"
+    expediente, anterior = caso
+    anterior.delete()
+    borrador = _borrador_docx(expediente, crear_documento_listo, BORRADOR_DOCX)
+    solicitudes.procesar(borrador.pk)
+    vieja = Corrida.objects.get()
+    assert "mezcladas" in vieja.hallazgos
+
+    _worker()
+
+    borrador.refresh_from_db()
+    assert borrador.texto_extraido.version_extractor == extraccion.version_extractor()
+    assert "(OCHENTA POR CIENTO)" in borrador.texto_extraido.texto
+    nueva = services.corrida_vigente(expediente, borrador)
+    assert nueva.pk != vieja.pk
+    assert nueva.origen == Corrida.AUTOMATICA
+    assert "mezcladas" not in nueva.hallazgos
+    assert services.releer_borradores_desactualizados() == 0
+
+
+def test_no_se_releen_fuentes_archivados_errores_ni_borradores_sin_original(
+    tmp_path, settings, caso, crear_documento_listo, administrador_ficticio
+):
+    from django.utils import timezone
+
+    from expedientes.models import Documento, Expediente
+    from expedientes.services import releer_borradores_desactualizados
+
+    settings.EXPEDIENTES_TEMP_DIR = tmp_path / "temporales"
+    settings.EXPEDIENTES_ORIGINALES_DIR = tmp_path / "originales"
+    expediente, sin_original = caso  # borrador .txt: no se conserva original
+    minuta = _borrador_docx(expediente, crear_documento_listo, "X", "minuta")
+    minuta.rol = Documento.MINUTA
+    minuta.save(update_fields=("rol",))
+    en_error = _borrador_docx(expediente, crear_documento_listo, "X", "en-error")
+    en_error.estado = Documento.ERROR
+    en_error.save(update_fields=("estado",))
+    archivado = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F50",
+        creado_por=administrador_ficticio,
+        archivado_el=timezone.now(),
+    )
+    del_archivado = _borrador_docx(archivado, crear_documento_listo, "X", "archivado")
+
+    assert releer_borradores_desactualizados() == 0
+    estados = Documento.objects.filter(
+        pk__in=(sin_original.pk, minuta.pk, en_error.pk, del_archivado.pk)
+    ).values_list("estado", flat=True)
+    assert sorted(estados) == ["ERROR", "LISTO", "LISTO", "LISTO"]
