@@ -1,6 +1,7 @@
 """Pruebas del Django admin de cuentas con datos ficticios."""
 
 from datetime import timedelta
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -8,8 +9,10 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.messages import get_messages
+from django.contrib.staticfiles import finders
 from django.core.exceptions import PermissionDenied
-from django.test import Client
+from django.templatetags.static import static
+from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -237,3 +240,33 @@ def test_administrator_role_has_minimum_user_admin_permissions(db):
     )
 
     assert permissions == {"add_user", "change_user", "view_user"}
+
+
+@override_settings(ERP_NOMBRE="Notaría Ficticia", ERP_LOGO="")
+def test_admin_login_shows_the_notary_brand(client):
+    content = client.get(reverse("admin:login")).content.decode()
+
+    assert (
+        "<title>Iniciar sesión | Administración · Notaría Ficticia</title>" in content
+    )
+    assert '<span class="marca-sello" aria-hidden="true">NF</span>' in content
+    assert '<span class="marca-nombre">Notaría Ficticia</span>' in content
+    assert static("css/admin.css") in content
+
+
+def test_admin_brand_stylesheet_is_local_and_covers_dark_mode(cliente_administrador):
+    content = cliente_administrador.get(reverse("admin:index")).content.decode()
+    hoja = Path(finders.find("css/admin.css")).read_text(encoding="utf-8")
+
+    assert static("css/admin.css") in content
+    assert "://" not in hoja
+    assert "@import" not in hoja
+    assert 'html[data-theme="dark"]' in hoja
+    assert "@media (prefers-color-scheme: dark)" in hoja
+
+
+def test_admin_names_the_accounts_app_in_spanish(cliente_administrador):
+    content = cliente_administrador.get(reverse("admin:index")).content.decode()
+
+    assert ">Cuentas</a>" in content
+    assert "Accounts" not in content
