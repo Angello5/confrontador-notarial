@@ -1,0 +1,146 @@
+/*
+ * F46 · Django admin con la marca de la notaría.
+ * Redefine las variables de admin/css/base.css y dark_mode.css con los tokens
+ * de docs/branding/tokens.css, con los mismos selectores que usa Django.
+ * Sin recursos remotos: las fuentes de marca se usan solo si están instaladas.
+ */
+
+html[data-theme="light"],
+:root {
+  --primary: #4b5d8c;
+  --secondary: #0f2765;
+  --accent: #44d880;
+  --primary-fg: #fff;
+
+  --body-fg: #0f2765;
+  --body-bg: #fff;
+  --body-quiet-color: #4b5d8c;
+  --body-medium-color: #273b7b;
+  --body-loud-color: #00112c;
+
+  /* Fuera de la cabecera: títulos de módulo y menú lateral sobre marino. */
+  --header-color: #44d880;
+  --header-bg: #0f2765;
+  --header-link-color: #fff;
+
+  --breadcrumbs-fg: #c3c9d9;
+  --breadcrumbs-link-fg: #fff;
+  --breadcrumbs-bg: #0f2765;
+
+  --link-fg: #0f2765;
+  --link-hover-color: #273b7b;
+  --link-selected-fg: #0f6568;
+
+  --hairline-color: #edeff8;
+  --border-color: #c3c9d9;
+
+  --error-fg: #8b1c28;
+
+  --message-success-bg: #e5faed;
+  --message-warning-bg: #fff6db;
+  --message-error-bg: #fdecee;
+
+  --darkened-bg: #edeff8;
+  --selected-bg: #edeff8;
+  --selected-row: #e5faed;
+
+  --button-fg: #fff;
+  --button-bg: #0f2765;
+  --button-hover-bg: #273b7b;
+  --default-button-bg: #44d880;
+  --default-button-hover-bg: #6ae29a;
+  --close-button-bg: #4b5d8c;
+  --close-button-hover-bg: #0f2765;
+  --delete-button-bg: #c8283c;
+  --delete-button-hover-bg: #8b1c28;
+
+  --font-family-primary: "Nunito Sans", system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --ne-display: "Prompt", "Poppins", "Segoe UI", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #273b7b;
+    --primary-fg: #fff;
+    --body-fg: #edeff8;
+    --body-bg: #00112c;
+    --body-quiet-color: #b3bfe7;
+    --body-medium-color: #c3c9d9;
+    --body-loud-color: #fff;
+    --breadcrumbs-link-fg: #fff;
+    --breadcrumbs-bg: #0f2765;
+    --link-fg: #44d880;
+    --link-hover-color: #6ae29a;
+    --link-selected-fg: #8999d0;
+    --hairline-color: #141d3d;
+    --border-color: #273b7b;
+    --error-fg: #f08a96;
+    --message-success-bg: #0f5132;
+    --message-warning-bg: #5c4200;
+    --message-error-bg: #570808;
+    --darkened-bg: #141d3d;
+    --selected-bg: #0f2765;
+    --selected-row: #00363a;
+    --close-button-bg: #273b7b;
+    --close-button-hover-bg: #4b5d8c;
+    --button-bg: #273b7b;
+    --button-hover-bg: #4b5d8c;
+  }
+}
+
+html[data-theme="dark"] {
+  --primary: #273b7b;
+  --primary-fg: #fff;
+  --body-fg: #edeff8;
+  --body-bg: #00112c;
+  --body-quiet-color: #b3bfe7;
+  --body-medium-color: #c3c9d9;
+  --body-loud-color: #fff;
+  --breadcrumbs-link-fg: #fff;
+  --breadcrumbs-bg: #0f2765;
+  --link-fg: #44d880;
+  --link-hover-color: #6ae29a;
+  --link-selected-fg: #8999d0;
+  --hairline-color: #141d3d;
+  --border-color: #273b7b;
+  --error-fg: #f08a96;
+  --message-success-bg: #0f5132;
+  --message-warning-bg: #5c4200;
+  --message-error-bg: #570808;
+  --darkened-bg: #141d3d;
+  --selected-bg: #0f2765;
+  --selected-row: #00363a;
+  --close-button-bg: #273b7b;
+  --close-button-hover-bg: #4b5d8c;
+  --button-bg: #273b7b;
+  --button-hover-bg: #4b5d8c;
+}
+
+/* Cabecera blanca en ambos modos: el logo no tiene versión en negativo. */
+#header {
+  --header-bg: #fff;
+  --header-color: #4b5d8c;
+  --header-link-color: #0f2765;
+  --accent: #0f2765;
+  border-bottom: 3px solid #44d880;
+}
+#branding { flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+#site-name { margin: 0; }
+#site-name a { display: block; text-decoration: none; }
+.marca-logo { display: block; width: 180px; max-width: 100%; height: auto; }
+.marca-fila { display: flex; align-items: center; gap: 10px; }
+.marca-sello {
+  width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  background: #0f2765; color: #44d880; font: 700 14px var(--ne-display);
+}
+.marca-nombre { display: block; font: 700 1.25rem/1.2 var(--ne-display); color: #0f2765; }
+.marca-sub { display: block; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #4b5d8c; }
+.admin-seccion { padding-left: 16px; border-left: 1px solid #c3c9d9; font: 700 1.125rem var(--ne-display); color: #0f2765; }
+#content h1 { font-family: var(--ne-display); font-weight: 700; }
+.login #container { width: 36em; } /* cabe la marca en una línea; en móvil manda responsive.css */
+
+/* Botón principal verde con texto tinta (blanco sobre verde no llega a AA). */
+.button.default, input[type=submit].default, .submit-row input.default { color: #00112c; font-weight: 800; }
+
+/* La marca es rectilínea: sin píldoras ni esquinas de 4px. */
+.login #container, #container * { border-radius: 2px; }

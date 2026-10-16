@@ -2,7 +2,7 @@ from django.contrib.admin import AdminSite
 
 
 class ERPAdminSite(AdminSite):
-    site_header = "Administración del ERP Notarial"
+    site_header = "Administración"
     site_title = "Administración"
     index_title = "Gestión de cuentas"
 

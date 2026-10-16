@@ -130,17 +130,17 @@ table { border-collapse: collapse; }
 .lateral nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 20px; overflow: auto; }
 .menu-seccion { margin: 0 0 6px 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ne-slate); }
 .menu { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.menu a {
+.menu a, .menu-grupo {
   display: flex; align-items: center; gap: 12px; height: 42px; padding: 0 12px;
   border-left: 3px solid transparent; border-radius: 0 2px 2px 0;
   color: var(--ne-navy); font-size: 16px; font-weight: 600; text-decoration: none;
   transition: background 0.15s;
 }
-.menu a .ico { font-size: 18px; color: var(--ne-slate); }
+.menu .ico { font-size: 18px; color: var(--ne-slate); }
 .menu a:hover { background: var(--ne-line); }
 .menu a[aria-current="page"] { background: var(--ne-line); border-left-color: var(--ne-green); font-weight: 800; }
 .menu a[aria-current="page"] .ico { color: var(--ne-navy); }
-/* F43/F44: submenú de Kardex; cuelga de una guía vertical alineada con el ícono. */
+/* F43/F44/F47: submenú de «Expedientes» (rótulo de grupo, no enlace); cuelga de una guía vertical alineada con el ícono. */
 .submenu { list-style: none; margin: 2px 0 4px 21px; padding: 0; border-left: 1px solid var(--ne-border); display: flex; flex-direction: column; gap: 2px; }
 .menu .submenu a { height: 34px; margin-left: -2px; padding-left: 18px; font-size: 14px; font-weight: 600; color: var(--ne-slate); }
 .menu .submenu a[aria-current="page"] { color: var(--ne-navy); font-weight: 800; }
