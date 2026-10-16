@@ -98,3 +98,74 @@ Confrontación en memoria de los 11 expedientes de prueba, más un borrador con 
 - `tests/test_expedientes_confrontacion.py`: la confrontación llama a `anexos_omitidos` y no a `revisar_parrafos`; la traducción del aviso sin ficha conserva lo que dice la minuta.
 - `tests/test_lectura_borrador.py`: nombre sin ficha escrito distinto e igual que en la minuta.
 - `test_ortografia.py`: «OCUPACIÒN» ahora sale como «acento grave».
+
+## F50 · Falsas «mayúsculas y minúsculas mezcladas» en un kardex ya cargado
+
+**Fecha**: 2026-10-16  
+**Alcance**: `expedientes/services.py`, `expedientes/views.py`, los comandos `procesar_documentos`, `reextraer_expediente` y `suprimir_texto_expediente`, las plantillas del kardex y del resultado, y pruebas.
+
+### Origen
+
+En un kardex real, la capa lingüística mostraba 2 observaciones BAJA «mayúsculas y minúsculas mezcladas» (p. ej. `OCHENTa`, sin sugerencia). En el documento impreso y en el visor la palabra está entera en mayúsculas.
+
+### Causa
+
+- **El formato ya se resolvía.** El run lleva su «Todo mayúsculas» directo (`<w:rPr>…<w:caps/>…</w:rPr>`) dentro de un párrafo cuyo estilo no tiene caps. Es el caso que resolvió F39, y el extractor actual lee la palabra entera en mayúsculas. Los 2 casos del borrador tienen esa estructura.
+- **El texto guardado era anterior a F39.** El borrador se extrajo el 2026-09-28, antes de F39 (2026-10-05). Al volver a confrontar se reutilizaba el texto ya guardado del documento, aunque la versión del extractor hubiera cambiado. En la base local, ningún documento (144) tiene el texto de la versión actual del extractor.
+- **El remedio fallaba en este kardex.** `reextraer_expediente <código>` buscaba el expediente con `get(codigo=…)`. Aquí hay un expediente archivado con el mismo código (F28 lo permite), así que el comando fallaba con `MultipleObjectsReturned`. `suprimir_texto_expediente` tenía el mismo fallo.
+
+### Decisiones del usuario (2026-10-16)
+
+- **Relectura:** «tiene que releer los borradores».
+- **Aviso:** pedir que se vuelva a subir lo que no se puede releer.
+- **Supresión:** `suprimir_texto_expediente` actúa solo sobre el expediente activo con ese código, nunca sobre los archivados que lo repitan.
+
+### Comportamiento implementado
+
+- **Relectura automática del borrador**:
+  - En cada vuelta, el worker devuelve a la cola el borrador que cumple todo esto:
+    - está LISTO;
+    - su expediente está activo;
+    - su texto viene de otra versión del extractor;
+    - tiene su original `.docx` conservado (F21) y ese original pasa la verificación de su SHA-256.
+  - Al releerse cambian las entradas de la confrontación, y el worker vuelve a confrontar sin intervención (F26, FR-003). La confrontación vieja deja de ser la vigente, y un «Confrontar» posterior ya no la reutiliza (F34).
+  - No se releen la minuta ni los recaudos, que no tienen archivo (son temporales), ni el borrador PENDIENTE, PROCESANDO o en ERROR, ni los de expedientes archivados (F25).
+  - Si la relectura falla, el borrador queda en ERROR y no vuelve a entrar.
+  - `reextraer_expediente` y la relectura comparten `reencolar`.
+- **Aviso para volver a subir**:
+  - La pantalla del kardex y la del resultado muestran un aviso informativo cuando el kardex activo tiene documentos LISTO leídos con otra versión del extractor que no se releen solos: la minuta, los recaudos y el borrador sin original conservado (p. ej. el que no es `.docx`).
+  - El aviso dice: «Algunos documentos se leyeron con una versión anterior del sistema. Elimínelos y vuelva a subirlos para aplicar las mejoras de lectura.», y lista los nombres de los documentos.
+  - Dice «documentos» y no «recaudos», porque también incluye la minuta y el borrador. Pide eliminarlos primero porque, si se sube el mismo archivo sin eliminarlo, el sistema responde «Ya está registrado con este rol».
+  - No es una observación: no entra en la confrontación, en los totales (F48), en el manifiesto ni en el informe impreso. Se calcula al mostrar la pantalla.
+  - Usa el estilo `.aviso` existente.
+- **`reextraer_expediente`** vuelve a poner en cola los documentos de todos los expedientes con ese código, archivados incluidos. Si no existe ninguno, sigue respondiendo «El expediente no existe.».
+- **`suprimir_texto_expediente`** actúa solo sobre el expediente activo con ese código. Si no hay ninguno, o si hay un kardex y una transferencia vehicular activos con el mismo código, falla con un mensaje claro y no suprime nada.
+- El extractor no cambia: no sube la versión del texto ni la del formato de caché.
+
+### Cómo se ve el arreglo en un kardex ya cargado
+
+Basta con que el worker esté corriendo. En pocos segundos relee el borrador `.docx` conservado y vuelve a confrontar; el resultado nuevo aparece en la pantalla del kardex. Para la minuta y los recaudos, el aviso pide eliminarlos y volver a subirlos.
+
+### Pendiente
+
+- [NEEDS CLARIFICATION] ¿Cómo se suprime el texto de un expediente archivado? Hoy el comando no lo permite.
+- [NEEDS CLARIFICATION] ¿Cómo se suprime cuando hay un kardex y una transferencia vehicular activos con el mismo código? Hoy el comando se niega.
+
+### Medición
+
+- **Capa lingüística del kardex de la queja**, con las mismas fuentes:
+  - con el texto guardado en la base: 12 filas, 2 de ellas «mezcladas»;
+  - con el texto actual: 10 filas, ninguna «mezclada».
+- **9 casos de prueba**: con el extractor actual hay 0 filas «mezcladas». `main` y esta rama dan los mismos recuentos, 37 filas lingüísticas en total, porque el núcleo y el extractor no cambian.
+- **Base local** (solo lectura): el worker releería 10 borradores. Todos los kardex activos (10) mostrarían el aviso, con 62 documentos en total: 10 minutas y 52 recaudos.
+
+### Verificación
+
+- `tests/test_docx_tablas.py`:
+  - `test_reextraer_con_codigo_repetido_por_un_archivado`: fallaba en `main` con `MultipleObjectsReturned`.
+  - `test_mezcladas_solo_si_word_no_las_imprime_en_mayusculas`: es la estructura del caso con valores ficticios. Ya pasaba en `main` y queda como regresión. La palabra tecleada sin «Todo mayúsculas» sigue marcándose.
+- `tests/test_confrontacion_automatica.py`:
+  - relectura del borrador de otra versión y nueva confrontación automática, sin volver a releerlo después;
+  - casos que no se releen: minuta, borrador en ERROR, borrador sin original y borrador de un archivado;
+  - el aviso en el kardex y en el resultado: solo lista lo que no se relee y no entra en la confrontación.
+- `tests/test_expedientes_commands.py`: la supresión solo afecta al activo, y sin un único activo no suprime nada.

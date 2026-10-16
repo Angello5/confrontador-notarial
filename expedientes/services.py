@@ -519,6 +519,54 @@ def _borrar_temporal(ruta):
             pass
 
 
+def reencolar(documento, archivo, **condicion):
+    """Devuelve el documento a la cola con una copia temporal de ``archivo``.
+
+    Copia: el worker borra el temporal al terminar y el original no se toca.
+    ``condicion`` filtra la fila (p. ej. ``estado``); si ya no cumple, nada cambia.
+    """
+    temporal = crear_temporal(archivo, documento.nombre_original)
+    encolado = Documento.objects.filter(pk=documento.pk, **condicion).update(
+        ruta_temporal=str(temporal), estado=Documento.PENDIENTE, procesando_el=None
+    )
+    _borrar_temporal(documento.ruta_temporal if encolado else temporal)
+    return encolado
+
+
+def releer_borradores_desactualizados():
+    """F50: relee el borrador cuyo texto viene de otra versión del extractor.
+
+    Solo el borrador con original conservado (F21), LISTO y de un expediente
+    activo. Al cambiar su versión cambian las entradas, y el worker vuelve a
+    confrontar (F26). Si la relectura falla queda en ERROR y no vuelve a entrar.
+    """
+    desactualizados = Documento.objects.filter(
+        rol=Documento.BORRADOR,
+        estado=Documento.LISTO,
+        expediente__archivado_el__isnull=True,
+    ).exclude(texto_extraido__version_extractor=extraccion.version_extractor())
+    return sum(
+        reencolar(documento, ruta_original(documento), estado=Documento.LISTO)
+        for documento in desactualizados
+        if _original_no_utilizable(documento) is None
+    )
+
+
+def documentos_por_volver_a_subir(expediente):
+    """F50: documentos leídos con otra versión del extractor que no se releen
+    solos: la minuta, los recaudos y el borrador sin original conservado."""
+    desactualizados = (
+        expediente.documentos.filter(estado=Documento.LISTO)
+        .exclude(texto_extraido__version_extractor=extraccion.version_extractor())
+        .order_by("pk")
+    )
+    return [
+        documento
+        for documento in desactualizados
+        if documento.rol != Documento.BORRADOR or _original_no_utilizable(documento)
+    ]
+
+
 def _procesar_fila(documento):
     ruta = documento.ruta_temporal
     ahora = timezone.now()

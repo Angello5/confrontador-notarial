@@ -208,6 +208,60 @@ def test_reextraer_expediente_inexistente():
         call_command("reextraer_expediente", "EXP-FICTICIO-NO")
 
 
+@pytest.mark.django_db
+def test_reextraer_con_codigo_repetido_por_un_archivado(
+    expediente, tmp_path, settings, capsys
+):
+    """F50: un expediente archivado puede repetir el código del activo (F28)."""
+    from django.utils import timezone
+
+    from expedientes.models import Documento, Expediente
+
+    settings.EXPEDIENTES_TEMP_DIR = tmp_path / "temporales"
+    archivado = Expediente.objects.create(
+        codigo=expediente.codigo,
+        creado_por=expediente.creado_por,
+        archivado_el=timezone.now(),
+    )
+    _documento(archivado, Documento.MINUTA, tmp_path / "no-existe.docx")
+    borrador = _documento(
+        expediente, Documento.BORRADOR, _docx(tmp_path / "b.docx", _p("X"))
+    )
+
+    call_command("reextraer_expediente", expediente.codigo)
+
+    borrador.refresh_from_db()
+    assert borrador.estado == Documento.PENDIENTE
+    assert "En cola: 1" in capsys.readouterr().out
+
+
+def test_mezcladas_solo_si_word_no_las_imprime_en_mayusculas(tmp_path):
+    """F50: estructura del caso real con valores ficticios. Cada run lleva su
+    «Todo mayúsculas» directo dentro de un párrafo con estilo sin caps; la
+    palabra tecleada sin ese formato sigue siendo un error."""
+    from nucleo.ortografia import redaccion
+
+    caps = "<w:rPr><w:b/><w:caps/></w:rPr>"
+    cuerpo = (
+        '<w:p><w:pPr><w:pStyle w:val="Cuerpo"/><w:rPr><w:caps/></w:rPr></w:pPr>'
+        f"<w:r>{caps}<w:t>EL VEINTE</w:t></w:r>"
+        f'<w:r>{caps}<w:t xml:space="preserve"> (OCHENTa POR CIENTO)</w:t></w:r>'
+        "</w:p>"
+        "<w:p><w:r><w:t>EL NOVENTa POR CIENTO</w:t></w:r></w:p>"
+    )
+    ruta = _docx(tmp_path / "m.docx", cuerpo)
+    with zipfile.ZipFile(ruta, "a") as z:
+        z.writestr(
+            "word/styles.xml",
+            '<w:styles><w:style w:type="paragraph" w:styleId="Cuerpo">'
+            "<w:rPr><w:sz/></w:rPr></w:style></w:styles>",
+        )
+
+    assert redaccion(extraccion.leer(ruta), ()) == [
+        ("NOVENTa", "mayúsculas y minúsculas mezcladas", "?")
+    ]
+
+
 def test_todo_mayusculas_de_word_se_lee_como_se_imprime(tmp_path):
     """F39: «AvENIDA» con «Todo mayúsculas» (w:caps) se imprime AVENIDA."""
     caps = "<w:rPr><w:caps/></w:rPr>"
