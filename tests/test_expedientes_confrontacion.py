@@ -804,6 +804,44 @@ def test_confrontacion_real_identica_no_produce_observaciones_de_regla(
     assert resultado["regla"] == []
 
 
+def test_representante_sin_ficha_es_una_sola_observacion(
+    expediente_confrontacion, crear_documento_listo
+):
+    """F51: sin ficha, ni «documento sin titular» (ALTA) ni avisos repetidos."""
+    from expedientes.models import Documento
+    from expedientes.services import confrontar_borrador
+
+    fuente = (
+        "OPERACION FICTICIA DE PRUEBA.\n"
+        "ALBA ZURBELIA LUMARIA, DE NACIONALIDAD PERUANA. DNI 90000001.\n"
+        "PARTIDA ELECTRONICA N° 80000001. MONTO S/ 12,345.67."
+    )
+    borrador = (
+        f"{fuente}\nINVERSIONES FICTICIAS S.A.C., DEBIDAMENTE REPRESENTADA POR "
+        "PEDRO PABLO SOTO VERA, DE NACIONALIDAD PERUANA, IDENTIFICADO CON DNI N° "
+        "48172635.\nPEDRO PABLO SOTO VERA, DE NACIONALIDAD PERUANA, CON DNI N° "
+        "48172635."
+    )
+    for rol, nombre in (
+        (Documento.MINUTA, "minuta-ficticia.txt"),
+        (Documento.CLIENTE, "cliente-ficticio.txt"),
+    ):
+        crear_documento_listo(expediente_confrontacion, rol, nombre, fuente)
+    documento_borrador = crear_documento_listo(
+        expediente_confrontacion, Documento.BORRADOR, "borrador-ficticio.txt", borrador
+    )
+
+    resultado = confrontar_borrador(expediente_confrontacion, documento_borrador)
+
+    assert resultado["estado"] == "RESULTADO"
+    assert resultado["personas"] == []
+    assert [
+        (fila["hallado"], fila["esperado"])
+        for fila in resultado["regla"]
+        if fila["campo"] == "SIN_FICHA"
+    ] == [("PEDRO PABLO SOTO VERA", "Sin ficha RENIEC en los recaudos")]
+
+
 @pytest.mark.parametrize(
     ("salida", "campo", "hallado", "esperado"),
     [
