@@ -7,7 +7,7 @@
 </ol>{% endblock %}
 {% block cabecera %}{% endblock %}
 {% block content %}
-<script src="{% static 'js/carga-expediente.js' %}"></script>
+<script src="{% static 'js/carga-expediente.js' %}?v={{ static_v }}"></script>
 {{ carga_config|json_script:"carga-config" }}
 <div class="pila" x-data="crearCarga(JSON.parse(document.getElementById('carga-config').textContent))" x-init="iniciar()" @beforeunload.window="alSalir($event)">
   {% csrf_token %}
