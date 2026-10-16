@@ -36,7 +36,7 @@
 
 ### Vista y confirmación
 
-- **FR-014**: En la pantalla de resultado, una tabla «Correcciones propuestas» con valor erróneo, valor correcto, documento fuente (archivo y página), cuántas apariciones corrige en el borrador («3 apariciones», contadas sobre el `.docx` original con todas las filas marcadas) y una casilla por fila, marcada por defecto; UN botón «Aplicar correcciones» con confirmación.
+- **FR-014**: En la pantalla de resultado, una tabla «Correcciones propuestas» con valor erróneo, valor correcto, documento fuente (archivo y página), cuántas apariciones corrige en el borrador («3 apariciones», contadas sobre el `.docx` original con todas las filas marcadas) y una casilla por fila, marcada por defecto; UN botón «Aplicar correcciones» con confirmación. [F48: la confirmación muestra una fila por observación, con las que no tienen corrección propuesta bloqueadas; ver `specs/040-resumen-errores/`.]
 - **FR-015 (P-10)**: El POST exige CSRF, rol, permiso sobre el expediente y el campo `confirmado`; sin él no se aplica nada. La casilla desmarcada = corrección excluida.
 - **FR-016**: El formulario envía la `Corrida` (F20) registrada al confrontar. El servidor exige que sea de este borrador y con estado RESULTADO, que las entradas actuales (hashes de archivo y de texto, extractor, estado) sean las registradas y que los hallazgos recalculados con su fecha de referencia den la misma `huella`; si no, no aplica nada y pide volver a confrontar.
 - **FR-017**: Tras aplicar se muestra el resumen (aplicadas, excluidas, no aplicadas) y la descarga del corregido, servida por una vista con los mismos permisos (nunca como estático).

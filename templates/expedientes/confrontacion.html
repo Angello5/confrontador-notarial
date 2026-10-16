@@ -16,7 +16,6 @@
       <h1>{{ expediente.codigo }}</h1>
       <p class="cabecera-meta">
         <span><svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>{{ borrador.nombre_original }}</span>
-        {% if resultado.corrida_id %}<span>Revisión {{ resultado.corrida_id }}</span>{% endif %}
       </p>
     </div>
     <div class="acciones">
@@ -346,8 +345,8 @@
       <div class="barra-correcciones">
         <div>
           {% if resultado.corregible %}
-            <strong><span x-text="marcadas.length">{{ resultado.correcciones|length }}</span> de {{ resultado.correcciones|length }} correcciones marcadas</strong>
-            <span>Se generará un documento corregido nuevo; el original no cambia.</span>
+            <strong x-text="contarMarcadas() + ' de ' + plural(filasCorreccion().length, 'observación marcada para corregir', 'observaciones marcadas para corregir')"></strong>
+            <span><span x-show="contarBloqueadas()" x-text="plural(contarBloqueadas(), 'no admite', 'no admiten') + ' corrección automática. '"></span>Se generará un documento corregido nuevo; el original no cambia.</span>
           {% else %}
             <strong>{{ resultado.correcciones|length }} correccion{{ resultado.correcciones|length|pluralize:"es" }} propuesta{{ resultado.correcciones|length|pluralize }}</strong>
             <span>Este borrador no admite corrección automática: solo se corrigen borradores Word (.docx) cargados con esta versión. Vuelva a subirlo en Word para corregirlo.</span>
@@ -368,25 +367,33 @@
           <input type="hidden" name="corrida" value="{{ resultado.corrida_id }}">
           <input type="hidden" name="confirmado" value="1">
           <div class="modal-cuerpo">
-            <h2 id="aplicar-titulo">¿Aplicar <span x-text="marcadas.length"></span> correcciones?</h2>
+            <h2 id="aplicar-titulo">¿Aplicar las correcciones marcadas?</h2>
+            <p><strong x-text="plural(filasCorreccion().length, 'observación señalada', 'observaciones señaladas')"></strong>: <span x-text="plural(contarMarcadas(), 'marcada', 'marcadas')"></span> para corregir<span x-show="contarBloqueadas()" x-text="' · ' + plural(contarBloqueadas(), 'bloqueada', 'bloqueadas')"></span>.</p>
             <p>Se generará un documento corregido nuevo; el original no cambia. Desmarque las que no desea aplicar.</p>
-            <ul class="lista-cambios">
+            <p id="motivo-bloqueo" class="texto-suave" x-show="contarBloqueadas()">Las bloqueadas no admiten corrección automática: no tienen un valor que pueda reemplazarse con seguridad en el Word. Corríjalas a mano.</p>
+            {# F48: una fila por observación (el total del resumen); las propuestas solo son datos. #}
+            <ul hidden>
               {% for correccion in resultado.correcciones %}
-                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}" data-fuente="{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}">
-                  <label class="casilla casilla-chica">
-                    <input type="checkbox" name="aplicar" value="{{ correccion.id }}" checked x-model="marcadas">
-                    <span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span>
-                    <span class="visually-hidden">Aplicar: {{ correccion.erroneo }} por {{ correccion.correcto }}</span>
-                  </label>
-                  <span class="tachado">{{ correccion.erroneo }}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><strong class="correcto">{{ correccion.correcto }}</strong>
-                  <span class="cuenta">{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:"ón,ones" }}</span>
-                </li>
+                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}" data-fuente="{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}"></li>
               {% endfor %}
+            </ul>
+            <ul class="lista-cambios">
+              <template x-for="fila in filasCorreccion()" :key="fila.id">
+                <li :class="fila.corr ? '' : 'bloqueada'">
+                  <label class="casilla casilla-chica">
+                    <input type="checkbox" name="aplicar" :value="fila.corr ? fila.corr.id : ''" :checked="!!fila.corr && marcadas.includes(fila.corr.id)" :disabled="!fila.corr" :aria-describedby="fila.corr ? null : 'motivo-bloqueo'" @change="alternar(fila.corr.id)">
+                    <span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span>
+                    <span class="visually-hidden" x-text="fila.corr ? 'Aplicar: ' + fila.hallado + ' por ' + fila.esperado : 'No corregible: ' + fila.hallado"></span>
+                  </label>
+                  <span class="tachado" x-text="fila.hallado"></span><svg class="ico" aria-hidden="true" x-show="fila.esperado"><use href="#i-arrow-right"/></svg><strong class="correcto" x-text="fila.esperado"></strong>
+                  <span class="cuenta" x-text="fila.corr ? fila.corr.apariciones : 'No admite corrección automática'"></span>
+                </li>
+              </template>
             </ul>
           </div>
           <div class="modal-pie">
             <button type="button" class="btn" @click="modal = null">Cancelar</button>
-            {% if resultado.corregible %}<button type="submit" class="btn btn-verde" :disabled="!marcadas.length"><span x-text="'Aplicar ' + marcadas.length + ' correcciones'">Aplicar correcciones</span></button>{% endif %}
+            {% if resultado.corregible %}<button type="submit" class="btn btn-verde" :disabled="!marcadas.length">Aplicar correcciones</button>{% endif %}
           </div>
         </form>
       </div>
@@ -759,6 +766,18 @@
       },
       estaMarcadaObs(id) { const c = this.corrDe(id); return !!(c && this.marcadas.includes(c.id)); },
       alternar(id) { this.marcadas = this.marcadas.includes(id) ? this.marcadas.filter((m) => m !== id) : [...this.marcadas, id]; },
+      /* F48: el recuadro de confirmación de correcciones muestra una fila por observación, el mismo
+         total del resumen. Sin corrección propuesta (F21) la fila queda bloqueada. Una propuesta
+         sin observación compatible se lista igual: si no, se registraría como excluida. */
+      filasCorreccion() {
+        const filas = this.obs.map((o) => ({ id: o.id, hallado: o.hallado, esperado: o.esperado, corr: this.corrDe(o.id) }));
+        this.correcciones.filter((c) => !this.obs.some((o) => o.corr === c.id))
+          .forEach((c) => filas.push({ id: c.id, hallado: c.erroneo, esperado: c.correcto, corr: c }));
+        return filas;
+      },
+      contarMarcadas() { return this.filasCorreccion().filter((f) => f.corr && this.marcadas.includes(f.corr.id)).length; },
+      contarBloqueadas() { return this.filasCorreccion().filter((f) => !f.corr).length; },
+      plural(n, uno, varios) { return n + ' ' + (n === 1 ? uno : varios); },
       bajar(blob, nombre) {
         const enlace = document.createElement('a');
         enlace.href = URL.createObjectURL(blob);

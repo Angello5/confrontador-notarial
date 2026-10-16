@@ -66,6 +66,34 @@ test('exact pairs support whitespace and capitalization normalization', () => {
   assert.equal(state.estaMarcadaObs('r1'), false);
 });
 
+test('F48: the apply box lists every observation and blocks those without a correction', () => {
+  const state = revision([
+    { id: 'r1', hallado: '90000002', esperado: '90000001' },
+    { id: 'r2', hallado: '90000002', esperado: '90000001' },
+    { id: 'p1', hallado: '90000002', esperado: 'Sin documento conocido' },
+    { id: 'o1', hallado: 'clausla', esperado: 'cláusula' },
+  ], [{ correccion: 'a', erroneo: '90000002', correcto: '90000001' }]);
+  const filas = state.filasCorreccion();
+  assert.equal(filas.length, state.obs.length);
+  assert.equal(filas.filter((f) => !f.corr).map((f) => f.id).join(), 'p1,o1');
+  assert.equal(state.contarMarcadas(), 2);
+  assert.equal(state.contarBloqueadas(), 2);
+  // One proposal fixes both repeated observations: unmarking it unmarks both rows.
+  state.alternar('a');
+  assert.equal(state.contarMarcadas(), 0);
+});
+
+test('F48: a proposal without a matching observation stays in the apply box', () => {
+  const state = revision([{ id: 'p1', hallado: '90000003', esperado: 'Sin documento conocido' }], [
+    { correccion: 'a', erroneo: 'ALBA LUNARIA', correcto: 'ALBA LUMARIA' },
+  ]);
+  const filas = state.filasCorreccion();
+  assert.equal(filas.length, 2);
+  assert.equal(filas[1].corr.id, 'a');
+  assert.equal(state.contarMarcadas(), 1);
+  assert.equal(state.contarBloqueadas(), 1);
+});
+
 test('Word download errors leave an actionable message and release the button', async () => {
   const state = revision([], []);
   await state.descargarWord();

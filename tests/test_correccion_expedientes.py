@@ -141,8 +141,9 @@ def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_fi
     html = respuesta.content.decode()
     assert "Correcciones propuestas" in html
     assert "minuta-ficticia.txt" in html
-    assert html.count('name="aplicar"') >= 2
-    assert html.count("checked") >= 2
+    # F48: las propuestas viajan como datos; la casilla se dibuja por observación.
+    assert html.count("data-correccion=") == 2
+    assert html.count('name="aplicar"') == 1
     assert (
         html.count(
             'action="'
@@ -159,6 +160,38 @@ def test_vista_consolidada_con_casillas_y_un_boton(client, escenario, usuario_fi
     from expedientes.services import ruta_original
 
     assert str(ruta_original(borrador)) not in html
+
+
+def test_f48_recuadro_de_aplicar_muestra_el_total_y_bloquea_las_no_corregibles(
+    client, escenario, usuario_ficticio
+):
+    from expedientes.models import Corrida
+
+    expediente, borrador, _ = escenario
+    client.force_login(usuario_ficticio)
+    html = confrontar_y_ver(
+        client, reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
+    ).content.decode()
+    corrida = Corrida.objects.get()
+
+    # La cabecera ya no muestra «Revisión N»; la corrida sigue en el formulario,
+    # en el visor y en el informe imprimible.
+    assert "Revisión" not in html
+    assert f'name="corrida" value="{corrida.pk}"' in html
+    assert f'data-corrida="{corrida.pk}"' in html
+    assert f"Confrontación {corrida.pk}" in html
+
+    # El recuadro de «Aplicar correcciones» lista todas las observaciones (el
+    # mismo total del resumen) y bloquea las que no tienen corrección propuesta.
+    recuadro = html.split('id="aplicar-titulo"', 1)[1].split("</form>", 1)[0]
+    assert 'x-for="fila in filasCorreccion()"' in recuadro
+    assert "observaciones señaladas" in recuadro
+    assert ':disabled="!fila.corr"' in recuadro
+    assert ":aria-describedby=\"fila.corr ? null : 'motivo-bloqueo'\"" in recuadro
+    assert 'id="motivo-bloqueo"' in recuadro
+    assert "No admite corrección automática" in recuadro
+    barra = html.split('class="barra-correcciones"', 1)[1].split("</div>", 1)[0]
+    assert "observaciones marcadas para corregir" in barra
 
 
 def _aplicar(client, expediente, borrador, datos):

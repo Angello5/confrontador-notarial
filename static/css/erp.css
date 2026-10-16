@@ -741,6 +741,11 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .lista-cambios li { padding: 8px 12px; border-bottom: 1px solid var(--ne-line); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .lista-cambios li:last-child { border-bottom: 0; }
 .lista-cambios .cuenta { margin-left: auto; color: var(--ne-slate); }
+/* F48: observación sin corrección automática, atenuada y con la casilla deshabilitada */
+.lista-cambios li.bloqueada { background: var(--ne-soft); color: var(--ne-slate); }
+.lista-cambios li.bloqueada .tachado, .lista-cambios li.bloqueada .correcto { color: inherit; font-weight: 400; }
+.lista-cambios li.bloqueada .casilla { cursor: not-allowed; }
+.casilla input:disabled + .casilla-caja { border-color: var(--ne-border); background: var(--ne-line); }
 
 .toasts { position: fixed; right: 24px; bottom: 88px; z-index: 70; display: flex; flex-direction: column; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
 .toast {
