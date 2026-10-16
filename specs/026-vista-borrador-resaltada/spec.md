@@ -145,3 +145,11 @@ Toda observación cuyo valor está escrito en el borrador se marca en la página
 - Esta fase solo muestra el borrador; los documentos del cliente y la minuta no se muestran.
 - Las corridas anteriores no se reconstruyen: necesitan volver a confrontar si el borrador ya no está conservado.
 - No se añaden dependencias nuevas: PyMuPDF, LibreOffice y las posiciones OCR de F31 ya existen.
+
+## F52 · Observaciones de persona y ancho del recuadro (2026-10-16)
+
+Probado con un kardex local (sin versionar) y con un `.docx` ficticio. Cambios:
+
+- **Observaciones de persona.** Su «Dice» es un mensaje («NOMBRE: Interviene sin su cónyuge por ser bien propio»), no texto del borrador. La vista lo buscaba literal, no lo hallaba y mostraba «No ubicada en la página». Pasa con todas las de generales de ley de una persona: bien propio, estado civil, menor de edad, género y domicilio. `SIN_FICHA` no: su «Dice» es el nombre o el DNI, literal. Ahora, si el «Dice» no aparece en las páginas, se marca lo que el panel resalta en la línea indicada, de ordinario el nombre. Solo se marca su primera aparición, que es la de esa línea; el resto de apariciones del nombre no forman parte de la observación. «No ubicada en la página» queda para cuando tampoco ese texto está en las páginas.
+- **Ancho del recuadro.** Dentro de una palabra de la página, el borde se estimaba en proporción al número de caracteres. Si al nombre o al DNI en negrita le seguía una coma, más estrecha, el recuadro dejaba fuera la última letra o cifra. Ahora cada palabra trae el borde de cada carácter, tomado del PDF, y el recuadro llega hasta el último carácter del valor.
+- No cambia qué observaciones se emiten ni sus textos. La vista se calcula al abrirla, así que basta actualizar el servidor; no hace falta volver a confrontar.
