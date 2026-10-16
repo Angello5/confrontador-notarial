@@ -427,3 +427,38 @@ def test_no_se_releen_fuentes_archivados_errores_ni_borradores_sin_original(
         pk__in=(sin_original.pk, minuta.pk, en_error.pk, del_archivado.pk)
     ).values_list("estado", flat=True)
     assert sorted(estados) == ["ERROR", "LISTO", "LISTO", "LISTO"]
+
+
+AVISO_RELEER = "Algunos documentos se leyeron con una versión anterior del sistema."
+
+
+def test_aviso_pide_volver_a_subir_lo_que_no_se_puede_releer(
+    client, usuario_ficticio, tmp_path, settings, caso, crear_documento_listo
+):
+    """F50: decisión del usuario (2026-10-16). Es un aviso, no una observación."""
+    from adaptadores import extraccion
+    from expedientes import solicitudes
+    from expedientes.models import Corrida, TextoExtraido
+
+    settings.EXPEDIENTES_ORIGINALES_DIR = tmp_path / "originales"
+    expediente, borrador = caso  # borrador .txt: no tiene original conservado
+    releible = _borrador_docx(expediente, crear_documento_listo, "X")
+    solicitudes.procesar(borrador.pk)
+    client.force_login(usuario_ficticio)
+    detalle = f"/expedientes/{expediente.pk}/"
+    resultado = f"{detalle}documentos/{borrador.pk}/resultado/"
+
+    for ruta in (detalle, resultado):
+        html = client.get(ruta).content.decode()
+        assert AVISO_RELEER in html
+        for nombre in (
+            "reniec-ficticio.pdf",
+            "minuta-ficticia.txt",
+            "borrador-ficticio.txt",
+        ):
+            assert f"<li>{nombre}</li>" in html
+        assert f"<li>{releible.nombre_original}</li>" not in html
+    assert AVISO_RELEER not in Corrida.objects.get().hallazgos
+
+    TextoExtraido.objects.update(version_extractor=extraccion.version_extractor())
+    assert AVISO_RELEER not in client.get(detalle).content.decode()
