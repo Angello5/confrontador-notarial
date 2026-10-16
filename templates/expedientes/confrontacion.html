@@ -557,8 +557,8 @@
   </section>
 {% endif %}
 
-<script src="{% static 'js/reporte-docx.js' %}"></script>
-<script src="{% static 'js/aplicar-correcciones.js' %}"></script>
+<script src="{% static 'js/reporte-docx.js' %}?v={{ static_v }}"></script>
+<script src="{% static 'js/aplicar-correcciones.js' %}?v={{ static_v }}"></script>
 <script>
   /* Datos del encabezado del reporte (Word); el resto sale del HTML renderizado. */
   const REPORTE = {

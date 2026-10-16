@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ erp_nombre }}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'css/erp.css' %}">
+    <link rel="stylesheet" href="{% static 'css/erp.css' %}?v={{ static_v }}">
     <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
   </head>
   <body x-data="{ menuAbierto: false }" :class="{ 'sidebar-open': menuAbierto }" @keydown.escape.window="menuAbierto = false">
