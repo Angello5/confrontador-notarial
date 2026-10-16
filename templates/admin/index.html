@@ -1,0 +1,20 @@
+{% extends "admin/index.html" %}
+{% comment %}
+F49 · Resumen de cuentas sobre la lista de aplicaciones de Django. Reutiliza
+`core/_metrica.html` (la misma métrica del inicio del ERP); cada recuadro abre
+la lista de usuarios ya filtrada. Va dentro de #content-main para que
+«Acciones recientes» quede alineado arriba.
+{% endcomment %}
+
+{% block content %}
+<div id="content-main">
+  {% if resumen_cuentas %}
+  <section class="metricas" aria-label="Resumen de cuentas">
+    {% for m in resumen_cuentas %}
+      {% include "core/_metrica.html" with etiqueta=m.etiqueta valor=m.valor enlace=m.enlace tono=m.tono apoyo=m.apoyo %}
+    {% endfor %}
+  </section>
+  {% endif %}
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+</div>
+{% endblock %}

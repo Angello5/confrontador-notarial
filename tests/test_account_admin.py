@@ -305,7 +305,7 @@ def test_admin_index_summarizes_accounts_with_links_to_filtered_lists(
     assert [
         (m["etiqueta"], m["valor"]) for m in response.context["resumen_cuentas"]
     ] == [
-        ("Cuentas", 3),
+        ("Todas", 3),
         ("Activas", 2),
         ("Inactivas", 1),
     ]
