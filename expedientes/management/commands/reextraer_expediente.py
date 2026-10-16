@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 
 from expedientes import services
 from expedientes.models import Documento, Expediente
@@ -37,17 +36,5 @@ class Command(BaseCommand):
             if archivo is None:
                 self.stdout.write(f"Sin archivo: {documento.nombre_original}")
                 continue
-            # Copia: el worker borra el temporal al terminar y el original no se toca.
-            temporal = services.crear_temporal(archivo, documento.nombre_original)
-            anterior = documento.ruta_temporal
-            with transaction.atomic():
-                documento.ruta_temporal = str(temporal)
-                documento.estado = Documento.PENDIENTE
-                documento.procesando_el = None
-                documento.save(
-                    update_fields=("ruta_temporal", "estado", "procesando_el")
-                )
-            if anterior and Path(anterior) != temporal:
-                services._borrar_temporal(anterior)
-            encolados += 1
+            encolados += services.reencolar(documento, archivo)
         self.stdout.write(f"En cola: {encolados}")

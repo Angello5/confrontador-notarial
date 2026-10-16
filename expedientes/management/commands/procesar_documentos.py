@@ -6,6 +6,7 @@ from expedientes.services import (
     preparar_vistas,
     procesar_documento,
     recuperar_documentos_vencidos,
+    releer_borradores_desactualizados,
     tomar_pendiente,
 )
 
@@ -32,6 +33,7 @@ class Command(BaseCommand):
 
     def procesar_vuelta(self):
         recuperar_documentos_vencidos()
+        releer_borradores_desactualizados()
         procesados = 0
         diferidos = []
         confrontar_automaticamente(limite=1)
