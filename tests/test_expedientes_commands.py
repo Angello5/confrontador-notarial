@@ -102,3 +102,59 @@ def test_suprimir_texto_vacia_compartidos_e_informa_expedientes_afectados(
     assert "Expediente solicitado incluido: 1" in salida
     assert "Otros expedientes que compartían el texto: 1" in salida
     assert Documento.objects.filter(texto_extraido=texto).count() == 2
+
+
+def _con_texto(usuario, n, **campos):
+    """Expediente EXP-FICTICIO-F50 con un recaudo cuyo texto es solo suyo."""
+    from expedientes.models import Documento, Expediente, TextoExtraido
+
+    texto = TextoExtraido.objects.create(
+        hash_archivo=str(n) * 64,
+        version_extractor="ocr-ficticio-v1",
+        texto="dato sintético",
+        ultimo_uso_el=timezone.now(),
+    )
+    Documento.objects.create(
+        expediente=Expediente.objects.create(
+            codigo="EXP-FICTICIO-F50", creado_por=usuario, **campos
+        ),
+        rol="CLIENTE",
+        nombre_original="recaudo-ficticio.txt",
+        hash_archivo=texto.hash_archivo,
+        tamano_bytes=8,
+        texto_extraido=texto,
+        estado="LISTO",
+        subido_por=usuario,
+    )
+    return texto
+
+
+def test_suprimir_solo_el_activo_aunque_un_archivado_repita_el_codigo(
+    usuario_ficticio,
+):
+    """F50: decisión del usuario (2026-10-16): nunca los archivados."""
+    activo = _con_texto(usuario_ficticio, 6)
+    archivado = _con_texto(usuario_ficticio, 7, archivado_el=timezone.now())
+
+    call_command("suprimir_texto_expediente", "EXP-FICTICIO-F50")
+
+    activo.refresh_from_db()
+    archivado.refresh_from_db()
+    assert (activo.texto, archivado.texto) == ("", "dato sintético")
+
+
+@pytest.mark.parametrize("dos_activos", [False, True])
+def test_suprimir_sin_un_unico_activo_no_suprime_nada(usuario_ficticio, dos_activos):
+    from django.core.management.base import CommandError
+
+    from expedientes.models import Expediente, TextoExtraido
+
+    _con_texto(usuario_ficticio, 8, archivado_el=timezone.now())
+    if dos_activos:  # un kardex y una transferencia vehicular (F43)
+        _con_texto(usuario_ficticio, 9)
+        _con_texto(usuario_ficticio, 5, tipo=Expediente.VEHICULAR)
+
+    with pytest.raises(CommandError, match="No se suprimió nada"):
+        call_command("suprimir_texto_expediente", "EXP-FICTICIO-F50")
+
+    assert not TextoExtraido.objects.filter(texto="").exists()
