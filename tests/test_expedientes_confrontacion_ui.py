@@ -449,6 +449,27 @@ def test_tabla_de_regla_no_muestra_columnas_vacias(
     assert "Coincidencia: 87.50%" in encabezado_regla
 
 
+def test_ningun_campo_del_catalogo_sale_con_su_codigo_interno():
+    """F51: «SIN_FICHA» o «CONYUGE_BIEN_PROPIO» no son títulos para el notario."""
+    from django.template.loader import render_to_string
+
+    from expedientes.services import CATALOGO_REGLAS
+
+    def rotulo(campo):
+        return render_to_string(
+            "expedientes/_campo_nombre.html", {"campo": campo}
+        ).strip()
+
+    crudos = [
+        campo
+        for campo in [*CATALOGO_REGLAS["reglas"], "FORMATO_DESCONOCIDO"]
+        if rotulo(campo) == campo and campo not in ("DNI", "RUC")
+    ]
+    assert crudos == []
+    assert rotulo("SIN_FICHA") == "Persona sin ficha"
+    assert rotulo("CONYUGE_BIEN_PROPIO") == "Cónyuge con bien propio"
+
+
 def test_advertencia_de_correspondencia_es_distinta_de_una_observacion(
     client, usuario_ficticio, monkeypatch
 ):

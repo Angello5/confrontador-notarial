@@ -8,8 +8,10 @@ from nucleo.verificar import (
     Persona,
     Procedencia,
     catalogo,
+    comparar_personas,
     revisar,
     revisar_persona_ampliada,
+    sin_ficha_por_persona,
 )
 
 HOY = date(2025, 1, 1)
@@ -177,3 +179,37 @@ def test_casado_que_interviene_sin_conyuge_por_bien_propio_es_aviso():
     )
     observaciones = revisar_persona_ampliada(Catalogo((persona,)), linea, HOY)
     assert [fila["tipo"] for fila in observaciones] == ["CONYUGE_BIEN_PROPIO"]
+
+
+def test_persona_sin_ficha_es_un_solo_aviso():
+    """F51: el representante sin ficha deja un aviso, no tres observaciones."""
+    fuentes = {
+        "reniec-ficticio.pdf": _reniec("90000021", "ANA LUCIA", "PEREZ", "ROJAS")
+    }
+    borrador = (
+        "ANA LUCIA PEREZ ROJAS, DE NACIONALIDAD PERUANA, CON DNI N° 90000021.\n"
+        "INVERSIONES FICTICIAS S.A.C., DEBIDAMENTE REPRESENTADA POR PEDRO PABLO "
+        "SOTO VERA, DE NACIONALIDAD PERUANA, IDENTIFICADO CON DNI N° 48172635.\n"
+        "PEDRO PABLO SOTO VERA, DE NACIONALIDAD PERUANA, CON DNI N° 48172635."
+    )
+    cat = catalogo(fuentes)
+    reglas, personas = sin_ficha_por_persona(
+        revisar(cat, borrador, 90), comparar_personas(cat, borrador)
+    )
+    assert _de(("[SIN_FICHA]",), reglas) == [
+        "[SIN_FICHA] «PEDRO PABLO SOTO VERA» sin ficha RENIEC en los recaudos"
+    ]
+    assert personas == ()
+
+
+def test_dni_ajeno_de_una_persona_con_ficha_sigue_siendo_alta():
+    """F51: con ficha, el DNI que no es suyo sigue como documento sin titular."""
+    fuentes = {
+        "reniec-ficticio.pdf": _reniec("90000021", "ANA LUCIA", "PEREZ", "ROJAS")
+    }
+    borrador = "ANA LUCIA PEREZ ROJAS, DE NACIONALIDAD PERUANA, CON DNI N° 48172635."
+    cat = catalogo(fuentes)
+    reglas = revisar(cat, borrador, 90)
+    personas = comparar_personas(cat, borrador)
+    assert sin_ficha_por_persona(reglas, personas) == (reglas, personas)
+    assert [p["tipo"] for p in personas] == ["DOCUMENTO_SIN_TITULAR"]
