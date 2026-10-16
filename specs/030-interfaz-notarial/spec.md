@@ -46,6 +46,7 @@ El usuario pidió el 2026-10-05:
 
 - Los textos de auditoría y los mensajes técnicos del registro (catálogo de reglas, versión del extractor) siguen igual.
 - Las observaciones del núcleo conservan su formato («debe decir»).
+- F47 (`specs/039-menu-expedientes/spec.md`) recupera «Expedientes» solo como rótulo del grupo en la barra lateral; el resto del glosario sigue igual.
 
 ## Verificación
 
