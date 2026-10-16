@@ -977,6 +977,33 @@ def comparar_personas(fuente: Catalogo, borrador) -> tuple[dict, ...]:
     return tuple(observaciones)
 
 
+_RE_SIN_FICHA = re.compile(r"\[SIN_FICHA\] «([^»]*)»")
+
+
+def sin_ficha_por_persona(reglas: list[str], personas: tuple[dict, ...]):
+    """F51: un solo aviso SIN_FICHA por persona, el de su nombre.
+
+    Sin ficha (F38), el DNI que el borrador le asigna no tiene contra qué
+    verificarse: sobran su DOCUMENTO_SIN_TITULAR (ALTA) y el aviso de ese DNI.
+    El aviso repetido de un mismo valor también sobra: se ubica en la misma línea.
+    """
+    sin_ficha = {m[1] for r in reglas if (m := _RE_SIN_FICHA.match(r))}
+    redundantes = [
+        p
+        for p in personas
+        if p["tipo"] == "DOCUMENTO_SIN_TITULAR" and p["nombre"] in sin_ficha
+    ]
+    vistos = {p["documento_hallado"] for p in redundantes}
+    salida = []
+    for regla in reglas:
+        if m := _RE_SIN_FICHA.match(regla):
+            if m[1] in vistos:
+                continue
+            vistos.add(m[1])
+        salida.append(regla)
+    return salida, tuple(p for p in personas if p not in redundantes)
+
+
 _REPRESENTACION = re.compile(
     r"(?<![A-ZÑ])(?:REPRESENTACION|REPRESENTANTE|APODERAD[AO])(?![A-ZÑ])"
 )

@@ -1219,6 +1219,9 @@ def confrontar_borrador(
                 )
                 for regla in reglas
             ]
+    reglas, observaciones_personas = verificar.sin_ficha_por_persona(
+        reglas, observaciones_personas
+    )
     observaciones_regla = adaptar_observaciones_regla(reglas, texto_borrador)
     correcciones = correccion.correcciones(reglas, fuentes)
     original = ruta_original(borrador)
