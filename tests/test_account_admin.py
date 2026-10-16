@@ -207,8 +207,30 @@ def test_lifecycle_actions_require_confirmation(cliente_administrador):
     assert f"<li>{user.username}</li>" in content
     assert content.count("<h1") == 1
     assert reverse("admin:accounts_user_changelist") in content
+    assert 'class="peligro" value="Desactivar 1 cuenta"' in content
+    assert 'class="closelink">Volver sin cambios</a>' in content
     user.refresh_from_db()
     assert user.is_active
+
+
+def test_reactivation_confirmation_names_the_action_and_count(cliente_administrador):
+    usuarios = [
+        get_user_model().objects.create_user(
+            username=f"cuenta_baja_{n}", is_active=False
+        )
+        for n in (1, 2)
+    ]
+    response = cliente_administrador.post(
+        reverse("admin:accounts_user_changelist"),
+        {
+            "action": "activate_accounts",
+            "_selected_action": [u.pk for u in usuarios],
+            "index": 0,
+        },
+    )
+    content = response.content.decode()
+    assert 'type="submit" value="Reactivar 2 cuentas"' in content
+    assert "peligro" not in content
 
 
 def test_action_message_uses_changed_count_and_singular(cliente_administrador):
@@ -263,6 +285,43 @@ def test_admin_brand_stylesheet_is_local_and_covers_dark_mode(cliente_administra
     assert "@import" not in hoja
     assert 'html[data-theme="dark"]' in hoja
     assert "@media (prefers-color-scheme: dark)" in hoja
+    # F49: fondo blanco, foco visible, movimiento opcional y sin !important.
+    assert "--darkened-bg: #fff;" in hoja
+    assert ":focus-visible" in hoja
+    assert "@media (prefers-reduced-motion: reduce)" in hoja
+    assert "!important" not in hoja
+
+
+def test_admin_index_summarizes_accounts_with_links_to_filtered_lists(
+    cliente_administrador,
+):
+    get_user_model().objects.create_user(username="cuenta_activa")
+    get_user_model().objects.create_user(username="cuenta_inactiva", is_active=False)
+
+    response = cliente_administrador.get(reverse("admin:index"))
+    content = response.content.decode()
+    lista = reverse("admin:accounts_user_changelist")
+
+    assert [
+        (m["etiqueta"], m["valor"]) for m in response.context["resumen_cuentas"]
+    ] == [
+        ("Cuentas", 3),
+        ("Activas", 2),
+        ("Inactivas", 1),
+    ]
+    assert f'href="{lista}"' in content
+    assert f'href="{lista}?is_active__exact=1"' in content
+    assert f'href="{lista}?is_active__exact=0"' in content
+
+
+def test_admin_without_nav_sidebar_and_with_spanish_columns(cliente_administrador):
+    content = cliente_administrador.get(
+        reverse("admin:accounts_user_changelist")
+    ).content.decode()
+
+    assert 'id="nav-sidebar"' not in content
+    assert "Intentos fallidos" in content
+    assert "Failed login attempts" not in content
 
 
 def test_admin_names_the_accounts_app_in_spanish(cliente_administrador):
