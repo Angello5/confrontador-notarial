@@ -50,3 +50,50 @@ Confrontación en memoria de los 10 expedientes de prueba:
 - el bien propio.
 
 `tests/test_errores_borrador.py` actualiza el mensaje del DNI de otra longitud.
+
+## F51 · Una sola observación por persona sin ficha
+
+**Fecha**: 2026-10-16  
+**Alcance**: `nucleo/verificar.py` (`sin_ficha_por_persona`), `expedientes/services.py`, `templates/expedientes/_campo_nombre.html` y catálogo de reglas.
+
+### Origen
+
+En un kardex real, la representante de una empresa no tenía ficha RENIEC en los recaudos. Para ella salían tres observaciones en la misma línea: «Documento sin titular» (ALTA) con su DNI, y dos avisos `SIN_FICHA` (MEDIA), uno con su nombre y otro con su DNI. El usuario: «dice que no tiene documento pero más abajo hay un error que dice lo mismo». Además, algunos títulos mostraban el código interno (`SIN_FICHA`, `CONYUGE_BIEN_PROPIO`).
+
+### Diagnóstico
+
+- **Redundancia**: el núcleo da por separado la capa de personas (`comparar_personas`, F12), que emite `DOCUMENTO_SIN_TITULAR` para un DNI que no está en los recaudos, y la capa de reglas (`revisar`, F38), que emite un `SIN_FICHA` para el nombre y otro para el DNI. Nada las cruzaba.
+- **Duplicado**: `revisar` emite un aviso por cada aparición del nombre o del DNI. Todos los avisos de un mismo valor se ubican en la primera línea donde aparece, así que en pantalla son idénticos.
+- **Rótulos**: `_campo_nombre.html` no tenía entrada para siete campos del catálogo.
+
+### Comportamiento implementado
+
+- **Persona sin ficha** (`sin_ficha_por_persona`): si el nombre de una persona tiene el aviso `SIN_FICHA`, queda solo ese aviso (MEDIA). Se quitan su `DOCUMENTO_SIN_TITULAR` (ALTA) y el `SIN_FICHA` del DNI que el borrador le asigna. Un aviso repetido del mismo valor sale una sola vez.
+- **Persona con ficha**: sin cambios. Un DNI que no es el suyo sigue saliendo como «Documento sin titular» (ALTA).
+- **Rótulos**: «Persona sin ficha», «Ñ por marca de agua», «Razón social», «Domicilio fiscal», «Cónyuge con bien propio», «Habilitación del domicilio» y «Observación no reconocida». Se usa «Persona sin ficha» y no «Sin ficha RENIEC» porque el mismo campo marca también el RUC sin ficha de la transferencia vehicular (F45).
+- El total de observaciones (F48) sigue igual que el resumen: las observaciones se quitan antes de mostrarse.
+- Catálogo de reglas `2026.10.16-15`: las confrontaciones guardadas con el catálogo anterior se recalculan.
+
+### [NEEDS CLARIFICATION]
+
+- **Quitar la ALTA de documento**: la decisión de F38 («cuando la información del cliente no está en los recaudos, la app diga “Sin ficha RENIEC en los recaudos” como aviso MEDIA») se aplicó solo a la capa de reglas. No menciona `DOCUMENTO_SIN_TITULAR`. Se aplica por defecto a la persona marcada sin ficha, porque es el mismo hecho dicho como error. Falta que el usuario lo confirme.
+
+### Límites
+
+- La persona se reconoce por su nombre tal como aparece en la línea del borrador que lo empareja con el DNI. Si el borrador no los empareja, el nombre y el DNI siguen como dos avisos.
+- Si el DNI de una persona sin ficha se parece al de otra persona de los recaudos, el «debe decir» del DNI (ALTA) se mantiene.
+- Para una persona con ficha cuyo DNI no se parece a ninguno, siguen el `SIN_FICHA` del DNI (MEDIA) y el «Documento sin titular» (ALTA).
+
+### Medición
+
+Confrontación en memoria de los 10 kardex de prueba, main frente a esta rama:
+
+- el kardex del reporte pasa de 9 a 7 observaciones de generales de ley y datos: −1 «Documento sin titular» y −1 `SIN_FICHA`;
+- los otros 9 no cambian;
+- el expediente con errores sembrados sigue con 8 de 8.
+
+### Verificación
+
+- `tests/test_lectura_borrador.py`: representante sin ficha con el nombre y el DNI repetidos, y DNI ajeno de una persona con ficha.
+- `tests/test_expedientes_confrontacion.py`: la confrontación completa deja una sola observación para el representante sin ficha.
+- `tests/test_expedientes_confrontacion_ui.py`: ningún campo del catálogo sale con su código interno.

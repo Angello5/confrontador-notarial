@@ -40,9 +40,14 @@ html[data-theme="light"],
   --message-warning-bg: #fff6db;
   --message-error-bg: #fdecee;
 
-  --darkened-bg: #edeff8;
-  --selected-bg: #edeff8;
+  /* F49: fondo blanco; el tinte claro queda solo para estados (hover). */
+  --darkened-bg: #fff;
+  --selected-bg: #f6f7fc;
   --selected-row: #e5faed;
+  --fila-hover: #f6f7fc;
+  --acento: #01835d; /* verde de marca para texto y foco sobre blanco (AA) */
+  --boton2-fg: #0f2765;
+  --boton2-borde: #0f2765;
 
   --button-fg: #fff;
   --button-bg: #0f2765;
@@ -85,6 +90,10 @@ html[data-theme="light"],
     --close-button-hover-bg: #4b5d8c;
     --button-bg: #273b7b;
     --button-hover-bg: #4b5d8c;
+    --fila-hover: #0f2765;
+    --acento: #44d880;
+    --boton2-fg: #fff;
+    --boton2-borde: #8999d0;
   }
 }
 
@@ -114,6 +123,10 @@ html[data-theme="dark"] {
   --close-button-hover-bg: #4b5d8c;
   --button-bg: #273b7b;
   --button-hover-bg: #4b5d8c;
+  --fila-hover: #0f2765;
+  --acento: #44d880;
+  --boton2-fg: #fff;
+  --boton2-borde: #8999d0;
 }
 
 /* Cabecera blanca en ambos modos: el logo no tiene versión en negativo. */
@@ -122,6 +135,7 @@ html[data-theme="dark"] {
   --header-color: #4b5d8c;
   --header-link-color: #0f2765;
   --accent: #0f2765;
+  --acento: #01835d;
   border-bottom: 3px solid #44d880;
 }
 #branding { flex-wrap: wrap; align-items: center; gap: 8px 16px; }
@@ -137,10 +151,93 @@ html[data-theme="dark"] {
 .marca-sub { display: block; font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #4b5d8c; }
 .admin-seccion { padding-left: 16px; border-left: 1px solid #c3c9d9; font: 700 1.125rem var(--ne-display); color: #0f2765; }
 #content h1 { font-family: var(--ne-display); font-weight: 700; }
-.login #container { width: 36em; } /* cabe la marca en una línea; en móvil manda responsive.css */
+/* Cabe la marca en una línea (en móvil manda responsive.css); F49: borde visible sobre blanco. */
+.login #container { width: 36em; border-color: var(--border-color); }
 
 /* Botón principal verde con texto tinta (blanco sobre verde no llega a AA). */
 .button.default, input[type=submit].default, .submit-row input.default { color: #00112c; font-weight: 800; }
 
 /* La marca es rectilínea: sin píldoras ni esquinas de 4px. */
 .login #container, #container * { border-radius: 2px; }
+
+/*
+ * F49 · Fondo blanco y panel interactivo. Las superficies lavanda pasan a
+ * blanco con bordes finos; el tinte queda para hover, selección y foco.
+ * Sin la marca de importancia (Sonar css:S9423): la especificidad se resuelve
+ * con selectores.
+ */
+
+/* Foco visible de marca (WCAG 2.4.7): verde AA sobre blanco, verde vivo en oscuro. */
+:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+div.breadcrumbs, .module h2, .module caption { --acento: #44d880; } /* sobre marino el verde AA no llega a 3:1 */
+input[type=checkbox], input[type=radio] { accent-color: var(--acento); }
+
+/* Ingreso: botón principal a todo el ancho. */
+.login .submit-row input[type=submit] {
+  width: 100%; padding: 12px 15px; background: var(--default-button-bg); color: #00112c; font-weight: 800;
+}
+.login .submit-row input[type=submit]:hover,
+.login .submit-row input[type=submit]:focus { background: var(--default-button-hover-bg); }
+
+/* Superficies que eran lavanda: blancas con borde. */
+#changelist-filter, #content-related { border: 1px solid var(--hairline-color); }
+#result_list thead th { border-bottom-color: var(--border-color); }
+
+/* Filas: hover suave y fila seleccionada marcada con una franja verde. */
+#result_list tbody tr:hover { background: var(--fila-hover); }
+#changelist tbody tr:has(.action-select:checked) td:first-child { box-shadow: inset 3px 0 0 #44d880; }
+
+/* Barra de acciones: con algo seleccionado se resalta y «Ir» pasa a botón principal. */
+#changelist .actions { box-sizing: border-box; }
+#changelist-form:has(.action-select:checked) .actions { background: var(--selected-row); box-shadow: inset 3px 0 0 #44d880; }
+#changelist-form:has(.action-select:checked) .actions .action-counter { color: var(--body-fg); font-weight: 800; }
+#changelist-form:has(.action-select:checked) .actions .button {
+  background: var(--button-bg); border-color: var(--button-bg); color: var(--button-fg); box-shadow: none;
+}
+
+/* Jerarquía de botones: Guardar (verde) > secundarios con borde > peligro (rojo). */
+.submit-row input:not(.default), .submit-row a.closelink {
+  background: var(--body-bg); color: var(--boton2-fg); box-shadow: inset 0 0 0 1px var(--boton2-borde);
+}
+.submit-row input:not(.default):hover, .submit-row input:not(.default):focus,
+.submit-row a.closelink:hover, .submit-row a.closelink:focus { background: var(--fila-hover); color: var(--boton2-fg); }
+.submit-row input.peligro { background: var(--delete-button-bg); color: #fff; box-shadow: none; }
+.submit-row input.peligro:hover, .submit-row input.peligro:focus { background: var(--delete-button-hover-bg); color: #fff; }
+.object-tools a.addlink { background-color: var(--button-bg); }
+.object-tools a.addlink:hover, .object-tools a.addlink:focus { background-color: var(--button-hover-bg); }
+
+/* Mensajes: franja del color del estado además del icono de Django. */
+ul.messagelist li { border-left: 4px solid #44d880; }
+ul.messagelist li.warning { border-left-color: #e0a400; }
+ul.messagelist li.error { border-left-color: #c8283c; }
+
+/* Índice: resumen de cuentas con la métrica del ERP (core/_metrica.html). */
+.metricas {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1px; margin: 0 0 24px;
+  background: var(--border-color); border: 1px solid var(--border-color);
+}
+.metrica { position: relative; display: block; padding: 16px 20px; background: var(--body-bg); }
+a.metrica:link, a.metrica:visited { color: var(--body-fg); text-decoration: none; }
+a.metrica:hover { background: var(--fila-hover); color: var(--body-fg); }
+.metrica p { margin: 0; padding: 0; }
+.metrica-etiqueta {
+  display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--body-quiet-color);
+}
+.metrica-etiqueta::before { content: ""; width: 8px; height: 8px; flex: none; background: var(--body-fg); }
+.metrica[data-tono="verde"] .metrica-etiqueta::before { background: #44d880; }
+.metrica[data-tono="gris"] .metrica-etiqueta::before { background: var(--body-quiet-color); }
+.metrica-valor { font: 700 2.25rem/1.15 var(--ne-display); color: var(--body-loud-color); }
+.metrica-apoyo { font-size: 0.8125rem; color: var(--body-quiet-color); }
+a.metrica::after { content: "→" / ""; position: absolute; top: 14px; right: 16px; color: var(--body-quiet-color); }
+@media (max-width: 767px) { .metrica { padding: 12px; } a.metrica::after { content: none; } }
+
+/* Transiciones cortas solo si el sistema no pide reducir el movimiento. */
+@media (prefers-reduced-motion: no-preference) {
+  #result_list tbody tr, .metrica, #changelist .actions { transition: background 0.15s; }
+  a.metrica::after { transition: transform 0.15s; }
+  a.metrica:hover::after, a.metrica:focus-visible::after { transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #container * { transition: none; }
+}

@@ -6,7 +6,10 @@ from nucleo.correccion import marcas
 
 
 def seg(texto, x0, x1, linea, y0=0.1, alto=0.02):
-    return (texto, x0, y0 + linea * 0.05, x1, y0 + linea * 0.05 + alto, linea)
+    """Segmento con caracteres de igual ancho."""
+    n = len(texto)
+    bordes = tuple(x0 + (x1 - x0) * i / n for i in range(n + 1))
+    return (texto, x0, y0 + linea * 0.05, x1, y0 + linea * 0.05 + alto, linea, bordes)
 
 
 LINEA_0 = [
@@ -47,8 +50,8 @@ def test_varias_apariciones_en_orden_de_lectura():
     assert [r["aparicion"] for r in marcas(segmentos, "alba")] == [0, 1]
 
 
-def test_valor_dentro_de_un_segmento_por_proporcion():
-    # «90000002,» tiene 9 caracteres; el valor ocupa los 8 primeros.
+def test_valor_dentro_de_un_segmento_por_sus_caracteres():
+    # «90000002,» tiene 9 caracteres de igual ancho; el valor ocupa los 8 primeros.
     (rect,) = marcas(LINEA_0, "90000002")
     assert rect["x0"] == pytest.approx(0.16)
     assert rect["x1"] == round(0.16 + 0.10 * 8 / 9, 4)
@@ -74,3 +77,12 @@ def test_sin_segmentos():
 
 def test_determinista():
     assert marcas(LINEA_0, "ALBA ZURBELIA") == marcas(list(LINEA_0), "ALBA ZURBELIA")
+
+
+def test_borde_del_ultimo_caracter_y_no_por_proporcion():
+    # F52: en «LUNARIA,» la coma es más estrecha que las letras en negrita; por
+    # proporción el recuadro dejaba fuera la última A.
+    bordes = (0.30, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.373)
+    segmento = ("LUNARIA,", 0.30, 0.1, 0.373, 0.12, 0, bordes)
+    (rect,) = marcas([segmento], "LUNARIA")
+    assert (rect["x0"], rect["x1"]) == (0.30, 0.37)
