@@ -12,10 +12,21 @@ class Command(BaseCommand):
         parser.add_argument("codigo")
 
     def handle(self, *args, **options):
+        # F50: decisión del usuario (2026-10-16): solo el activo, nunca un
+        # archivado que repita el código (F28).
         try:
-            expediente = Expediente.objects.get(codigo=options["codigo"])
+            expediente = Expediente.objects.get(
+                codigo=options["codigo"], archivado_el__isnull=True
+            )
         except Expediente.DoesNotExist as exc:
-            raise CommandError("El expediente no existe.") from exc
+            raise CommandError(
+                "No hay un expediente activo con ese código. No se suprimió nada."
+            ) from exc
+        except Expediente.MultipleObjectsReturned as exc:
+            raise CommandError(
+                "Hay un kardex y una transferencia vehicular activos con ese código."
+                " No se suprimió nada."
+            ) from exc
 
         with transaction.atomic():
             textos = TextoExtraido.objects.filter(
