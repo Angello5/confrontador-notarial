@@ -5,6 +5,7 @@ from django.db.models.signals import post_migrate
 class AccountsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "accounts"
+    verbose_name = "Cuentas"
 
     def ready(self):
         post_migrate.connect(self.grant_account_permissions, sender=self)
