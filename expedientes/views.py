@@ -26,6 +26,7 @@ from .services import (
     confrontar_borrador,
     corrida_vigente,
     corridas_con_resumen,
+    documentos_por_volver_a_subir,
     eliminar_documento,
     estado_borrador,
     estado_confrontacion,
@@ -148,6 +149,7 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
             {**resumen_documento(d), "nombre": d.nombre_original} for d in documentos
         ],
         "resumen": resumen,
+        "por_volver_a_subir": documentos_por_volver_a_subir(expediente),
         "formatos_admitidos": formatos_admitidos(),
         "max_file_size_mb": settings.EXPEDIENTES_MAX_FILE_SIZE / (1024 * 1024),
     }
@@ -582,6 +584,7 @@ def documento_resultado(request, pk, doc_id):
             **resultado_de_corrida(corrida),
             "corregible": ruta_original(borrador).is_file(),
         },
+        "por_volver_a_subir": documentos_por_volver_a_subir(expediente),
     }
     contexto.update(_navegacion_contexto(request))
     return render(request, "expedientes/confrontacion.html", contexto)

@@ -536,6 +536,21 @@ def releer_borradores_desactualizados():
     )
 
 
+def documentos_por_volver_a_subir(expediente):
+    """F50: documentos leídos con otra versión del extractor que no se releen
+    solos: la minuta, los recaudos y el borrador sin original conservado."""
+    desactualizados = (
+        expediente.documentos.filter(estado=Documento.LISTO)
+        .exclude(texto_extraido__version_extractor=extraccion.version_extractor())
+        .order_by("pk")
+    )
+    return [
+        documento
+        for documento in desactualizados
+        if documento.rol != Documento.BORRADOR or _original_no_utilizable(documento)
+    ]
+
+
 def _procesar_fila(documento):
     ruta = documento.ruta_temporal
     ahora = timezone.now()
