@@ -6,6 +6,7 @@ import zipfile
 import pytest
 
 from adaptadores import extraccion, paginas
+from nucleo import correccion
 
 pytestmark = pytest.mark.skipif(
     shutil.which(extraccion.SOFFICE) is None, reason="requiere LibreOffice (soffice)"
@@ -14,12 +15,22 @@ pytestmark = pytest.mark.skipif(
 _W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
 
 
+def _run(texto, negrita=False):
+    estilo = "<w:rPr><w:b/></w:rPr>" if negrita else ""
+    return f'<w:r>{estilo}<w:t xml:space="preserve">{texto}</w:t></w:r>'
+
+
 def docx_valido(ruta, parrafos):
-    """Un .docx mínimo que LibreOffice abre; ``None`` es un salto de página."""
+    """Un .docx mínimo que LibreOffice abre; ``None`` es un salto de página y
+    una tupla, tramos ``(texto, negrita)`` de un párrafo justificado."""
     cuerpo = "".join(
         '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
         if p is None
-        else f'<w:p><w:r><w:t xml:space="preserve">{p}</w:t></w:r></w:p>'
+        else '<w:p><w:pPr><w:jc w:val="both"/></w:pPr>'
+        + "".join(_run(*tramo) for tramo in p)
+        + "</w:p>"
+        if isinstance(p, tuple)
+        else f"<w:p>{_run(p)}</w:p>"
         for p in parrafos
     )
     with zipfile.ZipFile(ruta, "w", zipfile.ZIP_DEFLATED) as z:
@@ -73,9 +84,12 @@ def test_segmentos_traen_el_texto_en_su_pagina(pdf):
     textos = [s[0] for s in paginas.segmentos(pdf, 2)]
     assert "90000002." in textos
     assert "90000002." not in [s[0] for s in paginas.segmentos(pdf, 1)]
-    for _texto, x0, y0, x1, y1, _linea in paginas.segmentos(pdf, 2):
+    for texto, x0, y0, x1, y1, _linea, bordes in paginas.segmentos(pdf, 2):
         assert 0 <= x0 < x1 <= 1
         assert 0 <= y0 < y1 <= 1
+        assert len(bordes) == len(texto) + 1
+        assert list(bordes) == sorted(bordes)
+        assert (bordes[0], bordes[-1]) == (x0, x1)
 
 
 def test_png_de_la_pagina(pdf):
@@ -93,3 +107,37 @@ def test_a_pdf_sin_rutas_en_el_error(tmp_path):
     with pytest.raises(ValueError) as error:
         paginas.a_pdf(tmp_path / "ausente.docx", tmp_path / "salida.pdf")
     assert str(tmp_path) not in str(error.value)
+
+
+def test_el_recuadro_abarca_la_palabra_entera_en_negrita_y_normal(tmp_path):
+    """F52: nombre y DNI en negrita seguidos de una coma normal (más estrecha)."""
+    import pymupdf
+
+    original = docx_valido(
+        tmp_path / "original.docx",
+        [
+            (
+                ("COMPARECE: ", False),
+                ("ALBA ZURBELIA LUNARIA", True),
+                (", IDENTIFICADA CON DNI ", False),
+                ("90000002", True),
+                (
+                    ", DE ESTADO CIVIL CASADA, QUIEN INTERVIENE POR SER BIEN PROPIO.",
+                    False,
+                ),
+            ),
+        ],
+    )
+    pdf = paginas.a_pdf(original, tmp_path / "vista.pdf")
+    segmentos = paginas.segmentos(pdf, 1)
+    with pymupdf.open(pdf) as doc:
+        pagina = doc[0]
+        ancho = pagina.rect.width
+        for valor, ultima in (
+            ("ALBA ZURBELIA LUNARIA", "LUNARIA"),
+            ("90000002", "90000002"),
+        ):
+            (real,) = pagina.search_for(ultima)
+            borde = max(r["x1"] for r in correccion.marcas(segmentos, valor))
+            # Medio punto de tolerancia: el ancho de una letra ronda los 7.
+            assert borde * ancho == pytest.approx(real.x1, abs=0.5), valor

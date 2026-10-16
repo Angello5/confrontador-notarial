@@ -135,6 +135,61 @@ def test_observacion_ausente_del_borrador(escenario, conversion):  # noqa: F811
     assert vista["no_ubicadas"] == [{"id": "r1", "motivo": "AUSENTE"}]
 
 
+def test_observacion_de_persona_se_marca_en_el_nombre_de_su_linea(
+    escenario,  # noqa: F811
+    monkeypatch,
+):
+    """F52: el «Dice» de persona («NOMBRE: …») no es texto del borrador; se marca
+    el nombre que el panel resalta, en su línea, y no todas sus apariciones."""
+    from adaptadores import paginas
+    from expedientes.models import Corrida
+    from expedientes.services import (
+        _observacion_regla,
+        _observaciones_f12_legibles,
+        registrar_corrida,
+    )
+
+    expediente, borrador, _ = escenario
+    nombre = "ALBA ZURBELIA LUNARIA"
+    lineas = [
+        "OPERACION FICTICIA DE PRUEBA.",
+        f"COMPARECE {nombre}, CASADA, SIN SU CONYUGE POR SER BIEN PROPIO.",
+        f"FIRMA: {nombre}.",
+    ]
+    texto = "\n".join(lineas)
+    monkeypatch.setattr(paginas, "a_pdf", lambda o, d: pdf_ficticio(d, lineas))
+    bien_propio = _observaciones_f12_legibles(
+        [
+            {
+                "tipo": "CONYUGE_BIEN_PROPIO",
+                "nombre": nombre,
+                "hallado": "Interviene sin su cónyuge por ser bien propio",
+                "esperado": "CASADO",
+                "procedencia": None,
+            }
+        ],
+        texto,
+    )
+    assert bien_propio[0]["ubicacion"]["linea"] == 2
+    sin_ficha = _observacion_regla("SIN_FICHA", nombre, "Sin ficha", "", texto)
+    resultado = {"estado": "RESULTADO", "regla": [*bien_propio, sin_ficha]}
+    corrida = Corrida.objects.get(
+        pk=registrar_corrida(expediente, borrador, expediente.creado_por, resultado)[
+            "corrida_id"
+        ]
+    )
+    vista = _vista_lista(borrador, corrida)
+    assert vista["no_ubicadas"] == []
+    persona = vista["marcas"]["r1"]
+    assert {r["aparicion"] for r in persona} == {0}
+    assert len(persona) == 3  # ALBA, ZURBELIA y LUNARIA de la línea 2
+    literal = vista["marcas"]["r2"]
+    assert {r["aparicion"] for r in literal} == {0, 1}
+    assert {r["y0"] for r in persona} == {
+        r["y0"] for r in literal if not r["aparicion"]
+    }
+
+
 def test_error_de_conversion_se_informa_y_se_puede_reintentar(
     escenario,  # noqa: F811
     corrida,
