@@ -16,7 +16,7 @@ El usuario pidió el 2026-10-09 la transferencia vehicular:
 
 - **Tipo de kardex.**
   - `Expediente.tipo` vale `NOTARIAL` (por defecto) o `VEHICULAR`.
-  - El número es único entre los activos de su tipo: un acta vehicular puede repetir el número de un kardex notarial.
+  - El número es único entre todos los kardex activos: un acta vehicular no puede repetir el número de un kardex notarial ni al revés.
 - **Navegación.** «Transferencia vehicular» cuelga de «Kardex» en el menú lateral y abre `/expedientes/vehicular/`, que lista y crea solo kardex vehiculares. Las migas y títulos de sus pantallas dicen «Transferencia vehicular».
 - **Carga sin minuta.**
   - El kardex vehicular tiene dos zonas: «Información» (boleta informativa, DNI y cheques) y el borrador.

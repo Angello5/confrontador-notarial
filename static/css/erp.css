@@ -419,7 +419,8 @@ a.metrica:hover { background: var(--ne-hover); color: var(--ne-navy); }
 /* Menú de acciones por fila */
 .menu-fila { position: relative; display: inline-flex; gap: 6px; align-items: center; }
 .menu-flotante {
-  position: absolute; right: 0; top: 40px; z-index: 20; min-width: 190px; padding: 4px;
+  /* fixed: lo coloca alternar() en lista.html; así no lo recorta el overflow de la tabla. */
+  position: fixed; z-index: 30; min-width: 190px; padding: 4px;
   background: var(--ne-white); border: 1px solid var(--ne-border); box-shadow: var(--ne-shadow);
   display: flex; flex-direction: column; text-align: left; animation: ne-in 0.14s ease-out;
 }

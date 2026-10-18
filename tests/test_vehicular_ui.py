@@ -88,15 +88,6 @@ def test_crear_y_listar_solo_vehiculares(client, usuario_ficticio):
     )
 
 
-def test_mismo_numero_en_kardex_y_en_vehicular(client, usuario_ficticio):
-    from expedientes.models import Expediente
-
-    Expediente.objects.create(codigo="35000", creado_por=usuario_ficticio)
-    client.force_login(usuario_ficticio)
-    client.post(reverse("vehicular_lista"), {"codigo": "35000"})
-    assert Expediente.objects.filter(codigo="35000").count() == 2
-
-
 def test_detalle_vehicular_sin_minuta(client, usuario_ficticio, vehicular):
     expediente, _ = vehicular
     client.force_login(usuario_ficticio)
@@ -205,3 +196,36 @@ def test_ruc_sin_ficha_ruc_no_es_error_en_vehicular(vehicular):
         if "20000000001" in o["hallado"]
     ]
     assert [o["campo"] for o in ruc] == ["SIN_FICHA"]
+
+
+def test_numero_no_se_repite_entre_kardex_y_vehicular(client, usuario_ficticio):
+    from expedientes.models import Expediente
+
+    Expediente.objects.create(codigo="NUM-FICTICIO-1", creado_por=usuario_ficticio)
+    Expediente.objects.create(
+        codigo="NUM-FICTICIO-2",
+        tipo=Expediente.VEHICULAR,
+        creado_por=usuario_ficticio,
+    )
+    client.force_login(usuario_ficticio)
+
+    vehicular = client.post(reverse("vehicular_lista"), {"codigo": "NUM-FICTICIO-1"})
+    notarial = client.post(reverse("expediente_lista"), {"codigo": "NUM-FICTICIO-2"})
+
+    for respuesta in (vehicular, notarial):
+        assert "Ya existe un kardex activo con ese número" in respuesta.content.decode()
+    assert Expediente.objects.count() == 2
+
+
+def test_bd_rechaza_numero_repetido_entre_tipos(usuario_ficticio):
+    from django.db import IntegrityError, transaction
+
+    from expedientes.models import Expediente
+
+    Expediente.objects.create(codigo="NUM-FICTICIO-3", creado_por=usuario_ficticio)
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Expediente.objects.create(
+            codigo="NUM-FICTICIO-3",
+            tipo=Expediente.VEHICULAR,
+            creado_por=usuario_ficticio,
+        )
