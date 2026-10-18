@@ -37,6 +37,7 @@
       filas: [],
       asc: false,
       abierto: null,
+      menu: {},
       eliminar: null,
       iniciar() {
         this.filas = [...this.$root.querySelectorAll('tbody tr[data-codigo]')].map(tr => ({ codigo: tr.dataset.codigo, estado: tr.dataset.estado }));
@@ -47,13 +48,25 @@
       },
       cuenta(estado) { return estado === 'TODOS' ? this.filas.length : this.filas.filter(f => f.estado === estado).length; },
       get visibles() { return this.filas.filter(f => this.visible(f.codigo, f.estado)).length; },
+      // Fijo al viewport: dentro de .tabla-desliza (overflow) un menú absoluto queda recortado.
+      alternar(id, boton) {
+        if (this.abierto === id) { this.abierto = null; return; }
+        const r = boton.getBoundingClientRect();
+        const right = document.documentElement.clientWidth - r.right + 'px';
+        this.menu = { top: r.bottom + 4 + 'px', right };
+        this.abierto = id;
+        this.$nextTick(() => {
+          const alto = boton.nextElementSibling.offsetHeight;
+          if (r.bottom + 4 + alto > innerHeight && r.top - 4 - alto > 0) this.menu = { top: r.top - 4 - alto + 'px', right };
+        });
+      },
       ordenar() {
         this.asc = !this.asc;
         const cuerpo = this.$root.querySelector('tbody');
         [...cuerpo.children].sort((a, b) => this.asc ? a.dataset.t - b.dataset.t : b.dataset.t - a.dataset.t).forEach(tr => cuerpo.appendChild(tr));
       }
     }"
-    x-init="iniciar()" @click.outside="abierto = null" @keydown.escape="abierto = null">
+    x-init="iniciar()" @click.outside="abierto = null" @keydown.escape="abierto = null" @scroll.window.capture="abierto = null" @resize.window="abierto = null">
     <div class="panel-cab">
       <h2 id="lista-expedientes" class="panel-titulo empuja">{% if archivados %}Kardex archivados{% else %}Mis kardex{% endif %}</h2>
       {% if es_administrador %}
@@ -103,8 +116,8 @@
                   {% else %}
                     <div class="menu-fila">
                       <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}" aria-label="Abrir {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>Abrir</a>
-                      <button type="button" class="btn btn-sm btn-icono" aria-label="Más acciones para {{ expediente.codigo }}" aria-haspopup="menu" :aria-expanded="abierto === {{ expediente.pk }}" @click.stop="abierto = abierto === {{ expediente.pk }} ? null : {{ expediente.pk }}"><svg class="ico" aria-hidden="true"><use href="#i-ellipsis"/></svg></button>
-                      <div class="menu-flotante" role="menu" x-show="abierto === {{ expediente.pk }}" x-cloak>
+                      <button type="button" class="btn btn-sm btn-icono" aria-label="Más acciones para {{ expediente.codigo }}" aria-haspopup="menu" :aria-expanded="abierto === {{ expediente.pk }}" @click.stop="alternar({{ expediente.pk }}, $el)"><svg class="ico" aria-hidden="true"><use href="#i-ellipsis"/></svg></button>
+                      <div class="menu-flotante" role="menu" x-show="abierto === {{ expediente.pk }}" :style="menu" x-cloak>
                         <a role="menuitem" href="{% url 'expediente_editar' expediente.pk %}" aria-label="Editar {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>Editar número</a>
                         <a role="menuitem" class="peligro" href="{% url 'expediente_eliminar' expediente.pk %}" aria-label="Eliminar {{ expediente.codigo }}" @click.prevent="abierto = null; eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar kardex</a>
                       </div>

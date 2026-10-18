@@ -40,9 +40,7 @@ class ExpedienteForm(forms.ModelForm):
         if not codigo:
             raise forms.ValidationError("Ingrese el número de kardex.")
         if (
-            Expediente.objects.filter(
-                codigo=codigo, tipo=self.instance.tipo, archivado_el__isnull=True
-            )
+            Expediente.objects.filter(codigo=codigo, archivado_el__isnull=True)
             .exclude(pk=self.instance.pk)
             .exists()
         ):

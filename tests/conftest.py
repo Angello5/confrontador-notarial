@@ -92,6 +92,7 @@ def pytest_sessionfinish(session, exitstatus):
             "expedientes/migrations/0009_carga_continua.py",
             "expedientes/migrations/0010_rol_recaudos.py",
             "expedientes/migrations/0011_tipo_vehicular.py",
+            "expedientes/migrations/0012_codigo_unico_entre_tipos.py",
             "expedientes/urls.py",
             "expedientes/views.py",
             "expedientes/management/__init__.py",

@@ -277,3 +277,12 @@ def test_mobile_overlay_is_a_keyboard_accessible_button(client, usuario_ficticio
         html,
     )
     assert '<div class="sidebar-overlay"' not in html
+
+
+def test_menu_flotante_no_lo_recorta_el_desplazamiento_de_la_tabla():
+    """El menú «…» de la última fila quedaba recortado por .tabla-desliza."""
+    from pathlib import Path
+
+    css = Path(finders.find("css/erp.css")).read_text(encoding="utf-8")
+    regla = re.search(r"\.menu-flotante \{([^}]*)\}", css).group(1)
+    assert "position: fixed" in regla

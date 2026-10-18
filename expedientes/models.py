@@ -31,10 +31,11 @@ class Expediente(models.Model):
     )
 
     class Meta:
-        # F28: el código es único solo entre expedientes activos de su tipo.
+        # F28: el código es único entre los expedientes activos, sea kardex o
+        # transferencia vehicular.
         constraints = [
             models.UniqueConstraint(
-                fields=("codigo", "tipo"),
+                fields=("codigo",),
                 condition=Q(archivado_el__isnull=True),
                 name="expediente_codigo_activo_unico",
             )

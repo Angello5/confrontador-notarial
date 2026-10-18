@@ -143,16 +143,12 @@ def test_suprimir_solo_el_activo_aunque_un_archivado_repita_el_codigo(
     assert (activo.texto, archivado.texto) == ("", "dato sintético")
 
 
-@pytest.mark.parametrize("dos_activos", [False, True])
-def test_suprimir_sin_un_unico_activo_no_suprime_nada(usuario_ficticio, dos_activos):
+def test_suprimir_sin_activo_no_suprime_nada(usuario_ficticio):
     from django.core.management.base import CommandError
 
-    from expedientes.models import Expediente, TextoExtraido
+    from expedientes.models import TextoExtraido
 
     _con_texto(usuario_ficticio, 8, archivado_el=timezone.now())
-    if dos_activos:  # un kardex y una transferencia vehicular (F43)
-        _con_texto(usuario_ficticio, 9)
-        _con_texto(usuario_ficticio, 5, tipo=Expediente.VEHICULAR)
 
     with pytest.raises(CommandError, match="No se suprimió nada"):
         call_command("suprimir_texto_expediente", "EXP-FICTICIO-F50")
