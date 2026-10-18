@@ -393,6 +393,21 @@ a.metrica:hover { background: var(--ne-hover); color: var(--ne-navy); }
 .fila:hover { background: var(--ne-hover); color: var(--ne-navy); }
 .fila strong { font-size: 15px; }
 .fila-fecha { font-size: 13px; color: var(--ne-slate); white-space: nowrap; }
+.fila-detalle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; color: var(--ne-slate); min-width: 0; }
+
+/* F53: actividad por semana. La altura llega en --alto (0–100 %) desde la vista. */
+.semanas { list-style: none; margin: 0; padding: 20px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.semana { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.semana-cifra { font: 700 14px/18px var(--ne-display); color: var(--ne-navy); }
+.semana-columna { width: 100%; max-width: 40px; height: 120px; display: flex; align-items: flex-end; background: var(--ne-soft); border-bottom: 2px solid var(--ne-border); }
+.semana-columna::before { content: ""; width: 100%; height: var(--alto); min-height: 2px; background: var(--ne-navy); }
+.semana-fecha { font-size: 12px; color: var(--ne-slate); white-space: nowrap; }
+@media (max-width: 599.98px) {
+  .fila-detalle { grid-column: 1 / -1; grid-row: 2; }
+  .semanas { gap: 4px; padding: 16px 12px; }
+  .semana-columna { height: 90px; }
+  .semana-fecha { font-size: 10px; }
+}
 .atencion { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--ne-line); }
 .atencion-ico { width: 32px; height: 32px; flex: none; display: flex; align-items: center; justify-content: center; background: var(--ne-err-bg); color: var(--ne-err-fg); }
 .atencion-ico[data-tono="advertencia"] { background: var(--ne-warn-bg); color: var(--ne-warn-fg); }

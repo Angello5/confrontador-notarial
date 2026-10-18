@@ -54,6 +54,7 @@ Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-n
 | **F43** · Transferencia vehicular | Submenú bajo «Kardex» que compara boleta informativa, DNI y cheques con el acta | Sin minuta; precio obligatorio en el acta; cheques por monto transferido | #85, #86 | 037 |
 | **F44** · Submenú e informe vehicular | Submenú visible e informe Word sin minuta | — | #87 | 037 |
 | **F45** · Ajustes vehiculares | Actas en tabla, vehículo a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO» | — | #88 | 037 |
+| **F53** · Inicio del administrador | Cifras por tipo que suman el total, actividad de 12 semanas, últimas confrontaciones con su usuaria y aviso de documento ilegible para quien lo subió | Sin «Pendientes de confrontar»; la actividad cuenta kardex distintos por semana | pendiente | 041 |
 
 ### En curso o pendientes
 
@@ -117,6 +118,10 @@ F43: transferencia vehicular. El usuario pidió un submenú «Transferencia vehi
 F44: «Transferencia vehicular» como submenú visible de «Kardex» y el informe Word sin minuta en las transferencias. Alcance en `specs/037-transferencia-vehicular/` (sección F44).
 
 F45: ajustes de la transferencia vehicular con dos actas reales más: actas en tabla, vehículo entregado a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO». Alcance en `specs/037-transferencia-vehicular/` (sección F45).
+
+## Continuación autorizada · 2026-10-18
+
+F53: Inicio del administrador. Tras revisar la pantalla como notario, el usuario pidió que las cifras cuadren con el total, separar kardex y transferencias vehiculares, ver la actividad por semana y quién ejecutó cada confrontación, y quitar «Procesando», «Con error», «Requieren su atención» y «Control administrativo». Descartó la tarjeta «Pendientes de confrontar» porque la confrontación es automática (F26), y decidió contar kardex distintos por semana. Quien sube un documento ilegible recibe el aviso en su Inicio, sea cual sea su rol; el Inicio de las usuarias no cambia en lo demás. Alcance en `specs/041-inicio-administrador/`.
 
 ## Prompts de arranque para `/speckit-specify`
 

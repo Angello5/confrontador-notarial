@@ -7,6 +7,64 @@
 {% block subtitle %}Estado de sus kardex y accesos rápidos para su rol.{% endblock %}
 {% block actions %}{% if es_administrador or es_usuario %}<a class="btn btn-primario" href="{% url 'expediente_lista' %}?nuevo=1"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo kardex</a>{% endif %}{% endblock %}
 {% block content %}
+{% if es_administrador %}
+  <div class="metricas">
+    {% include "core/_metrica.html" with etiqueta="Total" valor=cifras.total apoyo="Kardex y transferencias activos" %}
+    {% url 'expediente_lista' as url_kardex %}
+    {% include "core/_metrica.html" with etiqueta="Kardex" valor=cifras.notariales apoyo="Escrituras notariales" enlace=url_kardex %}
+    {% url 'vehicular_lista' as url_vehicular %}
+    {% include "core/_metrica.html" with etiqueta="Transferencias vehiculares" valor=cifras.vehiculares apoyo="Actas de transferencia" tono="verde" enlace=url_vehicular %}
+  </div>
+
+  <div class="pila">
+    {% include "core/_avisos_ilegibles.html" %}
+    <section class="panel" aria-labelledby="actividad-titulo">
+      <div class="panel-cab">
+        <div>
+          <h2 id="actividad-titulo">Actividad por semana</h2>
+          <p>Kardex confrontados en las últimas 12 semanas. Un kardex cuenta una vez por semana.</p>
+        </div>
+      </div>
+      <ol class="semanas" aria-label="Kardex confrontados por semana, últimas 12 semanas">
+        {% for semana in actividad %}
+          <li class="semana" style="--alto: {{ semana.alto }}%">
+            <span class="semana-cifra">{{ semana.kardex }}<span class="visually-hidden"> kardex en la semana del</span></span>
+            <span class="semana-columna" aria-hidden="true"></span>
+            <span class="semana-fecha">{{ semana.inicio|date:"d/m" }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="panel" aria-labelledby="confrontaciones-titulo">
+      <div class="panel-cab">
+        <div>
+          <h2 id="confrontaciones-titulo">Últimas confrontaciones</h2>
+          <p>Los cinco kardex confrontados más recientemente y quién lo hizo.</p>
+        </div>
+      </div>
+      {% if confrontaciones %}
+        <ul class="filas" aria-label="Últimas confrontaciones">
+          {% for fila in confrontaciones %}
+            <li>
+              <a class="fila" href="{% url 'expediente_detalle' fila.expediente.pk %}">
+                <strong>{{ fila.expediente.codigo }}</strong>
+                <span class="fila-detalle">{% include "core/_chip.html" with estado=fila.expediente.tipo texto=fila.expediente.get_tipo_display %}<span>{{ fila.usuario }}</span></span>
+                <span class="fila-fecha">{{ fila.fecha|date:"d/m/Y H:i" }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="vacio" role="status">
+          <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
+          <strong>Aún no hay confrontaciones</strong>
+          <span>Aparecerán aquí cuando se confronte el primer kardex.</span>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% else %}
   <div class="metricas">
     {% url 'expediente_lista' as url_lista %}
     {% include "core/_metrica.html" with etiqueta="Kardex" valor=metricas.total apoyo="Visibles para usted" enlace=url_lista %}
@@ -17,42 +75,7 @@
 
   <div class="rejilla-inicio">
     <div class="pila">
-      <section class="panel" aria-labelledby="atencion-titulo">
-        <div class="panel-cab">
-          <div>
-            <h2 id="atencion-titulo">Requieren su atención</h2>
-            <p>Kardex con documentos que no se pudieron procesar.</p>
-          </div>
-        </div>
-        {% if metricas.errores %}
-          {% for expediente, resumen in ultimos %}
-            {% if resumen.estado == "ERROR" %}
-              <div class="atencion">
-                <span class="atencion-ico"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg></span>
-                <div>
-                  <strong>{{ expediente.codigo }}</strong>
-                  <span>Un documento no se pudo procesar. Elimínelo y vuelva a subirlo.</span>
-                </div>
-                <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}">Abrir kardex</a>
-              </div>
-            {% endif %}
-          {% endfor %}
-          <div class="atencion">
-            <span class="atencion-ico" data-tono="advertencia"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg></span>
-            <div>
-              <strong>{{ metricas.errores }} kardex con error</strong>
-              <span>Revise la lista completa filtrada por estado.</span>
-            </div>
-            <a class="btn btn-sm" href="{% url 'expediente_lista' %}?estado=ERROR">Ver lista</a>
-          </div>
-        {% else %}
-          <div class="vacio" role="status">
-            <svg class="ico" aria-hidden="true"><use href="#i-circle-check"/></svg>
-            <strong>Nada pendiente</strong>
-            <span>Todos sus documentos se procesaron correctamente.</span>
-          </div>
-        {% endif %}
-      </section>
+      {% include "core/_avisos_ilegibles.html" %}
 
       <section class="panel" aria-labelledby="ultimos-titulo">
         <div class="panel-cab">
@@ -86,11 +109,6 @@
 
     <section class="panel-oscuro" aria-labelledby="acceso-titulo">
       <p class="eyebrow">Acceso rápido</p>
-      {% if es_administrador %}
-        <h2 id="acceso-titulo">Control administrativo</h2>
-        <p>Administre cuentas, roles y permisos.</p>
-        <a class="btn btn-verde btn-mayus btn-lg" href="{% url 'admin:index' %}">Administrar usuarios</a>
-      {% else %}
         <h2 id="acceso-titulo">Nueva confrontación</h2>
         <p>Compare el borrador de escritura con la minuta y los recaudos.</p>
         <ol>
@@ -99,7 +117,7 @@
           <li>Revise las observaciones</li>
         </ol>
         <a class="btn btn-verde btn-mayus btn-lg" href="{% url 'expediente_lista' %}?nuevo=1">Crear kardex</a>
-      {% endif %}
     </section>
   </div>
+{% endif %}
 {% endblock %}

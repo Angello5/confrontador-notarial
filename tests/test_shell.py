@@ -214,7 +214,7 @@ def test_inicio_calcula_metricas_con_la_visibilidad_de_la_lista(
     assert 'data-estado="ERROR"' in content
 
     client.force_login(administrador_ficticio)
-    assert client.get(reverse("home")).context["metricas"]["total"] == 5
+    assert client.get(reverse("home")).context["cifras"]["total"] == 5
 
 
 def test_inicio_lista_los_cinco_mas_recientes_sin_datos_sensibles(
@@ -247,15 +247,17 @@ def test_inicio_vacio_ofrece_crear_el_primero(client, usuario_ficticio):
     assert "primer kardex" in content
 
 
-def test_inicio_de_administrador_ofrece_control_administrativo(
+def test_inicio_de_administrador_no_repite_el_acceso_del_menu(
     client, administrador_ficticio
 ):
+    # F53: «Usuarios y permisos» ya está en el menú lateral.
     client.force_login(administrador_ficticio)
 
     content = client.get(reverse("home")).content.decode()
 
-    assert "Control administrativo" in content
-    assert "Administrar" in content
+    assert "Control administrativo" not in content
+    assert "Administrar usuarios" not in content
+    assert "Usuarios y permisos" in content
 
 
 def test_plantillas_no_mencionan_ia():

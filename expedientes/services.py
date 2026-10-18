@@ -10,14 +10,15 @@ import tomllib
 import unicodedata
 import zipfile
 from collections import Counter
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from pathlib import Path
 from time import perf_counter
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-from django.db.models import F, Q
+from django.db.models import Count, DateField, F, OuterRef, Q, Subquery
+from django.db.models.functions import TruncWeek
 
 from .bloqueos import exclusivo
 
@@ -1454,6 +1455,84 @@ def expedientes_con_resumen(usuario, archivados=False, tipo=None):
     if tipo:
         expedientes = expedientes.filter(tipo=tipo)
     return [(expediente, resumen_expediente(expediente)) for expediente in expedientes]
+
+
+def cifras_por_tipo(usuario):
+    """F53: kardex activos visibles por tipo; el total es su suma."""
+    por_tipo = dict(
+        expedientes_visibles(usuario)
+        .values_list("tipo")
+        .annotate(cantidad=Count("pk"))
+        .order_by()
+    )
+    notariales = por_tipo.get(Expediente.NOTARIAL, 0)
+    vehiculares = por_tipo.get(Expediente.VEHICULAR, 0)
+    return {
+        "notariales": notariales,
+        "vehiculares": vehiculares,
+        "total": notariales + vehiculares,
+    }
+
+
+def actividad_semanal(hoy=None, semanas=12):
+    """F53: kardex distintos confrontados por semana (lunes, hora local)."""
+    hoy = hoy or timezone.localdate()
+    lunes = hoy - timedelta(days=hoy.weekday())
+    inicios = [lunes - timedelta(weeks=atras) for atras in range(semanas - 1, -1, -1)]
+    desde = timezone.make_aware(datetime.combine(inicios[0], time.min))
+    hasta = timezone.make_aware(datetime.combine(lunes + timedelta(weeks=1), time.min))
+    # Incluye kardex archivados: la actividad es un registro histórico.
+    por_semana = dict(
+        Corrida.objects.filter(creado_el__gte=desde, creado_el__lt=hasta)
+        .annotate(semana=TruncWeek("creado_el", output_field=DateField()))
+        .values_list("semana")
+        .annotate(kardex=Count("expediente", distinct=True))
+        .order_by()
+    )
+    return [
+        {"inicio": inicio, "kardex": por_semana.get(inicio, 0)} for inicio in inicios
+    ]
+
+
+def avisos_documentos_ilegibles(usuario):
+    """F53: kardex activos con algún documento ilegible que subió `usuario`."""
+    return (
+        Expediente.objects.filter(
+            archivado_el__isnull=True,
+            documentos__estado=Documento.ERROR,
+            documentos__subido_por=usuario,
+        )
+        .distinct()
+        .order_by("codigo")
+    )
+
+
+def ultimas_confrontaciones(limite=5):
+    """F53: kardex activos confrontados más recientemente, con su última corrida."""
+    ultima = Corrida.objects.filter(expediente=OuterRef("pk")).order_by(
+        "-creado_el", "-pk"
+    )
+    expedientes = (
+        Expediente.objects.filter(archivado_el__isnull=True)
+        .annotate(
+            fecha=Subquery(ultima.values("creado_el")[:1]),
+            nombre=Subquery(ultima.values("usuario__first_name")[:1]),
+            apellido=Subquery(ultima.values("usuario__last_name")[:1]),
+            cuenta=Subquery(ultima.values("usuario__username")[:1]),
+        )
+        .filter(fecha__isnull=False)
+        .order_by("-fecha", "-pk")[:limite]
+    )
+    # Mismo criterio que get_full_name(), con el usuario si no hay nombre.
+    return [
+        {
+            "expediente": expediente,
+            "usuario": f"{expediente.nombre} {expediente.apellido}".strip()
+            or expediente.cuenta,
+            "fecha": expediente.fecha,
+        }
+        for expediente in expedientes
+    ]
 
 
 # Catálogo de reglas versionado (Anexo A, capas 5 y 6). El núcleo no lee
