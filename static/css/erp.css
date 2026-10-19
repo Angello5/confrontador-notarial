@@ -393,6 +393,55 @@ a.metrica:hover { background: var(--ne-hover); color: var(--ne-navy); }
 .fila:hover { background: var(--ne-hover); color: var(--ne-navy); }
 .fila strong { font-size: 15px; }
 .fila-fecha { font-size: 13px; color: var(--ne-slate); white-space: nowrap; }
+.fila-detalle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; color: var(--ne-slate); min-width: 0; }
+
+/* F53: Inicio del administrador. Las alturas y anchos los anima inicio-admin.js. */
+@keyframes ne-pulso { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes ne-crece { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.inicio-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.segmentado [aria-pressed="true"] { background: var(--ne-navy); color: #fff; }
+.inicio-estado { display: flex; align-items: center; font-size: 13px; color: var(--ne-slate); transition: opacity 0.3s var(--ne-ease); }
+.inicio-estado[data-cargando="true"] { opacity: 0.6; }
+.inicio-pulso { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--ne-green); animation: ne-pulso 2s ease-in-out infinite; vertical-align: middle; }
+.inicio-error { color: var(--ne-err-fg); font-weight: 700; }
+.semanas { list-style: none; margin: 0; padding: 48px 20px 20px; display: grid; grid-template-columns: repeat(var(--tramos, 12), minmax(0, 1fr)); gap: 8px; align-items: end; }
+.semana { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; border-radius: 4px; outline-offset: 4px; cursor: default; }
+.semana-cifra { font: 700 14px/18px var(--ne-display); color: var(--ne-navy); }
+.semana-columna { width: 100%; max-width: 40px; height: 120px; display: flex; align-items: flex-end; background: var(--ne-soft); border-bottom: 2px solid var(--ne-border); }
+.semana-relleno { width: 100%; min-height: 2px; background: var(--ne-navy); transition: background 0.2s var(--ne-ease); }
+.semana:hover .semana-relleno, .semana:focus-visible .semana-relleno { background: var(--ne-green-text); }
+.semana-fecha { font-size: 12px; color: var(--ne-slate); white-space: nowrap; }
+.semana-ayuda {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; z-index: 2; width: max-content; max-width: 180px;
+  padding: 6px 10px; background: var(--ne-ink); color: #fff; font-size: 12px; line-height: 16px; text-align: center;
+  box-shadow: var(--ne-shadow); pointer-events: none; opacity: 0; transform: translate(-50%, 4px);
+  transition: opacity 0.2s var(--ne-ease), transform 0.2s var(--ne-ease);
+}
+.semana:first-child .semana-ayuda { left: 0; transform: translate(0, 4px); }
+.semana:last-child .semana-ayuda { left: auto; right: 0; transform: translate(0, 4px); }
+.semana:hover .semana-ayuda, .semana:focus-visible .semana-ayuda { opacity: 1; transform: translate(-50%, 0); }
+.semana:first-child:hover .semana-ayuda, .semana:first-child:focus-visible .semana-ayuda,
+.semana:last-child:hover .semana-ayuda, .semana:last-child:focus-visible .semana-ayuda { transform: none; }
+.rejilla-indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px; align-items: start; }
+.gravedades { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; margin: 0; padding: 20px; }
+.gravedades > div { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.gravedades dd { margin: 0; font: 700 32px/36px var(--ne-display); color: var(--ne-navy); font-variant-numeric: tabular-nums; }
+.gravedades dt { font-size: 13px; font-weight: 400; color: var(--ne-slate); }
+.ranking { list-style: none; margin: 0; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.ranking li { display: flex; flex-direction: column; gap: 6px; animation: ne-in 0.4s var(--ne-ease); }
+.ranking-cab { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
+.ranking-cab span { color: var(--ne-slate); font-size: 13px; }
+.ranking-pista { height: 8px; background: var(--ne-soft); border-radius: 999px; overflow: hidden; }
+.ranking-barra { display: block; height: 100%; background: var(--ne-navy); border-radius: inherit; transform-origin: left; transition: width 0.6s var(--ne-ease); animation: ne-crece 0.6s var(--ne-ease); }
+.ranking-barra[data-tono="error"] { background: var(--ne-err-bd); }
+.vacio-breve { padding: 20px; font-size: 14px; color: var(--ne-slate); }
+.aparece { animation: ne-in 0.4s var(--ne-ease); }
+@media (max-width: 599.98px) {
+  .fila-detalle { grid-column: 1 / -1; grid-row: 2; }
+  .semanas { gap: 4px; padding: 48px 12px 16px; }
+  .semana-columna { height: 90px; }
+  .semana-fecha { font-size: 10px; }
+}
 .atencion { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--ne-line); }
 .atencion-ico { width: 32px; height: 32px; flex: none; display: flex; align-items: center; justify-content: center; background: var(--ne-err-bg); color: var(--ne-err-fg); }
 .atencion-ico[data-tono="advertencia"] { background: var(--ne-warn-bg); color: var(--ne-warn-fg); }

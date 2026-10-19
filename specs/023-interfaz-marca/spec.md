@@ -15,7 +15,7 @@
 - **Shell**: barra lateral blanca con logo o sello, migas, «Sesión segura · rol», avisos (`messages`) como toasts. AdminLTE ya no se carga (el archivo sigue en `static/vendor/`).
 - **Íconos**: sprite SVG inline (`core/_iconos.html`, trazos Lucide, ISC). Sin CDN.
 - **Ingreso**: dos columnas con banda en degradado; campos renderizados sin crispy.
-- **Inicio**: métricas que abren la lista filtrada (`?estado=`), «Requieren su atención», últimos expedientes, acceso rápido por rol.
+- **Inicio**: métricas que abren la lista filtrada (`?estado=`), «Requieren su atención», últimos expedientes, acceso rápido por rol. Reemplazado por F53 (`specs/041-inicio-administrador/`) en el Inicio del administrador y en el aviso de documentos ilegibles.
 - **Lista**: búsqueda por código, filtro por estado con conteos, orden por fecha, menú por fila (Editar / Eliminar con modal), `?nuevo=1` abre el formulario.
 - **Detalle**: chip de estado, riel de 4 pasos con estado (Completado, En curso, Pendiente, Con error), carga por arrastre que se envía sola, eliminar con modal.
 - **Resultado**: resumen y filtro por severidad, pestañas por capa, lista + detalle con fragmento del borrador resaltado, navegación con ↑/↓, corrección marcable desde cada observación, barra fija «Aplicar correcciones» con modal de confirmación (mismo POST de F15), **reporte**: «Word» por defecto (`static/js/reporte-docx.js`: .docx ejecutivo generado en el navegador, sin dependencias, con logo en el encabezado, ficha, resumen ejecutivo con indicadores por severidad, prioridades, tablas por capa con encabezado repetido y «Página X de Y»), «Imprimir o guardar PDF» (sección imprimible) o «Excel» (CSV con BOM y `;`, protegido contra fórmulas).

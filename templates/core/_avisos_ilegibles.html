@@ -1,0 +1,24 @@
+{% comment %}
+F53: avisos para quien subió un documento que no se pudo leer. Solo se
+muestra si `avisos` trae kardex; nunca el nombre del archivo.
+{% endcomment %}
+{% if avisos %}
+  <section class="panel" aria-labelledby="avisos-titulo">
+    <div class="panel-cab">
+      <div>
+        <h2 id="avisos-titulo">Documentos por revisar</h2>
+        <p>Documentos que usted subió y que el sistema no pudo leer.</p>
+      </div>
+    </div>
+    {% for expediente in avisos %}
+      <div class="atencion">
+        <span class="atencion-ico"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg></span>
+        <div>
+          <strong>{{ expediente.codigo }}</strong>
+          <span>Un documento que usted subió no se pudo leer. Elimínelo y vuelva a subirlo.</span>
+        </div>
+        <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}">Abrir kardex</a>
+      </div>
+    {% endfor %}
+  </section>
+{% endif %}

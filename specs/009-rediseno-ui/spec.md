@@ -64,6 +64,8 @@ Como usuario de la notaría, quiero que todas las pantallas compartan el menú l
 
 ### User Story 2 - Inicio con el estado real del trabajo (Priority: P1)
 
+> Reemplazado por F53 (`specs/041-inicio-administrador/`) en el Inicio del administrador y en el aviso de documentos ilegibles.
+
 Como usuario, quiero que Inicio resuma mis expedientes con las tarjetas del diseño y me lleve al siguiente paso.
 
 **Acceptance Scenarios**:

@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}Inicio · {{ erp_nombre }}{% endblock %}
 {% block breadcrumb %}<ol><li aria-current="page">Inicio</li></ol>{% endblock %}
@@ -7,6 +8,147 @@
 {% block subtitle %}Estado de sus kardex y accesos rápidos para su rol.{% endblock %}
 {% block actions %}{% if es_administrador or es_usuario %}<a class="btn btn-primario" href="{% url 'expediente_lista' %}?nuevo=1"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo kardex</a>{% endif %}{% endblock %}
 {% block content %}
+{% if es_administrador %}
+<script src="{% static 'js/inicio-admin.js' %}?v={{ static_v }}"></script>
+{{ datos_inicio|json_script:"datos-inicio" }}
+<div class="pila" x-data="inicioAdmin(JSON.parse(document.getElementById('datos-inicio').textContent))" x-init="iniciar()">
+  {% include "core/_avisos_ilegibles.html" %}
+
+  <div class="inicio-barra">
+    <div class="segmentado" role="group" aria-label="Periodo de los indicadores">
+      <button type="button" :aria-pressed="(periodo === 'semana').toString()" aria-pressed="true" @click="elegir('semana')">Por semana</button>
+      <button type="button" :aria-pressed="(periodo === 'mes').toString()" aria-pressed="false" @click="elegir('mes')">Por mes</button>
+    </div>
+    <p class="inicio-estado" aria-live="polite" :data-cargando="cargando">
+      <span x-show="!error"><span class="inicio-pulso" aria-hidden="true"></span>Actualizado a las <span x-text="datos.actualizado">{{ datos_inicio.actualizado }}</span>. Se actualiza solo cada minuto.</span>
+      <span x-show="error" x-cloak class="inicio-error">No se pudo actualizar. Se muestran los últimos datos y se reintentará en un minuto.</span>
+    </p>
+  </div>
+
+  <div class="metricas">
+    {% include "core/_metrica.html" with etiqueta="Total" valor=cifras.total apoyo="Kardex y transferencias activos" modelo="cifra.total" %}
+    {% url 'expediente_lista' as url_kardex %}
+    {% include "core/_metrica.html" with etiqueta="Kardex" valor=cifras.notariales apoyo="Escrituras notariales" enlace=url_kardex modelo="cifra.notariales" %}
+    {% url 'vehicular_lista' as url_vehicular %}
+    {% include "core/_metrica.html" with etiqueta="Transferencias vehiculares" valor=cifras.vehiculares apoyo="Actas de transferencia" tono="verde" enlace=url_vehicular modelo="cifra.vehiculares" %}
+  </div>
+
+  <section class="panel" aria-labelledby="actividad-titulo">
+    <div class="panel-cab">
+      <div>
+        <h2 id="actividad-titulo" x-text="periodo === 'mes' ? 'Actividad por mes' : 'Actividad por semana'">Actividad por semana</h2>
+        <p>Kardex confrontados en <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>. Un kardex cuenta una vez por periodo. Pase el puntero o el teclado por una barra para ver su detalle.</p>
+      </div>
+    </div>
+    <ol class="semanas" :style="`--tramos: ${datos.actividad.length}`" :aria-label="`Kardex confrontados, ${datos.titulo_periodo}`">
+      <template x-for="(tramo, i) in datos.actividad" :key="datos.periodo + tramo.etiqueta">
+        <li class="semana" tabindex="0" :aria-label="tramo.explicacion">
+          <span class="semana-ayuda" aria-hidden="true" x-text="tramo.explicacion"></span>
+          <span class="semana-cifra" aria-hidden="true" x-text="tramo.kardex"></span>
+          <span class="semana-columna" aria-hidden="true"><span class="semana-relleno" :style="`height: ${altos[i] ?? 0}%`"></span></span>
+          <span class="semana-fecha" aria-hidden="true" x-text="tramo.etiqueta"></span>
+        </li>
+      </template>
+    </ol>
+  </section>
+
+  <div class="rejilla-indicadores">
+    <section class="panel" aria-labelledby="gravedad-titulo">
+      <div class="panel-cab">
+        <div>
+          <h2 id="gravedad-titulo">Observaciones por gravedad</h2>
+          <p>Lo que encontró el confrontador en <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>.</p>
+        </div>
+      </div>
+      <dl class="gravedades">
+        <div>{% include "core/_chip.html" with estado="ALTA" texto="Alta" clase="sev" %}<dd x-text="cifra.alta ?? 0">{{ datos_inicio.indicadores.gravedad.ALTA }}</dd><dt>Datos de validación obligatoria</dt></div>
+        <div>{% include "core/_chip.html" with estado="MEDIA" texto="Media" clase="sev" %}<dd x-text="cifra.media ?? 0">{{ datos_inicio.indicadores.gravedad.MEDIA }}</dd><dt>Reglas de persona</dt></div>
+        <div>{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<dd x-text="cifra.baja ?? 0">{{ datos_inicio.indicadores.gravedad.BAJA }}</dd><dt>Ortografía y redacción</dt></div>
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="usuarias-titulo">
+      <div class="panel-cab">
+        <div>
+          <h2 id="usuarias-titulo">Usuarias con más errores</h2>
+          <p>Observaciones de los kardex que creó cada persona, de más a menos.</p>
+        </div>
+      </div>
+      <ol class="ranking" x-show="datos.indicadores.usuarias.length" aria-label="Observaciones por usuaria">
+        <template x-for="persona in datos.indicadores.usuarias" :key="persona.usuario">
+          <li>
+            <div class="ranking-cab">
+              <strong x-text="persona.usuario"></strong>
+              <span x-text="`${persona.observaciones} ${persona.observaciones === 1 ? 'observación' : 'observaciones'} · ${persona.altas} alta${persona.altas === 1 ? '' : 's'} · ${persona.kardex} kardex`"></span>
+            </div>
+            <span class="ranking-pista" aria-hidden="true"><span class="ranking-barra" :style="`width: ${persona.ancho}%`"></span></span>
+          </li>
+        </template>
+      </ol>
+      <p class="vacio-breve" x-show="!datos.indicadores.usuarias.length">Sin confrontaciones en este periodo.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="frecuentes-titulo">
+      <div class="panel-cab">
+        <div>
+          <h2 id="frecuentes-titulo">Errores más frecuentes</h2>
+          <p>Los cinco tipos de observación que más se repiten.</p>
+        </div>
+      </div>
+      <ol class="ranking" x-show="datos.indicadores.frecuentes.length" aria-label="Errores más frecuentes">
+        <template x-for="error in datos.indicadores.frecuentes" :key="error.tipo">
+          <li>
+            <div class="ranking-cab">
+              <strong x-text="error.descripcion"></strong>
+              <span x-text="`${error.cantidad} ${error.cantidad === 1 ? 'vez' : 'veces'}`"></span>
+            </div>
+            <span class="ranking-pista" aria-hidden="true"><span class="ranking-barra" data-tono="error" :style="`width: ${error.ancho}%`"></span></span>
+          </li>
+        </template>
+      </ol>
+      <p class="vacio-breve" x-show="!datos.indicadores.frecuentes.length">Sin observaciones en este periodo.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="correcciones-titulo">
+      <div class="panel-cab">
+        <div>
+          <h2 id="correcciones-titulo">Correcciones aplicadas</h2>
+          <p>Lo que el equipo corrigió con el sistema en este periodo.</p>
+        </div>
+      </div>
+      <dl class="gravedades">
+        <div><dd x-text="cifra.documentos ?? 0">{{ datos_inicio.indicadores.correcciones.documentos }}</dd><dt>Documentos corregidos generados</dt></div>
+        <div><dd x-text="cifra.aplicadas ?? 0">{{ datos_inicio.indicadores.correcciones.aplicadas }}</dd><dt>Correcciones aplicadas en ellos</dt></div>
+      </dl>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="confrontaciones-titulo">
+    <div class="panel-cab">
+      <div>
+        <h2 id="confrontaciones-titulo">Últimas confrontaciones</h2>
+        <p>Los cinco kardex confrontados más recientemente y quién lo hizo.</p>
+      </div>
+    </div>
+    <ul class="filas" aria-label="Últimas confrontaciones" x-show="datos.confrontaciones.length">
+      <template x-for="fila in datos.confrontaciones" :key="fila.codigo + fila.fecha">
+        <li class="aparece">
+          <a class="fila" :href="fila.url">
+            <strong x-text="fila.codigo"></strong>
+            <span class="fila-detalle"><span class="chip" x-text="fila.tipo"></span><span x-text="fila.usuario"></span></span>
+            <span class="fila-fecha" x-text="fila.fecha"></span>
+          </a>
+        </li>
+      </template>
+    </ul>
+    <div class="vacio" role="status" x-show="!datos.confrontaciones.length">
+      <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
+      <strong>Aún no hay confrontaciones</strong>
+      <span>Aparecerán aquí cuando se confronte el primer kardex.</span>
+    </div>
+  </section>
+</div>
+{% else %}
   <div class="metricas">
     {% url 'expediente_lista' as url_lista %}
     {% include "core/_metrica.html" with etiqueta="Kardex" valor=metricas.total apoyo="Visibles para usted" enlace=url_lista %}
@@ -17,42 +159,7 @@
 
   <div class="rejilla-inicio">
     <div class="pila">
-      <section class="panel" aria-labelledby="atencion-titulo">
-        <div class="panel-cab">
-          <div>
-            <h2 id="atencion-titulo">Requieren su atención</h2>
-            <p>Kardex con documentos que no se pudieron procesar.</p>
-          </div>
-        </div>
-        {% if metricas.errores %}
-          {% for expediente, resumen in ultimos %}
-            {% if resumen.estado == "ERROR" %}
-              <div class="atencion">
-                <span class="atencion-ico"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg></span>
-                <div>
-                  <strong>{{ expediente.codigo }}</strong>
-                  <span>Un documento no se pudo procesar. Elimínelo y vuelva a subirlo.</span>
-                </div>
-                <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}">Abrir kardex</a>
-              </div>
-            {% endif %}
-          {% endfor %}
-          <div class="atencion">
-            <span class="atencion-ico" data-tono="advertencia"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg></span>
-            <div>
-              <strong>{{ metricas.errores }} kardex con error</strong>
-              <span>Revise la lista completa filtrada por estado.</span>
-            </div>
-            <a class="btn btn-sm" href="{% url 'expediente_lista' %}?estado=ERROR">Ver lista</a>
-          </div>
-        {% else %}
-          <div class="vacio" role="status">
-            <svg class="ico" aria-hidden="true"><use href="#i-circle-check"/></svg>
-            <strong>Nada pendiente</strong>
-            <span>Todos sus documentos se procesaron correctamente.</span>
-          </div>
-        {% endif %}
-      </section>
+      {% include "core/_avisos_ilegibles.html" %}
 
       <section class="panel" aria-labelledby="ultimos-titulo">
         <div class="panel-cab">
@@ -86,11 +193,6 @@
 
     <section class="panel-oscuro" aria-labelledby="acceso-titulo">
       <p class="eyebrow">Acceso rápido</p>
-      {% if es_administrador %}
-        <h2 id="acceso-titulo">Control administrativo</h2>
-        <p>Administre cuentas, roles y permisos.</p>
-        <a class="btn btn-verde btn-mayus btn-lg" href="{% url 'admin:index' %}">Administrar usuarios</a>
-      {% else %}
         <h2 id="acceso-titulo">Nueva confrontación</h2>
         <p>Compare el borrador de escritura con la minuta y los recaudos.</p>
         <ol>
@@ -99,7 +201,7 @@
           <li>Revise las observaciones</li>
         </ol>
         <a class="btn btn-verde btn-mayus btn-lg" href="{% url 'expediente_lista' %}?nuevo=1">Crear kardex</a>
-      {% endif %}
     </section>
   </div>
+{% endif %}
 {% endblock %}
