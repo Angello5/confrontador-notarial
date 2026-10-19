@@ -100,3 +100,24 @@ Inicio.
 ## Complexity Tracking
 
 Sin violaciones.
+
+## Ampliación US4–US5 (2026-10-18)
+
+- `expedientes/services.py`: + `rango_periodo`, `actividad_mensual`,
+  `indicadores_calidad`, `datos_inicio_administrador` (research R10–R12).
+- `core/views.py`: `home` usa `datos_inicio_administrador`; nueva vista
+  `home_datos` (GET, Administrador) en `core/urls.py` como `home_datos`.
+- `templates/core/home.html`: la rama Administrador pasa a Alpine
+  (`x-data="inicioAdmin"`) con los datos iniciales en `json_script`; selector
+  «Por semana / Por mes», indicadores de calidad y hora de actualización.
+- `static/js/inicio-admin.js` + `tests/inicio_frontend.test.cjs` (R13).
+- `static/css/erp.css`: selector de periodo, barras animadas, ayuda de cada
+  barra, rejilla de indicadores.
+
+**Constitution Check (ampliación)**: I sin IA ✅ · II la lógica en
+`services.py`, la vista solo serializa ✅ · III tests primero, también del JS ✅
+· IV solo nombres de usuarias y cifras; el JSON no lleva texto de
+observaciones ✅ · V sin dependencias ni modelos nuevos; Alpine y `fetch`
+permitidos por la constitución ✅ · VI el punto de consulta exige
+Administrador ✅ · VIII estado visible (hora, error), sin animación si se pide
+reducir movimiento, ayuda por barra con teclado ✅.

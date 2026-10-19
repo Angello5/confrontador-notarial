@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Implementado localmente (2026-10-18); pendiente de PR.
+**Status**: US1–US3 implementadas; US4–US5 añadidas el 2026-10-18.
 
 **Input**: User description: "Rediseñar la pantalla de Inicio del rol Administrador: cifras que cuadren con el total, quitar «Procesando», «Con error», «Requieren su atención» y «Control administrativo»; separar kardex y transferencias vehiculares; añadir actividad por semana y «Últimas confrontaciones» con la usuaria que la ejecutó. Además, quien sube un documento que no se pudo leer recibe el aviso en su Inicio, sea Administrador o Usuario."
 
@@ -119,6 +119,85 @@ usuaria B no lo ven.
 4. **Given** varios documentos ilegibles de A en distintos kardex, **When** A
    abre Inicio, **Then** ve un aviso por kardex, sin importar su antigüedad.
 
+### User Story 4 - Ver por semana o por mes, con datos al día (Priority: P2)
+
+Ampliación pedida el 2026-10-18. El administrador elige ver la actividad
+**por semana** (últimas 12 semanas) o **por mes** (meses del año en curso, de
+enero al mes actual). El Inicio se actualiza solo cada minuto, sin recargar la
+página, y los cambios se muestran con animaciones suaves y didácticas.
+
+**Why this priority**: permite seguir el trabajo del día sin recargar y
+comparar el ritmo de la notaría a lo largo del año.
+
+**Independent Test**: con confrontaciones ficticias en varias semanas y meses,
+cambiar entre «Por semana» y «Por mes» y comprobar barras y cifras; crear una
+confrontación nueva y comprobar que aparece en el siguiente minuto sin recargar.
+
+**Acceptance Scenarios**:
+
+1. **Given** el Inicio del administrador, **When** elige «Por mes», **Then** ve
+   una barra por cada mes del año en curso, de enero al mes actual, con el
+   número de kardex distintos confrontados en cada mes.
+2. **Given** la vista por mes, **When** vuelve a «Por semana», **Then** ve las
+   12 semanas, y su elección se conserva al volver a Inicio.
+3. **Given** el Inicio abierto, **When** pasa un minuto y hay confrontaciones
+   nuevas, **Then** cifras, barras, listas e indicadores se actualizan solos, y
+   se indica la hora de la última actualización.
+4. **Given** un cambio de cifras o de periodo, **When** se actualiza la
+   pantalla, **Then** las barras crecen o bajan suavemente desde su valor
+   anterior y los números avanzan hasta su nuevo valor (menos de 1 s).
+5. **Given** el puntero o el foco del teclado sobre una barra, **When** se
+   detiene en ella, **Then** se explica en una frase qué representa
+   («5 kardex confrontados en la semana del 06/10»).
+6. **Given** que el sistema operativo pide reducir el movimiento, **When** se
+   actualiza la pantalla, **Then** los valores cambian sin animación.
+7. **Given** la pestaña del navegador en segundo plano, **When** pasa el
+   tiempo, **Then** no se consultan datos hasta que vuelve a estar visible, y al
+   volver se actualiza de inmediato.
+
+---
+
+### User Story 5 - Indicadores de calidad del periodo (Priority: P2)
+
+Ampliación pedida el 2026-10-18. Para el periodo elegido (12 semanas o año en
+curso), el administrador ve:
+
+- **Observaciones por gravedad**: cuántas ALTA, MEDIA y BAJA.
+- **Confrontaciones por usuaria**: kardex confrontados por cada persona.
+- **Usuarias con más errores**: observaciones por persona, de mayor a menor.
+- **Errores más frecuentes**: los 5 tipos de observación que más se repiten.
+- **Correcciones aplicadas**: documentos corregidos generados y correcciones
+  aplicadas en ellos.
+
+**Why this priority**: muestra dónde se equivoca el equipo y cuánto se
+aprovecha la corrección automática; orienta la capacitación.
+
+**Independent Test**: con confrontaciones ficticias de dos usuarias, con
+observaciones de distinta gravedad y tipo, y una decisión de corrección,
+comprobar cada indicador para cada periodo.
+
+**Acceptance Scenarios**:
+
+1. **Given** kardex creados por la usuaria A y por la usuaria B, **When** se
+   confrontan, **Then** sus observaciones y confrontaciones se atribuyen a quien
+   **creó** el kardex, aunque otra persona haya subido el borrador.
+2. **Given** un kardex confrontado dos veces con los mismos documentos,
+   **When** se calculan los indicadores, **Then** cuenta una sola vez; si se
+   cambió algún documento, la nueva versión cuenta aparte.
+3. **Given** observaciones ALTA, MEDIA y BAJA en el periodo, **When** abre
+   Inicio, **Then** ve los tres totales.
+4. **Given** varias usuarias, **When** abre Inicio, **Then** ve, por persona,
+   kardex confrontados, observaciones y observaciones ALTA, ordenadas de más a
+   menos observaciones.
+5. **Given** observaciones de varios tipos, **When** abre Inicio, **Then** ve
+   los 5 tipos más frecuentes con su descripción en lenguaje notarial y su
+   cantidad.
+6. **Given** documentos corregidos generados en el periodo, **When** abre
+   Inicio, **Then** ve cuántos documentos se corrigieron y cuántas correcciones
+   se aplicaron.
+7. **Given** un periodo sin confrontaciones, **When** abre Inicio, **Then** cada
+   indicador muestra un estado vacío que lo explica.
+
 ### Edge Cases
 
 - Sin ningún kardex: las cifras muestran 0 y los paneles, su estado vacío.
@@ -171,6 +250,43 @@ usuaria B no lo ven.
 - **FR-010**: El aviso MUST desaparecer cuando el documento ya no está
   ilegible (eliminado o reemplazado) o el kardex se archiva.
 
+**Periodo y actualización (US4)**
+
+- **FR-012**: El Inicio del Administrador MUST ofrecer dos periodos: «Por
+  semana» (últimas 12 semanas, lunes a domingo) y «Por mes» (meses del año en
+  curso, de enero al mes actual), en hora de Lima. Por defecto, por semana; la
+  elección se recuerda en ese navegador.
+- **FR-013**: La actividad, los indicadores de calidad (FR-016 a FR-020) y las
+  cifras MUST actualizarse solos cada 60 s sin recargar la página, y al cambiar
+  de periodo. La pantalla muestra la hora de la última actualización y, si una
+  actualización falla, lo dice sin borrar los datos ya mostrados.
+- **FR-014**: Los cambios MUST animarse con suavidad (barras que crecen desde
+  su valor anterior, cifras que avanzan hasta el nuevo valor, filas nuevas que
+  aparecen gradualmente), en menos de 1 s, y sin animación si el sistema pide
+  reducir el movimiento.
+- **FR-015**: Cada barra MUST explicar, al pasar el puntero o con el foco del
+  teclado, qué representa, en una frase con la cifra y el periodo. No se
+  consultan datos mientras la pestaña está oculta.
+
+**Indicadores de calidad (US5)**
+
+- **FR-016**: Los indicadores MUST calcularse sobre las confrontaciones
+  creadas en el periodo elegido. Dos confrontaciones del mismo kardex con los
+  mismos documentos de entrada cuentan una sola vez; cada versión distinta de
+  los documentos cuenta aparte.
+- **FR-017**: Las observaciones y las confrontaciones MUST atribuirse a la
+  persona que **creó el kardex** (decisión del usuario: quien crea el kardex es
+  quien debe confrontarlo).
+- **FR-018**: «Observaciones por gravedad» MUST mostrar los totales ALTA, MEDIA
+  y BAJA según la gravedad registrada en cada observación.
+- **FR-019**: «Usuarias con más errores» MUST listar, por persona: kardex
+  confrontados, observaciones y observaciones ALTA, ordenadas por observaciones
+  de mayor a menor. «Confrontaciones por usuaria» usa la misma lista.
+- **FR-020**: «Errores más frecuentes» MUST mostrar los 5 tipos de observación
+  más repetidos con la descripción del catálogo de reglas y su cantidad.
+  «Correcciones aplicadas» MUST mostrar cuántos documentos corregidos se
+  generaron y cuántas correcciones se aplicaron en ellos.
+
 **Inicio del Usuario**
 
 - **FR-011**: El Inicio del rol Usuario MUST seguir como hoy, salvo que
@@ -189,6 +305,12 @@ usuaria B no lo ven.
   archivo ni contenido de documentos.
 - No se crea ningún dato nuevo: todo se calcula a partir de los expedientes,
   documentos y confrontaciones ya registrados.
+
+- Los indicadores por persona (FR-017, FR-019) solo los ve el Administrador.
+  Muestran nombres de usuarias del sistema y cifras, nunca el contenido de las
+  observaciones ni datos de comparecientes.
+- La actualización automática usa un punto de consulta de datos que exige
+  sesión y rol Administrador, y responde lo mismo que la pantalla.
 
 ### UX Requirements (principio VIII)
 
@@ -222,6 +344,12 @@ usuaria B no lo ven.
 - **SC-004**: Inicio carga en menos de 2 segundos con el volumen de la notaría
   (≤ 10 usuarias, miles de kardex).
 
+- **SC-005**: Tras una confrontación nueva, el Inicio del administrador la
+  refleja en menos de 70 s sin que nadie recargue la página.
+- **SC-006**: El 100 % de los indicadores de calidad cuadran con un recuento
+  manual sobre los datos de prueba, sin contar dos veces la misma versión de
+  documentos.
+
 ## Assumptions
 
 - La actividad semanal cubre 12 semanas (el usuario propuso 8–12).
@@ -233,4 +361,11 @@ usuaria B no lo ven.
 - FR-011: las métricas del Inicio del Usuario y su acceso rápido «Nueva
   confrontación» no cambian.
 - La lista de kardex ya acepta el filtro por tipo que usan las cifras.
+- US4–US5 (2026-10-18): «Usuarias con más errores» ordena por número total de
+  observaciones; también muestra cuántos kardex confrontó cada persona para
+  leer la cifra en contexto.
+- Las confrontaciones que no llegaron a resultado (error o no disponible) no
+  suman observaciones.
+- La elección de periodo se guarda solo en el navegador (preferencia de
+  pantalla, no dato de negocio).
 - Sin dependencias nuevas ni CDN (constitución, restricciones técnicas).

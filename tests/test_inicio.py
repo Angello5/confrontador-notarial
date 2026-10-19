@@ -1,5 +1,6 @@
 """F53: Inicio del administrador y avisos de documento ilegible."""
 
+import json
 from datetime import date, datetime
 from unittest import mock
 from zoneinfo import ZoneInfo
@@ -41,22 +42,30 @@ def _documento(expediente, usuario, estado):
     )
 
 
-def _corrida(expediente, usuario, cuando):
+def _corrida(expediente, usuario, cuando, observaciones=(), borrador="a", estado=None):
+    """Corrida ficticia; `observaciones` son pares (lista, tipo) del manifiesto."""
     from expedientes.models import Corrida
+    from expedientes.services import severidad
 
+    hallazgos = {"personas": [], "regla": [], "ortografia": [], "estado": "RESULTADO"}
+    for lista, tipo in observaciones:
+        clave = {"personas": "tipo", "regla": "campo"}.get(lista)
+        fila = {clave: tipo} if clave else {}
+        tipo_catalogo = "ORTOGRAFIA" if lista == "ortografia" else tipo
+        hallazgos[lista].append({**fila, "severidad": severidad(tipo_catalogo)})
     # creado_el es auto_now_add y la corrida es inmutable: se fija la hora.
     with mock.patch("django.utils.timezone.now", return_value=cuando):
         return Corrida.objects.create(
             expediente=expediente,
             id_borrador=1,
-            hash_borrador="a" * 64,
-            entradas=[],
+            hash_borrador=borrador * 64,
+            entradas=[{"hash_archivo": borrador * 64, "hash_texto": "c" * 64}],
             version_catalogo="v-ficticia",
             version_software="0.0.0",
             usuario=usuario,
             fecha_referencia="2026-01-01",
-            estado=Corrida.RESULTADO,
-            hallazgos="",
+            estado=estado or Corrida.RESULTADO,
+            hallazgos=json.dumps(hallazgos),
             huella="b" * 64,
         )
 
@@ -218,15 +227,23 @@ def test_inicio_de_administrador_muestra_actividad_y_confrontaciones(
     )
     client.force_login(administrador_ficticio)
 
-    content = client.get(reverse("home")).content.decode()
+    respuesta = client.get(reverse("home"))
 
-    assert 'aria-label="Kardex confrontados por semana, últimas 12 semanas"' in content
-    assert content.count('<li class="semana"') == 12
+    # US4: la pantalla se pinta con Alpine a partir de estos datos iniciales.
+    datos = respuesta.context["datos_inicio"]
+    content = respuesta.content.decode()
+    assert 'id="datos-inicio"' in content
     assert 'aria-label="Últimas confrontaciones"' in content
-    assert "EXP-FICTICIO-C1" in content
-    assert "usuario_ficticio" in content
-    assert "Transferencia vehicular" in content
-    assert f'href="/expedientes/{expediente.pk}/"' in content
+    assert len(datos["actividad"]) == 12
+    assert datos["confrontaciones"] == [
+        {
+            "codigo": "EXP-FICTICIO-C1",
+            "tipo": "Transferencia vehicular",
+            "usuario": "usuario_ficticio",
+            "fecha": "14/10/2026 09:00",
+            "url": f"/expedientes/{expediente.pk}/",
+        }
+    ]
     assert "ficticio-" not in content
     assert "hash" not in content.lower()
     assert Corrida.objects.filter(pk=corrida.pk).exists()
@@ -237,10 +254,11 @@ def test_inicio_de_administrador_sin_confrontaciones_lo_explica(
 ):
     client.force_login(administrador_ficticio)
 
-    content = client.get(reverse("home")).content.decode()
+    respuesta = client.get(reverse("home"))
 
-    assert "Aún no hay confrontaciones" in content
-    assert content.count('<li class="semana"') == 12
+    assert "Aún no hay confrontaciones" in respuesta.content.decode()
+    assert respuesta.context["datos_inicio"]["confrontaciones"] == []
+    assert all(s["kardex"] == 0 for s in respuesta.context["datos_inicio"]["actividad"])
 
 
 # --- US3: aviso de documento ilegible para quien lo subió -------------------
@@ -328,3 +346,209 @@ def test_inicio_de_usuaria_no_muestra_datos_de_toda_la_notaria(
         assert clave not in respuesta.context
     assert "Nueva confrontación" in content
     assert "Listos para confrontar" in content
+
+
+# --- US4: por semana o por mes, con datos al día ----------------------------
+
+
+def test_actividad_mensual_del_anio_en_curso_en_hora_de_lima(usuario_ficticio):
+    from expedientes.services import actividad_mensual
+
+    a = _expediente("EXP-FICTICIO-M1", usuario_ficticio)
+    b = _expediente("EXP-FICTICIO-M2", usuario_ficticio)
+    _corrida(a, usuario_ficticio, datetime(2026, 3, 2, 9, tzinfo=LIMA))
+    _corrida(a, usuario_ficticio, datetime(2026, 3, 20, 9, tzinfo=LIMA))
+    # 31/03 23:30 en Lima ya es abril en UTC: debe contar en marzo.
+    _corrida(b, usuario_ficticio, datetime(2026, 3, 31, 23, 30, tzinfo=LIMA))
+    _corrida(b, usuario_ficticio, datetime(2026, 10, 1, 9, tzinfo=LIMA))
+    _corrida(b, usuario_ficticio, datetime(2025, 12, 20, 9, tzinfo=LIMA))  # otro año
+
+    actividad = actividad_mensual(hoy=date(2026, 10, 14))
+
+    assert [mes["inicio"] for mes in actividad] == [
+        date(2026, numero, 1) for numero in range(1, 11)
+    ]
+    por_mes = {mes["inicio"].month: mes["kardex"] for mes in actividad}
+    assert por_mes[3] == 2
+    assert por_mes[10] == 1
+    assert sum(por_mes.values()) == 3
+
+
+def test_rango_de_cada_periodo():
+    from expedientes.services import rango_periodo
+
+    desde, hasta = rango_periodo("semana", date(2026, 10, 14))
+    assert desde == datetime(2026, 7, 27, tzinfo=LIMA)
+    assert hasta == datetime(2026, 10, 19, tzinfo=LIMA)
+    desde, hasta = rango_periodo("mes", date(2026, 10, 14))
+    assert desde == datetime(2026, 1, 1, tzinfo=LIMA)
+    assert hasta == datetime(2026, 11, 1, tzinfo=LIMA)
+
+
+def test_datos_del_inicio_en_json_solo_para_el_administrador(
+    client, usuario_ficticio, administrador_ficticio
+):
+    expediente = _expediente("EXP-FICTICIO-J1", usuario_ficticio)
+    _corrida(expediente, usuario_ficticio, datetime(2026, 10, 14, 9, tzinfo=LIMA))
+    url = reverse("home_datos")
+
+    assert client.get(url).status_code == 302  # anónimo: al login
+    client.force_login(usuario_ficticio)
+    assert client.get(url).status_code == 403
+    client.force_login(administrador_ficticio)
+    assert client.post(url).status_code == 405
+
+    datos = client.get(url, {"periodo": "mes"}).json()
+    assert datos["periodo"] == "mes"
+    assert set(datos) >= {
+        "cifras",
+        "actividad",
+        "confrontaciones",
+        "indicadores",
+        "periodo",
+        "actualizado",
+    }
+    octubre = datos["actividad"][-1]
+    assert octubre["etiqueta"] == "Oct"
+    assert octubre["kardex"] == 1
+    assert octubre["alto"] == 100
+    assert octubre["explicacion"] == "1 kardex confrontado en octubre de 2026"
+    assert client.get(url, {"periodo": "x"}).json()["periodo"] == "semana"
+    semana = client.get(url).json()["actividad"][-1]
+    assert semana["explicacion"].endswith(f"en la semana del {semana['etiqueta']}")
+
+
+# --- US5: indicadores de calidad ---------------------------------------------
+
+
+def test_indicadores_de_calidad_atribuyen_al_creador_sin_duplicar(
+    usuario_ficticio, administrador_ficticio
+):
+    from expedientes.models import DecisionCorreccion
+    from expedientes.services import indicadores_calidad, rango_periodo
+
+    usuario_ficticio.first_name, usuario_ficticio.last_name = "Ana", "Prueba"
+    usuario_ficticio.save()
+    cuando = datetime(2026, 10, 14, 9, tzinfo=LIMA)
+    de_ana = _expediente("EXP-FICTICIO-Q1", usuario_ficticio)
+    obs = [("regla", "DNI"), ("regla", "DNI"), ("regla", "MONTO"), ("ortografia", "x")]
+    # Confronta el administrador, pero el kardex es de Ana: cuenta para Ana.
+    primera = _corrida(de_ana, administrador_ficticio, cuando, obs)
+    _corrida(de_ana, usuario_ficticio, cuando, obs)  # mismos archivos: no suma
+    _corrida(de_ana, usuario_ficticio, cuando, [("regla", "DNI")], borrador="d")
+    del_admin = _expediente("EXP-FICTICIO-Q2", administrador_ficticio)
+    _corrida(del_admin, administrador_ficticio, cuando, [("personas", "SIN_FICHA")])
+    sin_resultado = _expediente("EXP-FICTICIO-Q3", administrador_ficticio)
+    _corrida(sin_resultado, administrador_ficticio, cuando, estado="ERROR")
+    _corrida(
+        del_admin,
+        administrador_ficticio,
+        datetime(2026, 1, 5, tzinfo=LIMA),
+        [("regla", "PARTIDA")],
+        borrador="e",
+    )  # fuera de las 12 semanas
+    DecisionCorreccion.objects.create(
+        corrida=primera,
+        usuario=usuario_ficticio,
+        apariciones={"c1": 1, "c2": 2},
+        hash_corregido="f" * 64,
+    )
+    DecisionCorreccion.objects.create(corrida=primera, usuario=usuario_ficticio)
+
+    ind = indicadores_calidad(*rango_periodo("semana", date(2026, 10, 14)))
+
+    assert ind["gravedad"] == {"ALTA": 4, "MEDIA": 1, "BAJA": 1}
+    assert ind["usuarias"] == [
+        {
+            "usuario": "Ana Prueba",
+            "kardex": 1,
+            "observaciones": 5,
+            "altas": 4,
+            "ancho": 100,
+        },
+        {
+            "usuario": "administrador_ficticio",
+            "kardex": 2,
+            "observaciones": 1,
+            "altas": 0,
+            "ancho": 20,
+        },
+    ]
+    assert [f["tipo"] for f in ind["frecuentes"]] == [
+        "DNI",
+        "MONTO",
+        "ORTOGRAFIA",
+        "SIN_FICHA",
+    ]
+    assert ind["frecuentes"][0]["cantidad"] == 3
+    assert ind["frecuentes"][0]["descripcion"].startswith("DNI del borrador")
+    assert ind["frecuentes"][0]["ancho"] == 100
+    assert ind["correcciones"] == {"documentos": 1, "aplicadas": 2}
+
+    mes = indicadores_calidad(*rango_periodo("mes", date(2026, 10, 14)))
+    assert mes["gravedad"]["ALTA"] == 5  # suma la PARTIDA de enero
+
+
+def test_indicadores_vacios_y_json_sin_datos_sensibles(
+    client, usuario_ficticio, administrador_ficticio
+):
+    from expedientes.services import indicadores_calidad, rango_periodo
+
+    vacio = indicadores_calidad(*rango_periodo("semana", date(2026, 10, 14)))
+    assert vacio == {
+        "gravedad": {"ALTA": 0, "MEDIA": 0, "BAJA": 0},
+        "usuarias": [],
+        "frecuentes": [],
+        "correcciones": {"documentos": 0, "aplicadas": 0},
+    }
+
+    expediente = _expediente("EXP-FICTICIO-S1", usuario_ficticio)
+    _documento(expediente, usuario_ficticio, "LISTO")
+    _corrida(
+        expediente,
+        usuario_ficticio,
+        datetime(2026, 10, 14, tzinfo=LIMA),
+        [("regla", "DNI")],
+    )
+    client.force_login(administrador_ficticio)
+    for respuesta in (client.get(reverse("home")), client.get(reverse("home_datos"))):
+        texto = respuesta.content.decode()
+        assert "ficticio-0.txt" not in texto
+        assert "hash" not in texto.lower()
+
+    client.force_login(usuario_ficticio)
+    respuesta = client.get(reverse("home"))
+    assert 'id="datos-inicio"' not in respuesta.content.decode()
+    assert "datos_inicio" not in respuesta.context
+
+
+def test_corrida_sin_observaciones_legibles_cuenta_el_kardex_sin_sumar_errores(
+    usuario_ficticio,
+):
+    from expedientes.models import Corrida
+    from expedientes.services import indicadores_calidad, rango_periodo
+
+    expediente = _expediente("EXP-FICTICIO-L1", usuario_ficticio)
+    with mock.patch(
+        "django.utils.timezone.now",
+        return_value=datetime(2026, 10, 14, tzinfo=LIMA),
+    ):
+        Corrida.objects.create(
+            expediente=expediente,
+            id_borrador=1,
+            hash_borrador="a" * 64,
+            entradas=[],
+            version_catalogo="v-ficticia",
+            version_software="0.0.0",
+            usuario=usuario_ficticio,
+            fecha_referencia="2026-01-01",
+            estado=Corrida.RESULTADO,
+            hallazgos="",
+            huella="b" * 64,
+        )
+
+    ind = indicadores_calidad(*rango_periodo("semana", date(2026, 10, 14)))
+
+    assert ind["usuarias"][0]["kardex"] == 1
+    assert ind["usuarias"][0]["observaciones"] == 0
+    assert ind["gravedad"] == {"ALTA": 0, "MEDIA": 0, "BAJA": 0}

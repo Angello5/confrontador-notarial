@@ -1,10 +1,11 @@
 {% comment %}
 Métrica: etiqueta con cuadro de color (`tono`: navy por defecto, verde, rojo o
 gris), número grande y apoyo opcional. Con `enlace` es un enlace; `filtro`
-añade ?estado= para abrir la lista ya filtrada.
+añade ?estado= para abrir la lista ya filtrada. Con `modelo`, Alpine
+muestra esa expresión (cifra animada) en lugar del valor inicial.
 {% endcomment %}
 {% if enlace %}<a class="metrica" data-tono="{{ tono }}" href="{{ enlace }}{% if filtro %}?estado={{ filtro }}{% endif %}">{% else %}<div class="metrica" data-tono="{{ tono }}">{% endif %}
   <p class="metrica-etiqueta">{{ etiqueta }}</p>
-  <p class="metrica-valor">{{ valor }}</p>
+  <p class="metrica-valor"{% if modelo %} x-text="{{ modelo }} ?? {{ valor }}"{% endif %}>{{ valor }}</p>
   {% if apoyo %}<p class="metrica-apoyo">{{ apoyo }}</p>{% endif %}
 {% if enlace %}</a>{% else %}</div>{% endif %}

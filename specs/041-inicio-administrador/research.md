@@ -92,3 +92,51 @@ tomadas a partir del código existente.
   agregadas. El Inicio del Usuario no cambia su cálculo.
 - **Rationale**: SC-004 (< 2 s con miles de kardex). Resuelve el aviso
   `ponytail` de `core/views.py` para el administrador, que ve todos los kardex.
+
+## Ampliación US4–US5 (2026-10-18)
+
+### R10. Periodo por mes
+
+- **Decision**: `actividad_mensual(hoy)` con `TruncMonth(..., output_field=DateField())`,
+  de enero al mes de `hoy`, kardex distintos por mes. `rango_periodo(periodo, hoy)`
+  devuelve el inicio y el fin de cada periodo para los indicadores.
+- **Rationale**: misma técnica que R3; el usuario eligió el año en curso.
+
+### R11. Indicadores de calidad
+
+- **Decision**: `indicadores_calidad(desde, hasta)` lee las corridas del
+  periodo con `select_related("expediente__creado_por")`, descarta las
+  repetidas con la clave (kardex, `hash_borrador`, hashes de archivo y de texto
+  de cada entrada) y suma en Python las observaciones de `hallazgos` (JSON con
+  `personas`, `regla` y `ortografia`, cada una con su `severidad`). El tipo
+  sale de `tipo` (personas), `campo` (regla) u `ORTOGRAFIA`, y su descripción,
+  del catálogo de reglas. Las correcciones salen de `DecisionCorreccion` del
+  periodo con `hash_corregido` (documento generado) y `apariciones` (aplicadas).
+- **Rationale**: los datos ya existen; la deduplicación aplica la decisión del
+  usuario (mismos archivos, mismo resultado). El volumen (≤ 10 usuarias) cabe
+  en memoria sin problema.
+- **Alternatives considered**: guardar contadores por corrida (migración y
+  duplicar datos del manifiesto inmutable).
+
+### R12. Datos en tiempo real
+
+- **Decision**: `datos_inicio_administrador(usuario, periodo)` arma un dict
+  serializable (cifras, actividad con altura y explicación, confrontaciones,
+  indicadores, hora). La vista lo inserta con `json_script` y un punto de
+  consulta `GET /inicio/datos/?periodo=semana|mes` (solo Administrador)
+  devuelve lo mismo en JSON. Un componente Alpine lo vuelve a pedir cada 60 s
+  con `setTimeout`, como la carga de documentos, y se pausa con
+  `visibilitychange`.
+- **Rationale**: constitución, restricciones técnicas: «el estado se consulta
+  desde la página con Alpine + fetch a un endpoint JSON». Sin WebSockets ni
+  dependencias.
+
+### R13. Animaciones
+
+- **Decision**: `static/js/inicio-admin.js` (módulo UMD como
+  `carga-expediente.js`) con funciones puras probadas en Node: `interpolar`
+  (curva de salida suave), `etiquetaPeriodo` y `periodoGuardado`. Las barras son
+  un elemento con `height` y `transition: height 0.6s`; las cifras avanzan con
+  `requestAnimationFrame` en 600 ms; las filas nuevas usan `ne-in`. La regla
+  global de `prefers-reduced-motion` ya anula transiciones y el JS salta la
+  interpolación si el sistema lo pide.

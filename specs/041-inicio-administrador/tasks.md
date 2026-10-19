@@ -152,3 +152,29 @@ luego T012 → T013 → T014 → T015, con T016 (CSS) en paralelo
 1. + US2 (actividad y últimas confrontaciones) → validar.
 2. + US3 (avisos para quien subió el documento) → validar.
 3. Polish: specs relacionadas, roadmap, lint, cobertura y revisión manual.
+
+## Phase 7: User Story 4 - Por semana o por mes, con datos al día (Priority: P2)
+
+**Goal**: selector de periodo, actualización automática cada 60 s y animaciones suaves.
+
+- [X] T027 [P] [US4] Test en `tests/test_inicio.py`: `actividad_mensual(hoy=date(2026, 10, 14))` devuelve 10 meses (enero–octubre) con `inicio` el día 1, kardex distintos por mes en hora de Lima (una corrida del 31/03 a las 23:30 de Lima cuenta en marzo) y 0 en meses vacíos; `rango_periodo("semana"|"mes", hoy)` devuelve los límites esperados (FR-012).
+- [X] T028 [P] [US4] Test en `tests/test_inicio.py`: `GET /inicio/datos/?periodo=mes` como Administrador devuelve JSON con `cifras`, `actividad` (con `etiqueta`, `explicacion` y `alto`), `confrontaciones`, `indicadores`, `periodo` y `actualizado`; un periodo desconocido usa `semana`; una Usuaria recibe 403, un anónimo va al login y `POST` da 405 (FR-012, FR-013, seguridad).
+- [X] T029 [P] [US4] Test en `tests/inicio_frontend.test.cjs`: `interpolar` va de origen a destino sin pasarse y termina exacto; `etiquetaPeriodo` y `periodoGuardado` devuelven `semana` ante valores desconocidos o almacenamiento que falla (FR-012, FR-014).
+- [X] T030 [US4] Implementar `rango_periodo`, `actividad_mensual` y `datos_inicio_administrador` en `expedientes/services.py`; mover el cálculo de `alto` desde `core/views.py`.
+- [X] T031 [US4] Vista `home_datos` en `core/views.py` y ruta `inicio/datos/` en `core/urls.py`; `home` usa `datos_inicio_administrador` y pasa `datos_inicio`.
+- [X] T032 [US4] `static/js/inicio-admin.js`: componente Alpine `inicioAdmin` (periodo con `localStorage` en try/catch, sondeo de 60 s con `setTimeout`, pausa con `visibilitychange`, aviso si falla, cifras y barras animadas) y funciones puras exportadas.
+- [X] T033 [US4] `templates/core/home.html` (rama Administrador): datos con `json_script`, selector «Por semana / Por mes» (`aria-pressed`), barras con ayuda al pasar el puntero o enfocar, hora «Actualizado a las …» con `aria-live="polite"`; ajustar los tests de vista de US1–US2 a los datos iniciales.
+- [X] T034 [P] [US4] `static/css/erp.css`: barra con `transition: height`, ayuda emergente de cada barra, selector de periodo y estado de error.
+
+## Phase 8: User Story 5 - Indicadores de calidad (Priority: P2)
+
+- [X] T035 [P] [US5] Test en `tests/test_inicio.py` de `indicadores_calidad`: atribución a quien creó el kardex aunque confronte otra persona; dos corridas con las mismas entradas cuentan una vez y una con otro borrador cuenta aparte; totales ALTA/MEDIA/BAJA; usuarias ordenadas por observaciones con kardex y ALTA; los 5 tipos más frecuentes con descripción del catálogo; documentos corregidos y correcciones aplicadas; corridas fuera del periodo o sin resultado no suman (FR-016 a FR-020).
+- [X] T036 [US5] Implementar `indicadores_calidad(desde, hasta)` en `expedientes/services.py` e incluirlo en `datos_inicio_administrador`.
+- [X] T037 [US5] Paneles en `templates/core/home.html`: «Observaciones por gravedad» (chips de severidad), «Usuarias con más errores» (barra proporcional animada), «Errores más frecuentes» y «Correcciones aplicadas», con estados vacíos.
+- [X] T038 [P] [US5] Test de vista: el JSON inicial y el de `/inicio/datos/` no contienen nombres de archivo, `hash` ni texto de observaciones; el Inicio de la Usuaria no incluye `datos-inicio` (seguridad).
+
+## Phase 9: Cierre de la ampliación
+
+- [X] T039 Ejecutar `node --test tests/*.cjs`, `ruff check`, `ruff format --check` y `pytest` completo.
+- [X] T040 Revisión en el navegador con datos ficticios: cambio de periodo, actualización sin recargar, animaciones, ayuda con teclado, 375 px y movimiento reducido.
+- [X] T041 Llevar la ampliación a la rama `feature/f53-inicio-administrador` y actualizar el roadmap.

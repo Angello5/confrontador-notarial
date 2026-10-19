@@ -10,7 +10,7 @@ import tomllib
 import unicodedata
 import zipfile
 from collections import Counter
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from time import perf_counter
 
@@ -18,7 +18,8 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.db.models import Count, DateField, F, OuterRef, Q, Subquery
-from django.db.models.functions import TruncWeek
+from django.db.models.functions import TruncMonth, TruncWeek
+from django.urls import reverse
 
 from .bloqueos import exclusivo
 
@@ -1474,24 +1475,64 @@ def cifras_por_tipo(usuario):
     }
 
 
-def actividad_semanal(hoy=None, semanas=12):
-    """F53: kardex distintos confrontados por semana (lunes, hora local)."""
+PERIODOS = ("semana", "mes")
+MESES = (
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+)
+
+
+def rango_periodo(periodo, hoy=None):
+    """F53: [desde, hasta) del periodo: 12 semanas o el año en curso, hora local."""
     hoy = hoy or timezone.localdate()
-    lunes = hoy - timedelta(days=hoy.weekday())
-    inicios = [lunes - timedelta(weeks=atras) for atras in range(semanas - 1, -1, -1)]
-    desde = timezone.make_aware(datetime.combine(inicios[0], time.min))
-    hasta = timezone.make_aware(datetime.combine(lunes + timedelta(weeks=1), time.min))
+    if periodo == "mes":
+        inicio = date(hoy.year, 1, 1)
+        fin = date(hoy.year + hoy.month // 12, hoy.month % 12 + 1, 1)
+    else:
+        lunes = hoy - timedelta(days=hoy.weekday())
+        inicio, fin = lunes - timedelta(weeks=11), lunes + timedelta(weeks=1)
+    return tuple(
+        timezone.make_aware(datetime.combine(dia, time.min)) for dia in (inicio, fin)
+    )
+
+
+def _kardex_por(truncar, desde, hasta):
     # Incluye kardex archivados: la actividad es un registro histórico.
-    por_semana = dict(
+    return dict(
         Corrida.objects.filter(creado_el__gte=desde, creado_el__lt=hasta)
-        .annotate(semana=TruncWeek("creado_el", output_field=DateField()))
-        .values_list("semana")
+        .annotate(tramo=truncar("creado_el", output_field=DateField()))
+        .values_list("tramo")
         .annotate(kardex=Count("expediente", distinct=True))
         .order_by()
     )
+
+
+def actividad_semanal(hoy=None):
+    """F53: kardex distintos confrontados por semana (lunes, hora local)."""
+    desde, hasta = rango_periodo("semana", hoy)
+    por_semana = _kardex_por(TruncWeek, desde, hasta)
+    inicios = [desde.date() + timedelta(weeks=numero) for numero in range(12)]
     return [
         {"inicio": inicio, "kardex": por_semana.get(inicio, 0)} for inicio in inicios
     ]
+
+
+def actividad_mensual(hoy=None):
+    """F53: kardex distintos confrontados por mes, de enero al mes de `hoy`."""
+    hoy = hoy or timezone.localdate()
+    por_mes = _kardex_por(TruncMonth, *rango_periodo("mes", hoy))
+    inicios = [date(hoy.year, mes, 1) for mes in range(1, hoy.month + 1)]
+    return [{"inicio": inicio, "kardex": por_mes.get(inicio, 0)} for inicio in inicios]
 
 
 def avisos_documentos_ilegibles(usuario):
@@ -1533,6 +1574,153 @@ def ultimas_confrontaciones(limite=5):
         }
         for expediente in expedientes
     ]
+
+
+def _nombre(usuario):
+    return usuario.get_full_name() or usuario.username
+
+
+def _observaciones(corrida):
+    """(tipo, severidad) de cada observación de una corrida con resultado."""
+    if corrida.estado not in (Corrida.RESULTADO, Corrida.ADVERTENCIA):
+        return []
+    try:
+        hallazgos = json.loads(corrida.hallazgos)
+    except ValueError:
+        return []
+    return [
+        (fila.get(clave) if clave else "ORTOGRAFIA", fila.get("severidad"))
+        for lista, clave in (
+            ("personas", "tipo"),
+            ("regla", "campo"),
+            ("ortografia", None),
+        )
+        for fila in hallazgos.get(lista, [])
+    ]
+
+
+def _ancho(valor, maximo):
+    return round(100 * valor / maximo) if maximo else 0
+
+
+def indicadores_calidad(desde, hasta):
+    """F53: calidad de las confrontaciones del periodo, por quien creó el kardex.
+
+    Una confrontación repetida con los mismos documentos cuenta una sola vez.
+    """
+    gravedad = {"ALTA": 0, "MEDIA": 0, "BAJA": 0}
+    personas, tipos, vistas = {}, Counter(), set()
+    corridas = (
+        Corrida.objects.filter(creado_el__gte=desde, creado_el__lt=hasta)
+        .select_related("expediente__creado_por")
+        .order_by("creado_el", "pk")
+    )
+    for corrida in corridas:
+        clave = (
+            corrida.expediente_id,
+            corrida.hash_borrador,
+            tuple(
+                (e.get("hash_archivo"), e.get("hash_texto")) for e in corrida.entradas
+            ),
+        )
+        if clave in vistas:
+            continue
+        vistas.add(clave)
+        autor = corrida.expediente.creado_por
+        persona = personas.setdefault(
+            autor.pk,
+            {
+                "usuario": _nombre(autor),
+                "kardex": set(),
+                "observaciones": 0,
+                "altas": 0,
+            },
+        )
+        persona["kardex"].add(corrida.expediente_id)
+        for tipo, grado in _observaciones(corrida):
+            gravedad[grado] = gravedad.get(grado, 0) + 1
+            tipos[tipo] += 1
+            persona["observaciones"] += 1
+            persona["altas"] += grado == "ALTA"
+    usuarias = sorted(
+        ({**p, "kardex": len(p["kardex"])} for p in personas.values()),
+        key=lambda p: (-p["observaciones"], p["usuario"]),
+    )
+    maximo = usuarias[0]["observaciones"] if usuarias else 0
+    for persona in usuarias:
+        persona["ancho"] = _ancho(persona["observaciones"], maximo)
+    frecuentes = sorted(tipos.items(), key=lambda par: (-par[1], par[0]))[:5]
+    reglas = CATALOGO_REGLAS["reglas"]
+    corregidos = DecisionCorreccion.objects.filter(
+        creado_el__gte=desde, creado_el__lt=hasta
+    ).exclude(hash_corregido="")
+    return {
+        "gravedad": gravedad,
+        "usuarias": usuarias,
+        "frecuentes": [
+            {
+                "tipo": tipo,
+                "descripcion": reglas.get(tipo, {}).get("descripcion", tipo),
+                "cantidad": cantidad,
+                "ancho": _ancho(cantidad, frecuentes[0][1]),
+            }
+            for tipo, cantidad in frecuentes
+        ],
+        "correcciones": {
+            "documentos": len(corregidos),
+            "aplicadas": sum(len(d.correcciones_aplicadas) for d in corregidos),
+        },
+    }
+
+
+def _explicar(inicio, periodo):
+    """Etiqueta corta de la barra y cuándo, sin depender del idioma del sistema."""
+    if periodo == "mes":
+        mes = MESES[inicio.month - 1]
+        return mes[:3].capitalize(), f"en {mes} de {inicio.year}"
+    etiqueta = inicio.strftime("%d/%m")
+    return etiqueta, f"en la semana del {etiqueta}"
+
+
+def datos_inicio_administrador(usuario, periodo="semana"):
+    """F53: todo el Inicio del administrador, serializable para la pantalla y el JSON."""
+    periodo = periodo if periodo in PERIODOS else "semana"
+    ahora = timezone.localtime()
+    hoy = ahora.date()
+    tramos = actividad_mensual(hoy) if periodo == "mes" else actividad_semanal(hoy)
+    maximo = max(tramo["kardex"] for tramo in tramos)
+    actividad = []
+    for tramo in tramos:
+        etiqueta, cuando = _explicar(tramo["inicio"], periodo)
+        confrontados = "confrontado" if tramo["kardex"] == 1 else "confrontados"
+        actividad.append(
+            {
+                "etiqueta": etiqueta,
+                "kardex": tramo["kardex"],
+                "alto": _ancho(tramo["kardex"], maximo),
+                "explicacion": f"{tramo['kardex']} kardex {confrontados} {cuando}",
+            }
+        )
+    return {
+        "periodo": periodo,
+        "titulo_periodo": "las últimas 12 semanas"
+        if periodo == "semana"
+        else f"lo que va de {hoy.year}",
+        "actualizado": ahora.strftime("%H:%M"),
+        "cifras": cifras_por_tipo(usuario),
+        "actividad": actividad,
+        "confrontaciones": [
+            {
+                "codigo": fila["expediente"].codigo,
+                "tipo": fila["expediente"].get_tipo_display(),
+                "usuario": fila["usuario"],
+                "fecha": timezone.localtime(fila["fecha"]).strftime("%d/%m/%Y %H:%M"),
+                "url": reverse("expediente_detalle", args=[fila["expediente"].pk]),
+            }
+            for fila in ultimas_confrontaciones()
+        ],
+        "indicadores": indicadores_calidad(*rango_periodo(periodo, hoy)),
+    }
 
 
 # Catálogo de reglas versionado (Anexo A, capas 5 y 6). El núcleo no lee

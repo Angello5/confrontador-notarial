@@ -54,7 +54,7 @@ Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-n
 | **F43** · Transferencia vehicular | Submenú bajo «Kardex» que compara boleta informativa, DNI y cheques con el acta | Sin minuta; precio obligatorio en el acta; cheques por monto transferido | #85, #86 | 037 |
 | **F44** · Submenú e informe vehicular | Submenú visible e informe Word sin minuta | — | #87 | 037 |
 | **F45** · Ajustes vehiculares | Actas en tabla, vehículo a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO» | — | #88 | 037 |
-| **F53** · Inicio del administrador | Cifras por tipo que suman el total, actividad de 12 semanas, últimas confrontaciones con su usuaria y aviso de documento ilegible para quien lo subió | Sin «Pendientes de confrontar»; la actividad cuenta kardex distintos por semana | pendiente | 041 |
+| **F53** · Inicio del administrador | Cifras por tipo que suman el total, actividad por semana o por mes que se actualiza sola cada minuto, indicadores de calidad (gravedad, usuarias con más errores, errores frecuentes, correcciones), últimas confrontaciones y aviso de documento ilegible para quien lo subió | Sin «Pendientes de confrontar»; kardex distintos por periodo; errores atribuidos a quien creó el kardex; mismos archivos no suman dos veces | pendiente | 041 |
 
 ### En curso o pendientes
 
@@ -122,6 +122,8 @@ F45: ajustes de la transferencia vehicular con dos actas reales más: actas en t
 ## Continuación autorizada · 2026-10-18
 
 F53: Inicio del administrador. Tras revisar la pantalla como notario, el usuario pidió que las cifras cuadren con el total, separar kardex y transferencias vehiculares, ver la actividad por semana y quién ejecutó cada confrontación, y quitar «Procesando», «Con error», «Requieren su atención» y «Control administrativo». Descartó la tarjeta «Pendientes de confrontar» porque la confrontación es automática (F26), y decidió contar kardex distintos por semana. Quien sube un documento ilegible recibe el aviso en su Inicio, sea cual sea su rol; el Inicio de las usuarias no cambia en lo demás. Alcance en `specs/041-inicio-administrador/`.
+
+Ampliación del mismo día: ver la actividad por semana (12 semanas) o por mes (año en curso), actualización automática cada minuto con animaciones suaves, e indicadores de calidad: observaciones por gravedad, confrontaciones y errores por usuaria, errores más frecuentes y correcciones aplicadas. El usuario decidió atribuir los errores a quien creó el kardex («la que crea el kardex es la que debe confrontar») y que confrontar de nuevo con los mismos archivos no sume.
 
 ## Prompts de arranque para `/speckit-specify`
 
