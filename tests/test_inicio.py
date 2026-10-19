@@ -447,13 +447,16 @@ def test_indicadores_de_calidad_atribuyen_al_creador_sin_duplicar(
         [("regla", "PARTIDA")],
         borrador="e",
     )  # fuera de las 12 semanas
-    DecisionCorreccion.objects.create(
-        corrida=primera,
-        usuario=usuario_ficticio,
-        apariciones={"c1": 1, "c2": 2},
-        hash_corregido="f" * 64,
-    )
-    DecisionCorreccion.objects.create(corrida=primera, usuario=usuario_ficticio)
+    # creado_el es auto_now_add y la decisión es inmutable: se fija la hora;
+    # con la de hoy la prueba falla en cuanto la semana del 14 queda atrás.
+    with mock.patch("django.utils.timezone.now", return_value=cuando):
+        DecisionCorreccion.objects.create(
+            corrida=primera,
+            usuario=usuario_ficticio,
+            apariciones={"c1": 1, "c2": 2},
+            hash_corregido="f" * 64,
+        )
+        DecisionCorreccion.objects.create(corrida=primera, usuario=usuario_ficticio)
 
     ind = indicadores_calidad(*rango_periodo("semana", date(2026, 10, 14)))
 
