@@ -138,7 +138,8 @@ El usuario pidió el 2026-10-20: «Cambiar "Kardex" por Transferencia Vehicular 
 **Fuera de alcance:**
 
 - El inicio (`core/home.html`) cuenta los dos tipos juntos («Últimos kardex», «Nuevo kardex»).
-- Tras eliminar una TV, o si falla su restauración, se vuelve a la lista de Kardex: es comportamiento, no texto.
 - El comando de consola `suprimir_texto_expediente`.
+
+**Redirección (decidido el 2026-10-20 para ahorrar tiempo):** tras eliminar una TV, o si falla su restauración, se vuelve a la lista de TV (a sus archivadas si falla la restauración). Antes se volvía a la de Kardex. El kardex notarial sigue volviendo a la suya.
 
 **Verificación:** `tests/test_vehicular_ui.py`, desde `test_pantallas_vehiculares_dicen_tv_y_no_kardex` hasta `test_pantallas_notariales_siguen_diciendo_kardex`. El informe Word se prueba en `tests/confrontacion_frontend.test.cjs` («F55: …»).

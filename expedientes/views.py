@@ -263,7 +263,7 @@ def expediente_eliminar(request, pk):
             if expediente.tipo == Expediente.VEHICULAR
             else f"Kardex {expediente.codigo} eliminado.",
         )
-        return redirect("expediente_lista")
+        return redirect(expediente.url_lista)
     contexto = {"expediente": expediente}
     contexto.update(_navegacion_contexto(request))
     return render(request, "expedientes/eliminar.html", contexto)
@@ -294,7 +294,7 @@ def expediente_restaurar(request, pk):
             f"{expediente.codigo}. Cambie o elimine {'esa TV' if tv else 'ese kardex'} "
             "primero.",
         )
-        return redirect(f"{reverse('expediente_lista')}?archivados=1")
+        return redirect(f"{expediente.url_lista}?archivados=1")
     messages.success(
         request,
         f"TV {expediente.codigo} restaurada."
