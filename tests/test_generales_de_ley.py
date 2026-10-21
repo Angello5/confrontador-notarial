@@ -1,4 +1,4 @@
-"""F42: los datos de los comparecientes van en la pestaña «Generales de ley»."""
+"""F42: los datos de los comparecientes se etiquetan «Generales de ley»."""
 
 import re
 
@@ -45,7 +45,8 @@ def test_pantalla_agrupa_el_nombre_en_generales_de_ley(escenario, usuario_fictic
         reverse("documento_resultado", args=[expediente.pk, borrador.pk])
     ).content.decode()
 
-    assert re.search(r'role="tab"[^>]*>Generales de ley<', html)
-    assert not re.search(r'role="tab"[^>]*>Identidad<', html)
+    # F56: sin pestañas por capa; cada ítem conserva su etiqueta.
+    assert '<span class="obs-capa">Generales de ley</span>' in html
+    assert ">Identidad<" not in html
     assert re.search(r'data-capa="IDENTIDAD"[^>]*data-campo="Nombre"', html)
     assert not re.search(r'data-capa="REGLA"[^>]*data-campo="Nombre"', html)

@@ -159,6 +159,19 @@ def test_resultado_vehicular_avisa_al_informe(client, usuario_ficticio, vehicula
         reverse("documento_resultado", args=[expediente.pk, borrador.pk])
     ).content.decode()
     assert "vehicular: 'VEHICULAR' === 'VEHICULAR'," in html
+    # F56: el ítem de la lista muestra la placa hallada y la correcta sin abrirlo.
+    item = re.search(
+        r'<button type="button" class="obs-item"(?:(?!</button>).)*>Placa<.*?</button>',
+        html,
+        re.S,
+    ).group(0)
+    assert re.search(
+        r'<span class="tachado">QWE128</span>.*?'
+        r'<span class="visually-hidden">, debe decir: </span>'
+        r'<span class="correcto">QWE123</span>',
+        item,
+        re.S,
+    )
 
 
 def test_menu_expedientes_agrupa_kardex_y_transferencia_vehicular(
