@@ -25,7 +25,8 @@ def test_banda_muestra_la_notaria_y_lo_que_hace_el_sistema(client):
     _, banda = _ingreso(client)
 
     assert "aria-hidden" not in banda.split(">", 1)[0]
-    assert NOMBRE in banda and DIRECCION in banda
+    assert NOMBRE in banda
+    assert DIRECCION in banda
     assert banda.count("<li>") == 3
     for texto in ("la minuta y los recaudos", "debe decir", "Word"):
         assert texto in banda
@@ -64,7 +65,9 @@ def test_ingreso_no_carga_recursos_remotos(client):
     css = (Path(settings.STATICFILES_DIRS[0]) / "css" / "erp.css").read_text()
 
     referencias = re.findall(r'(?:src|href)="([^"]*)"', contenido)
-    assert referencias and all(r.startswith(("/", "#")) for r in referencias)
+    assert referencias
+    assert all(r.startswith(("/", "#")) for r in referencias)
     assert re.search(r'href="/static/css/erp\.css\?v=\w+"', contenido)
-    assert "url(" not in contenido and "@import" not in css
+    assert "url(" not in contenido
+    assert "@import" not in css
     assert all(u.startswith('"data:') for u in re.findall(r"url\(([^)]*)", css))
