@@ -605,15 +605,12 @@ a.metrica:hover { background: var(--ne-hover); color: var(--ne-navy); }
 }
 
 .capas { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-bottom: 1px solid var(--ne-border); }
-.capas [role="tablist"] { display: flex; gap: 4px; overflow-x: auto; overflow-y: hidden; padding-bottom: 1px; }
+/* F56: una sola pestaña, «Todas»; queda como rótulo de la lista, no como control. */
 .capa {
-  height: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; background: transparent;
-  color: var(--ne-navy); font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  height: 44px; padding: 0 14px; border-bottom: 3px solid var(--ne-navy); margin-bottom: -1px;
+  color: var(--ne-navy); font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; white-space: nowrap;
 }
-.capa:hover { background: #e3e7f4; }
-.capa[aria-selected="true"] { border-bottom-color: var(--ne-navy); font-weight: 800; }
-.capa-num { min-width: 22px; height: 20px; padding: 0 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; background: #dfe3f0; color: var(--ne-navy); }
-.capa[aria-selected="true"] .capa-num { background: var(--ne-navy); color: #fff; }
+.capa-num { min-width: 22px; height: 20px; padding: 0 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; background: var(--ne-navy); color: #fff; }
 .atajos { margin-left: auto; font-size: 12px; color: var(--ne-slate); display: flex; align-items: center; gap: 6px; padding-bottom: 6px; }
 kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid var(--ne-border); background: var(--ne-white); padding: 1px 6px; color: var(--ne-navy); }
 @media (max-width: 959.98px) { .atajos { display: none; } }
@@ -621,8 +618,9 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .revision { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
 .obs-panel { position: sticky; top: 80px; max-height: calc(100vh - 190px); overflow: auto; }
 .obs-lista { list-style: none; padding: 0; }
+/* relative: los .visually-hidden de cada ítem no deben desbordar la lista desplazable. */
 .obs-item {
-  width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 12px 13px;
+  position: relative; width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 12px 13px;
   border: 0; border-left: 3px solid transparent; border-bottom: 1px solid var(--ne-line);
   background: var(--ne-white); text-align: left; cursor: pointer; color: var(--ne-navy); transition: background 0.12s;
 }
@@ -632,8 +630,12 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .obs-capa { font-size: 12px; font-weight: 700; color: var(--ne-slate); }
 .obs-linea { margin-left: auto; font-size: 12px; color: var(--ne-slate); white-space: nowrap; }
 .obs-titulo { font-size: 14px; line-height: 20px; font-weight: 700; overflow-wrap: anywhere; }
-.cambio { font-size: 13px; line-height: 18px; color: var(--ne-slate); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; overflow-wrap: anywhere; }
-.cambio .ico { font-size: 12px; }
+/* F56: lo hallado → lo correcto en una línea si cabe; si no, lo correcto pasa a la siguiente,
+   para que se vea dónde difieren. Solo un valor más ancho que el panel se recorta con elipsis. */
+.cambio { font-size: 13px; line-height: 18px; color: var(--ne-slate); display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; min-width: 0; }
+.cambio .tachado, .cambio .correcto { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cambio .hacia { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.cambio .ico { font-size: 12px; flex: none; }
 .tachado { text-decoration: line-through; text-decoration-color: var(--ne-err-bd); color: var(--ne-err-fg); }
 .correcto { color: var(--ne-ok-fg); font-weight: 700; }
 .obs-marca { font-size: 12px; color: var(--ne-green-text); font-weight: 700; display: flex; align-items: center; gap: 4px; }
@@ -890,7 +892,6 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .revision-documento .visor-paginas { max-height: 75vh; }
 .revision-documento .obs-detalle { padding: 18px; }
 .revision-documento .obs-detalle-cab { flex-wrap: wrap; gap: 10px; }
-.revision-documento .obs-item .cambio { display: none; }
 .revision-documento .documentos, .revision-documento .valores { grid-template-columns: minmax(0, 1fr); }
 .revision-documento .obs-correccion { margin-top: 16px; }
 .revision-documento .obs-correccion p { margin-bottom: 12px; }

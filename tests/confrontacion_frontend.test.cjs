@@ -104,7 +104,7 @@ test('F56: a single «Todas» list filtered only by severity', () => {
   assert.equal(state.contar, undefined);
   assert.equal(state.visibles.length, 3);
   state.sev = 'MEDIA';
-  assert.deepEqual(state.visibles.map((o) => o.id), ['r1']);
+  assert.equal(state.visibles.map((o) => o.id).join(), 'r1');
   // The severity counters always count the whole list.
   assert.equal(state.contarSev('ALTA'), 1);
   state.ajustarSeleccion();

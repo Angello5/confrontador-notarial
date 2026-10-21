@@ -809,7 +809,8 @@ def test_f56_cada_item_muestra_lo_hallado_y_lo_correcto(
         # La flecha es decorativa: el lector de pantalla oye «Dice…, debe decir…».
         assert re.search(
             rf'<span class="visually-hidden">{dice}: </span><span class="tachado">'
-            rf'{hallado}</span><svg class="ico" aria-hidden="true">.*?</svg>'
+            rf'{hallado}</span><span class="hacia"><svg class="ico" aria-hidden="true">'
+            r".*?</svg>"
             rf'<span class="visually-hidden">, {debe}: </span>'
             rf'<span class="correcto">{esperado}</span>',
             item,
@@ -819,6 +820,7 @@ def test_f56_cada_item_muestra_lo_hallado_y_lo_correcto(
     assert '<span class="obs-capa">Generales de ley</span>' in contenido
     assert '<span class="obs-capa">Regla</span>' in contenido
     assert '<span class="obs-capa">Lingüístico</span>' in contenido
+    assert '<strong class="obs-titulo">No existe en castellano</strong>' in contenido
 
 
 def test_f56_una_sola_pestana_todas_y_siguen_los_filtros_de_severidad(
