@@ -37,8 +37,8 @@
               <tr>
                 <th scope="row">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</th>
                 <td>{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}</td>
-                <td><span class="tachado">{{ observacion.hallado }}</span></td>
-                <td><span class="correcto">{{ observacion.esperado }}</span>{% if observacion.motivo %}<span class="sub">{{ observacion.motivo }}</span>{% endif %}</td>
+                <td>{% if observacion.aviso %}{{ observacion.aviso.borrador }}{% else %}<span class="tachado">{{ observacion.hallado }}</span>{% endif %}</td>
+                <td>{% if observacion.aviso %}Qué verificar: {{ observacion.aviso.verificar }}{% else %}<span class="correcto">{{ observacion.esperado }}</span>{% endif %}{% if observacion.motivo %}<span class="sub">{{ observacion.motivo }}</span>{% endif %}</td>
                 <td class="texto-chico">{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
               </tr>
             {% endfor %}

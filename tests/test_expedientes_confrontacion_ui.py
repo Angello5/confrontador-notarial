@@ -884,3 +884,278 @@ def test_f56_la_hoja_de_estilos_no_oculta_el_dato_y_lo_recorta():
     assert "text-overflow: ellipsis" in recorte.group(1)
     assert "white-space: nowrap" in recorte.group(1)
     assert "!important" not in recorte.group(1)
+
+
+# F60: datos ficticios de los avisos que no son una corrección.
+_BIEN_PROPIO = {
+    "campo": "CONYUGE_BIEN_PROPIO",
+    "hallado": "ALBA ZURBELIA LUMARIA: Interviene sin su cónyuge por ser bien propio",
+    "esperado": "RENIEC: CASADO",
+    "motivo": "Fuente: ficha-ficticia.pdf, página 1",
+}
+_LETRAS = {
+    "campo": "NUMERO_EN_LETRAS",
+    "hallado": "2,50 (DOS MIL QUINIENTOS CON 00/100 SOLES)",
+    "esperado": "2,50",
+}
+_DOMICILIO = {
+    "campo": "DOMICILIO_NO_ENCONTRADO",
+    "hallado": "ALBA ZURBELIA LUMARIA: No aparece en el borrador",
+    "esperado": "RENIEC: CALLE FICTICIA 123",
+}
+
+
+@pytest.mark.parametrize(
+    ("fila", "borrador", "verificar", "lista"),
+    [
+        (
+            _BIEN_PROPIO,
+            _BIEN_PROPIO["hallado"],
+            "RENIEC indica CASADO. Confirme que el bien es propio; "
+            "si no lo es, debe intervenir el cónyuge.",
+            "ALBA ZURBELIA LUMARIA: casado según RENIEC · confirme bien propio",
+        ),
+        (
+            _LETRAS,
+            _LETRAS["hallado"],
+            "La cifra y las letras no valen lo mismo. Corrija la que no corresponda.",
+            "Cifra y letras no coinciden: 2,50 (DOS MIL QUINIENTOS CON 00/100 SOLES)",
+        ),
+        (
+            {
+                "campo": "AREA",
+                "hallado": "CIEN METROS CUADRADOS (120 M2)",
+                "esperado": "120 M2",
+            },
+            "CIEN METROS CUADRADOS (120 M2)",
+            "La cifra y las letras del área no valen lo mismo. "
+            "Corrija la que no corresponda.",
+            "Cifra y letras no coinciden: CIEN METROS CUADRADOS (120 M2)",
+        ),
+        (
+            {
+                "campo": "COPROPIEDAD",
+                "hallado": "50 % Y EL 40 %",
+                "esperado": "100 %",
+            },
+            "50 % Y EL 40 %",
+            "Las cuotas de copropiedad no suman 100 %. Corrija la que no corresponda.",
+            "Las cuotas no suman 100 %: 50 % Y EL 40 %",
+        ),
+        (
+            _DOMICILIO,
+            "ALBA ZURBELIA LUMARIA: su domicilio de RENIEC no aparece en el borrador",
+            "Domicilio según RENIEC: CALLE FICTICIA 123. "
+            "Verifique el domicilio que el borrador indica para esta persona.",
+            "ALBA ZURBELIA LUMARIA: su domicilio de RENIEC no aparece · "
+            "CALLE FICTICIA 123",
+        ),
+        (
+            {
+                "campo": "MENOR_DE_EDAD",
+                "hallado": "ALBA ZURBELIA LUMARIA: 16 años al 2026-10-20",
+                "esperado": "Fecha de nacimiento: 2010-05-01",
+            },
+            "ALBA ZURBELIA LUMARIA",
+            "Es menor de edad: 16 años al 2026-10-20. "
+            "Fecha de nacimiento: 2010-05-01. Verifique cómo interviene.",
+            "ALBA ZURBELIA LUMARIA: 16 años al 2026-10-20",
+        ),
+        (
+            {
+                "campo": "SIN_FICHA",
+                "hallado": "ALBA ZURBELIA LUMARIA",
+                "esperado": "Sin ficha RENIEC en los recaudos; "
+                "la minuta dice «ALBA SURBELIA LUMARIA»",
+            },
+            "ALBA ZURBELIA LUMARIA",
+            "Sin ficha RENIEC en los recaudos; la minuta dice «ALBA SURBELIA LUMARIA». "
+            "No se pudo verificar: revíselo a mano o cargue la ficha.",
+            "Sin ficha RENIEC en los recaudos: ALBA ZURBELIA LUMARIA",
+        ),
+        (
+            {
+                "campo": "NOMBRE_MARCA_AGUA",
+                "hallado": "ALBA ZURBELIA LUNARIA",
+                "esperado": "Posible Ñ por marca de agua; verifique el DNI",
+            },
+            "ALBA ZURBELIA LUNARIA",
+            "La ficha escaneada muestra una Ñ que puede ser la marca de agua. "
+            "Verifique el nombre con el DNI.",
+            "Posible Ñ por marca de agua: ALBA ZURBELIA LUNARIA",
+        ),
+        (
+            {
+                "tipo": "DOCUMENTO_SIN_TITULAR",
+                "hallado": "90000009",
+                "esperado": "Sin documento conocido",
+            },
+            "90000009",
+            "Ninguna persona de los recaudos tiene este documento. "
+            "Verifique el número.",
+            "Sin titular en los recaudos: 90000009",
+        ),
+        (
+            {
+                "campo": "PARTIDA",
+                "hallado": "80000009",
+                "esperado": "No coincide con ninguna fuente",
+            },
+            "80000009",
+            "No coincide con ninguna fuente. Verifique el dato en los documentos.",
+            "No coincide con ninguna fuente: 80000009",
+        ),
+        (
+            {"campo": "DNI", "hallado": "9000001", "esperado": "Debe tener 8 dígitos"},
+            "9000001",
+            "Debe tener 8 dígitos. Verifique el número.",
+            "Debe tener 8 dígitos: 9000001",
+        ),
+        (
+            {
+                "campo": "ANEXO",
+                "hallado": "No aparece en el borrador",
+                "esperado": "ANEXO 1 - HOJA RESUMEN",
+            },
+            "No aparece en el borrador",
+            "La minuta incluye «ANEXO 1 - HOJA RESUMEN». "
+            "Verifique que el borrador lo incluya.",
+            "Falta en el borrador: ANEXO 1 - HOJA RESUMEN",
+        ),
+        (
+            {
+                "campo": "PRECIO",
+                "hallado": "No aparece en el borrador",
+                "esperado": "Precio de la transferencia",
+            },
+            "No aparece en el borrador",
+            "El acta no indica el precio de la transferencia. "
+            "Verifique que lo incluya.",
+            "El acta no indica el precio de la transferencia",
+        ),
+    ],
+)
+def test_f60_aviso_dice_que_verificar(fila, borrador, verificar, lista):
+    from expedientes.services import aviso_de
+
+    assert aviso_de(fila) == {
+        "borrador": borrador,
+        "verificar": verificar,
+        "lista": lista,
+    }
+
+
+@pytest.mark.parametrize(
+    "fila",
+    [
+        {"campo": "PARTIDA", "hallado": "80000002", "esperado": "80000001"},
+        {"tipo": "DOCUMENTO_CRUZADO", "hallado": "90000002", "esperado": "90000001"},
+        {
+            "campo": "ESTADO_CIVIL_DISCREPANTE",
+            "hallado": "ALBA ZURBELIA LUMARIA: SOLTERA",
+            "esperado": "RENIEC: CASADO",
+        },
+        {
+            "campo": "PLACA",
+            "hallado": "No aparece en el borrador",
+            "esperado": "ABC-123",
+        },
+        {"campo": "ORTOGRAFIA", "hallado": "clausla", "esperado": "cláusula"},
+    ],
+)
+def test_f60_una_correccion_sigue_con_debe_decir(fila):
+    from expedientes.services import aviso_de
+
+    assert aviso_de(fila) is None
+
+
+def test_f60_la_pantalla_dice_que_verificar_sin_debe_decir(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Corrida, Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F60", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    ubicacion = {"linea": 2, "fragmento": "Fragmento ficticio."}
+    partida = {"campo": "PARTIDA", "hallado": "80000002", "esperado": "80000001"}
+    monkeypatch.setattr(
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
+            "estado": "RESULTADO",
+            "regla": [
+                {**fila, "ubicacion": ubicacion}
+                for fila in (_BIEN_PROPIO, _LETRAS, _DOMICILIO, partida)
+            ],
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+    items = _items(contenido)
+
+    # La corrida guarda el texto de siempre: el aviso se arma al mostrar.
+    corrida = Corrida.objects.get(expediente=expediente)
+    assert "RENIEC: CASADO" in corrida.hallazgos
+    # Ningún sitio de la pantalla dice «Debe decir: RENIEC: CASADO».
+    assert "RENIEC: CASADO" not in contenido
+
+    bien_propio = next(i for i in items if "confirme bien propio" in i)
+    assert "tachado" not in bien_propio
+    assert re.search(
+        r'<span class="cambio aviso-linea" title="En el borrador: ALBA ZURBELIA '
+        r"LUMARIA: Interviene sin su cónyuge por ser bien propio · Qué verificar: "
+        r'RENIEC indica CASADO\. [^"]*"><span class="visually-hidden">Qué verificar: '
+        r"</span>ALBA ZURBELIA LUMARIA: casado según RENIEC · confirme bien propio"
+        r"</span>",
+        bien_propio,
+    )
+    letras = next(i for i in items if "Cifra y letras no coinciden" in i)
+    assert "tachado" not in letras
+    domicilio = next(i for i in items if "CALLE FICTICIA 123" in i)
+    assert "No aparece en el borrador" not in domicilio
+    assert "su domicilio de RENIEC no aparece" in domicilio
+    # La corrección de verdad conserva el tachado → correcto de F56.
+    corregible = next(i for i in items if ">80000002</span>" in i)
+    assert 'class="tachado">80000002' in corregible
+    assert 'class="correcto">80000001' in corregible
+
+    # Detalle: «En el borrador» y «Qué verificar» en lugar de «Dice» / «Debe decir».
+    assert contenido.count("<dt>En el borrador</dt>") == 3
+    assert contenido.count("<dt>Qué verificar</dt>") == 3
+    assert contenido.count("<dt>Debe decir</dt>") == 1
+    assert (
+        '<dd class="verificar">La cifra y las letras no valen lo mismo. '
+        "Corrija la que no corresponda.</dd>"
+    ) in contenido
+    assert (
+        "<dd>ALBA ZURBELIA LUMARIA: su domicilio de RENIEC no aparece en el "
+        "borrador</dd>"
+    ) in contenido
+
+    # Datos del informe Word y de la tabla exportada: el aviso no trae «debe decir».
+    assert re.search(
+        r'data-hallado="2,50 \(DOS MIL QUINIENTOS CON 00/100 SOLES\)" '
+        r'data-esperado="" data-verificar="La cifra y las letras no valen lo mismo\. '
+        r'Corrija la que no corresponda\." data-aviso="Cifra y letras no coinciden: ',
+        contenido,
+    )
+    assert 'data-esperado="80000001" data-verificar="" data-aviso=""' in contenido
+
+    # Informe imprimible.
+    informe = re.search(r'<div data-seccion="IDENTIDAD">(.*?)</table>', contenido, re.S)
+    assert "Qué verificar: RENIEC indica CASADO." in informe.group(1)
+    regla = re.search(r'<div data-seccion="REGLA">(.*?)</table>', contenido, re.S)
+    assert "Qué verificar: La cifra y las letras no valen lo mismo." in regla.group(1)
+
+    # Vista de la corrida en el historial.
+    detalle = client.get(
+        f"/expedientes/{expediente.pk}/confrontaciones/{corrida.pk}/"
+    ).content.decode()
+    assert "RENIEC: CASADO" not in detalle
+    assert "Qué verificar: RENIEC indica CASADO." in detalle
+    assert '<span class="tachado">80000002</span>' in detalle
+    assert '<span class="tachado">2,50 (DOS MIL' not in detalle
