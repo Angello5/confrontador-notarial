@@ -2,14 +2,15 @@
 
 {% block title %}Correcciones · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
+  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Correcciones</li>
 </ol>{% endblock %}
-{% block eyebrow %}Kardex / Correcciones{% endblock %}
+{% block eyebrow %}{{ expediente.get_tipo_display }} / Correcciones{% endblock %}
 {% block heading %}Documento corregido{% endblock %}
 {% block meta %}<p class="cabecera-meta"><span>{{ expediente.codigo }}</span><span><svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>{{ borrador.nombre_original }}</span></p>{% endblock %}
-{% block actions %}<a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al kardex</a>{% endblock %}
+{% block actions %}<a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver {% if expediente.tipo == "VEHICULAR" %}a la TV{% else %}al kardex{% endif %}</a>{% endblock %}
 {% block content %}
   {% if error %}
     <section class="aviso aviso-grande" data-tono="advertencia" role="alert" aria-live="polite">

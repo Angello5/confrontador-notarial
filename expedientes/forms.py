@@ -21,30 +21,45 @@ class MultipleFileField(forms.FileField):
         return data if isinstance(data, list) else [data]
 
 
-CODIGO_OCUPADO = "Ya existe un kardex activo con ese número. Ingrese otro número."
+def codigo_ocupado(tipo):
+    """F55: el número es único entre tipos; el mensaje nombra el que ya lo usa."""
+    if tipo == Expediente.VEHICULAR:
+        return "Ya existe una TV activa con ese número. Ingrese otro número."
+    return "Ya existe un kardex activo con ese número. Ingrese otro número."
 
 
 class ExpedienteForm(forms.ModelForm):
     codigo = forms.CharField(
-        max_length=100, error_messages={"required": "Ingrese el número de kardex."}
+        max_length=100,
+        label="Número de kardex",
+        error_messages={"required": "Ingrese el número de kardex."},
     )
 
     class Meta:
         model = Expediente
         fields = ("codigo",)
-        labels = {"codigo": "Número de kardex"}
-        help_texts = {"codigo": "Escriba el número de kardex."}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.tipo == Expediente.VEHICULAR:
+            # F55: en la transferencia vehicular el número es «de TV».
+            campo = self.fields["codigo"]
+            campo.label = "Número de TV"
+            campo.error_messages["required"] = "Ingrese el número de TV."
 
     def clean_codigo(self):
         codigo = self.cleaned_data["codigo"].strip()
         if not codigo:
-            raise forms.ValidationError("Ingrese el número de kardex.")
-        if (
+            raise forms.ValidationError(
+                self.fields["codigo"].error_messages["required"]
+            )
+        ocupado = (
             Expediente.objects.filter(codigo=codigo, archivado_el__isnull=True)
             .exclude(pk=self.instance.pk)
-            .exists()
-        ):
-            raise forms.ValidationError(CODIGO_OCUPADO)
+            .first()
+        )
+        if ocupado:
+            raise forms.ValidationError(codigo_ocupado(ocupado.tipo))
         return codigo
 
 
