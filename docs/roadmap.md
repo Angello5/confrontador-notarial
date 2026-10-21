@@ -5,10 +5,10 @@ pequeña que se termina completa antes de empezar la siguiente: pasa por el
 ciclo de Spec Kit en su propio worktree de Orca y se integra a `main` por Pull
 Request. Las reglas están en `.specify/memory/constitution.md`.
 
-## Estado al 2026-10-12
+## Estado al 2026-10-20
 
-Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-notarial/pull/88)
-(2026-10-09). F17 no existe: la numeración la saltó.
+Integrado en `main` hasta F53 (PR #105, 2026-10-18). F17 no existe: la
+numeración la saltó.
 
 ### Terminadas
 
@@ -54,6 +54,13 @@ Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-n
 | **F43** · Transferencia vehicular | Submenú bajo «Kardex» que compara boleta informativa, DNI y cheques con el acta | Sin minuta; precio obligatorio en el acta; cheques por monto transferido | #85, #86 | 037 |
 | **F44** · Submenú e informe vehicular | Submenú visible e informe Word sin minuta | — | #87 | 037 |
 | **F45** · Ajustes vehiculares | Actas en tabla, vehículo a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO» | — | #88 | 037 |
+| **F46** · Administración con la marca | El admin de cuentas con colores, sello y nombre de la notaría; «Cuentas» en español | Cabecera blanca con línea verde, también en modo oscuro | #95 | 038 |
+| **F47** · Menú «Expedientes» | «Expedientes» agrupa «Kardex» y «Transferencia vehicular» en la barra lateral | «Expedientes» es solo rótulo de grupo; matiza a F36 únicamente en el menú | #94 | 039 |
+| **F48** · Total de errores al corregir | Sin «Revisión N» en la cabecera; la ventana de correcciones muestra el total de observaciones y bloquea las no corregibles | No cambia qué es corregible (F21); el número de corrida sigue en el informe | #96 | 040 |
+| **F49** · Administración interactiva | Fondo blanco, recuadros de cuentas, filas y acciones con respuesta visual, foco visible | Sin JavaScript ni dependencias; revisión de diseño y accesibilidad WCAG AA | #98 | 038 |
+| **F50** · Texto leído con versiones anteriores | El borrador `.docx` se relee solo; aviso para volver a subir los demás documentos; reextraer y suprimir con códigos repetidos | Se releen los borradores; minuta y recaudos se vuelven a subir; la supresión actúa solo sobre el kardex activo | #99 | 033 |
+| **F51** · Persona sin ficha | Un solo aviso «Persona sin ficha» por persona; rótulos legibles en lugar de códigos | Sin ficha en los recaudos basta el aviso MEDIA, sin la ALTA de documento | #100 | 032 |
+| **F52** · Visor: ubicación y recuadros | Las observaciones de persona se marcan sobre el nombre en su línea; recuadros con el ancho real de cada carácter | — | #101 | 026 |
 | **F53** · Inicio del administrador | Cifras por tipo que suman el total, actividad por semana o por mes que se actualiza sola cada minuto, indicadores de calidad (gravedad, usuarias con más errores, errores frecuentes, correcciones), últimas confrontaciones y aviso de documento ilegible para quien lo subió | Sin «Pendientes de confrontar»; kardex distintos por periodo; errores atribuidos a quien creó el kardex; mismos archivos no suman dos veces | pendiente | 041 |
 
 ### En curso o pendientes
@@ -73,7 +80,10 @@ Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-n
 - **Aclaraciones abiertas** (`[NEEDS CLARIFICATION]`): severidades, versión y
   orden de hallazgos en `specs/014-manifiesto-auditoria/spec.md`; FR-005 en
   `specs/015-capa-correccion/spec.md`; prioridad de procesamiento y progreso
-  por página en `docs/ocr-tiempos-2026-10-02.md`.
+  por página en `docs/ocr-tiempos-2026-10-02.md`; qué cuenta como total en
+  `specs/040-resumen-errores/spec.md`; supresión de un kardex solo archivado o
+  con el código repetido entre kardex y transferencia vehicular en
+  `specs/033-linguistico-tipeo/spec.md`.
 - **Versión del ERP**: `ERP_VERSION` sigue en `0.20.0` desde F20 y
   `sonar-project.properties` no define `sonar.projectVersion`.
 
@@ -118,6 +128,14 @@ F43: transferencia vehicular. El usuario pidió un submenú «Transferencia vehi
 F44: «Transferencia vehicular» como submenú visible de «Kardex» y el informe Word sin minuta en las transferencias. Alcance en `specs/037-transferencia-vehicular/` (sección F44).
 
 F45: ajustes de la transferencia vehicular con dos actas reales más: actas en tabla, vehículo entregado a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO». Alcance en `specs/037-transferencia-vehicular/` (sección F45).
+
+## Continuación autorizada · 2026-10-16
+
+F46–F49: el usuario pidió el admin con la marca, «Expedientes» como submenú con «Kardex» y «Transferencia vehicular», quitar «Revisión N» de la cabecera del resultado con el total de errores al corregir y las no corregibles bloqueadas, y luego el admin con fondo blanco y más interactivo usando las skills de diseño. Se hicieron en paralelo, cada una en su worktree y PR.
+
+F50–F52: a partir del kardex privado 72193. Las «mayúsculas mezcladas» venían de texto leído antes de F39; el usuario decidió releer los borradores `.docx` (únicos archivos conservados por la constitución), avisar para volver a subir la minuta y los recaudos, y que la supresión (Ley 29733) actúe solo sobre el kardex activo. Para una persona sin ficha basta el aviso MEDIA. El visor ubica las observaciones de persona y ajusta el ancho de los recuadros.
+
+Además, los enlaces a CSS y JS llevan versión (`?v=`, PR #97) para que el navegador no use hojas viejas tras actualizar. En SonarCloud se activó la regla `css:S9423` («!important»): se reanalizó `main` para que las líneas existentes no cuenten como nuevas.
 
 ## Continuación autorizada · 2026-10-18
 
