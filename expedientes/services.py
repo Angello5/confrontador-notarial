@@ -17,8 +17,8 @@ from time import perf_counter
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-from django.db.models import Count, DateField, F, OuterRef, Q, Subquery
-from django.db.models.functions import TruncMonth, TruncWeek
+from django.db.models import Count, DateField, F, Max, OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce, TruncMonth, TruncWeek
 from django.urls import reverse
 
 from .bloqueos import exclusivo
@@ -1463,13 +1463,26 @@ def expedientes_visibles(usuario, archivados=False):
 
 
 def expedientes_con_resumen(usuario, archivados=False, tipo=None):
-    """Expedientes visibles, del más reciente al más antiguo, con su resumen."""
-    expedientes = expedientes_visibles(usuario, archivados).order_by(
-        "-actualizado_el", "-pk"
+    """Expedientes visibles, del actualizado más reciente al más antiguo, con su resumen.
+
+    F59: `actualizado` es la hora del último documento procesado, o la del kardex si
+    aún no hay ninguno; `observaciones`, el total de su confrontación vigente.
+    """
+    expedientes = (
+        expedientes_visibles(usuario, archivados)
+        .annotate(
+            actualizado=Coalesce(Max("documentos__procesado_el"), "actualizado_el")
+        )
+        .order_by("-actualizado", "-pk")
     )
     if tipo:
         expedientes = expedientes.filter(tipo=tipo)
-    return [(expediente, resumen_expediente(expediente)) for expediente in expedientes]
+    expedientes = list(expedientes)
+    observaciones = observaciones_vigentes(expedientes)
+    return [
+        (e, {**resumen_expediente(e), "observaciones": observaciones.get(e.pk)})
+        for e in expedientes
+    ]
 
 
 def cifras_por_tipo(usuario):
@@ -1944,6 +1957,23 @@ def resultado_de_corrida(corrida):
 
 
 _CAMPOS_ENTRADA = ("rol", "nombre", "hash_archivo", "version_extractor", "estado")
+# Los mismos datos, leídos de los documentos actuales.
+_CAMPOS_DOCUMENTO = (
+    "rol",
+    "nombre_original",
+    "hash_archivo",
+    "texto_extraido__version_extractor",
+    "estado",
+)
+
+
+def _primera_vigente(corridas, actuales):
+    """Primera corrida cuyas entradas registradas son los documentos `actuales`."""
+    for corrida in corridas:
+        registradas = [[e[c] for c in _CAMPOS_ENTRADA] for e in corrida.entradas]
+        if registradas == actuales:
+            return corrida
+    return None
 
 
 def corrida_vigente(expediente, borrador):
@@ -1952,29 +1982,63 @@ def corrida_vigente(expediente, borrador):
     Compara metadatos sin cargar textos: el texto queda determinado por el hash
     del archivo y la versión del extractor.
     """
-    campos = (
-        "rol",
-        "nombre_original",
-        "hash_archivo",
-        "texto_extraido__version_extractor",
-        "estado",
-    )
     actuales = [
         list(fila)
         for consulta in (
             Documento.objects.filter(pk=borrador.pk),
             expediente.documentos.filter(rol__in=Documento.ROLES_FUENTE).order_by("pk"),
         )
-        for fila in consulta.values_list(*campos)
+        for fila in consulta.values_list(*_CAMPOS_DOCUMENTO)
     ]
     corridas = expediente.corridas.filter(
         id_borrador=borrador.pk, version_catalogo=CATALOGO_REGLAS["version"]
     ).order_by("-pk")
-    for corrida in corridas.only("entradas", "estado"):
-        registradas = [[e[c] for c in _CAMPOS_ENTRADA] for e in corrida.entradas]
-        if registradas == actuales:
-            return corrida
-    return None
+    return _primera_vigente(corridas.only("entradas", "estado"), actuales)
+
+
+def observaciones_vigentes(expedientes):
+    """F59: total de observaciones de la corrida vigente del último borrador subido.
+
+    Es el total de la pantalla de resultado (F48), contado igual que el ranking
+    (F57). None si no hay corrida vigente o si no llegó a comparar. Tres
+    consultas para toda la lista, sin importar cuántos kardex tenga.
+    """
+    borradores, fuentes = {}, {}
+    filas = (
+        Documento.objects.filter(expediente__in=expedientes)
+        .order_by("pk")
+        .values_list("expediente_id", "pk", *_CAMPOS_DOCUMENTO)
+    )
+    for expediente_id, pk, *fila in filas:
+        if fila[0] == Documento.BORRADOR:
+            borradores[expediente_id] = pk, fila  # queda el último subido
+        else:
+            fuentes.setdefault(expediente_id, []).append(fila)
+    actuales = {
+        pk: [fila, *fuentes.get(expediente_id, [])]
+        for expediente_id, (pk, fila) in borradores.items()
+    }
+    candidatas = {}
+    for corrida in (
+        Corrida.objects.filter(
+            id_borrador__in=list(actuales),
+            version_catalogo=CATALOGO_REGLAS["version"],
+        )
+        .order_by("-pk")
+        .only("id_borrador", "entradas", "estado")
+    ):
+        candidatas.setdefault(corrida.id_borrador, []).append(corrida)
+    vigentes = [_primera_vigente(c, actuales[pk]) for pk, c in candidatas.items()]
+    totales = {
+        corrida.id_borrador: len(_observaciones(corrida))
+        for corrida in Corrida.objects.filter(
+            pk__in=[corrida.pk for corrida in vigentes if corrida],
+            estado=Corrida.RESULTADO,
+        ).only("id_borrador", "estado", "hallazgos")
+    }
+    return {
+        expediente_id: totales.get(pk) for expediente_id, (pk, _) in borradores.items()
+    }
 
 
 def estado_borrador(expediente, borrador, fuentes=None):
