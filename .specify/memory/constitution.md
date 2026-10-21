@@ -32,6 +32,13 @@ Sync Impact Report
 - Motivo: Anexo A.3 del contrato (F21): conservar el documento original en
   versión inalterable y generar el corregido como archivo distinto
 - Fecha: 2026-09-28
+- Version: 1.7.0 → 1.7.1 (PATCH: se cumple lo previsto para la prueba de
+  concepto Streamlit y se elimina)
+- Principios modificados: ninguno (sección de stack)
+- Motivo: pillow 13 corrige 8 vulnerabilidades en la lectura de imágenes y
+  Streamlit exige `pillow<13`; el usuario declaró que el ERP ya supera la
+  prueba de concepto
+- Fecha: 2026-10-20
 - TODO pendientes:
   - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
 -->
@@ -235,8 +242,8 @@ con teclado, foco visible y contraste suficiente.
   Dependabot, `pre-commit`.
 - **Despliegue:** on-premise en el Windows Server de la notaría, dentro de la
   LAN. Mecanismo: TODO(DESPLIEGUE), se decide en F8.
-- **Prueba de concepto Streamlit** (`app.py`, `app_ortografia.py`): se mantiene
-  hasta que el ERP alcance paridad funcional y luego se elimina.
+- **Prueba de concepto Streamlit** (`app.py`, `app_ortografia.py`): eliminada
+  el 2026-10-20 al declarar el usuario la paridad funcional del ERP.
 
 ## Flujo de desarrollo
 
@@ -273,4 +280,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.7.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-09-28
+**Version**: 1.7.1 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-20

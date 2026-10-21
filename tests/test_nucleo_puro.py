@@ -1,7 +1,6 @@
 """Pruebas ficticias de fronteras y dependencias del núcleo."""
 
 import ast
-import importlib
 from pathlib import Path
 
 NUCLEO = Path(__file__).resolve().parents[1] / "nucleo"
@@ -170,30 +169,6 @@ def test_shim_ortografia_conserva_firma_y_resultado_con_extra():
     assert ortografia.revisar(texto, extra) == revisar(
         texto, d, lemas, lista_casa(), extra
     )
-
-
-def test_apps_declaran_imports_de_nuevos_modulos_sin_ejecutar_streamlit():
-    raiz = NUCLEO.parent
-    for nombre in ("app.py", "app_ortografia.py"):
-        arbol = ast.parse((raiz / nombre).read_text(encoding="utf-8"))
-        nodos = [n for n in ast.walk(arbol) if isinstance(n, ast.ImportFrom)]
-        imports = {nodo.module for nodo in nodos}
-        assert "adaptadores.extraccion" in imports
-        assert "nucleo.verificar" in imports
-        nombres_importados = {
-            alias.asname or alias.name for nodo in nodos for alias in nodo.names
-        }
-        usados = {
-            nodo.id
-            for nodo in ast.walk(arbol)
-            if isinstance(nodo, ast.Name) and isinstance(nodo.ctx, ast.Load)
-        }
-        assert nombres_importados & usados
-        for modulo in ("adaptadores.extraccion", "nucleo.verificar"):
-            componente = importlib.import_module(modulo)
-            for nodo in nodos:
-                if nodo.module == modulo:
-                    assert all(hasattr(componente, alias.name) for alias in nodo.names)
 
 
 def test_los_tres_modulos_tratan_la_enie_igual():
