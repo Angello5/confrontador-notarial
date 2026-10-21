@@ -135,11 +135,11 @@
 
     // Portada breve
     partes.push(parrafo(run('Informe de observaciones', { b: true, sz: 52, color: C.navy }), { despues: 40 }));
-    partes.push(parrafo([run(`Kardex ${m.codigo}`, { sz: 26, color: C.slate }), run('  ·  Confrontación del borrador', { sz: 26, color: C.subtle })],
+    partes.push(parrafo([run(`${m.vehicular ? 'Transferencia vehicular' : 'Kardex'} ${m.codigo}`, { sz: 26, color: C.slate }), run('  ·  Confrontación del borrador', { sz: 26, color: C.subtle })],
       { despues: 240, borde: { color: C.verde, sz: 18, espacio: 8 } }));
 
     // Ficha del reporte
-    const ficha = [['Notaría', m.notaria], ['Kardex', m.codigo], ['Borrador confrontado', m.borrador],
+    const ficha = [['Notaría', m.notaria], [m.vehicular ? 'TV' : 'Kardex', m.codigo], ['Borrador confrontado', m.borrador],
       ['Confrontación', m.corrida ? `N.° ${m.corrida}` : '—'], ['Emitido por', m.usuario], ['Fecha de emisión', m.fecha]];
     partes.push(tabla([2600, ANCHO - 2600], ficha.map(([k, v]) => ({
       celdas: [
@@ -246,7 +246,7 @@
       } else partes.push(nota('Ninguna ficha RENIEC o biométrica en el legajo.'));
     }
 
-    partes.push(parrafo(run(`Informe generado por el Confrontador Notarial a partir de ${m.vehicular ? 'la información y el acta' : 'la minuta, los recaudos y el borrador'} cargados en el kardex. Las decisiones de corrección corresponden al personal de la notaría.`,
+    partes.push(parrafo(run(`Informe generado por el Confrontador Notarial a partir de ${m.vehicular ? 'la información y el acta cargados en la TV' : 'la minuta, los recaudos y el borrador cargados en el kardex'}. Las decisiones de corrección corresponden al personal de la notaría.`,
       { sz: 15, i: true, color: C.subtle }), { antes: 360, despues: 0, borde: { color: C.linea, sz: 6, espacio: 1 } }));
 
     const sect = `<w:sectPr><w:headerReference w:type="default" r:id="rIdHeader"/><w:footerReference w:type="default" r:id="rIdFooter"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1531" w:right="1134" w:bottom="1247" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>`;

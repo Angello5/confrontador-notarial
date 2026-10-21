@@ -25,6 +25,22 @@ test('F43: the vehicle-transfer report does not mention a minuta', async () => {
   assert.doesNotMatch(contents, /minuta/);
 });
 
+test('F55: the vehicle-transfer report says «Transferencia vehicular» / «TV», never kardex', async () => {
+  const report = require('../static/js/reporte-docx.js');
+  const datos = (vehicular) => ({meta: {codigo:'NUM-FICTICIO',borrador:'ficticio.docx',vehicular},
+    observaciones:[],correcciones:[],personas:[],incluir:{},calidad:[]});
+  const texto = async (d) => Buffer.from(await report.generar(d).arrayBuffer()).toString('utf8');
+  const tv = await texto(datos(true));
+  assert.match(tv, /Transferencia vehicular NUM-FICTICIO/);
+  assert.match(tv, />TV</);
+  assert.match(tv, /cargados en la TV\./);
+  assert.doesNotMatch(tv, /kardex/i);
+  const notarial = await texto(datos(false));
+  assert.match(notarial, /Kardex NUM-FICTICIO/);
+  assert.match(notarial, /cargados en el kardex\./);
+  assert.doesNotMatch(notarial, /\bTV\b|Transferencia vehicular/);
+});
+
 // Execute the actual template controller with a minimal DOM; all data is fictional.
 function revision(observations, corrections) {
   const html = fs.readFileSync(path.join(__dirname, '../templates/expedientes/confrontacion.html'), 'utf8');

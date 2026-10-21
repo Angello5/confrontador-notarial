@@ -2,12 +2,13 @@
 
 {% block title %}Confrontación {{ corrida.pk }} · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
+  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li><a href="{% url 'expediente_historial' expediente.pk %}">Historial</a></li>
   <li aria-current="page">Confrontación {{ corrida.pk }}</li>
 </ol>{% endblock %}
-{% block eyebrow %}Kardex / Historial{% endblock %}
+{% block eyebrow %}{{ expediente.get_tipo_display }} / Historial{% endblock %}
 {% block heading %}Confrontación {{ corrida.pk }}{% endblock %}
 {% block heading_extra %}{% include "core/_chip.html" with estado=corrida.estado texto=corrida.get_estado_display clase="chip-lg" %}{% endblock %}
 {% block meta %}<p class="cabecera-meta"><span>{{ expediente.codigo }}</span><span>{{ corrida.creado_el|date:"d/m/Y H:i" }}</span><span>Por {{ corrida.usuario.username }}</span><span>Catálogo de reglas {{ corrida.version_catalogo }}</span></p>{% endblock %}

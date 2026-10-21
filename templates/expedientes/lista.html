@@ -1,18 +1,18 @@
 {% extends "core/base.html" %}
 
 {% block title %}{% if vehicular %}Transferencia vehicular{% else %}Kardex{% endif %} · {{ erp_nombre }}{% endblock %}
-{% block breadcrumb %}<ol>{% if vehicular %}<li><a href="{% url 'expediente_lista' %}">Kardex</a></li><li aria-current="page">Transferencia vehicular</li>{% else %}<li aria-current="page">Kardex</li>{% endif %}</ol>{% endblock %}
+{% block breadcrumb %}<ol>{% if vehicular %}<li>Expedientes</li><li aria-current="page">Transferencia vehicular</li>{% else %}<li aria-current="page">Kardex</li>{% endif %}</ol>{% endblock %}
 {% block eyebrow %}Módulo{% endblock %}
 {% block heading %}{% if vehicular %}Transferencia vehicular{% else %}Kardex{% endif %}{% endblock %}
-{% block subtitle %}{% if vehicular %}Cree el kardex de la transferencia y cargue la información (boleta informativa, DNI y cheques) y el acta para confrontar.{% else %}Cree un kardex con su número y cargue sus documentos para confrontar.{% endif %}{% endblock %}
-{% block actions %}{% if not archivados %}<button class="btn btn-primario" type="button" @click="$dispatch('nuevo-expediente')" aria-controls="crear-expediente-panel"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo kardex</button>{% endif %}{% endblock %}
+{% block subtitle %}{% if vehicular %}Cree la TV con su número y cargue la información (boleta informativa, DNI y cheques) y el acta para confrontar.{% else %}Cree un kardex con su número y cargue sus documentos para confrontar.{% endif %}{% endblock %}
+{% block actions %}{% if not archivados %}<button class="btn btn-primario" type="button" @click="$dispatch('nuevo-expediente')" aria-controls="crear-expediente-panel"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>{% if vehicular %}Nueva TV{% else %}Nuevo kardex{% endif %}</button>{% endif %}{% endblock %}
 {% block content %}
   {% if not archivados %}
   <div x-data="{ abierto: {% if form.errors %}true{% else %}false{% endif %} }"
        x-init="if (new URLSearchParams(location.search).has('nuevo')) abierto = true; $watch('abierto', v => v && $nextTick(() => $refs.codigo?.querySelector('input')?.focus()))"
        @nuevo-expediente.window="abierto = !abierto">
     <section id="crear-expediente-panel" class="panel panel-cuerpo panel-nuevo" aria-labelledby="crear-expediente" x-show="abierto"{% if not form.errors %} x-cloak{% endif %}>
-      <h2 id="crear-expediente" class="panel-titulo">Crear kardex</h2>
+      <h2 id="crear-expediente" class="panel-titulo">Crear {% if vehicular %}TV{% else %}kardex{% endif %}</h2>
       <form method="post" class="formulario-linea" novalidate>
         {% csrf_token %}
         <div class="campo{% if form.codigo.errors %} campo-error{% endif %}" x-ref="codigo">
@@ -22,7 +22,7 @@
           <span class="campo-ayuda" id="codigo-ayuda">{% if form.codigo.help_text %}{{ form.codigo.help_text }}{% else %}Use el código que identifica el trámite.{% endif %}</span>
         </div>
         <div class="acciones">
-          <button class="btn btn-verde btn-alto" type="submit">Crear kardex</button>
+          <button class="btn btn-verde btn-alto" type="submit">Crear {% if vehicular %}TV{% else %}kardex{% endif %}</button>
           <button class="btn btn-alto" type="button" @click="abierto = false">Cancelar</button>
         </div>
       </form>
@@ -68,9 +68,9 @@
     }"
     x-init="iniciar()" @click.outside="abierto = null" @keydown.escape="abierto = null" @scroll.window.capture="abierto = null" @resize.window="abierto = null">
     <div class="panel-cab">
-      <h2 id="lista-expedientes" class="panel-titulo empuja">{% if archivados %}Kardex archivados{% else %}Mis kardex{% endif %}</h2>
+      <h2 id="lista-expedientes" class="panel-titulo empuja">{% if vehicular %}{% if archivados %}TV archivadas{% else %}Mis TV{% endif %}{% elif archivados %}Kardex archivados{% else %}Mis kardex{% endif %}</h2>
       {% if es_administrador %}
-        <nav class="segmentado" aria-label="Filtro de kardex">
+        <nav class="segmentado" aria-label="Filtro de {% if vehicular %}TV{% else %}kardex{% endif %}">
           <a href="{{ request.path }}"{% if not archivados %} aria-current="page"{% endif %}>Activos</a>
           <a href="{{ request.path }}?archivados=1"{% if archivados %} aria-current="page"{% endif %}>Archivados</a>
         </nav>
@@ -81,7 +81,7 @@
       <div class="filtros">
         <label class="buscador">
           <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
-          <input type="search" x-model="q" placeholder="Buscar por N.° de kardex" aria-label="Buscar por N.° de kardex">
+          <input type="search" x-model="q" placeholder="Buscar por N.° de {% if vehicular %}TV{% else %}kardex{% endif %}" aria-label="Buscar por N.° de {% if vehicular %}TV{% else %}kardex{% endif %}">
         </label>
         {% if not archivados %}
           <div class="filtro-chips" role="group" aria-label="Filtrar por estado">
@@ -93,9 +93,9 @@
       </div>
       <div class="tabla-desliza">
         <table class="tabla tabla-media">
-          <caption class="visually-hidden">Kardex visibles y su estado derivado</caption>
+          <caption class="visually-hidden">{% if vehicular %}TV{% else %}Kardex{% endif %} visibles y su estado derivado</caption>
           <thead><tr>
-            <th scope="col">N.° de kardex</th>
+            <th scope="col">N.° de {% if vehicular %}TV{% else %}kardex{% endif %}</th>
             <th scope="col">Estado</th>
             <th scope="col">Documentos</th>
             <th scope="col" :aria-sort="asc ? 'ascending' : 'descending'"><button type="button" class="th-orden" @click="ordenar()">Actualizado<svg class="ico" aria-hidden="true"><use :href="asc ? '#i-arrow-up' : '#i-arrow-down'" href="#i-arrow-down"/></svg></button></th>
@@ -119,7 +119,7 @@
                       <button type="button" class="btn btn-sm btn-icono" aria-label="Más acciones para {{ expediente.codigo }}" aria-haspopup="menu" :aria-expanded="abierto === {{ expediente.pk }}" @click.stop="alternar({{ expediente.pk }}, $el)"><svg class="ico" aria-hidden="true"><use href="#i-ellipsis"/></svg></button>
                       <div class="menu-flotante" role="menu" x-show="abierto === {{ expediente.pk }}" :style="menu" x-cloak>
                         <a role="menuitem" href="{% url 'expediente_editar' expediente.pk %}" aria-label="Editar {{ expediente.codigo }}"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>Editar número</a>
-                        <a role="menuitem" class="peligro" href="{% url 'expediente_eliminar' expediente.pk %}" aria-label="Eliminar {{ expediente.codigo }}" @click.prevent="abierto = null; eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar kardex</a>
+                        <a role="menuitem" class="peligro" href="{% url 'expediente_eliminar' expediente.pk %}" aria-label="Eliminar {{ expediente.codigo }}" @click.prevent="abierto = null; eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>Eliminar {% if vehicular %}TV{% else %}kardex{% endif %}</a>
                       </div>
                     </div>
                   {% endif %}
@@ -131,18 +131,18 @@
       </div>
       <div class="vacio" role="status" x-show="!visibles" x-cloak>
         <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
-        <strong>Ningún kardex coincide con el filtro.</strong>
+        <strong>{% if vehicular %}Ninguna TV coincide{% else %}Ningún kardex coincide{% endif %} con el filtro.</strong>
         <span>Cambie el número buscado o el estado.</span>
       </div>
-      <div class="panel-pie" aria-live="polite"><span x-text="visibles">{{ expedientes|length }}</span> de <span x-text="filas.length">{{ expedientes|length }}</span> kardex</div>
+      <div class="panel-pie" aria-live="polite"><span x-text="visibles">{{ expedientes|length }}</span> de <span x-text="filas.length">{{ expedientes|length }}</span> {% if vehicular %}TV{% else %}kardex{% endif %}</div>
     {% else %}
       <div class="vacio" role="status">
         <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
         {% if archivados %}
-          <strong>No hay kardex archivados.</strong>
+          <strong>{% if vehicular %}No hay TV archivadas.{% else %}No hay kardex archivados.{% endif %}</strong>
         {% else %}
-          <strong>Aún no hay kardex visibles.</strong>
-          <span>Cree uno con su número para cargar documentos.</span>
+          <strong>Aún no hay {% if vehicular %}TV{% else %}kardex{% endif %} visibles.</strong>
+          <span>Cree {% if vehicular %}una{% else %}uno{% endif %} con su número para cargar documentos.</span>
         {% endif %}
       </div>
     {% endif %}

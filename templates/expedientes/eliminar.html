@@ -2,16 +2,17 @@
 
 {% block title %}Eliminar {{ expediente.codigo }} · {{ expediente.get_tipo_display }}{% endblock %}
 {% block breadcrumb %}<ol>
+  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Eliminar</li>
 </ol>{% endblock %}
-{% block eyebrow %}Kardex{% endblock %}
+{% block eyebrow %}{{ expediente.get_tipo_display }}{% endblock %}
 {% block heading %}Eliminar {{ expediente.codigo }}{% endblock %}
 {% block content %}
   <section class="modal modal-pagina" data-tono="peligro" aria-labelledby="eliminar-expediente">
     <div class="modal-cuerpo">
-      <h2 id="eliminar-expediente">¿Eliminar el kardex {{ expediente.codigo }}?</h2>
+      <h2 id="eliminar-expediente">¿Eliminar {% if expediente.tipo == "VEHICULAR" %}la TV{% else %}el kardex{% endif %} {{ expediente.codigo }}?</h2>
       <p>Dejará de aparecer en la lista y en el inicio, y no admitirá cargas ni confrontaciones. El historial de confrontaciones se conserva para auditoría y un Administrador puede restaurarlo.</p>
     </div>
     <form method="post" class="modal-pie">
