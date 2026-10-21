@@ -3,6 +3,7 @@
 
 {% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
+  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Confrontación</li>
@@ -20,7 +21,7 @@
     </div>
     <div class="acciones">
       <a class="btn" href="{% url 'expediente_historial' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Historial</a>
-      <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al kardex</a>
+      <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver {% if expediente.tipo == "VEHICULAR" %}a la TV{% else %}al kardex{% endif %}</a>
       {% if resultado.estado == "RESULTADO" %}
         <button type="button" class="btn btn-primario" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar informe</button>
       {% endif %}
@@ -35,8 +36,8 @@
       <div class="aviso-texto">
         <h2>Revise los documentos</h2>
         <p>{{ resultado.mensaje }}</p>
-        <p>No se muestran diferencias campo por campo. Revise que el borrador y los recaudos pertenezcan al mismo kardex.</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
+        <p>No se muestran diferencias campo por campo. Revise que el borrador y los recaudos pertenezcan {% if expediente.tipo == "VEHICULAR" %}a la misma TV{% else %}al mismo kardex{% endif %}.</p>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos {% if expediente.tipo == "VEHICULAR" %}de la TV{% else %}del kardex{% endif %}</a></div>
       </div>
     </section>
   {% elif resultado.estado == "NO_DISPONIBLE" %}
@@ -45,7 +46,7 @@
       <div class="aviso-texto">
         <h2>No se puede confrontar todavía</h2>
         <p>{{ resultado.mensaje }}</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos {% if expediente.tipo == "VEHICULAR" %}de la TV{% else %}del kardex{% endif %}</a></div>
       </div>
     </section>
   {% elif resultado.estado == "ERROR_SEGURO" %}
@@ -54,7 +55,7 @@
       <div class="aviso-texto">
         <h2>No se pudo completar la confrontación</h2>
         <p>No se pudo completar la confrontación. Intente nuevamente.</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos {% if expediente.tipo == "VEHICULAR" %}de la TV{% else %}del kardex{% endif %}</a></div>
       </div>
     </section>
   {% elif resultado.estado == "RESULTADO" %}
@@ -93,21 +94,16 @@
     </section>
 
     {% if resultado.linguistico_aviso %}
-      <div class="aviso" role="status" x-show="capa === 'TODAS' || capa === 'LINGUISTICO'">
+      <div class="aviso" role="status">
         <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
         <div class="aviso-texto"><span>{{ resultado.linguistico_aviso }}</span></div>
       </div>
     {% endif %}
 
     {% if resultado.personas or resultado.regla or resultado.ortografia %}
-    {# ── Pestañas por capa ── #}
+    {# ── F56: una sola lista, «Todas»; cada ítem lleva su capa y el filtro es por severidad ── #}
     <div class="capas">
-      <div role="tablist" aria-label="Capas de revisión">
-        <button type="button" role="tab" class="capa" :aria-selected="capa === 'TODAS'" @click="capa = 'TODAS'">Todas<span class="capa-num" x-text="contar('TODAS')"></span></button>
-        <button type="button" role="tab" class="capa" :aria-selected="capa === 'IDENTIDAD'" @click="capa = 'IDENTIDAD'">Generales de ley<span class="capa-num" x-text="contar('IDENTIDAD')"></span></button>
-        <button type="button" role="tab" class="capa" :aria-selected="capa === 'REGLA'" @click="capa = 'REGLA'">Datos<span class="capa-num" x-text="contar('REGLA')"></span></button>
-        <button type="button" role="tab" class="capa" :aria-selected="capa === 'LINGUISTICO'" @click="capa = 'LINGUISTICO'" id="ortografia-titulo">Texto<span class="capa-num" x-text="contar('LINGUISTICO')"></span></button>
-      </div>
+      <h2 class="capa">Todas<span class="capa-num" x-text="visibles.length"></span></h2>
       <span class="atajos" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd>recorrer observaciones</span>
     </div>
 
@@ -122,7 +118,7 @@
               <button type="button" class="obs-item" :aria-current="sel === 'p{{ forloop.counter }}'" @click="elegir('p{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Generales de ley</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.nombre }}</strong>
-                <span class="cambio"><span class="tachado">{{ observacion.hallado }}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="correcto">{{ observacion.esperado }}</span></span>
+                <span class="cambio" title="Dice: {{ observacion.hallado }} · Debe decir: {{ observacion.esperado }}"><span class="visually-hidden">Dice: </span><span class="tachado">{{ observacion.hallado }}</span><span class="hacia"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="visually-hidden">, debe decir: </span><span class="correcto">{{ observacion.esperado }}</span></span></span>
                 <span class="obs-marca" x-show="estaMarcadaObs('p{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
               </button>
             </li>
@@ -132,7 +128,7 @@
               <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %}</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
-                <span class="cambio"><span class="tachado">{{ observacion.hallado }}</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="correcto">{{ observacion.esperado }}</span></span>
+                <span class="cambio" title="Dice: {{ observacion.hallado }} · Debe decir: {{ observacion.esperado }}"><span class="visually-hidden">Dice: </span><span class="tachado">{{ observacion.hallado }}</span><span class="hacia"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="visually-hidden">, debe decir: </span><span class="correcto">{{ observacion.esperado }}</span></span></span>
                 <span class="obs-marca" x-show="estaMarcadaObs('r{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
               </button>
             </li>
@@ -141,8 +137,8 @@
             <li data-id="o{{ forloop.counter }}" data-capa="LINGUISTICO" data-sev="BAJA" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{{ observacion.motivo }}" data-titulo="«{{ observacion.palabra }}»" data-hallado="{{ observacion.palabra }}" data-esperado="{{ observacion.sugerencia|default:'' }}" data-persona="" data-procedencia="" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
               <button type="button" class="obs-item" :aria-current="sel === 'o{{ forloop.counter }}'" @click="elegir('o{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<span class="obs-capa">Lingüístico</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
-                <strong class="obs-titulo">{{ observacion.motivo }}</strong>
-                <span class="cambio"><span class="tachado">{{ observacion.palabra }}</span>{% if observacion.sugerencia %}<svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="correcto">{{ observacion.sugerencia }}</span>{% endif %}</span>
+                <strong class="obs-titulo">{{ observacion.motivo|capfirst }}</strong>
+                <span class="cambio" title="Texto: {{ observacion.palabra }}{% if observacion.sugerencia %} · Sugerencia: {{ observacion.sugerencia }}{% endif %}"><span class="visually-hidden">Texto: </span><span class="tachado">{{ observacion.palabra }}</span>{% if observacion.sugerencia %}<span class="hacia"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="visually-hidden">, sugerencia: </span><span class="correcto">{{ observacion.sugerencia }}</span></span>{% endif %}</span>
               </button>
             </li>
           {% endfor %}
@@ -430,7 +426,7 @@
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.CORRECCIONES"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Correcciones propuestas</span><em x-text="correcciones.length"></em></label>
             <label class="casilla casilla-chica" x-show="rep.fmt !== 'EXCEL'"><input type="checkbox" x-model="rep.EXTRACCION"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Personas extraídas y procedencia</span><em>{{ resultado.extraccion.personas|length }}</em></label>
           </fieldset>
-          <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El informe registra kardex, borrador, confrontación, usuario y fecha de emisión.</span></p>
+          <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El informe registra {% if expediente.tipo == "VEHICULAR" %}TV{% else %}kardex{% endif %}, borrador, confrontación, usuario y fecha de emisión.</span></p>
         </div>
         <div class="modal-pie">
           <button type="button" class="btn" @click="modal = null">Cancelar</button>
@@ -607,7 +603,7 @@
     };
     return {
       ...window.aplicarCorrecciones(),
-      capa: 'TODAS', sev: 'TODAS', sel: null, modal: null,
+      sev: 'TODAS', sel: null, modal: null,
       obs: [], correcciones: [], marcadas: [],
       generando: false, errorReporte: '',
       rep: { fmt: 'WORD', IDENTIDAD: true, REGLA: true, LINGUISTICO: true, CORRECCIONES: true, EXTRACCION: false },
@@ -634,7 +630,6 @@
         });
         this.sel = this.visibles[0]?.id || null;
         this.$el.querySelectorAll('[data-marcar]').forEach(marcar);
-        this.$watch('capa', () => this.ajustarSeleccion());
         this.$watch('sev', () => this.ajustarSeleccion());
         this.$watch('sel', () => {
           if (this.desdeMarca) { this.desdeMarca = false; return; }
@@ -730,9 +725,8 @@
         caja.scrollBy({ top: d * caja.clientHeight * 0.9 });
         return true;
       },
-      visible(d) { return (this.capa === 'TODAS' || d.capa === this.capa) && (this.sev === 'TODAS' || d.sev === this.sev); },
+      visible(d) { return this.sev === 'TODAS' || d.sev === this.sev; },
       get visibles() { return this.obs.filter((o) => this.visible(o)); },
-      contar(capa) { return this.obs.filter((o) => (capa === 'TODAS' || o.capa === capa) && (this.sev === 'TODAS' || o.sev === this.sev)).length; },
       contarSev(sev) { return this.obs.filter((o) => o.sev === sev).length; },
       contarCapa(capa) { return this.obs.filter((o) => o.capa === capa).length; },
       elegir(id) {

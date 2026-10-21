@@ -7,11 +7,11 @@ asociar personas, documentos, procedencias y campos.
 
 ## Ejecución
 
-Para usar la interfaz, instala estas dependencias en el mismo entorno Python
-con el que ejecutarás Streamlit:
+Para usar la interfaz, instala estas dependencias y Streamlit en un entorno
+Python aparte del ERP (Streamlit exige `pillow<13` y el ERP usa pillow 13):
 
 ```bash
-python -m pip install -r experimental/requirements-ocr-benchmark.txt
+python -m pip install -r experimental/requirements-ocr-benchmark.txt streamlit
 streamlit run experimental/app_ocr_benchmark.py --server.port 8504
 ```
 

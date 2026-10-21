@@ -31,8 +31,9 @@ python3 -m pip install -r requirements.txt
 El diccionario `es_PE` (0.8 MB) se descarga solo la primera vez a
 `~/.cache/notaria-ocr/`. Los modelos de OCR los descarga RapidOCR igual.
 
-Para la capa de prosa, copia `.env.example` a `.env` y pon tu clave, o exporta
-`GEMINI_API_KEY`. Sin clave, todo lo demás sigue funcionando.
+Para la capa de prosa experimental (`experimental/`, fuera del ERP), copia
+`.env.example` a `.env` y pon tu clave, o exporta `GEMINI_API_KEY`. Sin clave,
+todo lo demás sigue funcionando.
 
 ## Uso
 
@@ -49,16 +50,10 @@ Requiere `DJANGO_SECRET_KEY` y la conexión PostgreSQL (`POSTGRES_*`) fuera del
 repositorio. El worker procesa la cola y termina: prográmalo cada minuto o
 ejecútalo en bucle. Detalle en [la guía F4](specs/004-expedientes/quickstart.md).
 
-### Prueba de concepto
+### Línea de comandos
 
-Dos interfaces, según la vía:
-
-```bash
-streamlit run app.py --server.port 8502            # reglas + prosa con Gemini
-streamlit run app_ortografia.py --server.port 8503 # reglas + diccionario, sin nube
-```
-
-Y por línea de comandos:
+La prueba de concepto en Streamlit (`app.py`, `app_ortografia.py`) se eliminó
+el 2026-10-20: el ERP la supera (constitución 1.7.1).
 
 ```bash
 python3 verificar.py <fuentes...> -d <borrador>   # datos duros

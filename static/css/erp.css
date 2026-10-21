@@ -160,7 +160,7 @@ table { border-collapse: collapse; }
   border-bottom: 1px solid var(--ne-border); display: flex; align-items: center; gap: 12px; padding: 0 24px;
 }
 .barra-menu { display: none; }
-.migas ol { list-style: none; padding: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; min-width: 0; overflow: hidden; }
+.migas ol { list-style: none; padding: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; min-width: 0; overflow: hidden; color: var(--ne-slate); }
 .migas li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .migas li + li::before {
   content: ""; width: 14px; height: 14px; flex: none; background: var(--ne-subtle);
@@ -611,15 +611,12 @@ a.metrica:hover { background: var(--ne-hover); color: var(--ne-navy); }
 }
 
 .capas { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-bottom: 1px solid var(--ne-border); }
-.capas [role="tablist"] { display: flex; gap: 4px; overflow-x: auto; overflow-y: hidden; padding-bottom: 1px; }
+/* F56: una sola pestaña, «Todas»; queda como rótulo de la lista, no como control. */
 .capa {
-  height: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; background: transparent;
-  color: var(--ne-navy); font-weight: 600; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  height: 44px; padding: 0 14px; border-bottom: 3px solid var(--ne-navy); margin-bottom: -1px;
+  color: var(--ne-navy); font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; white-space: nowrap;
 }
-.capa:hover { background: #e3e7f4; }
-.capa[aria-selected="true"] { border-bottom-color: var(--ne-navy); font-weight: 800; }
-.capa-num { min-width: 22px; height: 20px; padding: 0 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; background: #dfe3f0; color: var(--ne-navy); }
-.capa[aria-selected="true"] .capa-num { background: var(--ne-navy); color: #fff; }
+.capa-num { min-width: 22px; height: 20px; padding: 0 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; background: var(--ne-navy); color: #fff; }
 .atajos { margin-left: auto; font-size: 12px; color: var(--ne-slate); display: flex; align-items: center; gap: 6px; padding-bottom: 6px; }
 kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid var(--ne-border); background: var(--ne-white); padding: 1px 6px; color: var(--ne-navy); }
 @media (max-width: 959.98px) { .atajos { display: none; } }
@@ -627,8 +624,9 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .revision { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
 .obs-panel { position: sticky; top: 80px; max-height: calc(100vh - 190px); overflow: auto; }
 .obs-lista { list-style: none; padding: 0; }
+/* relative: los .visually-hidden de cada ítem no deben desbordar la lista desplazable. */
 .obs-item {
-  width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 12px 13px;
+  position: relative; width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 12px 13px;
   border: 0; border-left: 3px solid transparent; border-bottom: 1px solid var(--ne-line);
   background: var(--ne-white); text-align: left; cursor: pointer; color: var(--ne-navy); transition: background 0.12s;
 }
@@ -638,8 +636,12 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .obs-capa { font-size: 12px; font-weight: 700; color: var(--ne-slate); }
 .obs-linea { margin-left: auto; font-size: 12px; color: var(--ne-slate); white-space: nowrap; }
 .obs-titulo { font-size: 14px; line-height: 20px; font-weight: 700; overflow-wrap: anywhere; }
-.cambio { font-size: 13px; line-height: 18px; color: var(--ne-slate); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; overflow-wrap: anywhere; }
-.cambio .ico { font-size: 12px; }
+/* F56: lo hallado → lo correcto en una línea si cabe; si no, lo correcto pasa a la siguiente,
+   para que se vea dónde difieren. Solo un valor más ancho que el panel se recorta con elipsis. */
+.cambio { font-size: 13px; line-height: 18px; color: var(--ne-slate); display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; min-width: 0; }
+.cambio .tachado, .cambio .correcto { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cambio .hacia { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.cambio .ico { font-size: 12px; flex: none; }
 .tachado { text-decoration: line-through; text-decoration-color: var(--ne-err-bd); color: var(--ne-err-fg); }
 .correcto { color: var(--ne-ok-fg); font-weight: 700; }
 .obs-marca { font-size: 12px; color: var(--ne-green-text); font-weight: 700; display: flex; align-items: center; gap: 4px; }
@@ -819,21 +821,50 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 
 /* ── Ingreso ───────────────────────────────────────────────────────── */
 .ingreso { min-height: 100vh; display: grid; grid-template-columns: minmax(420px, 1fr) minmax(0, 1.1fr); background: var(--ne-white); }
-.ingreso-main { display: flex; flex-direction: column; justify-content: space-between; gap: 32px; padding: 40px clamp(24px, 6vw, 72px); min-height: 100vh; }
-.ingreso .marca { padding: 0; border: 0; }
-.ingreso .marca-logo { width: 200px; }
-.ingreso-caja { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 24px; }
-.ingreso-caja h1 { font: 700 30px/38px var(--ne-display); }
-.ingreso-caja > div > p { font-size: 16px; line-height: 24px; color: var(--ne-slate); margin-top: 8px; }
-.ingreso-pie { font-size: 13px; color: var(--ne-slate); }
-.ingreso-banda { background: linear-gradient(110deg, #00112c 12%, #0f2765 30%, #44d880 80%); display: flex; flex-direction: column; justify-content: flex-end; padding: 56px; }
-.ingreso-banda > div { max-width: 440px; display: flex; flex-direction: column; gap: 12px; }
-.ingreso-banda .eyebrow { letter-spacing: 0.2em; color: #c5ffcf; }
-.ingreso-banda p:last-child { font: 400 26px/36px var(--ne-display); color: #fff; text-wrap: pretty; }
-.ingreso .btn-verde { height: 48px; }
+.ingreso-main { display: flex; flex-direction: column; gap: 40px; padding: 48px clamp(24px, 6vw, 72px); min-height: 100vh; }
+/* F54: marca, título y campos más grandes, legibles a distancia de escritorio */
+.ingreso .marca { padding: 0; border: 0; gap: 12px; }
+.ingreso .marca-logo { width: 300px; }
+.ingreso .marca-fila { gap: 16px; }
+.ingreso .marca-sello { width: 60px; height: 60px; font-size: 22px; }
+.ingreso .marca-nombre { font-size: 30px; }
+.ingreso .marca-sub { font-size: 13px; }
+.ingreso-caja { width: 100%; max-width: 440px; margin-block: auto; display: flex; flex-direction: column; gap: 28px; }
+.ingreso-caja h1 { font: 700 40px/48px var(--ne-display); }
+.ingreso-caja > div > p { font-size: 18px; line-height: 28px; color: var(--ne-slate); margin-top: 8px; }
+.ingreso .formulario { gap: 20px; }
+.ingreso .formulario .campo { max-width: none; gap: 8px; }
+.ingreso .campo > label { font-size: 16px; }
+.ingreso .campo input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]) { height: 52px; padding: 0 14px; font-size: 18px; }
+.ingreso .campo-ayuda, .ingreso .campo-error-texto, .ingreso .aviso-texto span { font-size: 15px; }
+.ingreso .btn-verde { height: 56px; font-size: 15px; }
+/* Foco con el verde AA sobre blanco (4,8:1); el verde de marca da 1,85:1 */
+.ingreso :focus-visible, .ingreso .campo input:focus { box-shadow: 0 0 0 2px #fff, 0 0 0 5px var(--ne-green-text); }
+/* La banda lleva el nombre y la dirección: el pie solo aparece cuando ella se oculta. */
+.ingreso-pie { display: none; font-size: 15px; color: var(--ne-slate); }
+.ingreso-banda {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 48px;
+  padding: 64px clamp(40px, 5vw, 80px); color: #fff;
+  /* Degradado de marca con el verde en la esquina, lejos del texto (contraste AA) */
+  background: radial-gradient(circle at 100% 0, rgba(68, 216, 128, 0.45), transparent 32%), linear-gradient(160deg, var(--ne-ink) 15%, var(--ne-navy) 70%);
+}
+.ingreso-banda h2 { max-width: 520px; font: 400 36px/46px var(--ne-display); text-wrap: balance; }
+.ingreso-puntos { max-width: 540px; list-style: none; padding: 0; display: flex; flex-direction: column; gap: 28px; }
+.ingreso-puntos li { display: flex; align-items: flex-start; gap: 18px; font-size: 20px; line-height: 30px; }
+.ingreso-puntos .ico { width: 48px; height: 48px; padding: 12px; margin-top: -9px; background: rgba(68, 216, 128, 0.16); color: var(--ne-green); }
+.ingreso-notaria { display: flex; flex-direction: column; gap: 4px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.24); font-size: 17px; color: #dfe4f2; }
+.ingreso-notaria strong { font: 700 22px/30px var(--ne-display); color: #fff; }
 @media (max-width: 959.98px) {
   .ingreso { grid-template-columns: minmax(0, 1fr); }
   .ingreso-banda { display: none; }
+  .ingreso-pie { display: block; }
+}
+@media (max-width: 599.98px) {
+  .ingreso-main { gap: 32px; padding-block: 32px; }
+  .ingreso .marca-logo { width: 260px; }
+  .ingreso .marca-sello { width: 52px; height: 52px; font-size: 19px; }
+  .ingreso .marca-nombre { font-size: 24px; }
+  .ingreso-caja h1 { font-size: 34px; line-height: 42px; }
 }
 
 /* ── Impresión ─────────────────────────────────────────────────────── */
@@ -916,7 +947,6 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .revision-documento .visor-paginas { max-height: 75vh; }
 .revision-documento .obs-detalle { padding: 18px; }
 .revision-documento .obs-detalle-cab { flex-wrap: wrap; gap: 10px; }
-.revision-documento .obs-item .cambio { display: none; }
 .revision-documento .documentos, .revision-documento .valores { grid-template-columns: minmax(0, 1fr); }
 .revision-documento .obs-correccion { margin-top: 16px; }
 .revision-documento .obs-correccion p { margin-bottom: 12px; }

@@ -2,6 +2,7 @@
 {% load static %}
 {% block title %}{{ expediente.codigo }} · {{ expediente.get_tipo_display }}{% endblock %}
 {% block breadcrumb %}<ol>
+  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li aria-current="page">{{ expediente.codigo }}</li>
 </ol>{% endblock %}
@@ -23,7 +24,7 @@
     <div class="acciones">
       <a class="btn" href="{% url 'expediente_historial' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Historial de confrontaciones</a>
       <a class="btn" href="{% url 'expediente_editar' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-pencil"/></svg>Editar</a>
-      <a class="btn btn-icono btn-peligro-borde" href="{% url 'expediente_eliminar' expediente.pk %}" title="Eliminar kardex" aria-label="Eliminar kardex" @click.prevent="eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></a>
+      <a class="btn btn-icono btn-peligro-borde" href="{% url 'expediente_eliminar' expediente.pk %}" title="Eliminar {% if vehicular %}TV{% else %}kardex{% endif %}" aria-label="Eliminar {% if vehicular %}TV{% else %}kardex{% endif %}" @click.prevent="eliminar = { codigo: '{{ expediente.codigo|escapejs }}', url: '{% url 'expediente_eliminar' expediente.pk %}' }"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></a>
     </div>
   </div>
 
@@ -35,8 +36,8 @@
   <section class="aviso" data-tono="{% if resumen.estado == 'VACIO' %}neutro{% elif resumen.estado == 'LISTO' %}exito{% elif resumen.estado == 'ERROR' %}peligro{% endif %}" :data-tono="tonos[estado]" aria-labelledby="estado-expediente">
     <svg class="ico" :class="estado === 'PROCESANDO' && 'ico-gira'" aria-hidden="true"><use href="#i-info" :href="iconos[estado]"/></svg>
     <div class="aviso-texto" aria-live="polite">
-      <h2 id="estado-expediente" class="visually-hidden">Estado del kardex</h2>
-      <strong x-show="estado === 'VACIO'">Este kardex aún no tiene documentos.</strong>
+      <h2 id="estado-expediente" class="visually-hidden">Estado {% if vehicular %}de la TV{% else %}del kardex{% endif %}</h2>
+      <strong x-show="estado === 'VACIO'">{% if vehicular %}Esta TV{% else %}Este kardex{% endif %} aún no tiene documentos.</strong>
       <strong x-show="estado === 'PROCESANDO'" x-cloak>Leyendo documentos. Puede seguir adjuntando o salir y volver después.</strong>
       <strong x-show="estado === 'LISTO'" x-cloak>Todos los documentos están listos.</strong>
       <strong x-show="estado === 'ERROR'" x-cloak>No se pudo procesar uno o más documentos. Elimine el documento y vuelva a subirlo.</strong>

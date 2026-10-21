@@ -3,7 +3,7 @@ rapidocr==3.9.2
 onnxruntime==1.30.0
 pymupdf==1.28.2
 openpyxl==3.1.5
-pillow==12.3.0
+pillow==13.0.0
 colorama==0.4.6 ; sys_platform == "win32"
 tzdata==2026.4 ; sys_platform == "win32"
 
@@ -12,7 +12,6 @@ rapidfuzz==3.14.6
 spylls==0.1.7
 
 # Interfaz
-streamlit==1.64.0
 pandas==3.0.6
 
 # ERP F2

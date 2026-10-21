@@ -2,20 +2,21 @@
 
 {% block title %}Historial · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
+  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Historial</li>
 </ol>{% endblock %}
-{% block eyebrow %}Kardex / Historial{% endblock %}
+{% block eyebrow %}{{ expediente.get_tipo_display }} / Historial{% endblock %}
 {% block heading %}Historial de confrontaciones{% endblock %}
 {% block subtitle %}{{ expediente.codigo }} · registro inmutable de cada confrontación{% endblock %}
-{% block actions %}<a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al kardex</a>{% endblock %}
+{% block actions %}<a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver {% if expediente.tipo == "VEHICULAR" %}a la TV{% else %}al kardex{% endif %}</a>{% endblock %}
 {% block content %}
   <section class="panel">
     {% if corridas %}
       <div class="tabla-desliza">
         <table class="tabla tabla-media">
-          <caption class="visually-hidden">Confrontaciones del kardex</caption>
+          <caption class="visually-hidden">Confrontaciones {% if expediente.tipo == "VEHICULAR" %}de la TV{% else %}del kardex{% endif %}</caption>
           <thead><tr>
             <th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Estado</th>
             <th scope="col">Reglas</th>

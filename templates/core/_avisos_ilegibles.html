@@ -17,7 +17,7 @@ muestra si `avisos` trae kardex; nunca el nombre del archivo.
           <strong>{{ expediente.codigo }}</strong>
           <span>Un documento que usted subió no se pudo leer. Elimínelo y vuelva a subirlo.</span>
         </div>
-        <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}">Abrir kardex</a>
+        <a class="btn btn-sm" href="{% url 'expediente_detalle' expediente.pk %}">Abrir {% if expediente.tipo == "VEHICULAR" %}TV{% else %}kardex{% endif %}</a>
       </div>
     {% endfor %}
   </section>

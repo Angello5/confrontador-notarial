@@ -79,7 +79,7 @@ severidad = "MEDIA"
 descripcion = "Párrafo de la minuta ausente o alterado en el borrador."
 severidad = "MEDIA"
 
-# F39: el ERP ya no ejecuta PARRAFO (lo usan app.py y app_ortografia.py)
+# F39: el ERP ya no ejecuta PARRAFO (lo usaba la prueba de concepto, eliminada en la constitución 1.7.1)
 [reglas.ANEXO]
 descripcion = "Anexo de la minuta (hoja resumen, cronograma) omitido en el borrador."
 severidad = "MEDIA"

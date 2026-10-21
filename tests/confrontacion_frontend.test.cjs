@@ -25,6 +25,22 @@ test('F43: the vehicle-transfer report does not mention a minuta', async () => {
   assert.doesNotMatch(contents, /minuta/);
 });
 
+test('F55: the vehicle-transfer report says «Transferencia vehicular» / «TV», never kardex', async () => {
+  const report = require('../static/js/reporte-docx.js');
+  const datos = (vehicular) => ({meta: {codigo:'NUM-FICTICIO',borrador:'ficticio.docx',vehicular},
+    observaciones:[],correcciones:[],personas:[],incluir:{},calidad:[]});
+  const texto = async (d) => Buffer.from(await report.generar(d).arrayBuffer()).toString('utf8');
+  const tv = await texto(datos(true));
+  assert.match(tv, /Transferencia vehicular NUM-FICTICIO/);
+  assert.match(tv, />TV</);
+  assert.match(tv, /cargados en la TV\./);
+  assert.doesNotMatch(tv, /kardex/i);
+  const notarial = await texto(datos(false));
+  assert.match(notarial, /Kardex NUM-FICTICIO/);
+  assert.match(notarial, /cargados en el kardex\./);
+  assert.doesNotMatch(notarial, /\bTV\b|Transferencia vehicular/);
+});
+
 // Execute the actual template controller with a minimal DOM; all data is fictional.
 function revision(observations, corrections) {
   const html = fs.readFileSync(path.join(__dirname, '../templates/expedientes/confrontacion.html'), 'utf8');
@@ -92,6 +108,29 @@ test('F48: a proposal without a matching observation stays in the apply box', ()
   assert.equal(filas[1].corr.id, 'a');
   assert.equal(state.contarMarcadas(), 1);
   assert.equal(state.contarBloqueadas(), 1);
+});
+
+test('F56: a single «Todas» list filtered only by severity', () => {
+  const state = revision([
+    { id: 'p1', capa: 'IDENTIDAD', sev: 'ALTA', linea: '1' },
+    { id: 'r1', capa: 'REGLA', sev: 'MEDIA', linea: '2' },
+    { id: 'o1', capa: 'LINGUISTICO', sev: 'BAJA', linea: '3' },
+  ], []);
+  assert.equal(state.capa, undefined);
+  assert.equal(state.contar, undefined);
+  assert.equal(state.visibles.length, 3);
+  state.sev = 'MEDIA';
+  assert.equal(state.visibles.map((o) => o.id).join(), 'r1');
+  // The severity counters always count the whole list.
+  assert.equal(state.contarSev('ALTA'), 1);
+  state.ajustarSeleccion();
+  assert.equal(state.sel, 'r1');
+  state.sev = 'TODAS';
+  state.$nextTick = () => {};
+  state.paso(1);
+  assert.equal(state.sel, 'o1');
+  // The report still counts per layer.
+  assert.equal(state.contarCapa('IDENTIDAD'), 1);
 });
 
 test('Word download errors leave an actionable message and release the button', async () => {
