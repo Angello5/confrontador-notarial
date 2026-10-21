@@ -1,5 +1,6 @@
 """F39: el anexo de la minuta omitido en el borrador, con datos ficticios."""
 
+from nucleo.correccion import correcciones
 from nucleo.verificar import anexos_omitidos, montos_exigibles, sin_anexos_insertados
 
 _CLAUSULA = (
@@ -65,4 +66,32 @@ def test_sin_inserto_o_sin_el_monto_en_los_recaudos_el_anexo_cuenta():
     assert sin_anexos_insertados([_CON_MONTO], _CLAUSULA, [recaudo]) == [_CON_MONTO]
     assert sin_anexos_insertados([_CON_MONTO], _INSERTO, ["OTRO 99,999.99"]) == [
         _CON_MONTO
+    ]
+
+
+# F58: la hoja resumen es una tabla que no llega al texto; solo quedan el
+# título y la línea de los firmantes.
+_SOLO_FIRMAS = (
+    f"{_CLAUSULA}\nANEXO 1 – HOJA RESUMEN\n"
+    "ALBA LUMARIA ZAFIRO DNI 90000011     BRUNO TELURIO NEBULOSA DNI 90000022     "
+    "POR EL ACREEDOR FICTICIO S.A.C.\n"
+)
+
+
+def test_anexo_sin_montos_con_inserto_no_se_puede_comprobar():
+    """Decisión del usuario (2026-10-20): se mantiene el aviso, aclarado."""
+    minutas = sin_anexos_insertados([_SOLO_FIRMAS], _INSERTO, ["RECAUDO FICTICIO"])
+    obs = anexos_omitidos(minutas, _INSERTO, 88)
+
+    assert obs == ["[ANEXO] SIN COMPROBAR: «ANEXO 1 – HOJA RESUMEN»"]
+    assert correcciones(obs, {"minuta-ficticia.txt": _SOLO_FIRMAS}) == []
+
+
+def test_sin_inserto_o_con_montos_el_anexo_sigue_faltando():
+    assert anexos_omitidos([_SOLO_FIRMAS], _CLAUSULA, 88) == [
+        "[ANEXO] FALTA: «ANEXO 1 – HOJA RESUMEN»"
+    ]
+    # con montos que no están en los recaudos
+    assert anexos_omitidos([_CON_MONTO], _INSERTO, 88) == [
+        "[ANEXO] FALTA: «ANEXO 1 – HOJA RESUMEN»"
     ]

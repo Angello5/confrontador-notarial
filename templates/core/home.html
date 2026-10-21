@@ -205,7 +205,7 @@
                 <a class="fila" href="{% url 'expediente_detalle' expediente.pk %}">
                   <strong>{{ expediente.codigo }}</strong>
                   <span>{% include "core/_chip.html" with estado=resumen.estado %}</span>
-                  <span class="fila-fecha">{{ expediente.actualizado_el|date:"d/m/Y H:i" }}</span>
+                  <span class="fila-fecha">{{ expediente.actualizado|date:"d/m/Y H:i" }}</span>
                 </a>
               </li>
             {% endfor %}
