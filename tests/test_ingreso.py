@@ -37,7 +37,7 @@ def test_sin_direccion_no_quedan_huecos(client):
 
     assert NOMBRE in banda
     assert "ingreso-direccion" not in contenido
-    assert " · " not in contenido
+    assert f'<p class="ingreso-pie">{NOMBRE}</p>' in contenido
 
 
 @override_settings(ERP_NOMBRE=NOMBRE, ERP_LOGO="/static/marca/logo-ficticio.png")
