@@ -102,8 +102,6 @@ def pytest_sessionfinish(session, exitstatus):
             "expedientes/management/commands/reconstruir_corrida.py",
             "expedientes/management/commands/reextraer_expediente.py",
             "expedientes/management/commands/suprimir_texto_expediente.py",
-            "app.py",
-            "app_ortografia.py",
             "manage.py",
             "accounts/management/__init__.py",
             "accounts/management/commands/__init__.py",
