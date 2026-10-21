@@ -463,17 +463,25 @@ def test_indicadores_de_calidad_atribuyen_al_creador_sin_duplicar(
     assert ind["gravedad"] == {"ALTA": 4, "MEDIA": 1, "BAJA": 1}
     assert ind["usuarias"] == [
         {
+            "puesto": 1,
             "usuario": "Ana Prueba",
             "kardex": 1,
             "observaciones": 5,
             "altas": 4,
+            "medias": 0,
+            "bajas": 1,
+            "promedio": 5.0,
             "ancho": 100,
         },
         {
+            "puesto": 2,
             "usuario": "administrador_ficticio",
             "kardex": 2,
             "observaciones": 1,
             "altas": 0,
+            "medias": 1,
+            "bajas": 0,
+            "promedio": 0.5,
             "ancho": 20,
         },
     ]
@@ -555,3 +563,129 @@ def test_corrida_sin_observaciones_legibles_cuenta_el_kardex_sin_sumar_errores(
     assert ind["usuarias"][0]["kardex"] == 1
     assert ind["usuarias"][0]["observaciones"] == 0
     assert ind["gravedad"] == {"ALTA": 0, "MEDIA": 0, "BAJA": 0}
+
+
+# --- F57: ranking de errores por digitadora y versión imprimible ------------
+
+
+def _digitadora(nombre):
+    """Usuaria ficticia del rol Usuario."""
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+
+    usuaria = get_user_model().objects.create_user(
+        username=f"digitadora_{nombre.lower()}",
+        first_name=nombre,
+        last_name="Ficticia",
+    )
+    usuaria.groups.add(Group.objects.get(name="Usuario"))
+    return usuaria
+
+
+def test_ranking_ordena_por_total_y_cuenta_a_todas_las_digitadoras(
+    administrador_ficticio,
+):
+    from expedientes.services import indicadores_calidad, rango_periodo
+
+    cuando = datetime(2026, 10, 14, 9, tzinfo=LIMA)
+    alta, media, baja = ("regla", "DNI"), ("personas", "SIN_FICHA"), ("ortografia", "x")
+    errores = {  # digitadora: observaciones de cada kardex que creó
+        "Bea": [[alta] * 4],  # más altas y mayor promedio, pero menos total
+        "Ceci": [[baja] * 3, [baja] * 2],
+        "Dora": [[media] * 2],
+        "Eva": [[alta, baja]],  # empata con Dora
+        "Flor": [[]],  # confrontó sin errores: también figura
+        "Gina": [[media]],
+        "Hilda": [[alta]],  # empata con Gina
+    }
+    kardex = {}
+    for nombre, por_kardex in errores.items():
+        autora = _digitadora(nombre)
+        for numero, observaciones in enumerate(por_kardex):
+            expediente = _expediente(f"EXP-FICTICIO-{nombre}{numero}", autora)
+            kardex[nombre, numero] = expediente
+            # Confronta el administrador: cuenta para quien creó el kardex.
+            _corrida(expediente, administrador_ficticio, cuando, observaciones)
+    # Confrontar de nuevo con los mismos archivos no suma dos veces.
+    _corrida(kardex["Ceci", 0], administrador_ficticio, cuando, [baja] * 3)
+    # Quien solo confrontó fuera del periodo no figura.
+    fuera = _expediente("EXP-FICTICIO-Ines0", _digitadora("Ines"))
+    _corrida(fuera, administrador_ficticio, datetime(2026, 1, 5, tzinfo=LIMA), [alta])
+
+    ranking = indicadores_calidad(*rango_periodo("semana", date(2026, 10, 14)))[
+        "usuarias"
+    ]
+
+    filas = [(p["puesto"], p["usuario"], p["observaciones"]) for p in ranking]
+    assert filas == [
+        (1, "Ceci Ficticia", 5),
+        (2, "Bea Ficticia", 4),
+        (3, "Dora Ficticia", 2),
+        (3, "Eva Ficticia", 2),
+        (5, "Gina Ficticia", 1),
+        (5, "Hilda Ficticia", 1),
+        (7, "Flor Ficticia", 0),
+    ]
+    ceci, bea = ranking[0], ranking[1]
+    assert (ceci["kardex"], ceci["bajas"], ceci["promedio"]) == (2, 5, 2.5)
+    assert (bea["altas"], bea["medias"], bea["bajas"], bea["promedio"]) == (
+        4,
+        0,
+        0,
+        4.0,
+    )
+    assert all(
+        p["altas"] + p["medias"] + p["bajas"] == p["observaciones"] for p in ranking
+    )
+    assert ranking[-1]["promedio"] == 0.0
+    assert "administrador_ficticio" not in {p["usuario"] for p in ranking}
+
+
+def test_ranking_e_impresion_solo_para_el_administrador(
+    client, usuario_ficticio, administrador_ficticio
+):
+    expediente = _expediente("EXP-FICTICIO-R1", usuario_ficticio)
+    _corrida(expediente, usuario_ficticio, datetime(2026, 10, 14, tzinfo=LIMA))
+    exclusivos = (
+        "Errores por digitadora",
+        "Imprimir o guardar PDF",
+        "Ranking de errores por digitadora",
+    )
+
+    assert client.get(reverse("home")).status_code == 302  # anónimo: al login
+    client.force_login(usuario_ficticio)
+    content = client.get(reverse("home")).content.decode()
+    assert not any(texto in content for texto in exclusivos)
+    assert client.get(reverse("home_datos")).status_code == 403
+
+    client.force_login(administrador_ficticio)
+    content = client.get(reverse("home")).content.decode()
+    assert all(texto in content for texto in exclusivos)
+    assert '<th scope="col" class="num" data-sev="ALTA">Alta</th>' in content
+    assert '<th scope="row" x-text="persona.usuario"></th>' in content
+
+
+def test_version_imprimible_lleva_marca_periodo_y_fecha(
+    client, administrador_ficticio, settings
+):
+    settings.ERP_NOMBRE = "Notaría Ficticia"
+    settings.ERP_LOGO = "/static/img/logo-ficticio.png"
+    client.force_login(administrador_ficticio)
+    ahora = datetime(2026, 10, 20, 15, 30, tzinfo=LIMA)
+
+    with mock.patch("django.utils.timezone.now", return_value=ahora):
+        content = client.get(reverse("home")).content.decode()
+        mes = client.get(reverse("home_datos"), {"periodo": "mes"}).json()
+
+    inicio = content.index('<header class="solo-impresion reporte')
+    impresion = content[inicio : content.index("</header>", inicio)]
+    assert '<img class="marca-logo" src="/static/img/logo-ficticio.png"' in impresion
+    assert "Notaría Ficticia" in impresion
+    assert "Ranking de errores por digitadora" in impresion
+    assert "del 03/08/2026 al 20/10/2026" in impresion
+    assert "20/10/2026" in impresion and "15:30" in impresion
+    assert 'onclick="window.print()"' in content
+    assert (mes["rango"], mes["fecha"]) == (
+        "del 01/01/2026 al 20/10/2026",
+        "20/10/2026",
+    )
