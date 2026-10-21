@@ -45,7 +45,6 @@ htmlcov/
 dist/
 *.egg-info/
 capturas*/
-.streamlit/secrets.toml
 
 # ---- Sistema ----
 .DS_Store

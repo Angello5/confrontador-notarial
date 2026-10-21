@@ -813,21 +813,50 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 
 /* ── Ingreso ───────────────────────────────────────────────────────── */
 .ingreso { min-height: 100vh; display: grid; grid-template-columns: minmax(420px, 1fr) minmax(0, 1.1fr); background: var(--ne-white); }
-.ingreso-main { display: flex; flex-direction: column; justify-content: space-between; gap: 32px; padding: 40px clamp(24px, 6vw, 72px); min-height: 100vh; }
-.ingreso .marca { padding: 0; border: 0; }
-.ingreso .marca-logo { width: 200px; }
-.ingreso-caja { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 24px; }
-.ingreso-caja h1 { font: 700 30px/38px var(--ne-display); }
-.ingreso-caja > div > p { font-size: 16px; line-height: 24px; color: var(--ne-slate); margin-top: 8px; }
-.ingreso-pie { font-size: 13px; color: var(--ne-slate); }
-.ingreso-banda { background: linear-gradient(110deg, #00112c 12%, #0f2765 30%, #44d880 80%); display: flex; flex-direction: column; justify-content: flex-end; padding: 56px; }
-.ingreso-banda > div { max-width: 440px; display: flex; flex-direction: column; gap: 12px; }
-.ingreso-banda .eyebrow { letter-spacing: 0.2em; color: #c5ffcf; }
-.ingreso-banda p:last-child { font: 400 26px/36px var(--ne-display); color: #fff; text-wrap: pretty; }
-.ingreso .btn-verde { height: 48px; }
+.ingreso-main { display: flex; flex-direction: column; gap: 40px; padding: 48px clamp(24px, 6vw, 72px); min-height: 100vh; }
+/* F54: marca, título y campos más grandes, legibles a distancia de escritorio */
+.ingreso .marca { padding: 0; border: 0; gap: 12px; }
+.ingreso .marca-logo { width: 300px; }
+.ingreso .marca-fila { gap: 16px; }
+.ingreso .marca-sello { width: 60px; height: 60px; font-size: 22px; }
+.ingreso .marca-nombre { font-size: 30px; }
+.ingreso .marca-sub { font-size: 13px; }
+.ingreso-caja { width: 100%; max-width: 440px; margin-block: auto; display: flex; flex-direction: column; gap: 28px; }
+.ingreso-caja h1 { font: 700 40px/48px var(--ne-display); }
+.ingreso-caja > div > p { font-size: 18px; line-height: 28px; color: var(--ne-slate); margin-top: 8px; }
+.ingreso .formulario { gap: 20px; }
+.ingreso .formulario .campo { max-width: none; gap: 8px; }
+.ingreso .campo > label { font-size: 16px; }
+.ingreso .campo input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]) { height: 52px; padding: 0 14px; font-size: 18px; }
+.ingreso .campo-ayuda, .ingreso .campo-error-texto, .ingreso .aviso-texto span { font-size: 15px; }
+.ingreso .btn-verde { height: 56px; font-size: 15px; }
+/* Foco con el verde AA sobre blanco (4,8:1); el verde de marca da 1,85:1 */
+.ingreso :focus-visible, .ingreso .campo input:focus { box-shadow: 0 0 0 2px #fff, 0 0 0 5px var(--ne-green-text); }
+/* La banda lleva el nombre y la dirección: el pie solo aparece cuando ella se oculta. */
+.ingreso-pie { display: none; font-size: 15px; color: var(--ne-slate); }
+.ingreso-banda {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 48px;
+  padding: 64px clamp(40px, 5vw, 80px); color: #fff;
+  /* Degradado de marca con el verde en la esquina, lejos del texto (contraste AA) */
+  background: radial-gradient(circle at 100% 0, rgba(68, 216, 128, 0.45), transparent 32%), linear-gradient(160deg, var(--ne-ink) 15%, var(--ne-navy) 70%);
+}
+.ingreso-banda h2 { max-width: 520px; font: 400 36px/46px var(--ne-display); text-wrap: balance; }
+.ingreso-puntos { max-width: 540px; list-style: none; padding: 0; display: flex; flex-direction: column; gap: 28px; }
+.ingreso-puntos li { display: flex; align-items: flex-start; gap: 18px; font-size: 20px; line-height: 30px; }
+.ingreso-puntos .ico { width: 48px; height: 48px; padding: 12px; margin-top: -9px; background: rgba(68, 216, 128, 0.16); color: var(--ne-green); }
+.ingreso-notaria { display: flex; flex-direction: column; gap: 4px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.24); font-size: 17px; color: #dfe4f2; }
+.ingreso-notaria strong { font: 700 22px/30px var(--ne-display); color: #fff; }
 @media (max-width: 959.98px) {
   .ingreso { grid-template-columns: minmax(0, 1fr); }
   .ingreso-banda { display: none; }
+  .ingreso-pie { display: block; }
+}
+@media (max-width: 599.98px) {
+  .ingreso-main { gap: 32px; padding-block: 32px; }
+  .ingreso .marca-logo { width: 260px; }
+  .ingreso .marca-sello { width: 52px; height: 52px; font-size: 19px; }
+  .ingreso .marca-nombre { font-size: 24px; }
+  .ingreso-caja h1 { font-size: 34px; line-height: 42px; }
 }
 
 /* ── Impresión ─────────────────────────────────────────────────────── */
