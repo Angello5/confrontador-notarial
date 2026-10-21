@@ -85,7 +85,7 @@ Confrontación en memoria de los 11 expedientes de prueba, más un borrador con 
 
 - El .doc antiguo (Word 97-2003) se convierte a texto plano sin aplicar «Todo mayúsculas».
 - No se aplica la regla de Word por la que dos estilos con «Todo mayúsculas» se anulan entre sí (propiedades alternables).
-- El anexo insertado se reconoce por un monto desde 1,000.00 presente en los recaudos; una hoja resumen sin montos así sigue contando como omitida.
+- El anexo insertado se reconoce por un monto desde 1,000.00 presente en los recaudos; una hoja resumen sin montos así sigue contando como omitida (desde F58, con «INSERTO:» en el borrador sale como «No se pudo comprobar el anexo»).
 - Un anexo hecho solo de filas cortas (menos de 80 caracteres) no se evalúa.
 - La repetición de una palabra que no es gramatical («CONTRATO CONTRATO») ya no se reporta.
 - La concordancia de género con la ficha RENIEC («QUEDANDO ADVERTIDA» para un otorgante varón) queda fuera.
@@ -169,3 +169,66 @@ Basta con que el worker esté corriendo. En pocos segundos relee el borrador `.d
   - casos que no se releen: minuta, borrador en ERROR, borrador sin original y borrador de un archivado;
   - el aviso en el kardex y en el resultado: solo lista lo que no se relee y no entra en la confrontación.
 - `tests/test_expedientes_commands.py`: la supresión solo afecta al activo, y sin un único activo no suprime nada.
+
+## F58 · Signo sin cerrar comprensible y anexo que no se puede comprobar
+
+**Fecha**: 2026-10-20  
+**Alcance**: `nucleo/ortografia.py` (`_sin_cerrar` y `redaccion`), `nucleo/verificar.py` (`anexos_omitidos`), `expedientes/services.py` (`parsear_observacion_regla`) y catálogo de reglas.
+
+### Origen
+
+- **Comillas sin cerrar**: en un kardex real, una línea de 659 caracteres del borrador abría una razón social con comilla tipográfica `“` y la cerraba con comilla recta `"`. La observación llevaba como fragmento la línea entera (un párrafo enorme en pantalla), el motivo «comillas sin cerrar» y ninguna sugerencia. El usuario no entendía qué estaba mal.
+- **Anexo omitido**: en otro kardex, el «ANEXO 1 – HOJA RESUMEN» de la minuta es solo el título y el bloque de firmas, porque la tabla no llega al texto extraído. El borrador trae dos «INSERTO :». Como el anexo no tiene montos que buscar en los recaudos, no se reconocía como insertado y la pantalla decía «No aparece en el borrador», aunque los dos anexos estaban insertados.
+
+### Decisión — anexo sin montos con inserto (confirmado por el usuario, 2026-10-20)
+
+«Mantener aviso, aclarado: sigue saliendo, pero como “No se pudo comprobar el anexo: verifique que esté insertado”, en lugar de “No aparece en el borrador”».
+
+### Comportamiento implementado
+
+- **Signo sin cerrar** (capa lingüística, BAJA):
+  - Cada línea se recorre una vez. Cada paréntesis y cada comilla de apertura busca su cierre; una comilla recta tras otra comilla abierta abre una anidada si le sigue una letra o cifra, y si no, cierra la abierta.
+  - **Comilla cerrada con otro signo**: el fragmento va desde la comilla de apertura hasta el cierre equivocado (`“INVERSIONES FICTICIAS E.I.R.L."`). El motivo dice cuál: «comilla “ cerrada con comilla recta "» o, al revés, «comilla recta " cerrada con comilla ”». La sugerencia es el mismo fragmento con el cierre correcto (`“INVERSIONES FICTICIAS E.I.R.L.”`).
+  - La sugerencia solo se da si es inequívoca: si el cierre correcto aparece más adelante antes de otra apertura (por ejemplo, `TUBO “DE 3" PULGADAS”`), la comilla recta puede ser otra cosa y queda «Sin sugerencia».
+  - **Sin cierre**: el motivo es «falta cerrar el paréntesis» o «falta cerrar la comilla», sin sugerencia. El fragmento es una ventana de unos 60 caracteres alrededor del signo, sin cortar palabras.
+  - El fragmento es siempre texto literal de la línea, para que la pantalla lo ubique en el borrador.
+  - Para descartar lo que se solapa con un dato protegido solo cuenta el signo de apertura: una razón social o un nombre dentro del fragmento no ocultan la observación.
+  - Cada signo sin pareja de una línea es una observación (antes, una por línea).
+- **Anexo que no se puede comprobar** (`ANEXO`, MEDIA):
+  - Si el anexo falta, el borrador tiene «INSERTO:» y el anexo no tiene montos desde 1,000.00, el núcleo emite `[ANEXO] SIN COMPROBAR: «…»`.
+  - En pantalla: «No se pudo comprobar el anexo» y «Verifique que «…» esté insertado».
+  - No es corregible en el Word: no entra en la carga de `correccion.correcciones`.
+  - Sin «INSERTO:», o con un anexo que tiene montos que no están en los recaudos, sigue «No aparece en el borrador».
+- Catálogo de reglas `2026.10.20-16`: las confrontaciones guardadas se recalculan.
+
+### Límites
+
+- Si el cierre equivocado queda lejos de la apertura, el fragmento es largo: va hasta ese cierre.
+- La comilla simple y el apóstrofo no se revisan.
+- Las comillas rectas anidadas dentro de otras rectas no se distinguen: la segunda cierra la primera.
+
+### [NEEDS CLARIFICATION]
+
+- **Anexo sin montos con párrafos de contenido**: con «INSERTO:», un anexo sin montos sale como «No se pudo comprobar» aunque le falten párrafos de contenido y no solo el bloque de firmas. El texto extraído no permite distinguir con certeza las firmas del contenido, y no hay una regla de la notaría para hacerlo. Falta que el usuario confirme si este caso debe seguir como «No aparece en el borrador».
+
+### Medición
+
+Medición privada, solo lectura, main frente a esta rama:
+
+- **Base local** (10 expedientes, dos de ellos cargas del caso de referencia):
+  - kardex de la comilla: la observación pasa de un fragmento de 659 caracteres sin sugerencia a uno de 30 caracteres con motivo concreto y sugerencia; sigue ubicada en el borrador;
+  - kardex del anexo: pasa de «No aparece en el borrador» a «No se pudo comprobar el anexo»;
+  - el total de filas lingüísticas no cambia (19) y los demás kardex no cambian.
+- **9 casos de prueba** con el OCR propio del guion: los mismos dos cambios; el resto igual.
+- El caso de referencia sigue con 8 de 8 en las dos cargas.
+
+### Verificación
+
+- `tests/test_linguistico.py`, con datos inventados:
+  - comilla tipográfica cerrada con recta en una línea de más de 600 caracteres: fragmento, motivo, sugerencia, dato protegido dentro del fragmento y ubicación en el texto;
+  - el caso inverso, y el ambiguo sin sugerencia;
+  - ventana corta para un paréntesis sin cerrar en una línea larga;
+  - comillas rectas anidadas dentro de tipográficas sin observación;
+  - los motivos nuevos en los casos existentes.
+- `tests/test_anexo_omitido.py`: anexo sin montos con «INSERTO:» (no corregible), y sin «INSERTO:» o con montos sigue «FALTA».
+- `tests/test_expedientes_confrontacion.py`: el formato nuevo se interpreta y no cae en «formato desconocido».

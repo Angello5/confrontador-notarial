@@ -58,6 +58,9 @@ _RE_OBSERVACION_FALTA = re.compile(
     r"^\[(?P<campo>[^]]+)\]\s+FALTA:\s+«(?P<esperado>[^»]*)»",
     re.IGNORECASE,
 )
+_RE_OBSERVACION_SIN_COMPROBAR = re.compile(
+    r"^\[(?P<campo>[^]]+)\]\s+SIN COMPROBAR:\s+«(?P<esperado>[^»]*)»"
+)
 _RE_DEBE_DECIR = re.compile(
     r"^debe decir\s+«(?P<esperado>[^»]*)»(?P<resto>.*)$", re.IGNORECASE
 )
@@ -975,6 +978,17 @@ def parsear_observacion_regla(salida, texto_borrador):
             falta.group("campo"),
             "No aparece en el borrador",
             falta.group("esperado"),
+            "",
+            texto_borrador,
+        )
+
+    # F58: el anexo insertado que no se puede cotejar por texto
+    sin_comprobar = _RE_OBSERVACION_SIN_COMPROBAR.match(salida)
+    if sin_comprobar:
+        return _observacion_regla(
+            sin_comprobar.group("campo"),
+            "No se pudo comprobar el anexo",
+            f"Verifique que «{sin_comprobar.group('esperado')}» esté insertado",
             "",
             texto_borrador,
         )

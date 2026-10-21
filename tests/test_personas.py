@@ -6,6 +6,7 @@ from datetime import date
 import pytest
 
 from nucleo.verificar import (
+    _direccion_palabras,
     _direcciones_observadas,
     Catalogo,
     Persona,
@@ -830,6 +831,9 @@ def test_domicilio_equivalente_y_ausente():
         ("ASENT.H.", "Asentamiento Humano"),
         ("Asent. H.", "Asentamiento Humano"),
         ("AA.HH.", "Asentamiento Humano"),
+        # F58: el OCR lee una coma en lugar del punto
+        ("ASENT, H.", "Asentamiento Humano"),
+        ("AA, HH", "Asentamiento Humano"),
         ("Asoc.", "Asociación"),
     ],
 )
@@ -884,6 +888,53 @@ def test_numero_distinto_sigue_siendo_otro_domicilio():
     assert _direcciones_observadas({persona.domicilio}, texto, Counter()) == [
         ("MANZANA J LOTE 16 LUNA", "Mz J Lt6 Luna")
     ]
+
+
+@pytest.mark.parametrize(
+    "texto",
+    [
+        "ASENT, H. LAS ACACIAS MZ. OLT. 7",
+        "AA, HH. LAS ACACIAS MZ.OLT7",
+        "ASENT. H. LAS ACACIAS MZ. O LT 7",
+    ],
+)
+def test_direccion_palabras_tolera_coma_y_manzana_pegada_al_lote(texto):
+    """F58: «ASENT, H.» y «MZ. OLT.» son lecturas OCR de «ASENT. H.» y «MZ. O LT.»."""
+    assert _direccion_palabras(texto) == (
+        "ASENTAMIENTO HUMANO LAS ACACIAS MANZANA O LOTE 7".split()
+    )
+
+
+def test_direccion_palabras_no_parte_una_palabra_tras_la_manzana():
+    assert _direccion_palabras("MZ. ALTA") == ["MANZANA", "ALTA"]
+
+
+@pytest.mark.parametrize(
+    "domicilio", ["ASENT, H. LAS ACACIAS MZ. OLT.", "ASENT, H. LAS ACACIAS MZ. OLT. 7"]
+)
+def test_domicilio_leido_por_ocr_con_puntuacion_alterada(domicilio):
+    """F58: la ficha escaneada altera la puntuación; el borrador sí lo trae."""
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        domicilio=domicilio,
+        procedencia_domicilio=origen,
+    )
+    fuente = Catalogo((persona,))
+    for direccion in (
+        "ASENT. H. LAS ACACIAS MZ. O LT 7",
+        "ASENTAMIENTO HUMANO LAS ACACIAS MANZANA O LOTE 7",
+    ):
+        borrador = f"ALBA LUMARIA ZAFIRO, CON DOMICILIO EN {direccion}."
+        assert revisar_persona_ampliada(fuente, borrador, date(2025, 1, 1)) == ()
+    otro = (
+        "ALBA LUMARIA ZAFIRO, CON DOMICILIO EN ASENTAMIENTO HUMANO LOS OLMOS "
+        "MANZANA B LOTE 9."
+    )
+    obs = revisar_persona_ampliada(fuente, otro, date(2025, 1, 1))
+    assert [fila["tipo"] for fila in obs] == ["DOMICILIO_NO_ENCONTRADO"]
 
 
 def _representante(linea, direcciones=("AV. SOL 300",)):

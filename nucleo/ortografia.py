@@ -161,16 +161,47 @@ def _mezcladas(texto: str) -> list[tuple]:
     ]
 
 
-def _sin_cerrar(linea: str) -> str | None:
-    if linea.count("(") > linea.count(")"):
-        return "paréntesis sin cerrar"
-    if (
-        linea.count('"') % 2
-        or linea.count("«") > linea.count("»")
-        or linea.count("“") > linea.count("”")
-    ):
-        return "comillas sin cerrar"
-    return None
+_CIERRE = {"(": ")", "«": "»", "“": "”", '"': '"'}
+
+
+def _comilla(c: str) -> str:
+    return f"comilla recta {c}" if c == '"' else f"comilla {c}"
+
+
+def _ventana(linea: str, i: int) -> tuple[int, int]:
+    """Unos 60 caracteres alrededor de ``i`` sin cortar palabras."""
+    fin = linea.find(" ", i + 40)
+    return linea.rfind(" ", 0, max(0, i - 20)) + 1, fin if fin >= 0 else len(linea)
+
+
+def _sin_cerrar(linea: str):
+    """F58: (signo, inicio, fin, motivo, sugerencia) de cada signo sin pareja.
+
+    El tramo va del signo a su cierre equivocado o, si no tiene cierre, es una
+    ventana corta alrededor del signo. Tras otra comilla abierta, la recta
+    seguida de letra o cifra abre una anidada; si no, cierra la abierta.
+    """
+    parentesis, comillas = [], []
+    for i, c in enumerate(linea):
+        abre_recta = not comillas or (
+            linea[comillas[-1]] != '"' and linea[i + 1 : i + 2].isalnum()
+        )
+        if c == "(":
+            parentesis.append(i)
+        elif c == ")" and parentesis:
+            parentesis.pop()
+        elif c in "«“" or (c == '"' and abre_recta):
+            comillas.append(i)
+        elif c in '"”»' and comillas:
+            j = comillas.pop()
+            if c != (cierre := _CIERRE[linea[j]]):
+                # inequívoca si el cierre correcto no llega antes de otra apertura
+                otro = cierre in linea[i:].split(linea[j])[0]
+                motivo = f"{_comilla(linea[j])} cerrada con {_comilla(c)}"
+                yield j, j, i + 1, motivo, "?" if otro else linea[j:i] + cierre
+    for j in parentesis + comillas:
+        falta = "el paréntesis" if linea[j] == "(" else "la comilla"
+        yield j, *_ventana(linea, j), f"falta cerrar {falta}", "?"
 
 
 def redaccion(texto: str, protegidos) -> list[tuple[str, str, str]]:
@@ -193,12 +224,11 @@ def redaccion(texto: str, protegidos) -> list[tuple[str, str, str]]:
     ] + _mezcladas(texto)
     desde = 0
     for linea in texto.splitlines(keepends=True):
-        if motivo := _sin_cerrar(linea):
-            # el tramo es solo el signo de apertura: un nombre en la linea no la oculta
-            signo = next(i for i, c in enumerate(linea) if c in '("«“')
-            hallazgos.append(
-                (desde + signo, desde + signo + 1, linea.strip(), motivo, "?")
-            )
+        # se compara solo el signo de apertura: un nombre en el tramo no lo oculta
+        hallazgos += [
+            (desde + signo, desde + signo + 1, linea[a:b].strip(), motivo, sugerencia)
+            for signo, a, b, motivo, sugerencia in _sin_cerrar(linea)
+        ]
         desde += len(linea)
     return [
         (fragmento, motivo, sugerencia)
