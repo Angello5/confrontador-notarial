@@ -369,3 +369,61 @@ comprobar cada indicador para cada periodo.
 - La elección de periodo se guarda solo en el navegador (preferencia de
   pantalla, no dato de negocio).
 - Sin dependencias nuevas ni CDN (constitución, restricciones técnicas).
+
+## F57 · Ranking de errores por digitadora y versión imprimible
+
+**Pedido** (2026-10-20): «Dashboard con ranking de errores por digitadora y
+versión imprimible». Premisa: el sistema tiene que ahorrar tiempo.
+
+**Decisiones del usuario** (2026-10-20):
+
+- El ranking se ordena por **total de errores** (observaciones) del periodo.
+- Los errores de un kardex se atribuyen a **quien creó el kardex**, el mismo
+  criterio de US5.
+
+### Requisitos
+
+- **FR-F57-01**: «Usuarias con más errores» pasa a ser la tabla «Errores por
+  digitadora», a todo el ancho, justo después de la actividad. Columnas:
+  puesto, digitadora, kardex confrontados, total de errores (con una barra
+  proporcional al mayor total, decorativa), Alta, Media, Baja y promedio por
+  kardex (un decimal, solo informativo: no cambia el orden).
+- **FR-F57-02**: Figuran **todas** las personas con al menos un kardex
+  confrontado en el periodo, también las que no tienen errores; sin límite de
+  filas. Quien solo confrontó fuera del periodo no figura.
+- **FR-F57-03**: Orden por total de mayor a menor y, a igual total, por
+  nombre. A igual total, mismo puesto (1, 2, 2, 4).
+- **FR-F57-04**: Se reutiliza el cálculo de US5 (`indicadores_calidad`): una
+  confrontación repetida con los mismos documentos no suma dos veces y las
+  confrontaciones sin resultado no suman errores.
+- **FR-F57-05**: Botón «Imprimir o guardar PDF» en las acciones de la página
+  (mismo rótulo que la confrontación). Abre el diálogo de impresión del
+  navegador; no se genera PDF en el servidor ni hay vista nueva.
+- **FR-F57-06**: En papel van solo: la marca de la notaría (logo si está
+  configurado y nombre), el título «Ranking de errores por digitadora», el
+  periodo elegido con fechas absolutas («del 03/08/2026 al 20/10/2026»), quién
+  lo emite y la fecha y hora de los datos, la tabla del ranking y los
+  indicadores clave (gravedad, errores más frecuentes, correcciones). Sin menú
+  lateral, botones, selector de periodo, cifras por tipo, actividad, últimas
+  confrontaciones ni animaciones. Pensado para una hoja A4.
+- **FR-F57-07**: Solo el Administrador ve el ranking y el botón, con los mismos
+  permisos del Inicio del administrador; el JSON de `/inicio/datos/` añade
+  `rango` y `fecha` para la cabecera impresa.
+
+### Accesibilidad y textos
+
+- Tabla con `caption`, `th scope="col"` en los encabezados y `th scope="row"`
+  en la digitadora. Las gravedades se leen por el texto del encabezado (el
+  color solo acompaña) y la barra es decorativa (`aria-hidden`): el número
+  está siempre escrito. Contraste de los encabezados de gravedad ≥ 9:1.
+- La descripción del panel explica el criterio en pantalla y en papel: errores
+  del periodo, cada observación cuenta para quien creó el kardex, confrontar de
+  nuevo con los mismos archivos no suma, el promedio solo informa.
+
+### Por confirmar
+
+- Empates: mismo puesto para el mismo total (1, 2, 2, 4) en lugar de puestos
+  correlativos por orden alfabético.
+- El promedio se muestra con punto decimal (2.5), como los montos en Perú.
+- Se llama «digitadora» a toda persona que creó kardex, también si es
+  administradora.
