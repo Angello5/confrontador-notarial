@@ -12,9 +12,9 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .forms import (
-    CODIGO_OCUPADO,
     DocumentoUploadForm,
     ExpedienteForm,
+    codigo_ocupado,
     formatos_admitidos,
 )
 from .models import DecisionCorreccion, Documento, Expediente
@@ -173,6 +173,7 @@ def _render_detalle(request, expediente, upload_form=None, status=200):
 @login_required
 def expediente_lista(request, tipo=Expediente.NOTARIAL):
     _requiere_rol(request)
+    vehicular = tipo == Expediente.VEHICULAR
     if request.method == "POST":
         form = ExpedienteForm(request.POST, instance=Expediente(tipo=tipo))
         if form.is_valid():
@@ -182,21 +183,24 @@ def expediente_lista(request, tipo=Expediente.NOTARIAL):
                     expediente.creado_por = request.user
                     expediente.save()
             except IntegrityError:
-                form.add_error("codigo", CODIGO_OCUPADO)
+                # Carrera con otra alta simultánea: se asume que es del mismo tipo.
+                form.add_error("codigo", codigo_ocupado(tipo))
             else:
                 messages.success(
-                    request, "Kardex creado. Ahora puede cargar sus documentos."
+                    request,
+                    f"{'TV creada' if vehicular else 'Kardex creado'}. "
+                    "Ahora puede cargar sus documentos.",
                 )
                 return redirect("expediente_detalle", pk=expediente.pk)
     else:
-        form = ExpedienteForm()
+        form = ExpedienteForm(instance=Expediente(tipo=tipo))
     contexto = _navegacion_contexto(request)
     archivados = contexto["es_administrador"] and request.GET.get("archivados") == "1"
     contexto.update(
         form=form,
         archivados=archivados,
         expedientes=expedientes_con_resumen(request.user, archivados, tipo),
-        vehicular=tipo == Expediente.VEHICULAR,
+        vehicular=vehicular,
     )
     return render(
         request,
@@ -225,9 +229,14 @@ def expediente_editar(request, pk):
                 with transaction.atomic():
                     form.save()
             except IntegrityError:
-                form.add_error("codigo", CODIGO_OCUPADO)
+                form.add_error("codigo", codigo_ocupado(expediente.tipo))
             else:
-                messages.success(request, "Kardex actualizado.")
+                messages.success(
+                    request,
+                    "TV actualizada."
+                    if expediente.tipo == Expediente.VEHICULAR
+                    else "Kardex actualizado.",
+                )
                 return redirect("expediente_detalle", pk=expediente.pk)
         status = 400
         # El formulario inválido ya cambió la instancia; la cabecera usa la guardada.
@@ -248,7 +257,12 @@ def expediente_eliminar(request, pk):
         expediente.archivado_el = timezone.now()
         expediente.archivado_por = request.user
         expediente.save(update_fields=["archivado_el", "archivado_por"])
-        messages.success(request, f"Kardex {expediente.codigo} eliminado.")
+        messages.success(
+            request,
+            f"TV {expediente.codigo} eliminada."
+            if expediente.tipo == Expediente.VEHICULAR
+            else f"Kardex {expediente.codigo} eliminado.",
+        )
         return redirect("expediente_lista")
     contexto = {"expediente": expediente}
     contexto.update(_navegacion_contexto(request))
@@ -267,13 +281,26 @@ def expediente_restaurar(request, pk):
         with transaction.atomic():
             expediente.save(update_fields=["archivado_el", "archivado_por"])
     except IntegrityError:
+        # F55: el número es único entre tipos; se nombra el que ya lo usa.
+        tv = Expediente.objects.filter(
+            codigo=expediente.codigo,
+            archivado_el__isnull=True,
+            tipo=Expediente.VEHICULAR,
+        ).exists()
         messages.error(
             request,
-            "No se puede restaurar: ya existe un kardex activo con el número "
-            f"{expediente.codigo}. Cambie o elimine ese kardex primero.",
+            "No se puede restaurar: ya existe "
+            f"{'una TV activa' if tv else 'un kardex activo'} con el número "
+            f"{expediente.codigo}. Cambie o elimine {'esa TV' if tv else 'ese kardex'} "
+            "primero.",
         )
         return redirect(f"{reverse('expediente_lista')}?archivados=1")
-    messages.success(request, f"Kardex {expediente.codigo} restaurado.")
+    messages.success(
+        request,
+        f"TV {expediente.codigo} restaurada."
+        if expediente.tipo == Expediente.VEHICULAR
+        else f"Kardex {expediente.codigo} restaurado.",
+    )
     return redirect("expediente_detalle", pk=expediente.pk)
 
 

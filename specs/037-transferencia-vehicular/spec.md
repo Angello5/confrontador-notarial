@@ -100,3 +100,45 @@ Catálogo `2026.10.09-14`.
 **Pendiente** (motor general):
 - el DNI electrónico fotografiado no se lee como ficha (el cónyuge queda «sin ficha»);
 - la numeración de los firmantes («1.- 2.- 3.-») se lee como cláusulas.
+
+## F55 · «Transferencia vehicular» / «TV» en lugar de «kardex» (2026-10-20)
+
+El usuario pidió el 2026-10-20: «Cambiar "Kardex" por Transferencia Vehicular / TV». Entre varias opciones, decidió:
+
+- **Títulos y encabezados:** «Transferencia vehicular».
+- **Botones, columnas, etiquetas de campo y textos cortos:** «TV», en femenino: «Nueva TV», «Mis TV», «N.° de TV», «Esta TV aún no tiene documentos».
+- **Migas de pan:** «Expedientes › Transferencia vehicular», como el menú lateral de F47. «Expedientes» solo rotula, no es un enlace.
+- **El kardex notarial sigue llamándose «Kardex»:** sus pantallas y migas no cambian.
+
+**Comportamiento implementado.** Como en F36, cambian solo los textos visibles; las URL, los modelos y los campos de la base siguen igual.
+
+- **Pantallas revisadas:**
+  - lista (activas, archivadas y vacía) y alta;
+  - detalle y carga, edición y eliminación (página y modal);
+  - historial y confrontación guardada;
+  - resultado de la confrontación: cabecera, avisos y modal del informe;
+  - página de «Aplicar correcciones» y aviso de documentos ilegibles del inicio.
+- **Encabezado pequeño** (sobre el título): usa el nombre del tipo, p. ej. «Transferencia vehicular / Historial».
+- **Mensajes:** «TV creada», «TV actualizada», «TV N eliminada» y «TV N restaurada».
+- **Número repetido.** El número es único entre tipos (F28, #103), así que el mensaje nombra el tipo que ya lo usa:
+  - «Ya existe una TV activa con ese número»;
+  - «Ya existe un kardex activo con ese número».
+
+  Al restaurar pasa lo mismo («Cambie o elimine esa TV primero»). Si dos altas simultáneas chocan en la base, se asume que la otra es del mismo tipo.
+- **Etiqueta del número:** «Número de TV» y «Número de kardex». Antes ambos tipos mostraban «Codigo», porque `Meta.labels` no se aplica a un campo declarado en el formulario.
+- **Informe Word:** portada «Transferencia vehicular N», ficha «TV» y pie «… a partir de la información y el acta cargados en la TV». El informe imprimible no nombra el tipo y no cambia.
+
+**Dónde se dudó entre «TV» y el nombre largo** (a confirmar):
+
+- Subtítulo de la lista: «Cree la TV con su número…», justo debajo del título largo.
+- Encabezado pequeño de editar, eliminar, historial y correcciones: nombre largo, por ser encabezado.
+- Ficha del informe Word: «TV», por ser etiqueta.
+- Pie del informe Word: «TV», aunque es una frase completa.
+
+**Fuera de alcance:**
+
+- El inicio (`core/home.html`) cuenta los dos tipos juntos («Últimos kardex», «Nuevo kardex»).
+- Tras eliminar una TV, o si falla su restauración, se vuelve a la lista de Kardex: es comportamiento, no texto.
+- El comando de consola `suprimir_texto_expediente`.
+
+**Verificación:** `tests/test_vehicular_ui.py`, desde `test_pantallas_vehiculares_dicen_tv_y_no_kardex` hasta `test_pantallas_notariales_siguen_diciendo_kardex`. El informe Word se prueba en `tests/confrontacion_frontend.test.cjs` («F55: …»).

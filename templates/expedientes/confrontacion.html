@@ -3,6 +3,7 @@
 
 {% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
+  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Confrontación</li>
@@ -20,7 +21,7 @@
     </div>
     <div class="acciones">
       <a class="btn" href="{% url 'expediente_historial' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Historial</a>
-      <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver al kardex</a>
+      <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver {% if expediente.tipo == "VEHICULAR" %}a la TV{% else %}al kardex{% endif %}</a>
       {% if resultado.estado == "RESULTADO" %}
         <button type="button" class="btn btn-primario" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar informe</button>
       {% endif %}
@@ -35,8 +36,8 @@
       <div class="aviso-texto">
         <h2>Revise los documentos</h2>
         <p>{{ resultado.mensaje }}</p>
-        <p>No se muestran diferencias campo por campo. Revise que el borrador y los recaudos pertenezcan al mismo kardex.</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
+        <p>No se muestran diferencias campo por campo. Revise que el borrador y los recaudos pertenezcan {% if expediente.tipo == "VEHICULAR" %}a la misma TV{% else %}al mismo kardex{% endif %}.</p>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos {% if expediente.tipo == "VEHICULAR" %}de la TV{% else %}del kardex{% endif %}</a></div>
       </div>
     </section>
   {% elif resultado.estado == "NO_DISPONIBLE" %}
@@ -45,7 +46,7 @@
       <div class="aviso-texto">
         <h2>No se puede confrontar todavía</h2>
         <p>{{ resultado.mensaje }}</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos {% if expediente.tipo == "VEHICULAR" %}de la TV{% else %}del kardex{% endif %}</a></div>
       </div>
     </section>
   {% elif resultado.estado == "ERROR_SEGURO" %}
@@ -54,7 +55,7 @@
       <div class="aviso-texto">
         <h2>No se pudo completar la confrontación</h2>
         <p>No se pudo completar la confrontación. Intente nuevamente.</p>
-        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos del kardex</a></div>
+        <div><a class="btn" href="{% url 'expediente_detalle' expediente.pk %}">Revisar documentos {% if expediente.tipo == "VEHICULAR" %}de la TV{% else %}del kardex{% endif %}</a></div>
       </div>
     </section>
   {% elif resultado.estado == "RESULTADO" %}
@@ -430,7 +431,7 @@
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.CORRECCIONES"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Correcciones propuestas</span><em x-text="correcciones.length"></em></label>
             <label class="casilla casilla-chica" x-show="rep.fmt !== 'EXCEL'"><input type="checkbox" x-model="rep.EXTRACCION"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Personas extraídas y procedencia</span><em>{{ resultado.extraccion.personas|length }}</em></label>
           </fieldset>
-          <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El informe registra kardex, borrador, confrontación, usuario y fecha de emisión.</span></p>
+          <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El informe registra {% if expediente.tipo == "VEHICULAR" %}TV{% else %}kardex{% endif %}, borrador, confrontación, usuario y fecha de emisión.</span></p>
         </div>
         <div class="modal-pie">
           <button type="button" class="btn" @click="modal = null">Cancelar</button>
