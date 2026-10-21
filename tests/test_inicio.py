@@ -683,7 +683,8 @@ def test_version_imprimible_lleva_marca_periodo_y_fecha(
     assert "Notaría Ficticia" in impresion
     assert "Ranking de errores por digitadora" in impresion
     assert "del 03/08/2026 al 20/10/2026" in impresion
-    assert "20/10/2026" in impresion and "15:30" in impresion
+    assert '<span x-text="datos.fecha">20/10/2026</span>' in impresion
+    assert '<span x-text="datos.actualizado">15:30</span>' in impresion
     assert 'onclick="window.print()"' in content
     assert (mes["rango"], mes["fecha"]) == (
         "del 01/01/2026 al 20/10/2026",
