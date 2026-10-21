@@ -23,7 +23,7 @@
           {% if form.non_field_errors %}
             <div class="aviso" data-tono="peligro" role="alert">
               <svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>
-              <div class="aviso-texto"><span>El usuario o la contraseña no son correctos. Revise los datos e inténtelo nuevamente.</span></div>
+              <div class="aviso-texto"><span>El nombre de usuario o la clave no son correctos. Revise los datos e inténtelo nuevamente.</span></div>
             </div>
           {% endif %}
           <form method="post" class="formulario" novalidate>
@@ -42,11 +42,14 @@
         </div>
         <p class="ingreso-pie">{{ erp_nombre }}{% if erp_direccion %} · {{ erp_direccion }}{% endif %}</p>
       </main>
-      <aside class="ingreso-banda" aria-hidden="true">
-        <div>
-          <p class="eyebrow">Confrontador notarial</p>
-          <p>Compare el proyecto de escritura con la minuta y los recaudos antes de la firma.</p>
-        </div>
+      <aside class="ingreso-banda" aria-labelledby="titulo-banda">
+        <h2 id="titulo-banda">Revise el proyecto de escritura antes de la firma.</h2>
+        <ul class="ingreso-puntos">
+          <li><svg class="ico" aria-hidden="true"><use href="#i-file-search"/></svg><span>Confronta el proyecto con la minuta y los recaudos.</span></li>
+          <li><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg><span>Señala cada observación con su fuente: lo que dice y lo que debe decir.</span></li>
+          <li><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>Genera el Word con las correcciones que usted elija, sin modificar el original.</span></li>
+        </ul>
+        <p class="ingreso-notaria"><strong>{{ erp_nombre }}</strong>{% if erp_direccion %} <span class="ingreso-direccion">{{ erp_direccion }}</span>{% endif %}</p>
       </aside>
     </div>
   </body>
