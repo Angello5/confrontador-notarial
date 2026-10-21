@@ -447,3 +447,32 @@ def test_pantallas_notariales_siguen_diciendo_kardex(client, usuario_ficticio):
         assert "Expedientes" not in _migas(html), url
         for texto in textos:
             assert texto in html, (url, texto)
+
+
+def test_eliminar_y_restaurar_fallido_vuelven_a_la_lista_de_su_tipo(
+    client, usuario_ficticio, administrador_ficticio
+):
+    from expedientes.models import Expediente
+
+    tv = Expediente.objects.create(
+        codigo="NUM-FICTICIO-9", tipo=Expediente.VEHICULAR, creado_por=usuario_ficticio
+    )
+    kardex = Expediente.objects.create(
+        codigo="NUM-FICTICIO-10", creado_por=usuario_ficticio
+    )
+    client.force_login(usuario_ficticio)
+    for expediente, lista in ((tv, "vehicular_lista"), (kardex, "expediente_lista")):
+        respuesta = client.post(reverse("expediente_eliminar", args=[expediente.pk]))
+        assert respuesta.url == reverse(lista)
+
+    # Con el número ocupado por otro activo, la restauración falla.
+    Expediente.objects.create(codigo="NUM-FICTICIO-9", creado_por=usuario_ficticio)
+    Expediente.objects.create(
+        codigo="NUM-FICTICIO-10",
+        tipo=Expediente.VEHICULAR,
+        creado_por=usuario_ficticio,
+    )
+    client.force_login(administrador_ficticio)
+    for expediente, lista in ((tv, "vehicular_lista"), (kardex, "expediente_lista")):
+        respuesta = client.post(reverse("expediente_restaurar", args=[expediente.pk]))
+        assert respuesta.url == f"{reverse(lista)}?archivados=1"
