@@ -864,6 +864,13 @@ def test_representante_sin_ficha_es_una_sola_observacion(
             "80000001",
         ),
         (
+            # F58: anexo que el borrador inserta y no se puede cotejar por texto
+            "[ANEXO] SIN COMPROBAR: «ANEXO 1 – HOJA RESUMEN»",
+            "ANEXO",
+            "No se pudo comprobar el anexo",
+            "Verifique que «ANEXO 1 – HOJA RESUMEN» esté insertado",
+        ),
+        (
             "[PARRAFO] falta o alterado (87.50%): texto de fuente ficticia…",
             "PARRAFO",
             "No aparece o fue alterado",

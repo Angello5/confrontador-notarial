@@ -1063,7 +1063,9 @@ def _direccion_palabras(texto: str) -> list[str]:
     sin_tildes = re.sub(r"\bS\s*/\s*N\b", " SN ", sin_tildes)
     sin_tildes = re.sub(r"N[°º]", " N ", sin_tildes).replace("#", " INTERIOR ")
     # RENIEC abrevia «ASENT.H.» y «AA.HH.», y pega el número: «LT6», «MZ.44».
-    sin_tildes = re.sub(r"\b(?:ASENT\.?\s*H|AA\.?\s*HH)\b\.?", " AAHH ", sin_tildes)
+    # F58: el OCR lee «ASENT, H.» y pega la letra de la manzana: «MZ. OLT.».
+    sin_tildes = re.sub(r"\b(?:ASENT[.,]?\s*H|AA[.,]?\s*HH)\b\.?", " AAHH ", sin_tildes)
+    sin_tildes = re.sub(r"\bMZ\.?\s*([A-Z])(?=LT(?![A-Z]))", r"MZ \1 ", sin_tildes)
     sin_tildes = re.sub(r"\bP\.?\s*J\b\.?", " PUEBLO JOVEN ", sin_tildes)
     sin_tildes = re.sub(r"\b(MZ|LT|DPTO|INT)(?=\d)", r"\1 ", sin_tildes)
     tokens = re.findall(r"[A-Z0-9]+", sin_tildes)
@@ -2689,15 +2691,23 @@ def anexos_omitidos(minutas: list[str], destino: str, umbral: int) -> list[str]:
 
     Ausente = falta la mayoria de sus parrafos (``parrafos``) en el borrador.
     ponytail: un anexo hecho solo de filas cortas (< 80 caracteres) no se evalua.
+    F58: si el borrador inserta documentos y el anexo no tiene montos que buscar
+    en los recaudos, no se puede comprobar (decision del usuario, 2026-10-20).
     """
     obs = []
+    inserta = RE_INSERTO.search(destino)
     for src in minutas:
         for m, fin in _anexos(src):
             cuerpo = src[m.end() : fin]
             if len(revisar_parrafos([cuerpo], destino, umbral)) * 2 > len(
                 parrafos(cuerpo)
             ):
-                obs.append(f"[ANEXO] FALTA: «{m[0].strip()}»")
+                aviso = (
+                    "SIN COMPROBAR"
+                    if inserta and not RE_MILES.search(cuerpo)
+                    else "FALTA"
+                )
+                obs.append(f"[ANEXO] {aviso}: «{m[0].strip()}»")
     return obs
 
 

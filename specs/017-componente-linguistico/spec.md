@@ -21,7 +21,7 @@
 - **FR-004 (gramática y redacción)**: Reglas deterministas locales en `nucleo/ortografia.py::redaccion(texto, protegidos)`, que devuelve tuplas `(fragmento, motivo, sugerencia)` como `revisar`:
   - palabra repetida consecutiva de 2 o más letras, sin distinguir mayúsculas («DE DE») → «palabra repetida», sugerencia la palabra una vez;
   - espacio entre una palabra y `,` `;` `:` o `.` (salvo puntos suspensivos o de relleno `...`) → «espacio antes de signo»;
-  - paréntesis, comillas dobles `"`, `«»` o `“”` sin cerrar en una cláusula (cláusula = línea no vacía del borrador) → «paréntesis sin cerrar» / «comillas sin cerrar»;
+  - paréntesis, comillas dobles `"`, `«»` o `“”` sin cerrar en una cláusula (cláusula = línea no vacía del borrador) → «paréntesis sin cerrar» / «comillas sin cerrar» (desde F58, motivo y fragmento concretos: ver `specs/033-linguistico-tipeo/spec.md`);
   - concordancia de artículo `EL`/`DEL`/`AL`/`LA` con una lista cerrada de sustantivos frecuentes en escrituras: femeninos `CLAUSULA`, `PARTIDA`, `ESCRITURA`, `MINUTA`, `VENDEDORA`, `COMPRADORA`, `PROPIEDAD`, `SOCIEDAD`; masculinos `CONTRATO`, `INMUEBLE`, `PRECIO`, `PREDIO`, `VENDEDOR`, `COMPRADOR` (sin distinguir tildes) → «concordancia de artículo».
   Sus filas se añaden a `resultado["ortografia"]` tras las de ortografía, en orden de aparición.
 - **FR-005 (separación)**: Las filas lingüísticas nunca entran en `resultado["regla"]` ni en `resultado["personas"]`, ni en ninguna carga útil de corrección que se aplique al documento (F21): solo se muestran. La salida de regla y personas es idéntica con o sin capa lingüística (paridad).
