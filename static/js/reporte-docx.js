@@ -6,7 +6,8 @@
  *   const blob = ReporteDocx.generar({ meta, observaciones, correcciones, personas, incluir, logo });
  *
  * meta: { codigo, borrador, corrida, usuario, fecha, notaria }
- * observaciones: [{ capa: IDENTIDAD|REGLA|LINGUISTICO, sev, titulo, campo, hallado, esperado, linea, persona, procedencia, fragmento }]
+ * observaciones: [{ capa: IDENTIDAD|REGLA|LINGUISTICO, sev, titulo, campo, hallado, esperado, linea, persona, procedencia, fragmento,
+ *                   verificar, aviso }]  (F60: un aviso trae qué verificar en lugar de «debe decir»)
  * correcciones: [{ erroneo, correcto, fuente, apariciones }]
  * personas: [{ nombre, documento, civil, domicilio, conyuge, procedencia }]
  * incluir: { IDENTIDAD, REGLA, LINGUISTICO, CORRECCIONES, EXTRACCION }
@@ -94,6 +95,11 @@
   }
 
   const texto = (t, o = {}) => [parrafo(run(t || '—', { sz: 18, ...o }), { despues: 0 })];
+  // F60: un aviso no es una corrección: sin rojo ni verde, y «Qué verificar» en lugar de «debe decir».
+  const dice = (o) => texto(o.hallado, { color: o.verificar ? C.ink : C.ALTA.fg });
+  const debeDecir = (o) => (o.verificar
+    ? [parrafo([run('Qué verificar: ', { sz: 18, b: true }), run(o.verificar, { sz: 18 })], { despues: 0 })]
+    : texto(o.esperado, { color: C.verdeTexto, b: true }));
 
   function chipSeveridad(sev) {
     const c = C[sev] || C.BAJA;
@@ -179,9 +185,10 @@
         partes.push(parrafo([
           run('■  ', { sz: 14, color: C.ALTA.fg }),
           run(`${o.titulo}: `, { b: true, sz: 20 }),
-          run(o.hallado || '—', { sz: 20, color: C.ALTA.fg, strike: true }),
-          run('  →  ', { sz: 20, color: C.subtle }),
-          run(o.esperado || '—', { sz: 20, b: true, color: C.verdeTexto }),
+          ...(o.aviso ? [run(o.aviso, { sz: 20 })] : [
+            run(o.hallado || '—', { sz: 20, color: C.ALTA.fg, strike: true }),
+            run('  →  ', { sz: 20, color: C.subtle }),
+            run(o.esperado || '—', { sz: 20, b: true, color: C.verdeTexto })]),
           run(o.linea ? `   (línea ${o.linea})` : '', { sz: 18, color: C.slate }),
         ], { sangria: 360, colgante: 360, despues: 60 }));
       });
@@ -200,7 +207,7 @@
         partes.push(nota('Datos de los comparecientes que no coinciden con las fuentes: nombres, documentos de identidad, RUC y razón social, estado civil, cónyuge, domicilio y género.', true));
         partes.push(tablaDatos(
           [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Dato', ancho: 2100 }, { titulo: 'Dice', ancho: 1450 }, { titulo: 'Debe decir', ancho: 1450 }, { titulo: 'Procedencia y ubicación', ancho: ANCHO - 5900 }],
-          filas.map((o) => [sev(o), texto(o.persona || o.campo, { b: true }), texto(o.hallado, { color: C.ALTA.fg }), texto(o.esperado, { color: C.verdeTexto, b: true }),
+          filas.map((o) => [sev(o), texto(o.persona || o.campo, { b: true }), dice(o), debeDecir(o),
             [parrafo(run(o.procedencia || 'Fuente no ubicada', { sz: 16, color: C.ink }), { despues: 40 }), ...ubicacion(o)]])));
       } else partes.push(nota('Sin observaciones de generales de ley.'));
     }
@@ -213,7 +220,7 @@
           [{ titulo: 'Sev.', ancho: 900 }, { titulo: 'Campo', ancho: 1700 }, { titulo: 'Dice', ancho: 1650 }, { titulo: 'Debe decir', ancho: 1650 }, { titulo: 'Ubicación en el borrador', ancho: ANCHO - 5900 }],
           filas.map((o) => [sev(o),
             [parrafo(run(o.titulo, { b: true, sz: 18 }), { despues: 0 }), ...(o.procedencia ? [parrafo(run(o.procedencia, { sz: 15, color: C.slate }), { despues: 0 })] : [])],
-            texto(o.hallado, { color: C.ALTA.fg }), texto(o.esperado, { color: C.verdeTexto, b: true }), ubicacion(o)])));
+            dice(o), debeDecir(o), ubicacion(o)])));
       } else partes.push(nota('Sin observaciones de regla.'));
     }
     if (d.incluir.LINGUISTICO) {

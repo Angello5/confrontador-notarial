@@ -644,6 +644,8 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .cambio .ico { font-size: 12px; flex: none; }
 .tachado { text-decoration: line-through; text-decoration-color: var(--ne-err-bd); color: var(--ne-err-fg); }
 .correcto { color: var(--ne-ok-fg); font-weight: 700; }
+/* F60: un aviso que no es una corrección: una línea sin tachar, que se parte si no cabe. */
+.cambio.aviso-linea { overflow-wrap: anywhere; }
 .obs-marca { font-size: 12px; color: var(--ne-green-text); font-weight: 700; display: flex; align-items: center; gap: 4px; }
 .obs-vacia { padding: 28px 16px; text-align: center; font-size: 14px; color: var(--ne-slate); }
 
@@ -681,6 +683,7 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .valores dd { margin-top: 4px; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
 .valores .hallado { color: var(--ne-err-fg); }
 .valores .esperado { color: var(--ne-ok-fg); }
+.valores .verificar { font-weight: 400; }
 .obs-correccion { border-top: 1px solid var(--ne-border); padding: 16px 22px; background: var(--ne-soft); display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
 .obs-correccion strong { font-size: 15px; }
 .obs-correccion .casilla span span { display: block; font-size: 13px; color: var(--ne-slate); }

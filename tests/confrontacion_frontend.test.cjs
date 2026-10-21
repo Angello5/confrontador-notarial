@@ -45,7 +45,7 @@ test('F55: the vehicle-transfer report says «Transferencia vehicular» / «TV»
 function revision(observations, corrections) {
   const html = fs.readFileSync(path.join(__dirname, '../templates/expedientes/confrontacion.html'), 'utf8');
   const script = html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
-  const context = vm.createContext({ window: { addEventListener() {} }, document: { querySelectorAll: () => [] } });
+  const context = vm.createContext({ window: { addEventListener() {} }, document: { querySelectorAll: () => [] }, Blob });
   // F40: el mixin de «Aplicar correcciones» vive en su propio archivo.
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../static/js/aplicar-correcciones.js'), 'utf8'), context);
   vm.runInContext(script, context);
@@ -138,4 +138,44 @@ test('Word download errors leave an actionable message and release the button', 
   await state.descargarWord();
   assert.equal(state.generando, false);
   assert.match(state.errorReporte, /No se pudo generar/);
+});
+
+// F60: fictional notice that is not a correction (spouse with separate property).
+const AVISO = {
+  id: 'r1', capa: 'IDENTIDAD', sev: 'MEDIA', titulo: 'Cónyuge con bien propio', campo: 'Cónyuge con bien propio',
+  hallado: 'ALBA ZURBELIA LUMARIA: Interviene sin su cónyuge por ser bien propio', esperado: '',
+  verificar: 'RENIEC indica CASADO. Confirme que el bien es propio; si no lo es, debe intervenir el cónyuge.',
+  aviso: 'ALBA ZURBELIA LUMARIA: casado según RENIEC · confirme bien propio',
+};
+
+test('F60: the Word report says what to verify for a notice, never «debe decir»', async () => {
+  const report = require('../static/js/reporte-docx.js');
+  const letras = { ...AVISO, id: 'r2', capa: 'REGLA', sev: 'ALTA', titulo: 'Número en letras',
+    hallado: '2,50 (DOS MIL QUINIENTOS CON 00/100 SOLES)',
+    verificar: 'La cifra y las letras no valen lo mismo. Corrija la que no corresponda.',
+    aviso: 'Cifra y letras no coinciden: 2,50 (DOS MIL QUINIENTOS CON 00/100 SOLES)' };
+  const blob = report.generar({meta: {codigo:'FICTICIO',borrador:'ficticio.docx'},
+    observaciones:[AVISO, letras],correcciones:[],personas:[],incluir:{IDENTIDAD:true,REGLA:true},calidad:[]});
+  const contents = Buffer.from(await blob.arrayBuffer()).toString('utf8');
+  assert.match(contents, /Qué verificar: <\/w:t>.*RENIEC indica CASADO\. Confirme que el bien es propio/);
+  assert.match(contents, /La cifra y las letras no valen lo mismo/);
+  assert.doesNotMatch(contents, /RENIEC: CASADO/);
+  // The high-priority summary shows the notice line, not a struck value → expected value.
+  assert.match(contents, /Cifra y letras no coinciden: 2,50/);
+  assert.doesNotMatch(contents, /<w:strike\/>/);
+});
+
+test('F60: the apply box and the exported table show a notice without strike or «debe decir»', async () => {
+  const state = revision([AVISO, { id: 'r2', capa: 'REGLA', sev: 'ALTA', hallado: '80000002', esperado: '80000001' }], []);
+  const filas = state.filasCorreccion();
+  assert.equal(filas[0].aviso, AVISO.aviso);
+  assert.equal(filas[0].corr, null);
+  let csv = null;
+  state.bajar = (blob) => { csv = blob; };
+  state.rep.fmt = 'CSV';
+  state.descargar();
+  const texto = await csv.text();
+  assert.match(texto, /"Qué verificar: RENIEC indica CASADO\. Confirme que el bien es propio; si no lo es, debe intervenir el cónyuge\."/);
+  assert.match(texto, /"80000002";"80000001"/);
+  assert.doesNotMatch(texto, /RENIEC: CASADO/);
 });

@@ -1823,6 +1823,92 @@ def capa_de(campo):
     return "IDENTIDAD" if campo in _GENERALES_DE_LEY else "REGLA"
 
 
+# F60: en estos avisos «debe decir» no tiene sentido. Solo presentación: la
+# corrida guarda el texto de siempre, y también se ven así las ya guardadas.
+_CORRIJA = " Corrija la que no corresponda."
+# Qué verificar y el rótulo de la línea de la lista («rótulo: hallado»).
+_AVISOS = {
+    "NUMERO_EN_LETRAS": (
+        "La cifra y las letras no valen lo mismo." + _CORRIJA,
+        "Cifra y letras no coinciden",
+    ),
+    "AREA": (
+        "La cifra y las letras del área no valen lo mismo." + _CORRIJA,
+        "Cifra y letras no coinciden",
+    ),
+    "COPROPIEDAD": (
+        "Las cuotas de copropiedad no suman 100 %." + _CORRIJA,
+        "Las cuotas no suman 100 %",
+    ),
+    "NOMBRE_MARCA_AGUA": (
+        "La ficha escaneada muestra una Ñ que puede ser la marca de agua. "
+        "Verifique el nombre con el DNI.",
+        "Posible Ñ por marca de agua",
+    ),
+    "DOCUMENTO_SIN_TITULAR": (
+        "Ninguna persona de los recaudos tiene este documento. Verifique el número.",
+        "Sin titular en los recaudos",
+    ),
+}
+# Frases que el adaptador guarda como «esperado» (parsear_observacion_regla).
+_FRASES_AVISO = {
+    "No coincide con ninguna fuente": (
+        "No coincide con ninguna fuente. Verifique el dato en los documentos.",
+        "No coincide con ninguna fuente",
+    ),
+    "Debe tener 8 dígitos": (
+        "Debe tener 8 dígitos. Verifique el número.",
+        "Debe tener 8 dígitos",
+    ),
+}
+
+
+def aviso_de(fila):
+    """F60: qué hay en el borrador, qué verificar y la línea de la lista de un
+    aviso que no es una corrección; None si «Dice / Debe decir» tiene sentido."""
+    campo = fila.get("campo") or fila.get("tipo")
+    hallado, esperado = fila.get("hallado") or "", fila.get("esperado") or ""
+    nombre, _, dato = hallado.partition(": ")
+    fuente, _, valor = esperado.partition(": ")
+    fijo = _AVISOS.get(campo) or _FRASES_AVISO.get(esperado)
+    if fijo:
+        verificar, rotulo = fijo
+        lista = f"{rotulo}: {hallado}"
+    elif campo == "CONYUGE_BIEN_PROPIO":
+        verificar = (
+            f"{fuente} indica {valor}. Confirme que el bien es propio; "
+            "si no lo es, debe intervenir el cónyuge."
+        )
+        lista = f"{nombre}: {valor.lower()} según {fuente} · confirme bien propio"
+    elif campo == "DOMICILIO_NO_ENCONTRADO":
+        hallado = f"{nombre}: su domicilio de {fuente} no aparece en el borrador"
+        verificar = (
+            f"Domicilio según {fuente}: {valor}. "
+            "Verifique el domicilio que el borrador indica para esta persona."
+        )
+        lista = f"{nombre}: su domicilio de {fuente} no aparece · {valor}"
+    elif campo == "MENOR_DE_EDAD":
+        hallado = nombre
+        verificar = f"Es menor de edad: {dato}. {esperado}. Verifique cómo interviene."
+        lista = f"{nombre}: {dato}"
+    elif campo == "SIN_FICHA":
+        verificar = (
+            f"{esperado}. No se pudo verificar: revíselo a mano o cargue la ficha."
+        )
+        lista = f"{esperado.partition('; ')[0]}: {hallado}"
+    elif campo == "ANEXO":
+        verificar = (
+            f"La minuta incluye «{esperado}». Verifique que el borrador lo incluya."
+        )
+        lista = f"Falta en el borrador: {esperado}"
+    elif campo == "PRECIO":
+        lista = "El acta no indica el precio de la transferencia"
+        verificar = f"{lista}. Verifique que lo incluya."
+    else:
+        return None
+    return {"borrador": hallado, "verificar": verificar, "lista": lista}
+
+
 def severidad(campo):
     regla = CATALOGO_REGLAS["reglas"].get(campo)
     return regla["severidad"] if regla else CATALOGO_REGLAS["default_severidad"]
@@ -1929,13 +2015,16 @@ def registrar_corrida(
 def resultado_de_corrida(corrida):
     """Resultado para la pantalla de confrontación, sin recalcular (F26)."""
     hallazgos = json.loads(corrida.hallazgos)
-    # F42: la pestaña es presentación; no entra en la huella de la corrida.
+    # F42 y F60: la capa y el aviso son presentación; no entran en la huella.
     regla = [
-        {**fila, "capa": capa_de(fila.get("campo"))}
+        {**fila, "capa": capa_de(fila.get("campo")), "aviso": aviso_de(fila)}
         for fila in hallazgos.get("regla", [])
     ]
     return {
         **hallazgos,
+        "personas": [
+            {**fila, "aviso": aviso_de(fila)} for fila in hallazgos.get("personas", [])
+        ],
         "regla": regla,
         "hay_generales": bool(hallazgos.get("personas"))
         or any(fila["capa"] == "IDENTIDAD" for fila in regla),
@@ -2183,7 +2272,7 @@ def filas_corrida(hallazgos):
         }
         for fila in datos["ortografia"]
     )
-    return filas
+    return [{**fila, "aviso": aviso_de(fila)} for fila in filas]
 
 
 def corridas_con_resumen(expediente):

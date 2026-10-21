@@ -114,21 +114,21 @@
       <section class="panel obs-panel" aria-label="Observaciones">
         <ul class="obs-lista" x-ref="lista">
           {% for observacion in resultado.personas %}
-            <li data-id="p{{ forloop.counter }}" data-capa="IDENTIDAD" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="Documento de identidad" data-titulo="{{ observacion.nombre }}" data-hallado="{{ observacion.hallado }}" data-esperado="{{ observacion.esperado }}" data-persona="{{ observacion.nombre }}" data-procedencia="{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+            <li data-id="p{{ forloop.counter }}" data-capa="IDENTIDAD" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="Documento de identidad" data-titulo="{{ observacion.nombre }}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-persona="{{ observacion.nombre }}" data-procedencia="{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
               <button type="button" class="obs-item" :aria-current="sel === 'p{{ forloop.counter }}'" @click="elegir('p{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Generales de ley</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.nombre }}</strong>
-                <span class="cambio" title="Dice: {{ observacion.hallado }} · Debe decir: {{ observacion.esperado }}"><span class="visually-hidden">Dice: </span><span class="tachado">{{ observacion.hallado }}</span><span class="hacia"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="visually-hidden">, debe decir: </span><span class="correcto">{{ observacion.esperado }}</span></span></span>
+                {% include "expedientes/_obs_cambio.html" %}
                 <span class="obs-marca" x-show="estaMarcadaObs('p{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
               </button>
             </li>
           {% endfor %}
           {% for observacion in resultado.regla %}
-            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{{ observacion.hallado }}" data-esperado="{{ observacion.esperado }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
               <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %}</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
-                <span class="cambio" title="Dice: {{ observacion.hallado }} · Debe decir: {{ observacion.esperado }}"><span class="visually-hidden">Dice: </span><span class="tachado">{{ observacion.hallado }}</span><span class="hacia"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="visually-hidden">, debe decir: </span><span class="correcto">{{ observacion.esperado }}</span></span></span>
+                {% include "expedientes/_obs_cambio.html" %}
                 <span class="obs-marca" x-show="estaMarcadaObs('r{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
               </button>
             </li>
@@ -169,8 +169,13 @@
               </div>
             </div>
             <dl class="valores">
+              {% if observacion.aviso %}
+              <div><dt>En el borrador</dt><dd>{{ observacion.aviso.borrador }}</dd></div>
+              <div><dt>Qué verificar</dt><dd class="verificar">{{ observacion.aviso.verificar }}</dd></div>
+              {% else %}
               <div><dt>Dice</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
               <div><dt>Debe decir</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
+              {% endif %}
               <div><dt>Persona</dt><dd>{{ observacion.nombre }}</dd></div>
             </dl>
             {% include "expedientes/_obs_correccion.html" with prefijo="p" numero=forloop.counter %}
@@ -190,8 +195,13 @@
               {% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}
             </div>
             <dl class="valores">
+              {% if observacion.aviso %}
+              <div><dt>En el borrador</dt><dd>{{ observacion.aviso.borrador }}</dd></div>
+              <div><dt>Qué verificar</dt><dd class="verificar">{{ observacion.aviso.verificar }}</dd></div>
+              {% else %}
               <div><dt>Dice</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
               <div><dt>Debe decir</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
+              {% endif %}
             </dl>
             {% include "expedientes/_obs_correccion.html" with prefijo="r" numero=forloop.counter %}
           </article>
@@ -380,9 +390,9 @@
                   <label class="casilla casilla-chica">
                     <input type="checkbox" name="aplicar" :value="fila.corr ? fila.corr.id : ''" :checked="!!fila.corr && marcadas.includes(fila.corr.id)" :disabled="!fila.corr" :aria-describedby="fila.corr ? null : 'motivo-bloqueo'" @change="alternar(fila.corr.id)">
                     <span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span>
-                    <span class="visually-hidden" x-text="fila.corr ? 'Aplicar: ' + fila.hallado + ' por ' + fila.esperado : 'No corregible: ' + fila.hallado"></span>
+                    <span class="visually-hidden" x-text="fila.corr ? 'Aplicar: ' + fila.hallado + ' por ' + fila.esperado : 'No corregible: ' + (fila.aviso || fila.hallado)"></span>
                   </label>
-                  <span class="tachado" x-text="fila.hallado"></span><svg class="ico" aria-hidden="true" x-show="fila.esperado"><use href="#i-arrow-right"/></svg><strong class="correcto" x-text="fila.esperado"></strong>
+                  <span :class="{ tachado: !fila.aviso }" x-text="fila.aviso || fila.hallado"></span><svg class="ico" aria-hidden="true" x-show="fila.esperado"><use href="#i-arrow-right"/></svg><strong class="correcto" x-text="fila.esperado"></strong>
                   <span class="cuenta" x-text="fila.corr ? fila.corr.apariciones : 'No admite corrección automática'"></span>
                 </li>
               </template>
@@ -457,8 +467,8 @@
               <tr>
                 <td>{{ observacion.nombre }}<br><small>{{ observacion.motivo }}</small></td>
                 <td>{{ observacion.severidad }}</td>
-                <td>{{ observacion.hallado }}</td>
-                <td>{{ observacion.esperado }}</td>
+                <td>{% firstof observacion.aviso.borrador observacion.hallado %}</td>
+                <td>{% if observacion.aviso %}Qué verificar: {{ observacion.aviso.verificar }}{% else %}{{ observacion.esperado }}{% endif %}</td>
                 <td>{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% empty %}No ubicada{% endfor %}</td>
                 <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
               </tr>
@@ -467,8 +477,8 @@
               <tr>
                 <td>{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</td>
                 <td>{{ observacion.severidad }}</td>
-                <td>{{ observacion.hallado }}</td>
-                <td>{{ observacion.esperado }}</td>
+                <td>{% firstof observacion.aviso.borrador observacion.hallado %}</td>
+                <td>{% if observacion.aviso %}Qué verificar: {{ observacion.aviso.verificar }}{% else %}{{ observacion.esperado }}{% endif %}</td>
                 <td>{{ observacion.motivo|default:"—" }}</td>
                 <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
               </tr>
@@ -488,8 +498,8 @@
               <tr>
                 <td>{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</td>
                 <td>{{ observacion.severidad }}</td>
-                <td>{{ observacion.hallado }}</td>
-                <td>{{ observacion.esperado }}{% if observacion.motivo %}<br><small>{{ observacion.motivo }}</small>{% endif %}</td>
+                <td>{% firstof observacion.aviso.borrador observacion.hallado %}</td>
+                <td>{% if observacion.aviso %}Qué verificar: {{ observacion.aviso.verificar }}{% else %}{{ observacion.esperado }}{% endif %}{% if observacion.motivo %}<br><small>{{ observacion.motivo }}</small>{% endif %}</td>
                 <td>{% if observacion.ubicacion.linea %}Línea {{ observacion.ubicacion.linea }}: {{ observacion.ubicacion.fragmento }}{% else %}No ubicada{% endif %}</td>
               </tr>
             {% endif %}{% endfor %}
@@ -765,7 +775,7 @@
          total del resumen. Sin corrección propuesta (F21) la fila queda bloqueada. Una propuesta
          sin observación compatible se lista igual: si no, se registraría como excluida. */
       filasCorreccion() {
-        const filas = this.obs.map((o) => ({ id: o.id, hallado: o.hallado, esperado: o.esperado, corr: this.corrDe(o.id) }));
+        const filas = this.obs.map((o) => ({ id: o.id, hallado: o.hallado, esperado: o.esperado, aviso: o.aviso, corr: this.corrDe(o.id) }));
         this.correcciones.filter((c) => !this.obs.some((o) => o.corr === c.id))
           .forEach((c) => filas.push({ id: c.id, hallado: c.erroneo, esperado: c.correcto, corr: c }));
         return filas;
@@ -823,7 +833,8 @@
           return '"' + t.replaceAll('"', '""') + '"';
         };
         const filas = [['Capa', 'Severidad', 'Campo', 'Dice', 'Debe decir', 'Línea', 'Persona', 'Procedencia', 'Fragmento del borrador']];
-        this.obs.filter((o) => this.rep[o.capa]).forEach((o) => filas.push([CAPAS[o.capa], o.sev, o.campo, o.hallado, o.esperado, o.linea, o.persona, o.procedencia, o.fragmento]));
+        /* F60: un aviso no trae «debe decir», sino qué verificar. */
+        this.obs.filter((o) => this.rep[o.capa]).forEach((o) => filas.push([CAPAS[o.capa], o.sev, o.campo, o.hallado, o.verificar ? 'Qué verificar: ' + o.verificar : o.esperado, o.linea, o.persona, o.procedencia, o.fragmento]));
         if (this.rep.CORRECCIONES) this.correcciones.forEach((c) => filas.push(['Corrección propuesta', '', '', c.erroneo, c.correcto, '', '', c.fuente, c.apariciones]));
         const texto = '﻿' + filas.map((f) => f.map(celda).join(';')).join('\r\n');
         this.bajar(new Blob([texto], { type: 'text/csv;charset=utf-8' }), REPORTE.codigo + '-observaciones.csv');

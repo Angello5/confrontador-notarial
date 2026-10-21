@@ -116,3 +116,73 @@ Pedido del usuario (2026-10-20): «Panel de observaciones: mostrar el dato concr
 - `tests/test_generales_de_ley.py`: la etiqueta «Generales de ley» pasa de la pestaña al ítem.
 - `tests/confrontacion_frontend.test.cjs` (`node --test`): sin estado `capa`, la lista se filtra solo por severidad, los contadores cuentan la lista entera y ↑/↓ recorre todas.
 - Capturas con Firefox headless, antes y después, del kardex y de la transferencia vehicular ficticios en un servidor propio, a 1280 px y 390 px.
+
+## F60 · Los avisos se entienden sin interpretar «Dice / Debe decir»
+
+**Fecha**: 2026-10-21  
+**Estado**: implementado en la pantalla de resultado, sus exportaciones y la vista de la corrida; cobertura con datos ficticios.  
+**Alcance**: presentación. `aviso_de` en `expedientes/services.py` (aplicado al mostrar en `resultado_de_corrida` y `filas_corrida`), `templates/expedientes/confrontacion.html`, `templates/expedientes/_obs_cambio.html`, `templates/expedientes/corrida.html`, `static/js/reporte-docx.js` y `static/css/erp.css`.
+
+### Origen
+
+Revisión del usuario de la pantalla de resultado (2026-10-21). Desde F56 la lista muestra ~~hallado~~ → **esperado** y el detalle «Dice» / «Debe decir», como si toda observación fuera una corrección. Con tres avisos eso confundía (ejemplos ficticios):
+
+- **Cónyuge con bien propio**: «Dice: ALBA ZURBELIA LUMARIA: Interviene sin su cónyuge por ser bien propio» / «Debe decir: RENIEC: CASADO». El usuario: «esa parte no me queda muy claro». No hay nada que «deba decir»: hay que confirmar que el bien es propio.
+- **Número en letras**: ~~2,50 (DOS MIL QUINIENTOS CON 00/100 SOLES)~~ → **2,50** parecía decir «reemplace todo por 2,50». La regla solo sabe que la cifra y las letras no valen lo mismo, no cuál está mal, y no es corregible en el Word (F21 FR-005).
+- **Domicilio no encontrado**: «ALBA ZURBELIA LUMARIA: No aparece en el borrador» se leyó como «la persona no aparece», cuando lo que falta es su domicilio de RENIEC.
+
+### Comportamiento implementado
+
+- **Qué es un aviso**: una observación en la que «Debe decir» no tiene sentido. Para cada una, `aviso_de` arma tres textos a partir de lo que ya guardó la corrida: qué hay en el borrador, qué verificar y la línea de la lista.
+
+| Observación | En el borrador | Qué verificar | Línea de la lista |
+|---|---|---|---|
+| Cónyuge con bien propio | lo hallado | «RENIEC indica CASADO. Confirme que el bien es propio; si no lo es, debe intervenir el cónyuge.» | «ALBA ZURBELIA LUMARIA: casado según RENIEC · confirme bien propio» |
+| Número en letras / Área | lo hallado | «La cifra y las letras (del área) no valen lo mismo. Corrija la que no corresponda.» | «Cifra y letras no coinciden: …» |
+| Copropiedad | lo hallado | «Las cuotas de copropiedad no suman 100 %. Corrija la que no corresponda.» | «Las cuotas no suman 100 %: …» |
+| Domicilio no encontrado | «ALBA ZURBELIA LUMARIA: su domicilio de RENIEC no aparece en el borrador» | «Domicilio según RENIEC: CALLE FICTICIA 123. Verifique el domicilio que el borrador indica para esta persona.» | «ALBA ZURBELIA LUMARIA: su domicilio de RENIEC no aparece · CALLE FICTICIA 123» |
+| Menor de edad | el nombre | «Es menor de edad: 16 años al 2026-10-20. Fecha de nacimiento: 2010-05-01. Verifique cómo interviene.» | «ALBA ZURBELIA LUMARIA: 16 años al 2026-10-20» |
+| Persona sin ficha | lo hallado | «Sin ficha RENIEC (o RUC) en los recaudos[; la minuta dice «…»]. No se pudo verificar: revíselo a mano o cargue la ficha.» | «Sin ficha RENIEC en los recaudos: …» |
+| Ñ por marca de agua | lo hallado | «La ficha escaneada muestra una Ñ que puede ser la marca de agua. Verifique el nombre con el DNI.» | «Posible Ñ por marca de agua: …» |
+| Documento sin titular | el documento | «Ninguna persona de los recaudos tiene este documento. Verifique el número.» | «Sin titular en los recaudos: …» |
+| «No coincide con ninguna fuente» (partida, RUC, dato registral…) | lo hallado | «No coincide con ninguna fuente. Verifique el dato en los documentos.» | «No coincide con ninguna fuente: …» |
+| DNI de longitud incorrecta | lo hallado | «Debe tener 8 dígitos. Verifique el número.» | «Debe tener 8 dígitos: …» |
+| Anexo omitido | «No aparece en el borrador» | «La minuta incluye «ANEXO 1 - HOJA RESUMEN». Verifique que el borrador lo incluya.» | «Falta en el borrador: …» |
+| Precio (transferencia vehicular) | «No aparece en el borrador» | «El acta no indica el precio de la transferencia. Verifique que lo incluya.» | «El acta no indica el precio de la transferencia» |
+
+- **Lista**: el aviso es una línea sin tachar, en el color de texto secundario y sin flecha. Si no cabe, se parte en varias líneas (no se recorta), porque la acción va al final. El texto emergente dice «En el borrador: … · Qué verificar: …».
+- **Detalle**: los rótulos son «En el borrador» y «Qué verificar», sin el rojo de lo hallado ni el verde de lo correcto. El texto de «Qué verificar» va sin negrita, porque es una frase.
+- **Informe imprimible, informe Word, tabla exportada (CSV) y vista de la corrida**: conservan sus columnas «Dice» y «Debe decir». En un aviso, «Dice» lleva el texto de «En el borrador» y la otra columna, «Qué verificar: …». Ninguno dice ya «Debe decir: RENIEC: CASADO». En el Word, el aviso va sin rojo, verde ni tachado, también en «Atención prioritaria».
+- **Ventana de aplicar correcciones (F48)**: la fila bloqueada de un aviso muestra su línea de la lista, sin tachar.
+- **Confrontaciones ya guardadas**: se ven igual, porque el aviso se arma al mostrar. No hace falta recalcularlas.
+- **No cambia**:
+  - las reglas, sus severidades, el catálogo ni su versión;
+  - qué es corregible (F21) ni el emparejamiento de las correcciones (F29). Un aviso nunca tiene corrección, y en la página su «esperado» queda vacío;
+  - el texto guardado en la corrida ni su huella;
+  - las marcas del visor del borrador (F32, F52), que siguen ubicando lo hallado;
+  - las correcciones de verdad (nombre, DNI, partida, estado civil discrepante, cónyuge no mencionado, habilitación del domicilio, género, correlativo, domicilio fiscal, «falta» con un valor): siguen con ~~hallado~~ → **esperado** y «Dice» / «Debe decir».
+
+### [NEEDS CLARIFICATION]
+
+- **Textos de «Qué verificar»**: los de bien propio y número en letras siguen la propuesta de la revisión. Los demás son de presentación y no deciden nada de negocio: los debe confirmar la notaría. Son el de menor de edad («Verifique cómo interviene»), persona sin ficha («cargue la ficha»), anexo y precio.
+- **Cónyuge no mencionado**: se dejó como corrección («Debe decir: RENIEC: CASADO»), porque el borrador no indica el estado civil. Si la notaría lo considera un aviso, pasa a la tabla con un texto suyo.
+- **Encabezados de columna**: los informes y la exportación siguen diciendo «Dice» / «Debe decir». En un aviso, la celda empieza con «Qué verificar:». Otra opción es renombrar la columna («Debe decir o qué verificar»).
+
+### Requisitos de seguridad
+
+- Sin cambios: misma vista y mismos permisos. Los textos se arman con valores que ya estaban en la página y no exponen ningún dato nuevo. Se escapan igual que antes, porque son variables de la plantilla.
+
+### Requisitos de UX (principio VIII)
+
+- Coincidencia con el mundo real: el aviso dice qué hay que confirmar, no un reemplazo que no existe.
+- Reconocer antes que recordar: la línea de la lista ya dice qué verificar, sin abrir el detalle.
+- Accesibilidad: el lector de pantalla oye «Qué verificar: …» en la lista, con los mismos rótulos del detalle. El aviso no depende del color: no lleva tachado ni flecha. Sin `!important`.
+
+### Verificación
+
+- `tests/test_expedientes_confrontacion_ui.py`:
+  - `aviso_de` da los tres textos de cada aviso de la tabla y devuelve `None` en las correcciones (partida, documento cruzado, estado civil, «falta» con valor, ortografía);
+  - en la pantalla, bien propio, número en letras y domicilio salen sin tachar, con «Qué verificar» para el lector de pantalla. El detalle dice «En el borrador» / «Qué verificar» y la partida sigue con «Dice» / «Debe decir»;
+  - los datos del informe Word y de la tabla exportada, el informe imprimible y la vista de la corrida no dicen «RENIEC: CASADO». La corrida guardada sí lo conserva.
+- `tests/confrontacion_frontend.test.cjs` (`node --test`): el Word escribe «Qué verificar: …» sin tachado. La ventana de aplicar recibe la línea del aviso, y el CSV escribe «Qué verificar: …» y conserva la corrección de la partida.
+- Capturas con Firefox headless de kardex ficticios en un servidor propio (puerto 8012): número en letras, bien propio y domicilio a 1280 px, bien propio a 390 px y la vista de la corrida.
