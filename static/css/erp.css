@@ -436,6 +436,12 @@ a.metrica:hover { background: var(--ne-hover); color: var(--ne-navy); }
 .ranking-barra[data-tono="error"] { background: var(--ne-err-bd); }
 .vacio-breve { padding: 20px; font-size: 14px; color: var(--ne-slate); }
 .aparece { animation: ne-in 0.4s var(--ne-ease); }
+/* F57: ranking por digitadora. La barra repite el total, que se lee en la cifra. */
+.tabla-ranking td, .tabla-ranking tbody th { font-variant-numeric: tabular-nums; }
+.tabla-ranking tbody th { white-space: nowrap; }
+.ranking-total { display: flex; align-items: center; gap: 10px; min-width: 160px; }
+.ranking-total strong { min-width: 3ch; text-align: right; }
+.ranking-total .ranking-pista { flex: 1; }
 @media (max-width: 599.98px) {
   .fila-detalle { grid-column: 1 / -1; grid-row: 2; }
   .semanas { gap: 4px; padding: 48px 12px 16px; }
@@ -887,6 +893,26 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
   .reporte tr { break-inside: avoid; }
   .reporte [data-seccion][hidden] { display: none; }
   .reporte .marca-logo { width: 140px; margin-bottom: 8pt; }
+  /* F57: el Inicio del administrador imprime su cabecera, los indicadores y el ranking. */
+  .contenido:has(.inicio-admin) > .cabecera, .inicio-admin > :not(.imprimir) { display: none; }
+  .inicio-admin > .solo-impresion { display: block; }
+  .inicio-admin, .inicio-admin * { animation: none; transition: none; }
+  .inicio-admin .ranking-pista, .inicio-admin .ranking-barra { print-color-adjust: exact; }
+  .inicio-admin .tabla-desliza { overflow: visible; }
+  .inicio-admin .tabla { font-size: 9.5pt; }
+  .inicio-admin .tabla th, .inicio-admin .tabla td { padding: 5pt 6pt; }
+  .inicio-admin .tabla thead th { white-space: normal; font-size: 7.5pt; }
+  .inicio-admin .ranking-total { min-width: 0; }
+  .inicio-admin .rejilla-indicadores { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10pt; }
+  .inicio-admin .gravedades { grid-template-columns: minmax(0, 1fr); gap: 8pt; padding: 10pt 14pt; }
+  .inicio-admin .gravedades > div { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4pt 8pt; }
+  .inicio-admin .gravedades dd { font-size: 16pt; line-height: 1.2; }
+  .inicio-admin .gravedades dt { flex-basis: 100%; }
+  .inicio-admin .ranking { padding: 10pt 14pt; gap: 8pt; }
+  .inicio-admin .panel-cab { padding: 10pt 14pt; }
+  .inicio-admin .panel-cab h2 { font-size: 12pt; line-height: 1.3; }
+  .inicio-admin .panel-cab p, .inicio-admin .gravedades dt, .inicio-admin .ranking-cab span { font-size: 8pt; }
+  .inicio-admin .ranking-cab { font-size: 8.5pt; }
 }
 
 /* F34: carga continua y revisión centrada en la página original. */

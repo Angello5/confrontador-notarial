@@ -6,12 +6,23 @@
 {% block eyebrow %}Inicio{% endblock %}
 {% block heading %}Resumen general{% endblock %}
 {% block subtitle %}Estado de sus kardex y accesos rápidos para su rol.{% endblock %}
-{% block actions %}{% if es_administrador or es_usuario %}<a class="btn btn-primario" href="{% url 'expediente_lista' %}?nuevo=1"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo kardex</a>{% endif %}{% endblock %}
+{% block actions %}{% if es_administrador or es_usuario %}<div class="acciones">
+  {% if es_administrador %}<button type="button" class="btn" onclick="window.print()"><svg class="ico" aria-hidden="true"><use href="#i-printer"/></svg>Imprimir o guardar PDF</button>{% endif %}
+  <a class="btn btn-primario" href="{% url 'expediente_lista' %}?nuevo=1"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>Nuevo kardex</a>
+</div>{% endif %}{% endblock %}
 {% block content %}
 {% if es_administrador %}
 <script src="{% static 'js/inicio-admin.js' %}?v={{ static_v }}"></script>
 {{ datos_inicio|json_script:"datos-inicio" }}
-<div class="pila" x-data="inicioAdmin(JSON.parse(document.getElementById('datos-inicio').textContent))" x-init="iniciar()">
+{# F57: en papel solo van los hijos marcados .imprimir; el resto es de pantalla. #}
+<div class="pila inicio-admin" x-data="inicioAdmin(JSON.parse(document.getElementById('datos-inicio').textContent))" x-init="iniciar()">
+  <header class="solo-impresion reporte imprimir">
+    {% if erp_logo %}<img class="marca-logo" src="{{ erp_logo }}" alt="">{% endif %}
+    <p class="reporte-meta">{{ erp_nombre }}</p>
+    <h1>Ranking de errores por digitadora</h1>
+    <p class="reporte-meta">Periodo: <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>, <span x-text="datos.rango">{{ datos_inicio.rango }}</span> · Emitido por {{ user.username }} el <span x-text="datos.fecha">{{ datos_inicio.fecha }}</span> a las <span x-text="datos.actualizado">{{ datos_inicio.actualizado }}</span></p>
+  </header>
+
   {% include "core/_avisos_ilegibles.html" %}
 
   <div class="inicio-barra">
@@ -52,7 +63,46 @@
     </ol>
   </section>
 
-  <div class="rejilla-indicadores">
+  <section class="panel imprimir" aria-labelledby="ranking-titulo">
+    <div class="panel-cab">
+      <div>
+        <h2 id="ranking-titulo">Errores por digitadora</h2>
+        <p>Errores en <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>, de más a menos. Cada observación del confrontador cuenta para quien creó el kardex; confrontar de nuevo con los mismos archivos no suma. El promedio por kardex solo informa.</p>
+      </div>
+    </div>
+    <div class="tabla-desliza" x-show="datos.indicadores.usuarias.length">
+      <table class="tabla tabla-ranking">
+        <caption class="visually-hidden">Errores por digitadora, de más a menos</caption>
+        <thead><tr>
+          <th scope="col" class="num">Puesto</th>
+          <th scope="col">Digitadora</th>
+          <th scope="col" class="num">Kardex confrontados</th>
+          <th scope="col">Total de errores</th>
+          <th scope="col" class="num" data-sev="ALTA">Alta</th>
+          <th scope="col" class="num" data-sev="MEDIA">Media</th>
+          <th scope="col" class="num" data-sev="BAJA">Baja</th>
+          <th scope="col" class="num">Promedio por kardex</th>
+        </tr></thead>
+        <tbody>
+          <template x-for="(persona, i) in datos.indicadores.usuarias" :key="i">
+            <tr>
+              <td class="num" x-text="persona.puesto"></td>
+              <th scope="row" x-text="persona.usuario"></th>
+              <td class="num" x-text="persona.kardex"></td>
+              <td><span class="ranking-total"><strong x-text="persona.observaciones"></strong><span class="ranking-pista" aria-hidden="true"><span class="ranking-barra" :style="`width: ${persona.ancho}%`"></span></span></span></td>
+              <td class="num" x-text="persona.altas"></td>
+              <td class="num" x-text="persona.medias"></td>
+              <td class="num" x-text="persona.bajas"></td>
+              <td class="num" x-text="persona.promedio.toFixed(1)"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+    <p class="vacio-breve" x-show="!datos.indicadores.usuarias.length">Sin confrontaciones en este periodo.</p>
+  </section>
+
+  <div class="rejilla-indicadores imprimir">
     <section class="panel" aria-labelledby="gravedad-titulo">
       <div class="panel-cab">
         <div>
@@ -65,27 +115,6 @@
         <div>{% include "core/_chip.html" with estado="MEDIA" texto="Media" clase="sev" %}<dd x-text="cifra.media ?? 0">{{ datos_inicio.indicadores.gravedad.MEDIA }}</dd><dt>Reglas de persona</dt></div>
         <div>{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<dd x-text="cifra.baja ?? 0">{{ datos_inicio.indicadores.gravedad.BAJA }}</dd><dt>Ortografía y redacción</dt></div>
       </dl>
-    </section>
-
-    <section class="panel" aria-labelledby="usuarias-titulo">
-      <div class="panel-cab">
-        <div>
-          <h2 id="usuarias-titulo">Usuarias con más errores</h2>
-          <p>Observaciones de los kardex que creó cada persona, de más a menos.</p>
-        </div>
-      </div>
-      <ol class="ranking" x-show="datos.indicadores.usuarias.length" aria-label="Observaciones por usuaria">
-        <template x-for="persona in datos.indicadores.usuarias" :key="persona.usuario">
-          <li>
-            <div class="ranking-cab">
-              <strong x-text="persona.usuario"></strong>
-              <span x-text="`${persona.observaciones} ${persona.observaciones === 1 ? 'observación' : 'observaciones'} · ${persona.altas} alta${persona.altas === 1 ? '' : 's'} · ${persona.kardex} kardex`"></span>
-            </div>
-            <span class="ranking-pista" aria-hidden="true"><span class="ranking-barra" :style="`width: ${persona.ancho}%`"></span></span>
-          </li>
-        </template>
-      </ol>
-      <p class="vacio-breve" x-show="!datos.indicadores.usuarias.length">Sin confrontaciones en este periodo.</p>
     </section>
 
     <section class="panel" aria-labelledby="frecuentes-titulo">

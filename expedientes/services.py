@@ -1634,6 +1634,8 @@ def indicadores_calidad(desde, hasta):
                 "kardex": set(),
                 "observaciones": 0,
                 "altas": 0,
+                "medias": 0,
+                "bajas": 0,
             },
         )
         persona["kardex"].add(corrida.expediente_id)
@@ -1642,13 +1644,27 @@ def indicadores_calidad(desde, hasta):
             tipos[tipo] += 1
             persona["observaciones"] += 1
             persona["altas"] += grado == "ALTA"
+            persona["medias"] += grado == "MEDIA"
+            persona["bajas"] += grado == "BAJA"
+    # F57: todas las del periodo, por total de observaciones; el promedio solo informa.
     usuarias = sorted(
-        ({**p, "kardex": len(p["kardex"])} for p in personas.values()),
+        (
+            {
+                **p,
+                "kardex": len(p["kardex"]),
+                "promedio": round(p["observaciones"] / len(p["kardex"]), 1),
+            }
+            for p in personas.values()
+        ),
         key=lambda p: (-p["observaciones"], p["usuario"]),
     )
     maximo = usuarias[0]["observaciones"] if usuarias else 0
     for persona in usuarias:
         persona["ancho"] = _ancho(persona["observaciones"], maximo)
+        # Empate en el total, mismo puesto (1, 2, 2, 4); son ≤ 10 personas.
+        persona["puesto"] = 1 + sum(
+            otra["observaciones"] > persona["observaciones"] for otra in usuarias
+        )
     frecuentes = sorted(tipos.items(), key=lambda par: (-par[1], par[0]))[:5]
     reglas = CATALOGO_REGLAS["reglas"]
     corregidos = DecisionCorreccion.objects.filter(
@@ -1687,6 +1703,7 @@ def datos_inicio_administrador(usuario, periodo="semana"):
     periodo = periodo if periodo in PERIODOS else "semana"
     ahora = timezone.localtime()
     hoy = ahora.date()
+    desde, hasta = rango_periodo(periodo, hoy)
     tramos = actividad_mensual(hoy) if periodo == "mes" else actividad_semanal(hoy)
     maximo = max(tramo["kardex"] for tramo in tramos)
     actividad = []
@@ -1706,6 +1723,9 @@ def datos_inicio_administrador(usuario, periodo="semana"):
         "titulo_periodo": "las últimas 12 semanas"
         if periodo == "semana"
         else f"lo que va de {hoy.year}",
+        # F57: fechas absolutas para la versión impresa.
+        "rango": f"del {desde:%d/%m/%Y} al {hoy:%d/%m/%Y}",
+        "fecha": hoy.strftime("%d/%m/%Y"),
         "actualizado": ahora.strftime("%H:%M"),
         "cifras": cifras_por_tipo(usuario),
         "actividad": actividad,
@@ -1719,7 +1739,7 @@ def datos_inicio_administrador(usuario, periodo="semana"):
             }
             for fila in ultimas_confrontaciones()
         ],
-        "indicadores": indicadores_calidad(*rango_periodo(periodo, hoy)),
+        "indicadores": indicadores_calidad(desde, hasta),
     }
 
 
