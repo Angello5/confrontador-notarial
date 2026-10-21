@@ -98,16 +98,18 @@
             <th scope="col">N.° de {% if vehicular %}TV{% else %}kardex{% endif %}</th>
             <th scope="col">Estado</th>
             <th scope="col">Documentos</th>
+            <th scope="col">Errores</th>
             <th scope="col" :aria-sort="asc ? 'ascending' : 'descending'"><button type="button" class="th-orden" @click="ordenar()">Actualizado<svg class="ico" aria-hidden="true"><use :href="asc ? '#i-arrow-up' : '#i-arrow-down'" href="#i-arrow-down"/></svg></button></th>
             <th scope="col"><span class="visually-hidden">Acciones</span></th>
           </tr></thead>
           <tbody>
             {% for expediente, resumen in expedientes %}
-              <tr data-codigo="{{ expediente.codigo }}" data-estado="{{ resumen.estado }}" data-t="{{ expediente.actualizado_el|date:'U' }}" x-show="visible($el.dataset.codigo, $el.dataset.estado)">
+              <tr data-codigo="{{ expediente.codigo }}" data-estado="{{ resumen.estado }}" data-t="{{ expediente.actualizado|date:'U' }}" x-show="visible($el.dataset.codigo, $el.dataset.estado)">
                 <th scope="row">{% if archivados %}{{ expediente.codigo }}{% else %}<a class="codigo-enlace" href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a>{% endif %}</th>
                 <td>{% include "core/_chip.html" with estado=resumen.estado %}</td>
                 <td>{{ resumen.total }}</td>
-                <td class="texto-suave sin-corte">{{ expediente.actualizado_el|date:"d/m/Y H:i" }}</td>
+                <td>{{ resumen.observaciones|default_if_none:"—" }}</td>
+                <td class="texto-suave sin-corte">{{ expediente.actualizado|date:"d/m/Y H:i" }}</td>
                 <td class="fin">
                   {% if archivados %}
                     <form method="post" action="{% url 'expediente_restaurar' expediente.pk %}">
