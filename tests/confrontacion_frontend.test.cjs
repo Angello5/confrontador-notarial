@@ -110,6 +110,29 @@ test('F48: a proposal without a matching observation stays in the apply box', ()
   assert.equal(state.contarBloqueadas(), 1);
 });
 
+test('F56: a single «Todas» list filtered only by severity', () => {
+  const state = revision([
+    { id: 'p1', capa: 'IDENTIDAD', sev: 'ALTA', linea: '1' },
+    { id: 'r1', capa: 'REGLA', sev: 'MEDIA', linea: '2' },
+    { id: 'o1', capa: 'LINGUISTICO', sev: 'BAJA', linea: '3' },
+  ], []);
+  assert.equal(state.capa, undefined);
+  assert.equal(state.contar, undefined);
+  assert.equal(state.visibles.length, 3);
+  state.sev = 'MEDIA';
+  assert.equal(state.visibles.map((o) => o.id).join(), 'r1');
+  // The severity counters always count the whole list.
+  assert.equal(state.contarSev('ALTA'), 1);
+  state.ajustarSeleccion();
+  assert.equal(state.sel, 'r1');
+  state.sev = 'TODAS';
+  state.$nextTick = () => {};
+  state.paso(1);
+  assert.equal(state.sel, 'o1');
+  // The report still counts per layer.
+  assert.equal(state.contarCapa('IDENTIDAD'), 1);
+});
+
 test('Word download errors leave an actionable message and release the button', async () => {
   const state = revision([], []);
   await state.descargarWord();

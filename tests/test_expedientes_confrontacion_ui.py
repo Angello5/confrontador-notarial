@@ -165,8 +165,7 @@ def test_resultado_muestra_tablas_accesibles_y_no_cadena_cruda(
     assert '<th scope="col">Campo</th>' in contenido
     assert "Línea 1" in contenido
     assert "palabraficticia" in contenido
-    assert "Lingüístico" in contenido
-    assert "ortografia-titulo" in contenido
+    assert '<span class="obs-capa">Lingüístico</span>' in contenido
     assert "[PARTIDA]" not in contenido
 
 
@@ -736,4 +735,152 @@ def test_resultado_muestra_cabecera_y_metricas_por_capa(
     assert len(re.findall(r'<li data-id="r\d+"', contenido)) == 2
     assert len(re.findall(r'<li data-id="o\d+"', contenido)) == 0
     assert 'aria-label="Filtrar por severidad"' in contenido
-    assert 'role="tablist" aria-label="Capas de revisión"' in contenido
+
+
+def _items(contenido):
+    return re.findall(
+        r'<button type="button" class="obs-item".*?</button>', contenido, re.S
+    )
+
+
+def test_f56_cada_item_muestra_lo_hallado_y_lo_correcto(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F56", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    ubicacion = {"linea": 3, "fragmento": "Fragmento ficticio."}
+    monkeypatch.setattr(
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
+            "estado": "RESULTADO",
+            "personas": [
+                {
+                    "tipo": "DOCUMENTO_CRUZADO",
+                    "nombre": "ALBA ZURBELIA LUMARIA",
+                    "hallado": "90000002",
+                    "esperado": "90000001",
+                    "ubicacion": ubicacion,
+                }
+            ],
+            "regla": [
+                {
+                    "campo": "NOMBRE",
+                    "hallado": "ALBA LUNARIA",
+                    "esperado": "ALBA LUMARIA",
+                    "ubicacion": ubicacion,
+                },
+                {
+                    "campo": "PARTIDA",
+                    "hallado": "80000002",
+                    "esperado": "80000001",
+                    "ubicacion": ubicacion,
+                },
+            ],
+            "ortografia": [
+                {
+                    "palabra": "clausla",
+                    "motivo": "no existe en castellano",
+                    "sugerencia": "cláusula",
+                    "ubicacion": ubicacion,
+                }
+            ],
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+    items = _items(contenido)
+
+    assert len(items) == 4
+    pares = [
+        ("90000002", "90000001", "Dice", "debe decir"),
+        ("ALBA LUNARIA", "ALBA LUMARIA", "Dice", "debe decir"),
+        ("80000002", "80000001", "Dice", "debe decir"),
+        ("clausla", "cláusula", "Texto", "sugerencia"),
+    ]
+    for hallado, esperado, dice, debe in pares:
+        item = next(i for i in items if f">{hallado}</span>" in i)
+        # La flecha es decorativa: el lector de pantalla oye «Dice…, debe decir…».
+        assert re.search(
+            rf'<span class="visually-hidden">{dice}: </span><span class="tachado">'
+            rf'{hallado}</span><span class="hacia"><svg class="ico" aria-hidden="true">'
+            r".*?</svg>"
+            rf'<span class="visually-hidden">, {debe}: </span>'
+            rf'<span class="correcto">{esperado}</span>',
+            item,
+        )
+        # Si el valor no cabe y se recorta, se lee completo al pasar el ratón.
+        assert f'title="{dice}: {hallado} · {debe.capitalize()}: {esperado}"' in item
+    assert '<span class="obs-capa">Generales de ley</span>' in contenido
+    assert '<span class="obs-capa">Regla</span>' in contenido
+    assert '<span class="obs-capa">Lingüístico</span>' in contenido
+    assert '<strong class="obs-titulo">No existe en castellano</strong>' in contenido
+
+
+def test_f56_una_sola_pestana_todas_y_siguen_los_filtros_de_severidad(
+    client, usuario_ficticio, monkeypatch
+):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F56-TODAS", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
+            "estado": "RESULTADO",
+            "regla": [
+                {
+                    "campo": "PARTIDA",
+                    "hallado": "80000002",
+                    "esperado": "80000001",
+                    "ubicacion": {"linea": 1, "fragmento": ""},
+                }
+            ],
+            "linguistico_aviso": "Aviso lingüístico ficticio.",
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+    assert 'role="tab"' not in contenido
+    assert 'role="tablist"' not in contenido
+    assert re.search(
+        r'<h2 class="capa">Todas<span class="capa-num" x-text="visibles.length">',
+        contenido,
+    )
+    for retirada in ("IDENTIDAD", "REGLA", "LINGUISTICO"):
+        assert f"capa === '{retirada}'" not in contenido
+    # El aviso lingüístico ya no depende de una pestaña.
+    assert re.search(r'<div class="aviso" role="status">\s*<svg', contenido)
+    assert "Aviso lingüístico ficticio." in contenido
+    for sev in ("ALTA", "MEDIA", "BAJA"):
+        assert re.search(
+            rf'class="sev-filtro" data-sev="{sev}" :aria-pressed="sev === \'{sev}\'"',
+            contenido,
+        )
+
+
+def test_f56_la_hoja_de_estilos_no_oculta_el_dato_y_lo_recorta():
+    from pathlib import Path
+
+    from django.contrib.staticfiles import finders
+
+    css = Path(finders.find("css/erp.css")).read_text(encoding="utf-8")
+
+    assert not re.search(r"\.obs-item \.cambio \{[^}]*display: none", css)
+    recorte = re.search(r"\.cambio \.tachado, \.cambio \.correcto \{([^}]*)\}", css)
+    assert recorte
+    assert "text-overflow: ellipsis" in recorte.group(1)
+    assert "white-space: nowrap" in recorte.group(1)
+    assert "!important" not in recorte.group(1)
