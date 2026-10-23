@@ -1,0 +1,41 @@
+# F61 · Modelos de la capa de sentido. Versiones fijas: un archivo con otra huella
+# no se carga (P-06, P-08). Se aprovisionan fuera del repositorio, en la carpeta
+# SENTIDO_MODELOS_DIR (specs/043-capa-sentido/quickstart.md).
+version = "2026-10-22"
+
+[spacy]
+# Segmentación en oraciones y análisis gramatical (concordancia).
+paquete = "es_core_news_md"
+version = "3.8.0"
+licencia = "GPL-3.0 (revisión legal pendiente antes de activar en producción)"
+
+[e5]
+# Emparejamiento: la oración de la minuta con la más parecida del proyecto.
+origen = "intfloat/multilingual-e5-small@614241f622f53c4eeff9890bdc4f31cfecc418b3"
+licencia = "MIT"
+onnx = "e5.onnx"
+sha256_onnx = "f4b2b744f7b88f64ed141c3d0c9664c292344698632f320f85b490c794cb6e0a"
+vocabulario = "e5.tokenizer.json"
+sha256_vocabulario = "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39"
+relleno = "<pad>"
+
+[mdeberta]
+# Inferencia de lenguaje natural (NLI): implica, neutral o contradice.
+origen = "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7@b5113eb38ab63efdd7f280f8c144ea8b13f978ce"
+licencia = "MIT"
+onnx = "mdeberta.onnx"
+sha256_onnx = "f4bce41d376316b1bcf9f53f073e249a71c18cc84f7146542e52f3b71d821d13"
+vocabulario = "mdeberta.tokenizer.json"
+sha256_vocabulario = "e23095eb61ba944c7be3a5d3e8ec19e37ce7ced0daa03550bde03e83c21b3f8a"
+relleno = "[PAD]"
+etiquetas = [0, 1, 2]  # posición de implica, neutral y contradice en la salida
+
+[minilm]
+origen = "MoritzLaurer/multilingual-MiniLMv2-L6-mnli-xnli@0a71e92a985b6e1ad1828cf67ce9c459639c1dca"
+licencia = "MIT"
+onnx = "minilm.onnx"
+sha256_onnx = "2d651996d06678715aa8f2cef176cac107eae130599a981a03fd4e63e781e0db"
+vocabulario = "minilm.tokenizer.json"
+sha256_vocabulario = "098c131bb4423163db239755e309facaa6850059f850f9f3d88a78344a4b631c"
+relleno = "<pad>"
+etiquetas = [0, 1, 2]

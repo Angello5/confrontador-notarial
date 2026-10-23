@@ -17,8 +17,9 @@ la minuta y los documentos del cliente.
   escrituras reales en código, tests, commits, logs o mensajes. Solo datos
   ficticios. Los expedientes no se versionan.
 - **Secretos:** nunca tokens ni claves en el repo, ni los pidas en el chat.
-- **Sin IA en el ERP:** no importes nada de `experimental/` ni añadas llamadas
-  a modelos de lenguaje.
+- **Sin IA generativa en el ERP:** no importes nada de `experimental/` ni
+  añadas llamadas a modelos de lenguaje. La única capa con modelos es la de
+  sentido (F61), en las condiciones del principio I de la constitución.
 - **Reglas de negocio:** no las inventes. Si falta información, márcala como
   `[NEEDS CLARIFICATION]` y pregunta.
 - **Simplicidad:** la solución más corta que funcione. Primero reutiliza lo que

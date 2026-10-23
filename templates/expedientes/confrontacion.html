@@ -239,6 +239,9 @@
       {% include "expedientes/_vista_borrador.html" %}
     {% endif %}
 
+    {# ── F61: Sentido frente a la minuta ── #}
+    {% include "expedientes/_sentido.html" %}
+
     {# ── Qué se extrajo ── #}
     {% if resultado.extraccion %}
       <details class="panel desplegable" aria-labelledby="extraccion-titulo">
@@ -434,6 +437,7 @@
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.REGLA"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones de regla</span><em x-text="contarCapa('REGLA')"></em></label>
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.LINGUISTICO"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones lingüísticas</span><em x-text="contarCapa('LINGUISTICO')"></em></label>
             <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.CORRECCIONES"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Correcciones propuestas</span><em x-text="correcciones.length"></em></label>
+            {% if sentido.estado == "LISTO" %}<label class="casilla casilla-chica"><input type="checkbox" x-model="rep.SENTIDO"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Sentido frente a la minuta</span><em>{{ sentido.anotaciones|length }}</em></label>{% endif %}
             <label class="casilla casilla-chica" x-show="rep.fmt !== 'EXCEL'"><input type="checkbox" x-model="rep.EXTRACCION"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Personas extraídas y procedencia</span><em>{{ resultado.extraccion.personas|length }}</em></label>
           </fieldset>
           <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El informe registra {% if expediente.tipo == "VEHICULAR" %}TV{% else %}kardex{% endif %}, borrador, confrontación, usuario y fecha de emisión.</span></p>
@@ -542,6 +546,23 @@
       {% else %}<p>No hay correcciones propuestas.</p>{% endif %}
     </div>
 
+    {% if sentido.estado == "LISTO" %}
+    <div data-seccion="SENTIDO">
+      <h2>Sentido frente a la minuta</h2>
+      <p><small>Apoyo para la revisión: compara el sentido de cada cláusula del proyecto con la minuta. No cambia las observaciones ni el documento.</small></p>
+      {% if sentido.anotaciones %}
+        <table>
+          <thead><tr><th scope="col">Nivel</th><th scope="col">Qué cambió</th><th scope="col">Dice minuta</th><th scope="col">Dice proyecto</th></tr></thead>
+          <tbody>
+            {% for anotacion in sentido.anotaciones %}
+              <tr><td>{{ anotacion.nivel_texto }}</td><td>{{ anotacion.tipo_texto }}{% if anotacion.detalle %}<br><small>{{ anotacion.detalle }}</small>{% endif %}</td><td>{{ anotacion.minuta|default:"—" }}</td><td>{{ anotacion.proyecto }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}<p>No se encontraron cambios de sentido.</p>{% endif %}
+    </div>
+    {% endif %}
+
     <div data-seccion="EXTRACCION" hidden>
       <h2>Personas extraídas y procedencia</h2>
       {% if resultado.extraccion.personas %}
@@ -616,7 +637,7 @@
       sev: 'TODAS', sel: null, modal: null,
       obs: [], correcciones: [], marcadas: [],
       generando: false, errorReporte: '',
-      rep: { fmt: 'WORD', IDENTIDAD: true, REGLA: true, LINGUISTICO: true, CORRECCIONES: true, EXTRACCION: false },
+      rep: { fmt: 'WORD', IDENTIDAD: true, REGLA: true, LINGUISTICO: true, CORRECCIONES: true, SENTIDO: true, EXTRACCION: false },
       vista: { ...VISTA_VACIA }, zoom: 'ancho', aparicion: 0, desdeMarca: false,
       iniciar() {
         const lista = this.$refs.lista;
@@ -791,6 +812,13 @@
         enlace.click();
         setTimeout(() => { URL.revokeObjectURL(enlace.href); enlace.remove(); }, 0);
       },
+      /* F61: anotaciones de sentido, leídas de la tabla del informe imprimible. */
+      filasSentido() {
+        return [...document.querySelectorAll('.reporte [data-seccion="SENTIDO"] tbody tr')].map((tr) => {
+          const c = [...tr.cells].map((td) => td.textContent.trim());
+          return { nivel: c[0], tipo: c[1], minuta: c[2], proyecto: c[3] };
+        });
+      },
       async descargarWord() {
         this.generando = true;
         this.errorReporte = '';
@@ -806,6 +834,7 @@
             observaciones: this.obs,
             correcciones: this.correcciones,
             personas,
+            sentido: this.filasSentido(),
             calidad: [...document.querySelectorAll('.reporte [aria-label="Calidad de lectura"] li')].map((li) => li.textContent.trim()),
             incluir: this.rep,
             logo: await window.ReporteDocx.cargarLogo(REPORTE.logo),
@@ -836,6 +865,7 @@
         /* F60: un aviso no trae «debe decir», sino qué verificar. */
         this.obs.filter((o) => this.rep[o.capa]).forEach((o) => filas.push([CAPAS[o.capa], o.sev, o.campo, o.hallado, o.verificar ? 'Qué verificar: ' + o.verificar : o.esperado, o.linea, o.persona, o.procedencia, o.fragmento]));
         if (this.rep.CORRECCIONES) this.correcciones.forEach((c) => filas.push(['Corrección propuesta', '', '', c.erroneo, c.correcto, '', '', c.fuente, c.apariciones]));
+        if (this.rep.SENTIDO) this.filasSentido().forEach((s) => filas.push(['Sentido frente a la minuta', s.nivel, s.tipo, s.proyecto, 'Dice minuta: ' + s.minuta, '', '', '', '']));
         const texto = '﻿' + filas.map((f) => f.map(celda).join(';')).join('\r\n');
         this.bajar(new Blob([texto], { type: 'text/csv;charset=utf-8' }), REPORTE.codigo + '-observaciones.csv');
         this.modal = null;

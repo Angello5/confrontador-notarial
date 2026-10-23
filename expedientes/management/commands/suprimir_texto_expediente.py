@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from expedientes.models import Documento, Expediente, TextoExtraido
+from expedientes.sentido import suprimir as suprimir_sentido
 from expedientes.services import borrar_originales
 
 
@@ -38,7 +39,12 @@ class Command(BaseCommand):
                 .distinct()
                 .count()
             )
+            claves = list(textos.values_list("hash_archivo", "version_extractor"))
             textos.update(texto="", calidad={})
+            # F61: las anotaciones de sentido guardan oraciones de estos textos.
+            # Después de vaciarlos: un análisis en curso bloquea los textos al
+            # guardar, así que su registro ya está a la vista o verá el texto vacío.
+            suprimir_sentido(claves)
         borrar_originales(expediente.pk)
         solicitado = min(afectados, 1)
         self.stdout.write(

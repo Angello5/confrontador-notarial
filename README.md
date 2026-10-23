@@ -15,7 +15,8 @@ misma entrada da siempre la misma salida.
 | **Regla** | DNI, partida, montos, nombres | Igualdad exacta contra la fuente | Sí |
 | **Léxico** | Erratas de vocabulario | Palabra ausente del corpus de escrituras firmadas | Sí |
 | **Ortografía** | Palabras que no son castellano | hunspell `es_PE` + lista de la casa | Sí |
-| **Prosa** | Concordancia y sintaxis | Modelo de lenguaje, con validación mecánica posterior | No |
+| **Sentido** (F61, opcional) | Cambios de sentido frente a la minuta y concordancia | spaCy y clasificadores NLI locales en ONNX Runtime; solo anota, sin autoridad | Sí, con versiones fijas e hilos fijos |
+| **Prosa** | Concordancia y sintaxis | Modelo de lenguaje, con validación mecánica posterior | No (solo `experimental/`) |
 
 Ningún hallazgo del modelo llega al informe sin pasar cuatro filtros mecánicos:
 que el texto señalado exista literalmente en el documento, que la corrección

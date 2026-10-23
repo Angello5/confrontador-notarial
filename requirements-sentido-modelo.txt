@@ -1,0 +1,6 @@
+# F61 · Modelo de español de spaCy para la capa de sentido (GPL-3.0: revisión
+# legal antes de activar). No está en PyPI, por eso va aparte y pip-audit no lo
+# revisa; se instala con su huella:
+#   python -m pip install --require-hashes --no-deps -r requirements-sentido-modelo.txt
+es-core-news-md @ https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0-py3-none-any.whl \
+    --hash=sha256:478b8bb3f3e8eb149192f7d80e7cd64f990b7e9bccbc5329df41a57e86326be2

@@ -8,6 +8,7 @@ IMPORTS_PERMITIDOS = {
     "collections",
     "nucleo",  # F43: un módulo del núcleo usa otro; todos pasan esta revisión.
     "datetime",  # date valida fechas; el núcleo no consulta el reloj.
+    "difflib",  # F61: alineación palabra por palabra; algoritmo puro, sin E/S.
     "hashlib",  # F21: ids estables de corrección; sin E/S.
     "rapidfuzz",
     "re",

@@ -1,0 +1,71 @@
+{% comment %}
+F61 · Sección «Sentido frente a la minuta». Anotaciones de apoyo de la capa de
+sentido: van aparte de las observaciones y no cambian el documento.
+{% endcomment %}
+{% if sentido %}
+<section class="panel sentido" aria-labelledby="sentido-titulo"{% if sentido.estado == "PENDIENTE" %} x-data="sondeoSentido('{% url 'documento_sentido' expediente.pk borrador.pk %}?corrida={{ corrida.pk }}')" x-init="iniciar()"{% endif %}>
+  <div class="panel-cab">
+    <div>
+      <span class="eyebrow">Apoyo para la revisión</span>
+      <h2 id="sentido-titulo">Sentido frente a la minuta</h2>
+      <p>Compara el sentido de cada cláusula del proyecto con la minuta. No cambia las observaciones ni el documento: la revisión del abogado sigue siendo la que decide.</p>
+    </div>
+    {% if sentido.estado == "LISTO" and sentido.anotaciones %}
+      <span class="sentido-cuenta">{% if sentido.observaciones %}{% include "core/_chip.html" with estado="MEDIA" texto=sentido.texto_observaciones clase="sev" %}{% endif %}{% if sentido.revisar %}{% include "core/_chip.html" with estado="BAJA" texto=sentido.texto_revisar clase="sev" %}{% endif %}</span>
+    {% endif %}
+  </div>
+  <div class="sentido-cuerpo">
+    {% if sentido.estado == "PENDIENTE" %}
+      <div class="aviso" role="status" aria-live="polite">
+        <svg class="ico ico-gira" aria-hidden="true"><use href="#i-loader"/></svg>
+        <div class="aviso-texto"><span x-text="mensaje">Analizando el sentido de las cláusulas. Puede seguir revisando: esta sección se actualizará sola.</span></div>
+      </div>
+    {% elif sentido.estado == "NO_DISPONIBLE" %}
+      <div class="aviso" role="status"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><div class="aviso-texto"><span>El análisis de sentido no está disponible en este equipo. Avise al administrador del sistema.</span></div></div>
+    {% elif sentido.estado == "ERROR" %}
+      <div class="aviso" data-tono="advertencia" role="status"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg><div class="aviso-texto"><span>No se pudo analizar el sentido de este proyecto. Las observaciones de arriba no cambian; revise las cláusulas como siempre.</span></div></div>
+    {% elif sentido.estado == "SUPRIMIDO" %}
+      <div class="aviso" role="status"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><div class="aviso-texto"><span>El texto de este kardex se suprimió a solicitud: las anotaciones de sentido ya no se muestran.</span></div></div>
+    {% elif not sentido.anotaciones %}
+      <div class="aviso" data-tono="exito" role="status"><svg class="ico" aria-hidden="true"><use href="#i-circle-check"/></svg><div class="aviso-texto"><span>No se encontraron cambios de sentido entre las cláusulas del proyecto y la minuta.</span></div></div>
+    {% else %}
+      <p class="sentido-guia texto-suave"><strong>Observación:</strong> los dos modelos ven el cambio. <strong>Para revisar:</strong> lo ve uno solo; es una alerta más débil.</p>
+      <ol class="sentido-lista">
+        {% for anotacion in sentido.anotaciones %}
+          <li class="sentido-item">
+            <div class="sentido-cab">{% include "core/_chip.html" with estado=anotacion.chip texto=anotacion.nivel_texto clase="sev" %}<strong>{{ anotacion.tipo_texto }}</strong></div>
+            {% if anotacion.detalle %}<p class="sentido-detalle">{{ anotacion.detalle }}</p>{% endif %}
+            <div class="sentido-dice">
+              {% if anotacion.minuta %}<div><span class="eyebrow">Dice minuta</span><p>{{ anotacion.minuta }}</p></div>{% endif %}
+              <div><span class="eyebrow">Dice proyecto</span><p>{{ anotacion.proyecto }}</p></div>
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
+    {% endif %}
+  </div>
+</section>
+{% if sentido.estado == "PENDIENTE" %}
+<script>
+  window.sondeoSentido = (url) => ({
+    mensaje: 'Analizando el sentido de las cláusulas. Puede seguir revisando: esta sección se actualizará sola.',
+    intentos: 0,
+    iniciar() { this.temporizador = setInterval(() => this.consultar(), 5000); },
+    async consultar() {
+      this.intentos += 1;
+      if (this.intentos > 120) {
+        clearInterval(this.temporizador);
+        this.mensaje = 'El análisis sigue en curso. Actualice la página en unos minutos.';
+        return;
+      }
+      try {
+        const respuesta = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!respuesta.ok) return;
+        const { estado } = await respuesta.json();
+        if (estado !== 'PENDIENTE') { clearInterval(this.temporizador); window.location.reload(); }
+      } catch { /* sin red local: se intenta en el siguiente ciclo */ }
+    },
+  });
+</script>
+{% endif %}
+{% endif %}

@@ -154,7 +154,7 @@ jobs:
           python -m pip install --require-hashes --only-binary :all:
           --no-binary antlr4-python3-runtime
           -r requirements.txt -r requirements-dev.txt
-      - run: python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
+      - run: python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt -r requirements-sentido.txt
 
   secrets:
     runs-on: ubuntu-24.04

@@ -39,6 +39,11 @@ urlpatterns = [
         name="documento_resultado",
     ),
     path(
+        "<int:pk>/documentos/<int:doc_id>/sentido/",
+        views.documento_sentido,
+        name="documento_sentido",
+    ),
+    path(
         "<int:pk>/documentos/<int:doc_id>/vista/",
         views.documento_vista,
         name="documento_vista",

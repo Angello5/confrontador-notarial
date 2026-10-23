@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from time import sleep
 
+from expedientes.sentido import analizar_pendientes
 from expedientes.services import (
     confrontar_automaticamente,
     preparar_vistas,
@@ -50,3 +51,6 @@ class Command(BaseCommand):
         self.stdout.write(f"Documentos procesados: {procesados}")
         confrontar_automaticamente()
         preparar_vistas()
+        # F61: después de las reglas, una corrida por vuelta (la capa de sentido
+        # tarda más y no debe frenar la lectura de documentos).
+        analizar_pendientes(limite=1)
