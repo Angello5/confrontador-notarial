@@ -157,6 +157,10 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = ["bootstrap5"]
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = not DEBUG
+# F62: nombres propios. Las cookies se separan por host, no por puerto: otra app
+# Django en el mismo equipo borraba «sessionid» y el ERP volvía al login.
+SESSION_COOKIE_NAME = "confrontador_sesion"
+CSRF_COOKIE_NAME = "confrontador_csrftoken"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "login"

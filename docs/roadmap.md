@@ -129,6 +129,8 @@ Ampliación del mismo día: ver la actividad por semana (12 semanas) o por mes (
 
 F61: capa de sentido (CR-01, Alternativa B). La notaría eligió el verificador semántico local del Informe de Evaluación v1.1, y el usuario pidió implementarlo completo. Pidió también que la concordancia de género y número la haga spaCy con análisis gramatical, y que el NLI funcione bien en el servidor. La constitución pasa a 2.0.0: la capa de sentido es la única con modelos, sin autoridad, local y con interruptor apagado por defecto. Quedan pendientes la instalación y medición en SQLSERVER (26/10), la revisión legal de la licencia de spaCy y la validación del umbral con la notaría. Alcance en `specs/043-capa-sentido/`.
 
+F62: cookies propias del ERP. El usuario reportó que cada clic lo mandaba al login: otra app Django en el mismo host borraba la cookie `sessionid`. Alcance en `specs/044-cookies-propias/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**
