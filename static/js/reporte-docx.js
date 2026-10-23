@@ -10,7 +10,8 @@
  *                   verificar, aviso }]  (F60: un aviso trae qué verificar en lugar de «debe decir»)
  * correcciones: [{ erroneo, correcto, fuente, apariciones }]
  * personas: [{ nombre, documento, civil, domicilio, conyuge, procedencia }]
- * incluir: { IDENTIDAD, REGLA, LINGUISTICO, CORRECCIONES, EXTRACCION }
+ * sentido: [{ nivel, tipo, minuta, proyecto }]  (F61: anotaciones de apoyo, aparte de las observaciones)
+ * incluir: { IDENTIDAD, REGLA, LINGUISTICO, CORRECCIONES, SENTIDO, EXTRACCION }
  * logo: { bytes: Uint8Array, tipo: 'png'|'jpeg', ancho, alto } | null
  */
 (function (raiz) {
@@ -242,6 +243,13 @@
           [{ titulo: 'Valor erróneo', ancho: 2500 }, { titulo: 'Valor correcto', ancho: 2500 }, { titulo: 'Documento fuente', ancho: 3238 }, { titulo: 'Apariciones', ancho: 1400 }],
           filas.map((c) => [texto(c.erroneo, { color: C.ALTA.fg }), texto(c.correcto, { color: C.verdeTexto, b: true }), texto(c.fuente, { color: C.slate }), texto(c.apariciones)])));
       } else partes.push(nota('No hay correcciones propuestas.'));
+    }
+    if (d.incluir.SENTIDO && (d.sentido || []).length) {
+      partes.push(titulo2('Sentido frente a la minuta'));
+      partes.push(nota('Apoyo para la revisión: compara el sentido de cada cláusula del proyecto con la minuta. No cambia las observaciones ni el documento.', true));
+      partes.push(tablaDatos(
+        [{ titulo: 'Nivel', ancho: 1300 }, { titulo: 'Qué cambió', ancho: 1900 }, { titulo: 'Dice minuta', ancho: 3200 }, { titulo: 'Dice proyecto', ancho: ANCHO - 6400 }],
+        d.sentido.map((s) => [texto(s.nivel, { b: true }), texto(s.tipo, { color: C.slate }), texto(s.minuta), texto(s.proyecto)])));
     }
     if (d.incluir.EXTRACCION) {
       partes.push(titulo2('Personas extraídas y procedencia'));

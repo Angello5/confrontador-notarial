@@ -179,3 +179,15 @@ test('F60: the apply box and the exported table show a notice without strike or 
   assert.match(texto, /"80000002";"80000001"/);
   assert.doesNotMatch(texto, /RENIEC: CASADO/);
 });
+
+test('F61: Word includes «Sentido frente a la minuta» only when selected', async () => {
+  const report = require('../static/js/reporte-docx.js');
+  const sentido = [{ nivel: 'Observación', tipo: 'Contradice la minuta', minuta: 'EL VENDEDOR SE OBLIGA', proyecto: 'EL VENDEDOR NO SE OBLIGA' }];
+  const datos = (incluir) => ({meta: {codigo:'FICTICIO',borrador:'ficticio.docx'},
+    observaciones:[],correcciones:[],personas:[],sentido,incluir,calidad:[]});
+  const texto = async (d) => Buffer.from(await report.generar(d).arrayBuffer()).toString('utf8');
+  const con = await texto(datos({SENTIDO:true}));
+  assert.match(con, /Sentido frente a la minuta/);
+  assert.match(con, /EL VENDEDOR NO SE OBLIGA/);
+  assert.doesNotMatch(await texto(datos({})), /Sentido frente a la minuta/);
+});

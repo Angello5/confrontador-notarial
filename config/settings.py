@@ -54,6 +54,19 @@ EXPEDIENTES_MAX_FILE_SIZE = _positive_setting(
 EXPEDIENTES_PROCESSING_TIMEOUT = _positive_setting(
     "EXPEDIENTES_PROCESSING_TIMEOUT", 15 * 60
 )
+# F61: capa de sentido. Apagada por defecto; con el interruptor apagado el ERP
+# queda exactamente como antes. Los modelos se aprovisionan fuera del repositorio.
+SENTIDO_ACTIVO = os.environ.get("SENTIDO_ACTIVO", "").lower() in {"1", "true", "yes"}
+SENTIDO_MODELOS_DIR = (
+    Path(
+        os.environ.get(
+            "SENTIDO_MODELOS_DIR", Path.home() / "notaria-modelos" / "sentido"
+        )
+    )
+    .expanduser()
+    .resolve()
+)
+SENTIDO_HILOS = _positive_setting("SENTIDO_HILOS", 3)
 # Versión del ERP registrada en cada corrida; incrementar junto con
 # sonar.projectVersion al publicar.
 ERP_VERSION = "0.20.0"

@@ -39,6 +39,15 @@ Sync Impact Report
   Streamlit exige `pillow<13`; el usuario declaró que el ERP ya supera la
   prueba de concepto
 - Fecha: 2026-10-20
+- Version: 1.7.1 → 2.0.0 (MAJOR: se redefine el principio I para admitir
+  la capa de sentido)
+- Principios modificados: I. Determinismo y reproducibilidad (capa de sentido
+  con modelos locales no generativos, sin autoridad y con interruptor); VI.
+  Seguridad (sus modelos se aprovisionan en el despliegue)
+- Motivo: Adenda N.° 01 del contrato (CR-01): la notaría eligió la Alternativa
+  B, verificador semántico local, según el Informe de Evaluación v1.1
+  (22/10/2026). F61 la implementa
+- Fecha: 2026-10-22
 - TODO pendientes:
   - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
 -->
@@ -57,11 +66,29 @@ la minuta y los documentos del cliente, y señalar las diferencias.
   nombres) se deciden por código, por igualdad exacta contra la fuente.
 - La misma entrada DEBE producir siempre la misma salida. Un cambio que rompa
   esto es un defecto, no una mejora.
-- El ERP NO usa modelos de lenguaje ni servicios de IA. La capa de prosa
-  existente (`revisor_llm.py`, `bench_llm.py`) vive en `experimental/`: el ERP
-  no la importa, no la despliega y sus dependencias no entran en el ERP.
+- El ERP NO usa modelos de lenguaje generativos ni servicios de IA externos.
+  La capa de prosa existente (`revisor_llm.py`, `bench_llm.py`) vive en
+  `experimental/`: el ERP no la importa, no la despliega y sus dependencias no
+  entran en el ERP.
 - Capas permitidas: **regla** (datos duros), **léxico** (corpus de escrituras
-  firmadas), **ortografía** (hunspell `es_PE` + lista de la casa).
+  firmadas), **ortografía** (hunspell `es_PE` + lista de la casa) y
+  **sentido** (F61, CR-01 de la Adenda N.° 01).
+- La capa de sentido es la única que usa modelos, con estas condiciones:
+  - Solo modelos de clasificación no generativos (análisis gramatical,
+    emparejamiento de oraciones e inferencia de lenguaje natural) que corren en
+    el servidor, en CPU y sin red.
+  - Versiones fijas: cada archivo de modelo tiene su SHA-256 en un manifiesto
+    versionado, se verifica antes de cargarlo y la versión queda registrada en
+    cada análisis.
+  - Sin autoridad: no decide los datos del Anexo A.3, no cambia los hallazgos
+    ni la huella de la corrida y no escribe en el documento. Sus anotaciones
+    van en una sección propia, como apoyo a la revisión del abogado.
+  - Reproducible: en el mismo servidor, con los mismos modelos y la misma
+    entrada, da las mismas anotaciones (hilos fijos, sin muestreo).
+  - Interruptor: apagada por defecto. Apagada, el ERP se comporta exactamente
+    como sin ella.
+  - Sus dependencias van aparte (`requirements-sentido.txt`) y solo se
+    instalan en el servidor que la activa.
 
 ### II. Núcleo de dominio puro
 
@@ -148,8 +175,8 @@ la minuta y los documentos del cliente, y señalar las diferencias.
 - Los archivos nunca se sirven como estáticos públicos.
 - Auditoría de acciones relevantes: quién confrontó qué, cuándo y con qué hash.
 - Funciona 100 % en la LAN, sin dependencias de internet en tiempo de ejecución:
-  modelos de OCR, diccionario `es_PE` y assets front se aprovisionan en el
-  despliegue.
+  modelos de OCR, diccionario `es_PE`, modelos de la capa de sentido y assets
+  front se aprovisionan en el despliegue.
 
 ### VII. DevSecOps: la seguridad se verifica en cada cambio
 
@@ -232,6 +259,10 @@ con teclado, foco visible y contraste suficiente.
 - **Extracción:** RapidOCR sobre onnxruntime en CPU; PyMuPDF; lectura de
   `.docx` desde el XML; `.doc` con LibreOffice headless en Linux. La
   configuración de OCR solo cambia con una medición que lo respalde.
+- **Capa de sentido (F61):** spaCy `es_core_news_md`, e5-small, mDeBERTa y
+  MiniLM; los tres últimos en ONNX Runtime en CPU (el motor del OCR), en 32
+  bits, sin PyTorch. Un cambio de modelo o de configuración exige medir de nuevo
+  detección, falsas alarmas y reproducibilidad.
 - **Formatos:** `.docx`, `.doc`, `.rtf`, `.odt`, `.pdf` (con y sin capa de
   texto), `.xlsx`, `.txt`, `.csv`, imágenes.
 - **Dependencias:** versiones fijadas. Ninguna dependencia nueva si la
@@ -280,4 +311,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 1.7.1 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-20
+**Version**: 2.0.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-22

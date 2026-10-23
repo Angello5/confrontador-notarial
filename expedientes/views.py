@@ -18,6 +18,7 @@ from .forms import (
     formatos_admitidos,
 )
 from .models import DecisionCorreccion, Documento, Expediente
+from . import sentido
 from .solicitudes import cancelar, solicitar
 from .services import (
     CorreccionNoAplicable,
@@ -612,6 +613,7 @@ def documento_resultado(request, pk, doc_id):
             "corregible": ruta_original(borrador).is_file(),
         },
         "por_volver_a_subir": documentos_por_volver_a_subir(expediente),
+        "sentido": sentido.para_pantalla(corrida),
     }
     contexto.update(_navegacion_contexto(request))
     return render(request, "expedientes/confrontacion.html", contexto)
@@ -638,6 +640,17 @@ def _sin_cache(respuesta):
     respuesta["Cache-Control"] = "no-store"
     respuesta["X-Content-Type-Options"] = "nosniff"
     return respuesta
+
+
+@login_required
+@require_GET
+def documento_sentido(request, pk, doc_id):
+    """F61: estado del análisis de sentido, para actualizar la sección sola."""
+    _borrador, corrida = _borrador_y_corrida(request, pk, doc_id)
+    datos = sentido.para_pantalla(corrida)
+    return _sin_cache(
+        JsonResponse({"estado": datos["estado"] if datos else "INACTIVA"})
+    )
 
 
 @login_required

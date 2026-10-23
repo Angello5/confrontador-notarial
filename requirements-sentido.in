@@ -1,0 +1,9 @@
+# F61 · Capa de sentido (opcional). Solo en el servidor que la activa
+# (SENTIDO_ACTIVO=1); el resto del ERP no la necesita. Los modelos ONNX no son
+# paquetes: se aprovisionan aparte (specs/043-capa-sentido/quickstart.md).
+-c requirements.txt
+-c requirements-dev.txt
+
+spacy==3.8.16
+tokenizers==0.23.2
+# El modelo de español de spaCy va en requirements-sentido-modelo.txt (no está en PyPI).

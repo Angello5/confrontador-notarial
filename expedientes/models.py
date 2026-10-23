@@ -258,3 +258,29 @@ class DecisionCorreccion(Inmutable):
     @property
     def correcciones_aplicadas(self):
         return list(self.apariciones)
+
+
+class AnalisisSentido(models.Model):
+    """F61: anotaciones de la capa de sentido sobre una corrida.
+
+    Va aparte de la corrida: no cambia sus hallazgos ni su huella (la capa no tiene
+    autoridad sobre los datos del A.3) y se calcula después, en el worker. No es
+    inmutable porque guarda oraciones de los documentos: la supresión a solicitud
+    las borra y conserva la huella.
+    """
+
+    LISTO = "LISTO"
+    ERROR = "ERROR"
+    SUPRIMIDO = "SUPRIMIDO"
+    ESTADOS = ((LISTO, "Listo"), (ERROR, "Error"), (SUPRIMIDO, "Suprimido"))
+
+    corrida = models.OneToOneField(
+        Corrida, on_delete=models.PROTECT, related_name="analisis_sentido"
+    )
+    creado_el = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=9, choices=ESTADOS)
+    anotaciones = models.JSONField(default=list, blank=True)
+    # Versión del manifiesto de modelos (fecha y huella de sus SHA-256).
+    version_modelos = models.CharField(max_length=64)
+    segundos = models.FloatField(default=0)
+    huella = models.CharField(max_length=64, blank=True)
