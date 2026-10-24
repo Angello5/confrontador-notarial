@@ -57,8 +57,14 @@ Sync Impact Report
   producción (el despliegue es F8): cambia el motor, no se migran datos. F63
   lo implementa
 - Fecha: 2026-10-24
-- TODO pendientes:
-  - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
+- Version: 2.1.0 → 2.2.0 (MINOR: se resuelve TODO(DESPLIEGUE))
+- Principios modificados: ninguno. Restricciones técnicas: despliegue nativo
+  en Windows Server
+- Motivo: F8. El usuario eligió Windows nativo (SQL Server ya corre en
+  Windows y Docker exige WSL o Hyper-V); la notaría aporta el certificado de
+  su dominio y un disco para respaldos
+- Fecha: 2026-10-24
+- TODO pendientes: ninguno.
 -->
 
 # Constitución del ERP Notarial (Confrontador)
@@ -284,8 +290,12 @@ con teclado, foco visible y contraste suficiente.
   `pytest` con cobertura.
 - **Seguridad:** SonarQube (Quality Gate), `gitleaks`, `pip-audit`,
   Dependabot, `pre-commit`.
-- **Despliegue:** on-premise en el Windows Server de la notaría, dentro de la
-  LAN. Mecanismo: TODO(DESPLIEGUE), se decide en F8.
+- **Despliegue:** on-premise y nativo en el Windows Server de la notaría
+  (SQLSERVER), junto a su SQL Server y dentro de la LAN, sin máquina virtual ni
+  contenedores. La web y el worker corren como servicios de Windows con una
+  cuenta propia sin privilegios de administrador. HTTPS con un certificado de
+  la autoridad del dominio de la notaría. Respaldo diario de la base del ERP y
+  de los originales en otro disco del servidor, con 30 días de retención.
 - **Prueba de concepto Streamlit** (`app.py`, `app_ortografia.py`): eliminada
   el 2026-10-20 al declarar el usuario la paridad funcional del ERP.
 
@@ -324,4 +334,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 2.1.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-24
+**Version**: 2.2.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-24
