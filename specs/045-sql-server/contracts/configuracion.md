@@ -6,8 +6,8 @@ Se definen fuera del repositorio, en el entorno del servicio, igual que `DJANGO_
 
 | Variable | Obligatoria | Por defecto | Uso |
 |---|---|---|---|
-| `DB_HOST` | no | `127.0.0.1` | Servidor de SQL Server (nombre o IP; instancia con nombre: `SERVIDOR\INSTANCIA`). |
-| `DB_PORT` | no | `1433` | Puerto TCP. Se ignora con instancia con nombre. |
+| `DB_HOST` | no | `localhost` | Servidor de SQL Server (nombre o IP; instancia con nombre: `SERVIDOR\INSTANCIA`). |
+| `DB_PORT` | no | vacío | Sin puerto, el driver resuelve la instancia (memoria compartida en local, 1433 o SQL Browser en la red). Con puerto se fuerza TCP a ese puerto. |
 | `DB_NAME` | no | `confrontador` | Base del ERP. |
 | `DB_USER` | no | `confrontador` | Login de SQL Server del ERP. |
 | `DB_PASSWORD` | **sí** | — | Clave del login. Sin ella, `config/settings.py` lanza `ImproperlyConfigured` y el ERP no arranca. |
@@ -31,7 +31,7 @@ sqlcmd -S <servidor> -E -b -v ERP_CLAVE="<clave>" -i scripts/sqlserver/crear_bas
 |---|---|---|
 | 1. Versión | `SERVERPROPERTY('ProductMajorVersion') >= 13` (2016) | Error «Se necesita SQL Server 2016 o posterior» y se detiene. |
 | 2. Edición | Muestra `SERVERPROPERTY('Edition')`; si contiene «Express», avisa del tope de 10 GB por base | Solo aviso; continúa. |
-| 3. Base | `CREATE DATABASE confrontador COLLATE Modern_Spanish_100_CS_AS_SC` | Si ya existe, se detiene sin tocarla. |
+| 3. Base | `CREATE DATABASE confrontador COLLATE Modern_Spanish_100_CS_AS` | Si ya existe, se detiene sin tocarla. |
 | 4. Login | `CREATE LOGIN confrontador WITH PASSWORD = '$(ERP_CLAVE)', CHECK_POLICY = ON, DEFAULT_DATABASE = confrontador` | Si ya existe, se detiene. |
 | 5. Usuario | `CREATE USER confrontador FOR LOGIN confrontador` y `ALTER ROLE db_owner ADD MEMBER confrontador`, solo en la base del ERP | — |
 

@@ -22,7 +22,7 @@ La base se crea con una colación que distingue mayúsculas y tildes, para que l
   - nuevas: `mssql-django` 1.8.0, `pyodbc` 5.3 y `pytz` (dependencia del conector);
   - se retira `psycopg[binary]`;
   - del sistema: Microsoft ODBC Driver 18 for SQL Server.
-- **Storage**: SQL Server 2016, base propia `confrontador` con colación `Modern_Spanish_100_CS_AS_SC`. Sin cambios de esquema ([data-model.md](data-model.md)).
+- **Storage**: SQL Server 2016, base propia `confrontador` con colación `Modern_Spanish_100_CS_AS`. Sin cambios de esquema ([data-model.md](data-model.md)).
 - **Testing**:
   - pytest y pytest-django contra SQL Server 2017 en contenedor, con la base de pruebas en compatibilidad 130 (2016);
   - en Windows, SQL Server Express;
@@ -55,12 +55,12 @@ Resultado: sin violaciones.
 
 ```text
 config/settings.py                    # DATABASES con mssql-django y DB_*; DB_PASSWORD obligatoria
-config/apps.py                        # check de versión mínima (Tags.database)
+core/apps.py                          # check de versión mínima (Tags.database)
 expedientes/bloqueos.py               # sp_getapplock / sp_releaseapplock
 expedientes/sentido.py                # suprimir() sin lookup JSON
 scripts/sqlserver/crear_base.sql      # base, login y usuario del ERP (contracts/configuracion.md)
 requirements.in, requirements.txt     # + mssql-django, pyodbc, pytz; − psycopg (tzdata/colorama al final, a mano)
-tests/settings.py                     # TEST.COLLATION y conexión de prueba
+tests/conftest.py                     # compatibilidad 130 en la base de pruebas
 tests/test_procesamiento_concurrente.py   # vendor "microsoft"
 tests/test_sql_server.py              # colación, semana, versión mínima
 tests/test_sentido_expedientes.py     # supresión sin lookup JSON

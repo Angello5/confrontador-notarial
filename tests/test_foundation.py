@@ -40,6 +40,28 @@ def test_settings_require_a_secret_key():
     assert "DJANGO_SECRET_KEY" in result.stderr
 
 
+def test_settings_require_the_database_password():
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    environment = os.environ.copy()
+    environment.pop("DB_PASSWORD", None)
+    environment["DJANGO_SECRET_KEY"] = "test-only-" + "not-for-deployment"
+    environment["DJANGO_SETTINGS_MODULE"] = "config.settings"
+    result = subprocess.run(
+        [sys.executable, "manage.py", "check"],
+        cwd=Path(__file__).resolve().parents[1],
+        env=environment,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "DB_PASSWORD must be set" in result.stderr
+
+
 def test_lockfile_pins_every_direct_requirement():
     import re
     from pathlib import Path

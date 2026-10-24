@@ -54,7 +54,7 @@
         <mxCell id="wrk" value="&lt;b&gt;Worker de tareas&lt;/b&gt;&lt;br&gt;[Contenedor: Python, mismo código Django]&lt;br&gt;&lt;br&gt;Corre en el servidor, en segundo plano: OCR → reglas de confrontación → guarda observaciones." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;arcSize=8;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="580" y="340" width="300" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="db" value="&lt;b&gt;Base de datos&lt;/b&gt;&lt;br&gt;[Contenedor: PostgreSQL]&lt;br&gt;&lt;br&gt;Usuarios, roles, resultados (observaciones + hash SHA-256 del archivo), auditoría y cola de tareas. Sin PDFs." style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="db" value="&lt;b&gt;Base de datos&lt;/b&gt;&lt;br&gt;[Contenedor: SQL Server]&lt;br&gt;&lt;br&gt;Usuarios, roles, resultados (observaciones + hash SHA-256 del archivo), auditoría y cola de tareas. Sin PDFs." style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="100" y="600" width="300" height="170" as="geometry" />
         </mxCell>
         <mxCell id="med" value="&lt;b&gt;Archivos temporales&lt;/b&gt;&lt;br&gt;[Contenedor: sistema de archivos, tmp/]&lt;br&gt;&lt;br&gt;PDFs solo mientras se procesan. Se borran al terminar. No se respaldan." style="shape=folder;whiteSpace=wrap;html=1;tabWidth=60;tabHeight=16;tabPosition=left;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
@@ -81,7 +81,7 @@
         <mxCell id="e7" value="pg_dump diario" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=blockThin;endFill=1;strokeColor=#707070;fontSize=11;labelBackgroundColor=default;dashed=1;" edge="1" parent="1" source="db" target="nas">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="n1" value="La web y el worker se comunican solo por la cola en PostgreSQL (sin Redis).&lt;br&gt;Los PDFs no quedan en el servidor: solo se guarda el resultado." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#000000;align=left;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="n1" value="La web y el worker se comunican solo por la cola en SQL Server (sin Redis).&lt;br&gt;Los PDFs no quedan en el servidor: solo se guarda el resultado." style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#000000;align=left;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="420" y="120" width="300" height="110" as="geometry" />
         </mxCell>
       </root>
@@ -122,7 +122,7 @@
         <mxCell id="ct" value="&lt;b&gt;cuentas / core&lt;/b&gt;&lt;br&gt;[Componente: apps Django]&lt;br&gt;&lt;br&gt;Login, roles (Groups), permisos, auditoría, layout base." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#85BBF0;fontColor=#000000;strokeColor=#78A8D8;arcSize=8;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="970" y="290" width="270" height="130" as="geometry" />
         </mxCell>
-        <mxCell id="db" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;[Contenedor]" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="db" value="&lt;b&gt;SQL Server&lt;/b&gt;&lt;br&gt;[Contenedor]" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="135" y="950" width="220" height="110" as="geometry" />
         </mxCell>
         <mxCell id="med" value="&lt;b&gt;Temporal tmp/&lt;/b&gt;&lt;br&gt;[Contenedor]" style="shape=folder;whiteSpace=wrap;html=1;tabWidth=60;tabHeight=16;tabPosition=left;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
@@ -212,7 +212,7 @@
         <mxCell id="wrk" value="&lt;b&gt;worker&lt;/b&gt;&lt;br&gt;[OCR + reglas, usa la CPU del servidor]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;arcSize=8;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="790" y="460" width="230" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="pg" value="&lt;b&gt;postgres&lt;/b&gt;&lt;br&gt;[PostgreSQL]" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="pg" value="&lt;b&gt;sqlserver&lt;/b&gt;&lt;br&gt;[SQL Server]" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#438DD5;fontColor=#ffffff;strokeColor=#3C7FC0;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="500" y="450" width="230" height="100" as="geometry" />
         </mxCell>
         <mxCell id="vol" value="&lt;b&gt;Volúmenes&lt;/b&gt;: pgdata (persistente, se respalda) · tmp/ (temporal, no se respalda)" style="shape=folder;whiteSpace=wrap;html=1;tabWidth=60;tabHeight=14;tabPosition=left;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=12;" vertex="1" parent="1">

@@ -42,14 +42,18 @@ python -m pytest --cov --cov-report=term --cov-report=xml:coverage.xml
 python -m pip_audit --strict -r requirements.txt -r requirements-dev.txt
 ```
 
-La imagen PostgreSQL del service container en `.github/workflows/ci.yml` está fijada por digest; actualizar ese digest manualmente porque Dependabot no gestiona `services.image`.
+La imagen SQL Server del service container en `.github/workflows/ci.yml` está fijada por digest; actualizar ese digest manualmente porque Dependabot no gestiona `services.image`.
 
 En ejecución normal, configurar `DJANGO_SECRET_KEY` fuera del repositorio; sin
 ella Django debe rechazar el arranque. Para los comandos de pruebas, pytest usa
 una clave fija exclusiva de test, nunca configurada en ejecución de producción.
-La conexión PostgreSQL puede ajustarse con `POSTGRES_DB`, `POSTGRES_USER`,
-`POSTGRES_PASSWORD`, `POSTGRES_HOST` y `POSTGRES_PORT`; sus valores por defecto
-son solo para desarrollo local.
+La base es SQL Server 2016 o posterior, con el Microsoft ODBC Driver 18. La
+conexión se configura con `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`,
+`DB_PASSWORD` (obligatoria, sin ella Django rechaza el arranque) y
+`DB_TRUST_SERVER_CERTIFICATE`; contrato en
+`specs/045-sql-server/contracts/configuracion.md`. Las pruebas necesitan un login
+con `dbcreator`. Al regenerar `requirements.txt` en Linux, volver a añadir al
+final `colorama` y `tzdata` (solo Windows); un test lo exige.
 
 Usar Python 3.13 y aprovisionar OCR/diccionario según
 `specs/001-base-devsecops/quickstart.md`. Los tests predeterminados usan solo

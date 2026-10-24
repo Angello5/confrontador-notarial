@@ -11,8 +11,9 @@ No quedan `[NEEDS CLARIFICATION]` en la spec. Las decisiones salen del código d
 
 ## R2. Mayúsculas y tildes (FR-003)
 
-- **Decision**: la base del ERP se crea con la colación `Modern_Spanish_100_CS_AS_SC`, que distingue mayúsculas (CS) y tildes (AS). La base de pruebas usa la misma, vía `DATABASES["default"]["TEST"]["COLLATION"]`, y el contenedor del CI también (`MSSQL_COLLATION`).
+- **Decision**: la base del ERP se crea con la colación `Modern_Spanish_100_CS_AS`, que distingue mayúsculas (CS) y tildes (AS). La base de pruebas usa la misma, vía `DATABASES["default"]["TEST"]["COLLATION"]`, y el contenedor del CI también (`MSSQL_COLLATION`).
 - **Rationale**: SQL Server se instala por defecto sin distinguir mayúsculas. Con una colación CI, «K-100» y «k-100» chocarían en la unicidad del kardex, y los usuarios también. Hoy son distintos. El orden español coloca la «ñ» después de la «n».
+- **Sin `_SC`** (hallado al implementar): con `Modern_Spanish_100_CS_AS_SC`, `pyodbc` envía los textos de más de 4000 caracteres (el texto extraído) como `ntext`, y SQL Server los rechaza con el error 4189. `_SC` solo cambia cómo las funciones de texto tratan los caracteres suplementarios; `nvarchar` los guarda igual.
 - **Alternatives considered**: la colación por defecto del servidor (cambia el comportamiento); `Latin1_General_100_CS_AS_SC` (orden inglés).
 - **Riesgo**: `tempdb` usa la colación del servidor. Django no crea tablas temporales; si alguna consulta llegara a mezclar colaciones, se corrige con `COLLATE DATABASE_DEFAULT` en esa consulta.
 
@@ -42,19 +43,19 @@ No quedan `[NEEDS CLARIFICATION]` en la spec. Las decisiones salen del código d
 
 ## R7. Versión mínima (FR-010)
 
-- **Decision**: un check de Django con la etiqueta `database` en `config/apps.py` que falla si `connection.sql_server_version < 2016`, con el mensaje «Se necesita SQL Server 2016 o posterior». Corre con `migrate` y con `check --database default`.
+- **Decision**: un check de Django con la etiqueta `database` en `core/apps.py` (registrado en `CoreConfig.ready`) que falla si `connection.sql_server_version < 2016`, con el mensaje «Se necesita SQL Server 2016 o posterior». Corre con `migrate` y con `check --database default`.
 - **Rationale**: `mssql-django` acepta 2005–2014 y solo fallaría más tarde, con el mensaje poco claro de `JSONField` (fields.E180).
 - **Alternatives considered**: confiar en fields.E180 (el mensaje no dice qué versión instalar).
 
 ## R8. Configuración de la conexión (FR-009, SR-002–SR-004)
 
-- **Decision**: variables `DB_HOST`, `DB_PORT` (1433), `DB_NAME`, `DB_USER` y `DB_PASSWORD` en lugar de `POSTGRES_*`, más `DB_TRUST_SERVER_CERTIFICATE`, apagada por defecto. El ODBC Driver 18 cifra la conexión por defecto (`Encrypt=yes`). Sin `DB_PASSWORD` el ERP no arranca, igual que sin `DJANGO_SECRET_KEY`. Contrato en [contracts/configuracion.md](contracts/configuracion.md).
+- **Decision**: variables `DB_HOST`, `DB_PORT` (opcional), `DB_NAME`, `DB_USER` y `DB_PASSWORD` en lugar de `POSTGRES_*`, más `DB_TRUST_SERVER_CERTIFICATE`, apagada por defecto. El ODBC Driver 18 cifra la conexión por defecto (`Encrypt=yes`). Sin `DB_PASSWORD` el ERP no arranca, igual que sin `DJANGO_SECRET_KEY`. Contrato en [contracts/configuracion.md](contracts/configuracion.md).
 - **Rationale**: los nombres neutros no atan la configuración al motor, y la confianza en un certificado propio de la LAN queda explícita (SR-003).
 - **Alternatives considered**: conservar `POSTGRES_*` (engañoso); una cadena ODBC completa en una sola variable (más fácil filtrar la clave en un log).
 
 ## R9. CI (FR-012)
 
-- **Decision**: el service container pasa a `mcr.microsoft.com/mssql/server:2017-latest`, fijado por digest, con `ACCEPT_EULA=Y`, una clave `sa` solo de prueba y `MSSQL_COLLATION=Modern_Spanish_100_CS_AS_SC`. Antes de las pruebas, un paso fija el nivel de compatibilidad de la base `model` en 130 (el de SQL Server 2016), para que la base de pruebas, que la copia, se comporte como 2016. El ODBC Driver 18 se instala desde el repositorio firmado de Microsoft (`packages.microsoft.com`) en una versión fijada.
+- **Decision**: el service container pasa a `mcr.microsoft.com/mssql/server:2017-latest`, fijado por digest, con `ACCEPT_EULA=Y`, una clave `sa` solo de prueba y `MSSQL_COLLATION=Modern_Spanish_100_CS_AS`. La fixture `django_db_setup` de `tests/conftest.py` fija el nivel de compatibilidad 130 (el de SQL Server 2016) en la base de pruebas recién creada, igual en el CI y en local, sin tocar la configuración del servidor. El ODBC Driver 18 se instala desde el repositorio firmado de Microsoft (`packages.microsoft.com`) en una versión fijada.
 - **Rationale**: SQL Server 2016 no tiene imagen para Linux; 2017 es la más antigua, y con el nivel de compatibilidad 130 emula el T-SQL de 2016. Las pruebas se conectan como `sa` porque pytest-django crea y borra la base de pruebas.
 - **Alternatives considered**: un runner Windows con SQL Server 2016 instalado (lento y difícil de reproducir); probar en 2022 (no detectaría lo que 2016 no tiene).
 
@@ -72,6 +73,12 @@ No quedan `[NEEDS CLARIFICATION]` en la spec. Las decisiones salen del código d
   - `suprimir` sin lookup JSON;
   - check de versión mínima;
   - lecturas sin espera mientras el worker escribe.
+- Correcciones al correr la suite contra SQL Server (T014):
+  - colación sin `_SC` (R2), por el error 4189 con textos largos;
+  - el worker `--continuo` moría con cualquier error de base de datos (también con PostgreSQL); ahora descarta la conexión rota y sigue en la siguiente vuelta (escenario 4 de US3);
+  - la compatibilidad 130 se fija en la base de pruebas desde `tests/conftest.py`, sin tocar `model` (R9).
+
+  El resto de la suite pasó sin cambios.
 
 ## R12. Instalación en SQLSERVER (FR-011, SR-001, SR-006)
 

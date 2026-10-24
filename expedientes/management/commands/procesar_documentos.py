@@ -1,5 +1,8 @@
-from django.core.management.base import BaseCommand
+from contextlib import suppress
 from time import sleep
+
+from django.core.management.base import BaseCommand
+from django.db import DatabaseError, connections
 
 from expedientes.sentido import analizar_pendientes
 from expedientes.services import (
@@ -25,7 +28,18 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         try:
             while True:
-                self.procesar_vuelta()
+                try:
+                    self.procesar_vuelta()
+                except DatabaseError:
+                    if not options["continuo"]:
+                        raise
+                    # F63: la base se reinició o cortó la conexión. Se descarta la
+                    # conexión rota y la próxima vuelta abre otra.
+                    self.stderr.write(
+                        "Sin conexión con la base de datos; se reintenta."
+                    )
+                    with suppress(DatabaseError):
+                        connections.close_all()
                 if not options["continuo"]:
                     break
                 sleep(2)

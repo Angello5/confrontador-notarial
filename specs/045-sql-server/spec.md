@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Implementado en `feat/f63-sql-server`. Pendientes: la medición privada del expediente de referencia (SC-002) y el CI del PR.
 
 **Input**: User description: "La notaría exige que la base del ERP esté en SQL Server, el motor que ya opera en su servidor SQLSERVER (Windows Server 2019), en lugar de PostgreSQL. El ERP debe funcionar exactamente igual que hoy (mismas pantallas, mismas reglas, mismos resultados de confrontación) con su propia base y su propio usuario en ese SQL Server, separados de los otros sistemas de la notaría. Aún no hay datos de producción (el despliegue es F8): cambia el motor, no se migran datos."
 

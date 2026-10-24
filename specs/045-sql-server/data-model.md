@@ -6,7 +6,7 @@ El modelo de datos **no cambia**: mismos modelos, campos, restricciones y migrac
 
 | Aspecto | Valor |
 |---|---|
-| Colación de la base | `Modern_Spanish_100_CS_AS_SC` (research R2) |
+| Colación de la base | `Modern_Spanish_100_CS_AS` (research R2) |
 | Aislamiento | READ COMMITTED con bloqueos (por defecto); `READ_COMMITTED_SNAPSHOT` apagado (research R4) |
 | Primer día de la semana | `DATEFIRST 7` por conexión, fijado por el conector (research R5) |
 | Fechas | `datetime2` en UTC (`USE_TZ = True`), mostradas en `America/Lima` |

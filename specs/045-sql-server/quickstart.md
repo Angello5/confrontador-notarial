@@ -17,15 +17,11 @@ En Linux, con la misma colación que en producción:
 ```bash
 docker run -d --name confrontador-sql -p 1433:1433 \
   -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='<clave-local-de-prueba>' \
-  -e MSSQL_COLLATION=Modern_Spanish_100_CS_AS_SC \
+  -e MSSQL_COLLATION=Modern_Spanish_100_CS_AS \
   mcr.microsoft.com/mssql/server:2017-latest
 ```
 
-En las dos plataformas, para que la base de pruebas se comporte como 2016:
-
-```sql
-ALTER DATABASE model SET COMPATIBILITY_LEVEL = 130;
-```
+En Windows sirve cualquier SQL Server 2016 o posterior (Express o Developer). Las pruebas necesitan un login con el rol `dbcreator`, porque crean y borran su base. La base de pruebas se pone sola en compatibilidad 130, para comportarse como 2016 (`tests/conftest.py`).
 
 Variables, fuera del repositorio (contrato en [contracts/configuracion.md](contracts/configuracion.md)):
 
@@ -57,3 +53,13 @@ export DJANGO_SECRET_KEY='<clave-local>' DB_USER=sa DB_PASSWORD='<clave-local-de
 5. Ingresar con la cuenta creada y confrontar un kardex ficticio.
 
 Tiempo objetivo: menos de 30 minutos (SC-005).
+
+## 5. Resultados (2026-10-24, Windows 10 con SQL Server 2025 Developer)
+
+| Escenario | Resultado |
+|---|---|
+| Suite completa contra SQL Server (base de pruebas en compatibilidad 130, colación `Modern_Spanish_100_CS_AS`) | 943 passed, 9 skipped; solo falla `test_legacy`, que requiere LibreOffice y no está instalado en este equipo |
+| `crear_base.sql` (T019) | Primera ejecución: base, login y usuario en 1 s. Segunda: se detiene con «ya existen» y no cambia nada. El login no tiene roles de servidor y no puede abrir otra base (error 916). `migrate` y `check --database default` con ese login, sin errores |
+| SC-004 (T022): 507 kardex y un documento en extracción por el worker real | Peor de 5 peticiones: lista 0,66 s; estado 0,02 s; Inicio 0,11 s |
+| Worker continuo sobre SQL Server | Procesó y confrontó los kardex ficticios; sobrevive a un corte de la base (`test_el_worker_continuo_sobrevive_a_un_corte_de_la_base`) |
+| Medición privada del expediente de referencia (SC-002) | Pendiente: se corre en el equipo que tiene los expedientes locales |

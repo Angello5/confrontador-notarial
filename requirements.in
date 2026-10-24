@@ -16,6 +16,6 @@ pandas==3.0.6
 
 # ERP F2
 Django==5.2.17
-psycopg[binary]==3.3.6
+mssql-django==1.8.0
 django-crispy-forms==2.7
 crispy-bootstrap5==2026.9

@@ -47,9 +47,12 @@ python manage.py runserver 127.0.0.1:8000
 python manage.py procesar_documentos             # worker de extracción, en otra terminal
 ```
 
-Requiere `DJANGO_SECRET_KEY` y la conexión PostgreSQL (`POSTGRES_*`) fuera del
-repositorio. El worker procesa la cola y termina: prográmalo cada minuto o
-ejecútalo en bucle. Detalle en [la guía F4](specs/004-expedientes/quickstart.md).
+Requiere `DJANGO_SECRET_KEY` y la conexión a SQL Server 2016 o posterior
+(`DB_*`, con el Microsoft ODBC Driver 18) fuera del repositorio. La base y el
+login del ERP se crean con `scripts/sqlserver/crear_base.sql`; detalle en
+[la guía F63](specs/045-sql-server/quickstart.md). El worker procesa la cola y
+termina: prográmalo cada minuto o ejecútalo en bucle (`--continuo`). Detalle en
+[la guía F4](specs/004-expedientes/quickstart.md).
 
 ### Línea de comandos
 

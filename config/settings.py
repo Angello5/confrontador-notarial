@@ -124,14 +124,32 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+_clave_db = os.environ.get("DB_PASSWORD")
+if not _clave_db:
+    raise ImproperlyConfigured("DB_PASSWORD must be set.")
+# F63: SQL Server. Sin puerto, el driver resuelve la instancia (memoria
+# compartida en local, 1433 en la red); la confianza en un certificado propio
+# de la LAN se pide de forma explícita.
+_confiar = os.environ.get("DB_TRUST_SERVER_CERTIFICATE", "").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "confrontador"),
-        "USER": os.environ.get("POSTGRES_USER", "confrontador"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
-        "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
-        "PORT": int(os.environ.get("POSTGRES_PORT", "5432")),
+        "ENGINE": "mssql",
+        "NAME": os.environ.get("DB_NAME", "confrontador"),
+        "USER": os.environ.get("DB_USER", "confrontador"),
+        "PASSWORD": _clave_db,
+        "HOST": os.environ.get("DB_HOST", "localhost"),
+        "PORT": os.environ.get("DB_PORT", ""),
+        "OPTIONS": {
+            "driver": "ODBC Driver 18 for SQL Server",
+            "extra_params": "Encrypt=yes;TrustServerCertificate="
+            + ("yes" if _confiar else "no"),
+        },
+        # Distingue mayúsculas y tildes como la base de producción (research R2).
+        "TEST": {"COLLATION": "Modern_Spanish_100_CS_AS"},
     }
 }
 

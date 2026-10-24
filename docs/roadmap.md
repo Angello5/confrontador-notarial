@@ -131,6 +131,10 @@ F61: capa de sentido (CR-01, Alternativa B). La notaría eligió el verificador 
 
 F62: cookies propias del ERP. El usuario reportó que cada clic lo mandaba al login: otra app Django en el mismo host borraba la cookie `sessionid`. Alcance en `specs/044-cookies-propias/`.
 
+## Continuación autorizada · 2026-10-24
+
+F63: base de datos en SQL Server. La notaría exige que la base del ERP esté en SQL Server 2016, el motor de su servidor SQLSERVER. El usuario confirmó que el ERP se conecta con un login propio de SQL Server. La edición se confirma en la instalación (se asume Standard). La constitución pasa a 2.1.0. No hay datos que trasladar: el despliegue es F8. Aviso a la notaría: SQL Server 2016 está fuera de soporte extendido desde el 14/07/2026 y solo recibe parches con ESU de pago. Alcance en `specs/045-sql-server/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

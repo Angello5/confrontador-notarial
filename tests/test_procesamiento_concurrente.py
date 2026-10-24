@@ -1,7 +1,8 @@
-"""Locks reales entre conexiones PostgreSQL, sin documentos privados."""
+"""Locks reales entre conexiones SQL Server, sin documentos privados."""
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from io import StringIO
 from threading import Event
 
 import pytest
@@ -37,7 +38,7 @@ def test_lock_excluye_otro_proceso_y_se_libera():
         with exclusivo("test", "ficticio") as adquirido:
             return adquirido
 
-    assert connection.vendor == "postgresql"
+    assert connection.vendor == "microsoft"
     with exclusivo("test", "ficticio") as adquirido:
         assert adquirido
         assert otra_conexion(intentar) is False
@@ -122,3 +123,64 @@ def test_dos_consumidores_no_duplican_extraccion_y_reutilizan():
         pk = futuro.result(timeout=10)
     assert extraer_o_reutilizar("f" * 64, "ficticio", leer).pk == pk
     assert llamadas == [1]
+
+
+@pytest.mark.parametrize("ronda", range(10))
+def test_dos_workers_no_toman_el_mismo_documento(usuario_ficticio, ronda):
+    from expedientes.models import Documento, Expediente
+    from expedientes.services import tomar_pendiente
+
+    expediente = Expediente.objects.create(
+        codigo=f"FICTICIO-COLA-{ronda}", creado_por=usuario_ficticio
+    )
+    Documento.objects.bulk_create(
+        Documento(
+            expediente=expediente,
+            rol="CLIENTE",
+            nombre_original=f"ficticio-{numero}.txt",
+            hash_archivo=f"{numero:064x}",
+            tamano_bytes=1,
+            subido_por=usuario_ficticio,
+        )
+        for numero in range(20)
+    )
+
+    def vaciar():
+        tomados = []
+        try:
+            while documento := tomar_pendiente():
+                tomados.append(documento.pk)
+        finally:
+            connections.close_all()
+        return tomados
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        workers = [executor.submit(vaciar) for _ in range(2)]
+        tomados = [pk for worker in workers for pk in worker.result(timeout=60)]
+    assert sorted(tomados) == sorted(Documento.objects.values_list("pk", flat=True))
+
+
+def test_el_worker_continuo_sobrevive_a_un_corte_de_la_base(monkeypatch):
+    from django.core.management import call_command
+    from django.db import OperationalError
+
+    from expedientes.management.commands import procesar_documentos
+
+    vueltas = []
+
+    def vencidos():
+        vueltas.append(1)
+        if len(vueltas) == 1:
+            raise OperationalError("conexión cortada (ficticio)")
+        return 0
+
+    def esperar(_segundos):
+        if len(vueltas) >= 2:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(procesar_documentos, "recuperar_documentos_vencidos", vencidos)
+    monkeypatch.setattr(procesar_documentos, "sleep", esperar)
+    call_command(
+        "procesar_documentos", "--continuo", stdout=StringIO(), stderr=StringIO()
+    )
+    assert len(vueltas) == 2
