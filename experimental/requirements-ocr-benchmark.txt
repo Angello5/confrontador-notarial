@@ -1,4 +1,4 @@
 # Dependencias opcionales del benchmark OCR experimental.
 paddlepaddle==3.3.1
 paddleocr==3.7.0
-liteparse==2.14.7
+liteparse==2.16.0
