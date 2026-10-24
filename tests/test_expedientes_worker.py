@@ -1,4 +1,4 @@
-"""Contrato del worker basado en PostgreSQL y estados documentales."""
+"""Contrato del worker basado en la cola de la base de datos y estados documentales."""
 
 from datetime import timedelta
 from io import StringIO

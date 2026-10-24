@@ -15,7 +15,7 @@ código viejo. Esta skill lo pone al día.
   arranca porque falta la clave secreta)
 - Intérprete: `/home/pibe/.venvs/confrontador/bin/python`
 - Worker de extracción: `~/pruebas-confrontador/worker.sh`
-- Base de datos: contenedor Docker `confrontador-test-pg`
+- Base de datos: contenedor Docker `confrontador-sql` con SQL Server (F63; se crea con `specs/045-sql-server/quickstart.md` §2). El entorno define `DB_*`.
 
 ## Pasos
 
@@ -35,8 +35,8 @@ tres veces, con salida 144.
 El contenedor no sobrevive a un reinicio de la máquina.
 
 ```bash
-docker ps --filter name=confrontador --format '{{.Names}}' | grep -q . \
-  || docker start confrontador-test-pg
+docker ps --filter name=confrontador-sql --format '{{.Names}}' | grep -q . \
+  || docker start confrontador-sql
 ```
 
 ### 3. Traer main y migrar

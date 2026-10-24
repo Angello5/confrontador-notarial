@@ -12,7 +12,7 @@ from time import perf_counter
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Max, Q
+from django.db.models import Max
 
 from nucleo import sentido as nucleo
 
@@ -176,16 +176,23 @@ def suprimir(textos):
     `textos`: pares (hash_archivo, version_extractor) suprimidos. Alcanza a toda
     corrida que los usó, aunque su documento ya no exista o sea de otro expediente.
     """
-    condicion = Q()
-    for hash_archivo, version_extractor in textos:
-        condicion |= Q(
-            corrida__entradas__contains=[
-                {"hash_archivo": hash_archivo, "version_extractor": version_extractor}
-            ]
-        )
-    if not condicion:
+    pares = set(textos)
+    if not pares:
         return 0
-    return AnalisisSentido.objects.filter(condicion).update(
+    # F63: SQL Server no filtra dentro del JSON (`__contains`), se filtra aquí.
+    # shortcut: recorre en memoria las entradas de todas las corridas analizadas;
+    # pasar a una tabla de entradas si superan ~50 000 análisis.
+    ids = [
+        pk
+        for pk, entradas in AnalisisSentido.objects.values_list(
+            "pk", "corrida__entradas"
+        )
+        if any(
+            (e.get("hash_archivo"), e.get("version_extractor")) in pares
+            for e in entradas
+        )
+    ]
+    return AnalisisSentido.objects.filter(pk__in=ids).update(
         estado=AnalisisSentido.SUPRIMIDO, anotaciones=[]
     )
 
