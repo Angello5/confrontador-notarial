@@ -66,7 +66,8 @@ jobs:
         run: |
           sudo apt-get update
           if ! apt-cache madison msodbcsql18 | grep -q '18.7.1.1-1'; then
-            curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor --yes -o /usr/share/keyrings/microsoft-prod.gpg
+            curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
+              https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor --yes -o /usr/share/keyrings/microsoft-prod.gpg
             echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main" | sudo tee /etc/apt/sources.list.d/mssql-release.list
             sudo apt-get update
           fi
