@@ -170,6 +170,34 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+# F8: en el servidor, IIS sirve `collectstatic` desde una carpeta compartida entre versiones.
+STATIC_ROOT = Path(os.environ.get("ERP_STATIC_ROOT") or BASE_DIR / "staticfiles")
+# F8: archivos de estado para los avisos del Inicio del Administrador; sin ella, no hay avisos.
+_estado = os.environ.get("ERP_ESTADO_DIR", "").strip()
+ERP_ESTADO_DIR = Path(_estado) if _estado else None
+# F8: un archivo por rol (web, worker, tarea): en Windows dos procesos no pueden
+# rotar el mismo archivo. Sin carpeta, la configuración de registros de Django.
+_registros = os.environ.get("ERP_REGISTROS_DIR", "").strip()
+LOGGING = {"version": 1, "disable_existing_loggers": False}
+if _registros:
+    LOGGING |= {
+        "formatters": {
+            "erp": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"}
+        },
+        "handlers": {
+            "archivo": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": str(
+                    Path(_registros) / f"{os.environ.get('ERP_ROL', 'erp')}.log"
+                ),
+                "maxBytes": 5 * 1024 * 1024,
+                "backupCount": 10,
+                "encoding": "utf-8",
+                "formatter": "erp",
+            }
+        },
+        "root": {"handlers": ["archivo"], "level": "INFO"},
+    }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CRISPY_ALLOWED_TEMPLATE_PACKS = ["bootstrap5"]
 CRISPY_TEMPLATE_PACK = "bootstrap5"

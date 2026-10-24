@@ -54,6 +54,12 @@ login del ERP se crean con `scripts/sqlserver/crear_base.sql`; detalle en
 termina: prográmalo cada minuto o ejecútalo en bucle (`--continuo`). Detalle en
 [la guía F4](specs/004-expedientes/quickstart.md).
 
+En el servidor de la notaría el ERP corre nativo en Windows: IIS con HTTPS
+sirve la web (`waitress` detrás de HttpPlatformHandler), el Programador de
+tareas mantiene el worker, la limpieza, el respaldo diario y una verificación
+cada 5 minutos. Se instala, actualiza, respalda y restaura con los scripts de
+`scripts/windows/`; guía en [la guía F8](specs/046-despliegue/quickstart.md).
+
 ### Línea de comandos
 
 La prueba de concepto en Streamlit (`app.py`, `app_ortografia.py`) se eliminó

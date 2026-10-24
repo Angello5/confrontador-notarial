@@ -61,9 +61,11 @@ expedientes/management/commands/procesar_documentos.py  # toca worker.latido en 
 core/views.py, templates/core/home.html  # avisos del sistema en el Inicio del Administrador
 requirements.in, requirements.txt  # + waitress (tzdata/colorama al final, a mano)
 scripts/windows/
-  erp.env.ejemplo   iniciar.ps1   web.config   mantenimiento.html
+  erp.env.ejemplo   comun.ps1     iniciar.ps1   web.config
   instalar.ps1      actualizar.ps1
   respaldar.ps1     restaurar.ps1   verificar.ps1
+static/mantenimiento.html          # página de IIS durante una actualización
+templates/500.html                 # error del servidor en español
 tests/test_despliegue.py           # avisos, latido, LOGGING y sintaxis de los .ps1
 docs/arquitectura/erp-notarial-c4.drawio  # vista de despliegue nativa
 docs/roadmap.md, README.md, AGENTS.md

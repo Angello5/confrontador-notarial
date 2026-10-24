@@ -9,19 +9,19 @@
 ## Phase 1: Setup
 
 - [x] T001 Enmendar la constitución a 2.2.0: despliegue nativo en Windows, que resuelve `TODO(DESPLIEGUE)` (`.specify/memory/constitution.md`).
-- [ ] T002 `waitress==3.0.2` en `requirements.in`; su bloque con hashes de PyPI en `requirements.txt`, sin regenerar el resto, con `colorama` y `tzdata` al final. `pip_audit --strict` limpio.
-- [ ] T003 [P] Plantilla `scripts/windows/erp.env.ejemplo` con todas las variables de `specs/046-despliegue/contracts/servidor.md`, sin valores secretos.
+- [x] T002 `waitress==3.0.2` en `requirements.in`; su bloque con hashes de PyPI en `requirements.txt`, sin regenerar el resto, con `colorama` y `tzdata` al final. `pip_audit --strict` limpio.
+- [x] T003 [P] Plantilla `scripts/windows/erp.env.ejemplo` con todas las variables de `specs/046-despliegue/contracts/servidor.md`, sin valores secretos.
 
 ## Phase 2: Foundational (bloquea todas las historias)
 
-- [ ] T004 [P] Pruebas en `tests/test_despliegue.py`, con `config.settings` cargado en un subproceso como en `tests/test_foundation.py`:
+- [x] T004 [P] Pruebas en `tests/test_despliegue.py`, con `config.settings` cargado en un subproceso como en `tests/test_foundation.py`:
   - con `ERP_REGISTROS_DIR`, `LOGGING` usa `RotatingFileHandler` de 5 MB × 10 en esa carpeta; sin ella, consola;
   - `STATIC_ROOT` toma `ERP_STATIC_ROOT` o `BASE_DIR / "staticfiles"`.
 
   Deben fallar antes de T005.
-- [ ] T005 `config/settings.py`: `STATIC_ROOT`, `LOGGING` (R8) y `ERP_ESTADO_DIR`, que vale `None` si no está definido.
-- [ ] T006 [P] Prueba en `tests/test_despliegue.py`: cada `scripts/windows/*.ps1` se analiza sin errores con el parser de PowerShell (`pwsh` o `powershell`); se salta si no hay PowerShell.
-- [ ] T007 `scripts/windows/iniciar.ps1`:
+- [x] T005 `config/settings.py`: `STATIC_ROOT`, `LOGGING` (R8) y `ERP_ESTADO_DIR`, que vale `None` si no está definido.
+- [x] T006 [P] Prueba en `tests/test_despliegue.py`: cada `scripts/windows/*.ps1` se analiza sin errores con el parser de PowerShell (`pwsh` o `powershell`); se salta si no hay PowerShell.
+- [x] T007 `scripts/windows/iniciar.ps1`:
   - `-Rol web`: lee `C:\ProgramData\ConfrontadorNotarial\erp.env` (líneas `NOMBRE=valor`, ignora `#`), define las variables en su proceso y ejecuta `waitress-serve --listen=127.0.0.1:$env:HTTP_PLATFORM_PORT --url-scheme=https --threads=8 config.wsgi:application`;
   - `-Rol worker`: `manage.py procesar_documentos --continuo`;
   - `-Rol tarea -Comando <cmd>`: `manage.py <cmd>`.
@@ -36,12 +36,15 @@
 
 **Independent Test**: `quickstart.md` escenarios 1 y 2.
 
-- [ ] T008 [P] [US1] `scripts/windows/web.config`:
+- [x] T008 [P] [US1] `scripts/windows/web.config`:
   - `httpPlatform` → `powershell.exe -NoProfile -ExecutionPolicy Bypass -File iniciar.ps1 -Rol web`, con `processesPerApplication=1` y `stdoutLogEnabled=false`;
   - regla de URL Rewrite HTTP→HTTPS (301);
   - `/static/` servido desde `C:\ConfrontadorNotarial\staticfiles`, sin pasar por Python;
-  - `httpErrors` para 502 y 503 con la página estática `scripts/windows/mantenimiento.html`: en español, con los estilos del ERP incrustados y sin términos técnicos. Dice «El sistema se está actualizando o no está disponible en este momento. Intente de nuevo en unos minutos.» (UX de la spec).
-- [ ] T009 [US1] `scripts/windows/instalar.ps1 -Version <tag>`, como administrador:
+  - una regla de URL Rewrite que, mientras exista `C:\ConfrontadorNotarial\estado\mantenimiento`, sirve `static/mantenimiento.html`: en español, con los estilos incrustados y sin términos técnicos. Dice «El sistema se está actualizando o no está disponible en este momento. Intente de nuevo en unos minutos.»;
+  - `templates/500.html` en español para cuando Django no puede atender (por ejemplo, sin base), con prueba en `tests/test_despliegue.py`.
+
+  No se usa `httpErrors` porque taparía las páginas de error de Django (UX de la spec).
+- [x] T009 [US1] `scripts/windows/instalar.ps1 -Version <tag>`, como administrador:
   - crea las carpetas de `specs/046-despliegue/data-model.md` con sus ACL;
   - copia el logo de la notaría a `C:\ConfrontadorNotarial\staticfiles\marca\logo.png`, que se comparte entre versiones porque `collectstatic` se ejecuta sin `--clear` y no lo borra, y deja `ERP_LOGO=/static/marca/logo.png` en `erp.env` (FR-014);
   - registra el origen `ConfrontadorNotarial` en el Visor de eventos;
@@ -56,7 +59,7 @@
 
 **Independent Test**: escenarios 3, 4 y 10.
 
-- [ ] T011 [P] [US2] Pruebas en `tests/test_despliegue.py`:
+- [x] T011 [P] [US2] Pruebas en `tests/test_despliegue.py`:
   - **latido**: con `ERP_ESTADO_DIR`, cada vuelta de `procesar_documentos` actualiza la fecha de `worker.latido`; sin ella, no crea nada;
   - **`avisos_sistema()`**:
     - latido de más de 10 minutos → aviso de procesamiento;
@@ -66,11 +69,11 @@
     - los textos no tienen rutas ni términos técnicos.
 
   Deben fallar antes de T012 y T013.
-- [ ] T012 [US2] `expedientes/management/commands/procesar_documentos.py`: `procesar_vuelta` toca `worker.latido` en `settings.ERP_ESTADO_DIR` si está definido.
-- [ ] T013 [US2] `expedientes/services.py::avisos_sistema()` con los umbrales y textos de `specs/046-despliegue/data-model.md`.
-- [ ] T014 [US2] Mostrar los avisos de `avisos_sistema()` en el Inicio del rol Administrador, con el componente de aviso existente. Archivos: `core/views.py` y `templates/core/home.html`. El Inicio de las usuarias no cambia. Prueba de vista en `tests/test_despliegue.py`.
-- [ ] T015 [US2] `scripts/windows/instalar.ps1`: tareas «Confrontador · procesamiento» (al iniciar el sistema, reintento cada 1 min hasta 999, sin límite de duración), «Confrontador · diario» (02:00) y «Confrontador · verificación» (cada 5 min), con la cuenta de servicio y sin sesión iniciada (`specs/046-despliegue/contracts/servidor.md`).
-- [ ] T016 [US2] `scripts/windows/verificar.ps1`:
+- [x] T012 [US2] `expedientes/management/commands/procesar_documentos.py`: `procesar_vuelta` toca `worker.latido` en `settings.ERP_ESTADO_DIR` si está definido.
+- [x] T013 [US2] `expedientes/services.py::avisos_sistema()` con los umbrales y textos de `specs/046-despliegue/data-model.md`.
+- [x] T014 [US2] Mostrar los avisos de `avisos_sistema()` en el Inicio del rol Administrador, con el componente de aviso existente. Archivos: `core/views.py` y `templates/core/home.html`. El Inicio de las usuarias no cambia. Prueba de vista en `tests/test_despliegue.py`.
+- [x] T015 [US2] `scripts/windows/instalar.ps1`: tareas «Confrontador - procesamiento» (al iniciar el sistema, reintento cada 1 min hasta 999, sin límite de duración), «Confrontador - diario» (02:00) y «Confrontador - verificacion» (cada 5 min), con la cuenta de servicio y sin sesión iniciada (`specs/046-despliegue/contracts/servidor.md`).
+- [x] T016 [US2] `scripts/windows/verificar.ps1`:
   - revisa la web (HTTPS 200 en `/accounts/login/`), el latido, la base (`check --database default`), `soffice --version`, la capa de sentido si está activa y el certificado (`IIS_CERTIFICADO`);
   - **recursos (FR-013)**: avisa si SQL Server no tiene tope de memoria (`max server memory (MB)` en su valor por defecto, 2147483647, según `sys.configurations`) o si el tope deja menos de 6 GB libres al resto del servidor;
   - **disco**: avisa si al disco de `C:\ConfrontadorNotarial`, al de `EXPEDIENTES_TEMP_DIR` y `EXPEDIENTES_ORIGINALES_DIR` o al de `RESPALDO_DIR` les queda menos del 10 % libre (parámetro `-UmbralDisco`, por defecto 10, para probarlo);
@@ -85,15 +88,15 @@
 
 **Independent Test**: escenarios 5 y 6.
 
-- [ ] T018 [P] [US3] `scripts/windows/respaldar.ps1`:
+- [x] T018 [P] [US3] `scripts/windows/respaldar.ps1`:
   - `BACKUP DATABASE confrontador TO DISK = '<RESPALDO_DIR>\confrontador-AAAAMMDD.bak' WITH CHECKSUM, INIT` con `sqlcmd`, leyendo la clave de `erp.env`;
   - `robocopy /MIR` de los originales a `originales-AAAAMMDD`;
   - borra lo de más de 30 días;
   - escribe `respaldo.ok` si todo salió bien y registra un error en el Visor de eventos si no.
-- [ ] T019 [P] [US3] `scripts/windows/restaurar.ps1 -Fecha AAAAMMDD [-Prueba]`:
+- [x] T019 [P] [US3] `scripts/windows/restaurar.ps1 -Fecha AAAAMMDD [-Prueba]`:
   - sin `-Prueba`: detiene la web y el worker, `RESTORE ... WITH REPLACE`, restaura los originales y arranca;
   - con `-Prueba`: restaura en `confrontador_prueba_restauracion`, compara las huellas SHA-256 de los originales e informa, sin tocar producción.
-- [ ] T020 [US3] La tarea «Confrontador · diario» ejecuta `iniciar.ps1 -Rol tarea -Comando limpiar_temporales` y luego `respaldar.ps1` (`scripts/windows/instalar.ps1`).
+- [x] T020 [US3] La tarea «Confrontador - diario» ejecuta `iniciar.ps1 -Rol tarea -Comando limpiar_temporales` y luego `respaldar.ps1` (`scripts/windows/instalar.ps1`).
 - [ ] T021 [US3] En el servidor de prueba: escenarios 5 (7 días, retención) y 6 (restauración de prueba en menos de 1 h).
 
 ## Phase 6: User Story 4 · El desarrollador instala y actualiza a distancia (P2)
@@ -102,7 +105,7 @@
 
 **Independent Test**: escenarios 7 y 8.
 
-- [ ] T022 [US4] `scripts/windows/actualizar.ps1`:
+- [x] T022 [US4] `scripts/windows/actualizar.ps1`:
   - `-Version <tag>`: prepara `versiones\<tag>` (código, `.venv` con `--require-hashes` o los wheels del paquete, `collectstatic`), ejecuta `respaldar.ps1`, detiene la web y el worker, `migrate`, cambia el enlace `actual` al final, arranca y ejecuta `verificar.ps1`;
   - `-VolverA <tag>`: restaura el respaldo previo y vuelve a enlazar `<tag>` (research R9).
 - [ ] T023 [US4] En el servidor de prueba: escenarios 7 (actualizar y volver atrás, menos de 15 min cada uno) y 8 (sesión cortada a mitad).
@@ -125,10 +128,10 @@
 
 ## Phase 9: Polish & Cross-Cutting
 
-- [ ] T026 [P] `docs/arquitectura/erp-notarial-c4.drawio`: vista de despliegue nativa (research R11).
-- [ ] T027 [P] `docs/roadmap.md` (entrada F8), `README.md` y `AGENTS.md`: enlace a `specs/046-despliegue/quickstart.md` y mención de `waitress`.
+- [x] T026 [P] `docs/arquitectura/erp-notarial-c4.drawio`: vista de despliegue nativa (research R11).
+- [x] T027 [P] `docs/roadmap.md` (entrada F8), `README.md` y `AGENTS.md`: enlace a `specs/046-despliegue/quickstart.md` y mención de `waitress`.
 - [ ] T028 Escenario 11 (10 sesiones a la vez, menos de 2 s) en el servidor de prueba (SC-006).
-- [ ] T029 Puertas: `ruff check`, `ruff format --check`, `pytest`, `pip_audit --strict` y `pre-commit run --all-files` en verde; estado de `specs/046-despliegue/spec.md` actualizado.
+- [x] T029 Puertas: `ruff check`, `ruff format --check`, `pytest`, `pip_audit --strict` y `pre-commit run --all-files` en verde; estado de `specs/046-despliegue/spec.md` actualizado.
 
 ## Dependencies & Execution Order
 

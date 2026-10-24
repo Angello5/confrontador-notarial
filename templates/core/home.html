@@ -23,6 +23,7 @@
     <p class="reporte-meta">Periodo: <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>, <span x-text="datos.rango">{{ datos_inicio.rango }}</span> · Emitido por {{ user.username }} el <span x-text="datos.fecha">{{ datos_inicio.fecha }}</span> a las <span x-text="datos.actualizado">{{ datos_inicio.actualizado }}</span></p>
   </header>
 
+  {% include "core/_avisos_sistema.html" %}
   {% include "core/_avisos_ilegibles.html" %}
 
   <div class="inicio-barra">
