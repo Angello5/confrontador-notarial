@@ -8,7 +8,8 @@
 |---|---|---|---|
 | `worker.latido` | El worker, en cada vuelta de `procesar_documentos` | Vacío; vale su fecha de modificación | Si su fecha tiene más de 10 minutos: «El procesamiento de documentos no está activo. Avise al encargado de sistemas.» |
 | `respaldo.ok` | `respaldar.ps1`, al terminar bien | Fecha y hora ISO del respaldo | Si no existe o tiene más de 26 horas: «El respaldo de anoche no se completó. Avise al encargado de sistemas.» |
-| `certificado.vence` | `verificar.ps1`, cada 5 minutos | Fecha ISO de vencimiento del certificado HTTPS | Si faltan 30 días o menos: «El certificado de seguridad vence el DD/MM/AAAA. Avise al encargado de sistemas.» |
+| `certificado.vence` | `verificar.ps1`, cada 5 minutos | Fecha ISO de vencimiento del certificado HTTPS | Si faltan 30 días o menos: «El certificado de seguridad vence el DD/MM/AAAA. Avise al encargado de sistemas.» Si falta o es ilegible: «No se pudo comprobar el certificado de seguridad del sistema. Avise al encargado de sistemas.» |
+| `mantenimiento` | `Stop-Erp` (`actualizar.ps1`, `restaurar.ps1`); lo borra `Start-Erp` | Vacío | No es un aviso: mientras existe, IIS muestra la página de mantenimiento |
 
 Reglas:
 

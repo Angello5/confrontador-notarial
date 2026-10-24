@@ -19,3 +19,6 @@ Django==5.2.17
 mssql-django==1.8.0
 django-crispy-forms==2.7
 crispy-bootstrap5==2026.9
+
+# F8: servidor WSGI de producción detrás de IIS (HttpPlatformHandler)
+waitress==3.0.2

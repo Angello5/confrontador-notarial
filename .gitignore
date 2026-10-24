@@ -35,6 +35,7 @@ tests/fixtures/
 # ---- Cachés y artefactos ----
 __pycache__/
 *.py[cod]
+staticfiles/
 .pytest_cache/
 .ruff_cache/
 .coverage

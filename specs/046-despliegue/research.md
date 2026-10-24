@@ -38,7 +38,8 @@ No quedan `[NEEDS CLARIFICATION]` en la spec. Las decisiones salen del código d
   - **Cada 5 minutos**: la verificación (R7).
 - **Rationale**:
   - Viene con Windows: no hay que instalar NSSM ni WinSW, ni escribir servicios con `pywin32`.
-  - El worker ya sobrevive a cortes de la base (F63), y si el proceso muere, la tarea lo vuelve a lanzar.
+  - El worker ya sobrevive a cortes de la base (F63).
+  - **Hallado al implementar**: el «reiniciar si falla» del Programador de tareas solo actúa si la tarea no logra arrancar, no cuando el proceso sale con error. Por eso `iniciar.ps1 -Rol worker` relanza Python en un bucle, con 30 s de pausa y un aviso en el Visor de eventos (SC-003). Y `Stop-Erp` termina el proceso de Python, porque detener la tarea no lo hace.
 - **Alternatives considered**:
   - NSSM o WinSW (binarios de terceros);
   - `pywin32` (código de servicio propio);

@@ -6,6 +6,7 @@ from django.views.decorators.http import require_GET, require_safe
 
 from expedientes.services import (
     avisos_documentos_ilegibles,
+    avisos_sistema,
     datos_inicio_administrador,
     expedientes_con_resumen,
 )
@@ -31,7 +32,9 @@ def home(request):
     if es_administrador:
         # F53: el administrador ve toda la notaría; solo consultas agregadas.
         datos = datos_inicio_administrador(request.user)
-        contexto.update(datos_inicio=datos, cifras=datos["cifras"])
+        contexto.update(
+            datos_inicio=datos, cifras=datos["cifras"], avisos_sistema=avisos_sistema()
+        )
     else:
         # ponytail: un resumen por expediente visible; agregar en SQL si crecen a miles.
         filas = expedientes_con_resumen(request.user)

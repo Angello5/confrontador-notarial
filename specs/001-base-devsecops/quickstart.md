@@ -203,6 +203,7 @@ Copiar al PR las seis excepciones revisadas:
 | `revisor_llm.py` · `consultar` | S310 | Request construido con esquema HTTPS y host fijos; modelo va en la ruta, no cambia el esquema; no se invocó la red de modelos durante las pruebas. |
 | `tests/conftest.py` · `pytest_sessionfinish` | S314 | XML local de confianza generado por coverage en la misma ejecución; no es XML de documentos subidos. |
 | `tests/test_seleccion_local.py` · `test_seleccion_privada` | S603 | Intérprete propio y argumentos de pytest fijados por el test, entorno controlado y sin shell. |
+| `tests/test_despliegue.py` · `test_los_scripts_de_windows_no_tienen_errores_de_sintaxis` (F8) | S603 | PowerShell del sistema (`pwsh` o `powershell` del PATH) que solo analiza la sintaxis de los `.ps1` del propio repositorio; no los ejecuta, argumentos en lista y sin shell. |
 
 No se añadieron dependencias para estas revisiones ni se cambiaron APIs para
 eludir el detector. Las excepciones deben revisarse si cambia la procedencia de

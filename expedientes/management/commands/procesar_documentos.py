@@ -1,6 +1,7 @@
 from contextlib import suppress
 from time import sleep
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import DatabaseError, connections
 
@@ -47,6 +48,11 @@ class Command(BaseCommand):
             return
 
     def procesar_vuelta(self):
+        if settings.ERP_ESTADO_DIR:
+            # F8: latido para el aviso «procesamiento no activo»; si no se puede
+            # escribir, el propio aviso lo hace visible.
+            with suppress(OSError):
+                (settings.ERP_ESTADO_DIR / "worker.latido").touch()
         recuperar_documentos_vencidos()
         releer_borradores_desactualizados()
         procesados = 0

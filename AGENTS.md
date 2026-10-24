@@ -63,6 +63,12 @@ prohibida en CI. La política y excepciones individuales de Ruff están document
 en `specs/001-base-devsecops/quickstart.md`. Pre-commit está configurado en
 `.pre-commit-config.yaml` y se activa con `python -m pre_commit install`.
 
+El despliegue (F8) vive en `scripts/windows/` y se describe en
+`specs/046-despliegue/quickstart.md`. Los `.ps1` se guardan en UTF-8 con BOM
+(Windows PowerShell 5.1 lee sin BOM como ANSI y rompe las tildes), y
+`tests/test_despliegue.py` los analiza sintácticamente. Nunca pasar claves por
+argumentos: los scripts las leen de `erp.env`.
+
 En el workflow de CI nunca usar **Re-run failed jobs**: usar **Re-run all jobs**,
 porque `sonar` necesita la cobertura generada en el mismo `run_attempt`. Al
 publicar una versión del ERP, incrementar `sonar.projectVersion` para reiniciar

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Código, scripts y pruebas implementados en `feat/f8-implementacion`. Pendientes las validaciones en un servidor de prueba de la notaría (T010, T017, T021, T023–T025, T028).
 
 **Input**: User description: "El ERP debe quedar instalado y funcionando en el servidor SQLSERVER (Windows Server 2019) junto a su SQL Server 2016, dentro de la LAN y sin internet en ejecución. Las usuarias entran desde sus PC con el navegador, sin instalar nada, por HTTPS con un nombre interno; la web y el worker corren como servicios que arrancan con el servidor y se recuperan solos; respaldo diario de la base del ERP y de los originales, con restauración probada. Recomendación: Windows nativo, sin VM ni Docker."
 

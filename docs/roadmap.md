@@ -61,7 +61,7 @@ Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-n
 | Fase | Qué se construye | Resultado visible | Depende de | Decisión que se toma |
 |---|---|---|---|---|
 | **F32 · parcial (PR #69)** | Vista del borrador con errores resaltados | Hecho para `.docx`. Escaneados y demás formatos (T018–T024) pendientes | F21, F31 | Conservar el borrador en cualquier formato exige la constitución 1.8.0, redactada y pendiente de aprobación |
-| **F8** | Despliegue | Funciona en el Windows Server, con respaldo diario | F5 | VM + Docker o nativo |
+| **F8** | Despliegue | Funciona en el Windows Server, con respaldo diario | F5 | Windows nativo (decidido el 2026-10-24) |
 | **F9** | Catálogo por tipo de acto | Campos a verificar definidos por tipo (donación, mutuo…) | F5 | Tipos de acto iniciales. La transferencia vehicular (F43–F45) ya tiene flujo propio |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 
@@ -134,6 +134,8 @@ F62: cookies propias del ERP. El usuario reportó que cada clic lo mandaba al lo
 ## Continuación autorizada · 2026-10-24
 
 F63: base de datos en SQL Server. La notaría exige que la base del ERP esté en SQL Server 2016, el motor de su servidor SQLSERVER. El usuario confirmó que el ERP se conecta con un login propio de SQL Server. La edición se confirma en la instalación (se asume Standard). La constitución pasa a 2.1.0. No hay datos que trasladar: el despliegue es F8. Aviso a la notaría: SQL Server 2016 está fuera de soporte extendido desde el 14/07/2026 y solo recibe parches con ESU de pago. Alcance en `specs/045-sql-server/`.
+
+F8: despliegue nativo en Windows. El usuario eligió Windows nativo en SQLSERVER: sin VM ni contenedores, certificado de la CA del dominio, respaldos de 30 días en otro disco del servidor, actualizaciones por el desarrollador con acceso remoto que habilita la notaría, y avisos en el Inicio del Administrador y en el Visor de eventos. La constitución pasa a 2.2.0. Implementados en el repositorio el código, los scripts de `scripts/windows/` y sus pruebas. Quedan las validaciones en un servidor de prueba de la notaría con IIS y su CA. Alcance en `specs/046-despliegue/`.
 
 ## Prompts de arranque para `/speckit-specify`
 

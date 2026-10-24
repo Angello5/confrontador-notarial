@@ -1575,6 +1575,53 @@ def avisos_documentos_ilegibles(usuario):
     )
 
 
+_AVISE = "Avise al encargado de sistemas."
+
+
+def avisos_sistema(ahora=None):
+    """F8: avisos de operación del Inicio del Administrador (FR-017).
+
+    Lee los archivos de estado del servidor; uno ausente o ilegible cuenta como
+    fallo. Sin `ERP_ESTADO_DIR` (desarrollo y CI) no hay avisos.
+    """
+    estado = settings.ERP_ESTADO_DIR
+    if estado is None:
+        return []
+    ahora = ahora or timezone.now()
+    avisos = []
+    try:
+        activo = ahora.timestamp() - (estado / "worker.latido").stat().st_mtime <= 600
+    except OSError:
+        activo = False
+    if not activo:
+        avisos.append(f"El procesamiento de documentos no está activo. {_AVISE}")
+    try:
+        respaldo = datetime.fromisoformat(
+            (estado / "respaldo.ok").read_text(encoding="utf-8").strip()
+        )
+        if timezone.is_naive(respaldo):
+            respaldo = timezone.make_aware(respaldo)
+        al_dia = ahora - respaldo <= timedelta(hours=26)
+    except (OSError, ValueError):
+        al_dia = False
+    if not al_dia:
+        avisos.append(f"El respaldo de anoche no se completó. {_AVISE}")
+    try:
+        vence = date.fromisoformat(
+            (estado / "certificado.vence").read_text(encoding="utf-8").strip()
+        )
+    except (OSError, ValueError):
+        avisos.append(
+            f"No se pudo comprobar el certificado de seguridad del sistema. {_AVISE}"
+        )
+    else:
+        if vence - timezone.localdate(ahora) <= timedelta(days=30):
+            avisos.append(
+                f"El certificado de seguridad vence el {vence:%d/%m/%Y}. {_AVISE}"
+            )
+    return avisos
+
+
 def ultimas_confrontaciones(limite=5):
     """F53: kardex activos confrontados más recientemente, con su última corrida."""
     ultima = Corrida.objects.filter(expediente=OuterRef("pk")).order_by(
