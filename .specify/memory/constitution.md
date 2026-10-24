@@ -48,6 +48,15 @@ Sync Impact Report
   B, verificador semántico local, según el Informe de Evaluación v1.1
   (22/10/2026). F61 la implementa
 - Fecha: 2026-10-22
+- Version: 2.0.0 → 2.1.0 (MINOR: cambia de forma material una restricción
+  técnica; ningún principio se elimina ni se redefine)
+- Principios modificados: ninguno. Restricciones técnicas: la base de datos
+  pasa de PostgreSQL a SQL Server (backend y cola del worker)
+- Motivo: la notaría exige que la base del ERP esté en SQL Server, el motor que
+  ya opera en su servidor SQLSERVER; decisión del usuario. Aún no hay datos de
+  producción (el despliegue es F8): cambia el motor, no se migran datos. F63
+  lo implementa
+- Fecha: 2026-10-24
 - TODO pendientes:
   - TODO(DESPLIEGUE): VM Ubuntu + Docker vs nativo Windows. Decidir en F8.
 -->
@@ -250,11 +259,15 @@ con teclado, foco visible y contraste suficiente.
 
 ## Restricciones técnicas
 
-- **Backend:** Python + Django (versión LTS vigente), PostgreSQL.
+- **Backend:** Python + Django (versión LTS vigente) y SQL Server, con el
+  backend oficial de Microsoft `mssql-django` y el ODBC Driver 18. El ERP
+  tiene su propia base y su propio usuario en el SQL Server de la notaría,
+  separados de sus otros sistemas.
 - **Frontend:** plantillas de Django + AdminLTE 4 (Bootstrap 5, sin jQuery) +
   Alpine.js. Assets guardados en `static/vendor/` con su versión anotada; sin
   CDN. Formularios con `crispy-bootstrap5`.
-- **Tareas en segundo plano:** worker con cola sobre PostgreSQL (sin Redis).
+- **Tareas en segundo plano:** worker con cola sobre la base del ERP en SQL
+  Server (sin Redis).
   El estado se consulta desde la página con Alpine + `fetch` a un endpoint JSON.
 - **Extracción:** RapidOCR sobre onnxruntime en CPU; PyMuPDF; lectura de
   `.docx` desde el XML; `.doc` con LibreOffice headless en Linux. La
@@ -311,4 +324,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 2.0.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-22
+**Version**: 2.1.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-24
