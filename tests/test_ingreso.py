@@ -62,7 +62,9 @@ def test_ingreso_sin_logo_usa_el_sello(client):
 
 def test_ingreso_no_carga_recursos_remotos(client):
     contenido, _ = _ingreso(client)
-    css = (Path(settings.STATICFILES_DIRS[0]) / "css" / "erp.css").read_text()
+    css = (Path(settings.STATICFILES_DIRS[0]) / "css" / "erp.css").read_text(
+        encoding="utf-8"
+    )
 
     referencias = re.findall(r'(?:src|href)="([^"]*)"', contenido)
     assert referencias

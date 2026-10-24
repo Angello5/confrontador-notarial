@@ -38,3 +38,17 @@ def test_settings_require_a_secret_key():
     )
     assert result.returncode != 0
     assert "DJANGO_SECRET_KEY" in result.stderr
+
+
+def test_lockfile_pins_every_direct_requirement():
+    import re
+    from pathlib import Path
+
+    raiz = Path(__file__).resolve().parents[1]
+    lock = (raiz / "requirements.txt").read_text(encoding="utf-8").lower()
+    for linea in (raiz / "requirements.in").read_text(encoding="utf-8").splitlines():
+        pin = linea.split("#")[0].split(";")[0].strip().lower()
+        # pip-compile en Linux omite las fijadas solo para Windows (tzdata, colorama).
+        assert not pin or re.search(rf"^{re.escape(pin)}[ ;\\]", lock, re.M), (
+            f"{pin} falta en requirements.txt: añádela a mano al final, con su hash."
+        )
