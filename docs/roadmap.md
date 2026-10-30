@@ -139,6 +139,8 @@ F63: base de datos en SQL Server. La notaría exige que la base del ERP esté en
 
 F64: sugerencias en cifras y cuotas. El usuario pidió que los avisos de cifra y letras, área y cuotas digan, resumido y en lenguaje sencillo, lo que encontraron en la minuta y la sugerencia concreta. Decidió que la suma de cuotas se revise en todos los actos que reparten entre personas (copropiedad, aportes, herencias y otros), sin intereses, moras ni tasas, y que el aviso no elija cuando la minuta no trae el dato. Todo por código, sin modelos. Alcance en `specs/047-sugerencias-cifras/`.
 
+F65: lista de observaciones compacta. El usuario pidió quitar el panel de detalle de la pantalla de resultado, porque repite lo que dice la lista, y que cada fila muestre en pequeño lo hallado y lo correcto. Sumó cuatro mejoras de la revisión de interfaz: la sugerencia en su propia línea, resaltar solo lo que cambia, contadores de severidad sin cortes y un sello de reemplazo si el logo no carga. Solo presentación. Alcance en `specs/048-lista-compacta/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

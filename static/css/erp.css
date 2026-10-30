@@ -121,6 +121,7 @@ table { border-collapse: collapse; }
 .marca:hover { color: var(--ne-navy); }
 .marca-logo { display: block; width: 212px; max-width: 100%; height: auto; }
 .marca-fila { display: flex; align-items: center; gap: 10px; }
+.marca-logo[hidden], .marca-fila[hidden], .marca-sub[hidden] { display: none; } /* F65: logo que no carga */
 .marca-sello {
   width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center;
   background: var(--ne-navy); color: var(--ne-green); font: 700 14px var(--ne-display);
@@ -942,22 +943,20 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .carga-borrador + .carga-borrador { border-top: 1px solid #e2e6ed; padding-top: 16px; }
 .carga-mensaje { margin: 0; }
 .ayuda-lectura { color: var(--ne-slate); font-size: 13px; }
-.revision-documento { grid-template-columns: minmax(0, 1fr) minmax(300px, 350px); gap: 20px; }
+.revision-documento { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 20px; }
 .revision-lateral { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.revision-documento .obs-panel { position: static; max-height: 32vh; overflow-y: auto; }
+.revision-documento .obs-panel { position: static; max-height: 75vh; overflow-y: auto; } /* F65: sin panel de detalle, la lista ocupa la columna */
 .revision-documento .visor-borrador { position: sticky; top: 20px; }
 .revision-documento .visor-borrador .panel-cab { flex-wrap: wrap; gap: 12px; }
 .revision-documento .visor-paginas { max-height: 75vh; }
 .revision-documento .obs-detalle { padding: 18px; }
 .revision-documento .obs-detalle-cab { flex-wrap: wrap; gap: 10px; }
 .revision-documento .documentos, .revision-documento .valores { grid-template-columns: minmax(0, 1fr); }
-.revision-documento .obs-correccion { margin-top: 16px; }
 .revision-documento .obs-correccion p { margin-bottom: 12px; }
 @media (max-width: 1100px) {
   .revision-documento { grid-template-columns: minmax(0, 1fr); }
   .revision-documento .visor-borrador { position: static; }
   .revision-documento .visor-paginas { max-height: 65vh; }
-  .revision-lateral { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   .carga-accion { flex-direction: column; }
@@ -977,3 +976,21 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .sentido-detalle { font-size: 14px; color: var(--ne-slate); }
 .sentido-dice { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .sentido-dice p { margin-top: 4px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+
+/* F65: cada fila dice, en pequeño, lo hallado y lo correcto, con lo distinto resaltado. */
+.obs-lineas { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; font-size: 12px; line-height: 17px; color: var(--ne-slate); overflow-wrap: anywhere; }
+.obs-rot { margin-right: 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.obs-lineas .tachado { text-decoration: none; }
+.obs-lineas mark { padding: 0 2px; background: var(--ne-err-bg); color: var(--ne-err-fg); font-weight: 800; }
+.obs-lineas .correcto mark { background: var(--ne-ok-bg); color: var(--ne-ok-fg); }
+.obs-sugerencia .obs-rot { color: var(--ne-ok-fg); }
+.obs-fuente { font-size: 12px; color: var(--ne-slate); overflow-wrap: anywhere; }
+.obs-lista > li > .obs-correccion { padding: 0 14px 10px 16px; border-bottom: 1px solid var(--ne-line); margin-top: -1px; }
+.obs-lista > li > .obs-correccion .casilla { gap: 8px; font-size: 12px; font-weight: 700; }
+.obs-lista > li > .obs-correccion .casilla span span { display: inline; font-size: 12px; font-weight: 400; }
+.obs-fragmento { padding: 0 14px 10px 16px; }
+.obs-fragmento .doc { font-size: 12px; }
+@media (max-width: 1279.98px) { .sev-pref { display: none; } } /* F65: «Alta», «Media», «Baja» sin cortarse */
+.obs-fragmento .doc-cab { display: none; }
+.obs-fragmento .doc-cuerpo { padding: 6px 10px; }
+.obs-fragmento .doc-linea { font-size: 12px; line-height: 18px; }

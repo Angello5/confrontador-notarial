@@ -46,10 +46,11 @@ def test_ingreso_usa_el_logo_configurado(client):
     contenido, _ = _ingreso(client)
 
     assert (
-        f'<img class="marca-logo" src="/static/marca/logo-ficticio.png" alt="{NOMBRE}">'
+        f'<img class="marca-logo" src="/static/marca/logo-ficticio.png" alt="{NOMBRE}"'
         in contenido
     )
-    assert "marca-sello" not in contenido
+    # F65: el sello solo de reemplazo, oculto mientras el logo cargue.
+    assert '<span class="marca-fila" hidden>' in contenido
 
 
 @override_settings(ERP_NOMBRE=NOMBRE, ERP_LOGO="")

@@ -1,19 +1,18 @@
 {% comment %}
-Corrección propuesta ligada a la observación `prefijo` + `numero` (se empareja por el valor
-erróneo en el JS de confrontacion.html). Marca o desmarca la misma corrección
-que se envía en «Aplicar correcciones».
+F65: casilla compacta de la fila, ligada a la observación `prefijo` + `numero`
+(se empareja por el valor erróneo en el JS de confrontacion.html). Marca o
+desmarca la misma corrección que se envía en «Aplicar correcciones».
 {% endcomment %}
 <template x-if="corrDe('{{ prefijo }}{{ numero }}')">
   <div class="obs-correccion">
-    <p class="texto-chico">Esta propuesta se aplica a todas sus apariciones compatibles en el Word. Revise el alcance antes de confirmar.</p>
     {% if resultado.corregible %}
-      <label class="casilla">
+      <label class="casilla casilla-chica" title="Se aplica a todas sus apariciones compatibles en el Word.">
         <input type="checkbox" :checked="marcadas.includes(corrDe('{{ prefijo }}{{ numero }}').id)" @change="alternar(corrDe('{{ prefijo }}{{ numero }}').id)">
         <span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span>
-        <span><strong>Incluir en las correcciones</strong><span x-text="'Reemplazar «' + corrDe('{{ prefijo }}{{ numero }}').erroneo + '» por «' + corrDe('{{ prefijo }}{{ numero }}').correcto + '» · ' + corrDe('{{ prefijo }}{{ numero }}').apariciones"></span></span>
+        <span>Corregir en el Word<span class="texto-suave" x-text="' · ' + corrDe('{{ prefijo }}{{ numero }}').apariciones"></span></span>
       </label>
     {% else %}
-      <p class="nota-info"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span x-text="'Corrección propuesta: «' + corrDe('{{ prefijo }}{{ numero }}').erroneo + '» por «' + corrDe('{{ prefijo }}{{ numero }}').correcto + '». Este borrador no admite corrección automática.'"></span></p>
+      <p class="texto-suave texto-chico">Este borrador no admite corrección automática.</p>
     {% endif %}
   </div>
 </template>

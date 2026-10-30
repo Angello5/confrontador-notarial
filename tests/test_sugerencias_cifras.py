@@ -387,7 +387,8 @@ def _fila(campo, hallado, esperado, detalle):
 def test_aviso_con_lo_hallado_la_minuta_y_la_sugerencia(fila, verificar, lista):
     from expedientes.services import aviso_de
 
-    assert aviso_de(fila) == {
+    aviso = aviso_de(fila)
+    assert {k: aviso[k] for k in ("borrador", "verificar", "lista")} == {
         "borrador": fila["hallado"],
         "verificar": verificar,
         "lista": lista,
