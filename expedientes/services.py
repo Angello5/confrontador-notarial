@@ -65,6 +65,9 @@ _RE_DEBE_DECIR = re.compile(
     r"^debe decir\s+«(?P<esperado>[^»]*)»(?P<resto>.*)$", re.IGNORECASE
 )
 _RE_MOTIVO_CARATULA = re.compile(r"\s+(?P<motivo>\(caratula\))\s*$", re.IGNORECASE)
+# F64: lo que dice la minuta y la sugerencia, al final de estas observaciones
+_CON_SUGERENCIA = {"NUMERO_EN_LETRAS", "AREA", "COPROPIEDAD"}
+_RE_DETALLE = re.compile(r"^\s+\((?P<detalle>.*)\)\s*$")
 # F39: el aviso de persona sin ficha conserva cómo escribe la minuta el nombre
 _RE_MINUTA_DICE = re.compile(r"; la minuta dice «[^»]*»")
 _RE_MOTIVO_MONTO = re.compile(
@@ -1015,13 +1018,17 @@ def parsear_observacion_regla(salida, texto_borrador):
                     texto_borrador,
                 ) | {"concepto": monto.group("concepto"), "fuente": fuente}
             motivo = _RE_MOTIVO_CARATULA.search(debe_decir.group("resto"))
-            return _observacion_regla(
+            fila = _observacion_regla(
                 campo,
                 hallado,
                 debe_decir.group("esperado"),
                 motivo.group("motivo") if motivo else "",
                 texto_borrador,
             )
+            detalle = _RE_DETALLE.match(debe_decir.group("resto"))
+            if campo in _CON_SUGERENCIA and detalle:
+                fila["detalle"] = detalle.group("detalle")
+            return fila
         for frase in (
             "No coincide con ninguna fuente",
             "Sin ficha RENIEC en los recaudos",
@@ -1863,6 +1870,55 @@ _FRASES_AVISO = {
 }
 
 
+_RE_SUGIERE = re.compile(
+    r"se sugiere(?: corregir (?P<que>las letras|la cifra))? «(?P<texto>[^»]*)»"
+)
+_RE_DICE = re.compile(r"(?P<quien>la minuta|las letras) dicen? «(?P<texto>[^»]*)»")
+
+
+def _aviso_con_sugerencia(campo, hallado, esperado, fila):
+    """F64: el aviso con lo que dice la minuta y la sugerencia; None si la
+    observación no la trae (las guardadas antes de F64 se ven como siempre)."""
+    detalle = fila.get("detalle") or ""
+    sugiere = _RE_SUGIERE.search(detalle)
+    dice = {m["quien"]: m["texto"] for m in _RE_DICE.finditer(detalle)}
+    sin_dato = "la minuta no trae el dato" in detalle
+    if campo == "COPROPIEDAD":
+        suma = re.search(r"las cuotas suman ([^;]+)", detalle)
+        if not suma or not (sugiere or sin_dato):
+            return None
+        rotulo = "Las cuotas no suman 100 %"
+        if sugiere:
+            verificar = (
+                f"Las cuotas suman {suma[1]}. La minuta dice {dice['la minuta']}. "
+                f"Se sugiere: {sugiere['texto']}."
+            )
+        else:
+            verificar = (
+                f"Las cuotas suman {suma[1]}. "
+                "La minuta no trae el reparto: revise cuál corresponde."
+            )
+    elif "letras mal escritas" in detalle and sugiere:
+        rotulo = "Letras mal escritas"
+        verificar = f"Las letras están mal escritas. Se sugiere: {sugiere['texto']}."
+    elif sugiere and "la minuta" in dice:
+        rotulo = "Cifra y letras no coinciden"
+        verificar = (
+            f"La minuta dice {dice['la minuta']}. "
+            f"Se sugiere corregir {sugiere['que']}: {sugiere['texto']}."
+        )
+    elif sin_dato and "las letras" in dice:
+        rotulo = "Cifra y letras no coinciden"
+        verificar = (
+            f"La cifra dice {esperado} y las letras dicen {dice['las letras']}. "
+            "La minuta no trae este dato: revise cuál corresponde."
+        )
+    else:
+        return None
+    lista = f"{rotulo}: {hallado}" + (f" → {sugiere['texto']}" if sugiere else "")
+    return {"borrador": hallado, "verificar": verificar, "lista": lista}
+
+
 def aviso_de(fila):
     """F60: qué hay en el borrador, qué verificar y la línea de la lista de un
     aviso que no es una corrección; None si «Dice / Debe decir» tiene sentido."""
@@ -1870,6 +1926,8 @@ def aviso_de(fila):
     hallado, esperado = fila.get("hallado") or "", fila.get("esperado") or ""
     nombre, _, dato = hallado.partition(": ")
     fuente, _, valor = esperado.partition(": ")
+    if sugerencia := _aviso_con_sugerencia(campo, hallado, esperado, fila):
+        return sugerencia
     fijo = _AVISOS.get(campo) or _FRASES_AVISO.get(esperado)
     if fijo:
         verificar, rotulo = fijo

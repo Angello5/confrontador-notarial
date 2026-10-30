@@ -111,13 +111,19 @@ def test_cifra_distinta_de_las_letras():
 def test_palabra_numerica_mal_escrita():
     assert _discrepancias(
         _VACIO, "EN EL PLAZO DE TREINTA Y SEIZ (36) MESES.", "NUMERO_EN_LETRAS"
-    ) == ["[NUMERO_EN_LETRAS] «TREINTA Y SEIZ (36)» debe decir «36»"]
+    ) == [
+        "[NUMERO_EN_LETRAS] «TREINTA Y SEIZ (36)» debe decir «36»   "
+        "(letras mal escritas; se sugiere «TREINTA Y SEIS (36)»)"
+    ]
 
 
 def test_palabra_numerica_corta_mal_escrita():
     assert _discrepancias(
         _VACIO, "EN EL PLAZO DE TREINTA Y SES (36) MESES.", "NUMERO_EN_LETRAS"
-    ) == ["[NUMERO_EN_LETRAS] «TREINTA Y SES (36)» debe decir «36»"]
+    ) == [
+        "[NUMERO_EN_LETRAS] «TREINTA Y SES (36)» debe decir «36»   "
+        "(letras mal escritas; se sugiere «TREINTA Y SEIS (36)»)"
+    ]
 
 
 def test_palabras_cortas_comunes_no_se_toman_por_numeros():
