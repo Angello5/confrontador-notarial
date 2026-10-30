@@ -150,6 +150,8 @@ Revisión del usuario de la pantalla de resultado (2026-10-21). Desde F56 la lis
 | Anexo omitido | «No aparece en el borrador» | «La minuta incluye «ANEXO 1 - HOJA RESUMEN». Verifique que el borrador lo incluya.» | «Falta en el borrador: …» |
 | Precio (transferencia vehicular) | «No aparece en el borrador» | «El acta no indica el precio de la transferencia. Verifique que lo incluya.» | «El acta no indica el precio de la transferencia» |
 
+Desde F64 (`specs/047-sugerencias-cifras/`), los avisos de número en letras, área y copropiedad dicen además lo que trae la minuta y la sugerencia («Se sugiere …») cuando hay con qué desempatar; si la minuta no trae el dato, lo dicen sin elegir. Las confrontaciones anteriores a F64 se ven con el texto de esta tabla.
+
 - **Lista**: el aviso es una línea sin tachar, en el color de texto secundario y sin flecha. Si no cabe, se parte en varias líneas (no se recorta), porque la acción va al final. El texto emergente dice «En el borrador: … · Qué verificar: …».
 - **Detalle**: los rótulos son «En el borrador» y «Qué verificar», sin el rojo de lo hallado ni el verde de lo correcto. El texto de «Qué verificar» va sin negrita, porque es una frase.
 - **Informe imprimible, informe Word, tabla exportada (CSV) y vista de la corrida**: conservan sus columnas «Dice» y «Debe decir». En un aviso, «Dice» lleva el texto de «En el borrador» y la otra columna, «Qué verificar: …». Ninguno dice ya «Debe decir: RENIEC: CASADO». En el Word, el aviso va sin rojo, verde ni tachado, también en «Atención prioritaria».

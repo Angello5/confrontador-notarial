@@ -1,1 +1,13 @@
-{% comment %}F56: lo hallado tachado → lo correcto. F60: un aviso que no es una corrección dice qué verificar, sin tachar.{% endcomment %}{% if observacion.aviso %}<span class="cambio aviso-linea" title="En el borrador: {{ observacion.aviso.borrador }} · Qué verificar: {{ observacion.aviso.verificar }}"><span class="visually-hidden">Qué verificar: </span>{{ observacion.aviso.lista }}</span>{% else %}<span class="cambio" title="Dice: {{ observacion.hallado }} · Debe decir: {{ observacion.esperado }}"><span class="visually-hidden">Dice: </span><span class="tachado">{{ observacion.hallado }}</span><span class="hacia"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="visually-hidden">, debe decir: </span><span class="correcto">{{ observacion.esperado }}</span></span></span>{% endif %}
+{% comment %}
+F65: lo que dice el borrador y lo correcto, en líneas pequeñas, con las palabras
+distintas resaltadas (`observacion.cambio`, de `partes_distintas`). Un aviso
+(F60) dice qué verificar y, si F64 la trae, la sugerencia en su propia línea.
+`dice` y `debe` son los rótulos (ortografía: «Texto» y «Sugerencia»).
+{% endcomment %}<span class="obs-lineas">{% if observacion.aviso %}
+  <span class="obs-l"><span class="obs-rot">En el borrador</span> {% if observacion.cambio %}<span class="tachado">{% for texto, distinto in observacion.cambio.dice %}{% if distinto %}<mark>{{ texto }}</mark>{% else %}{{ texto }}{% endif %}{% endfor %}</span>{% else %}{{ observacion.aviso.borrador }}{% endif %}</span>
+  <span class="obs-l"><span class="obs-rot">Qué verificar</span> {% firstof observacion.aviso.nota observacion.aviso.verificar %}</span>
+  {% if observacion.aviso.sugerencia %}<span class="obs-l obs-sugerencia"><span class="obs-rot">{{ observacion.aviso.rotulo_sugerencia }}</span> <span class="correcto">{% if observacion.cambio %}{% for texto, distinto in observacion.cambio.debe %}{% if distinto %}<mark>{{ texto }}</mark>{% else %}{{ texto }}{% endif %}{% endfor %}{% else %}{{ observacion.aviso.sugerencia }}{% endif %}</span></span>{% endif %}
+{% else %}
+  <span class="obs-l"><span class="obs-rot">{{ dice|default:"Dice" }}</span> <span class="tachado">{% if observacion.cambio %}{% for texto, distinto in observacion.cambio.dice %}{% if distinto %}<mark>{{ texto }}</mark>{% else %}{{ texto }}{% endif %}{% endfor %}{% else %}{{ hallado }}{% endif %}</span></span>
+  {% if esperado %}<span class="obs-l"><span class="obs-rot">{{ debe|default:"Debe decir" }}</span> <span class="correcto">{% if observacion.cambio %}{% for texto, distinto in observacion.cambio.debe %}{% if distinto %}<mark>{{ texto }}</mark>{% else %}{{ texto }}{% endif %}{% endfor %}{% else %}{{ esperado }}{% endif %}</span></span>{% endif %}
+{% endif %}</span>
