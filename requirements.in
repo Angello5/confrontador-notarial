@@ -1,18 +1,18 @@
 # Extracción y OCR local
-rapidocr==3.9.2
-onnxruntime==1.30.0
+rapidocr==3.10.0
+onnxruntime==1.31.1
 pymupdf==1.28.2
 openpyxl==3.1.5
 pillow==13.0.0
 colorama==0.4.6 ; sys_platform == "win32"
-tzdata==2026.4 ; sys_platform == "win32"
+tzdata==2026.5 ; sys_platform == "win32"
 
 # Comparación
 rapidfuzz==3.14.6
 spylls==0.1.7
 
 # Interfaz
-pandas==3.0.6
+pandas==3.1.0
 
 # ERP F2
 Django==5.2.17
