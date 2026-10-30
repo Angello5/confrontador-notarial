@@ -1878,45 +1878,92 @@ _RE_DICE = re.compile(r"(?P<quien>la minuta|las letras) dicen? «(?P<texto>[^»]
 
 def _aviso_con_sugerencia(campo, hallado, esperado, fila):
     """F64: el aviso con lo que dice la minuta y la sugerencia; None si la
-    observación no la trae (las guardadas antes de F64 se ven como siempre)."""
+    observación no la trae (las guardadas antes de F64 se ven como siempre).
+    F65: la nota y la sugerencia también por separado, para la fila de la lista."""
     detalle = fila.get("detalle") or ""
     sugiere = _RE_SUGIERE.search(detalle)
     dice = {m["quien"]: m["texto"] for m in _RE_DICE.finditer(detalle)}
     sin_dato = "la minuta no trae el dato" in detalle
+    que = "Se sugiere"
     if campo == "COPROPIEDAD":
         suma = re.search(r"las cuotas suman ([^;]+)", detalle)
         if not suma or not (sugiere or sin_dato):
             return None
         rotulo = "Las cuotas no suman 100 %"
-        if sugiere:
-            verificar = (
-                f"Las cuotas suman {suma[1]}. La minuta dice {dice['la minuta']}. "
-                f"Se sugiere: {sugiere['texto']}."
-            )
-        else:
-            verificar = (
-                f"Las cuotas suman {suma[1]}. "
-                "La minuta no trae el reparto: revise cuál corresponde."
-            )
+        nota = f"Las cuotas suman {suma[1]}. " + (
+            f"La minuta dice {dice['la minuta']}."
+            if sugiere
+            else "La minuta no trae el reparto: revise cuál corresponde."
+        )
     elif "letras mal escritas" in detalle and sugiere:
         rotulo = "Letras mal escritas"
-        verificar = f"Las letras están mal escritas. Se sugiere: {sugiere['texto']}."
+        nota = "Las letras están mal escritas."
     elif sugiere and "la minuta" in dice:
         rotulo = "Cifra y letras no coinciden"
-        verificar = (
-            f"La minuta dice {dice['la minuta']}. "
-            f"Se sugiere corregir {sugiere['que']}: {sugiere['texto']}."
-        )
+        nota = f"La minuta dice {dice['la minuta']}."
+        que = f"Se sugiere corregir {sugiere['que']}"
     elif sin_dato and "las letras" in dice:
         rotulo = "Cifra y letras no coinciden"
-        verificar = (
+        nota = (
             f"La cifra dice {esperado} y las letras dicen {dice['las letras']}. "
             "La minuta no trae este dato: revise cuál corresponde."
         )
     else:
         return None
-    lista = f"{rotulo}: {hallado}" + (f" → {sugiere['texto']}" if sugiere else "")
-    return {"borrador": hallado, "verificar": verificar, "lista": lista}
+    aviso = {"borrador": hallado, "verificar": nota, "lista": f"{rotulo}: {hallado}"}
+    if sugiere:
+        aviso["verificar"] += f" {que}: {sugiere['texto']}."
+        aviso["lista"] += f" → {sugiere['texto']}"
+        aviso |= {
+            "nota": nota,
+            "rotulo_sugerencia": que,
+            "sugerencia": sugiere["texto"],
+        }
+    return aviso
+
+
+def partes_distintas(dice, debe):
+    """F65: los dos textos en tramos (texto, ¿distinto?): las palabras comunes
+    del principio y del final quedan igual; lo del medio es lo que cambia."""
+    a, b = dice.split(" "), debe.split(" ")
+    inicio = 0
+    while inicio < min(len(a), len(b)) and a[inicio] == b[inicio]:
+        inicio += 1
+    fin = 0
+    while fin < min(len(a), len(b)) - inicio and a[-1 - fin] == b[-1 - fin]:
+        fin += 1
+
+    def tramos(palabras):
+        medio = palabras[inicio : len(palabras) - fin]
+        partes = [
+            (" ".join(palabras[:inicio]) + " " * bool(inicio and medio), False),
+            (" ".join(medio), True),
+            (
+                " " * bool(fin and medio) + " ".join(palabras[len(palabras) - fin :]),
+                False,
+            ),
+        ]
+        if not medio and inicio and fin:  # solo se agregó o quitó: une los extremos
+            partes[2] = (" " + partes[2][0], False)
+        return [(texto, distinto) for texto, distinto in partes if texto]
+
+    return tramos(a), tramos(b)
+
+
+def _cambio(fila):
+    """F65: lo hallado y lo correcto con lo distinto resaltado; None si no hay
+    con qué comparar (un aviso sin sugerencia o las cuotas de F64)."""
+    aviso = fila.get("aviso") or {}
+    if aviso:
+        if not aviso.get("sugerencia") or fila.get("campo") == "COPROPIEDAD":
+            return None
+        dice, debe = aviso["borrador"], aviso["sugerencia"]
+    else:
+        dice, debe = fila.get("hallado") or "", fila.get("esperado") or ""
+    if not dice or not debe or dice == "No aparece en el borrador":
+        return None
+    tramos_dice, tramos_debe = partes_distintas(dice, debe)
+    return {"dice": tramos_dice, "debe": tramos_debe}
 
 
 def aviso_de(fila):
@@ -2070,20 +2117,36 @@ def registrar_corrida(
     return {**resultado, "corrida_id": corrida.pk}
 
 
+def _con_cambio(fila):
+    return {**fila, "cambio": _cambio(fila)}
+
+
 def resultado_de_corrida(corrida):
     """Resultado para la pantalla de confrontación, sin recalcular (F26)."""
     hallazgos = json.loads(corrida.hallazgos)
     # F42 y F60: la capa y el aviso son presentación; no entran en la huella.
     regla = [
-        {**fila, "capa": capa_de(fila.get("campo")), "aviso": aviso_de(fila)}
+        _con_cambio(
+            {**fila, "capa": capa_de(fila.get("campo")), "aviso": aviso_de(fila)}
+        )
         for fila in hallazgos.get("regla", [])
     ]
     return {
         **hallazgos,
         "personas": [
-            {**fila, "aviso": aviso_de(fila)} for fila in hallazgos.get("personas", [])
+            _con_cambio({**fila, "aviso": aviso_de(fila)})
+            for fila in hallazgos.get("personas", [])
         ],
         "regla": regla,
+        "ortografia": [
+            {
+                **fila,
+                "cambio": _cambio(
+                    {"hallado": fila.get("palabra"), "esperado": fila.get("sugerencia")}
+                ),
+            }
+            for fila in hallazgos.get("ortografia", [])
+        ],
         "hay_generales": bool(hallazgos.get("personas"))
         or any(fila["capa"] == "IDENTIDAD" for fila in regla),
         "hay_datos": any(fila["capa"] == "REGLA" for fila in regla),

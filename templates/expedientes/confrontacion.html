@@ -107,7 +107,7 @@
       <span class="atajos" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd>recorrer observaciones</span>
     </div>
 
-    {# ── Lista + detalle ── #}
+    {# ── F65: vista del documento + lista; sin panel de detalle ── #}
     <div class="revision revision-documento">
       {% include "expedientes/_vista_borrador.html" %}
       <div class="revision-lateral">
@@ -118,9 +118,11 @@
               <button type="button" class="obs-item" :aria-current="sel === 'p{{ forloop.counter }}'" @click="elegir('p{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Generales de ley</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.nombre }}</strong>
-                {% include "expedientes/_obs_cambio.html" %}
-                <span class="obs-marca" x-show="estaMarcadaObs('p{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
+                {% include "expedientes/_obs_cambio.html" with hallado=observacion.hallado esperado=observacion.esperado %}
+                {% if observacion.procedencias %}<span class="obs-l obs-fuente">{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}</span>{% endif %}
               </button>
+              {% include "expedientes/_obs_correccion.html" with prefijo="p" numero=forloop.counter %}
+              <div class="obs-fragmento" x-show="sel === 'p{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}</div>
             </li>
           {% endfor %}
           {% for observacion in resultado.regla %}
@@ -128,9 +130,11 @@
               <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %}</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
-                {% include "expedientes/_obs_cambio.html" %}
-                <span class="obs-marca" x-show="estaMarcadaObs('r{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
+                {% include "expedientes/_obs_cambio.html" with hallado=observacion.hallado esperado=observacion.esperado %}
+                {% if observacion.motivo %}<span class="obs-l obs-fuente">{{ observacion.motivo }}</span>{% endif %}
               </button>
+              {% include "expedientes/_obs_correccion.html" with prefijo="r" numero=forloop.counter %}
+              <div class="obs-fragmento" x-show="sel === 'r{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}</div>
             </li>
           {% endfor %}
           {% for observacion in resultado.ortografia %}
@@ -138,100 +142,13 @@
               <button type="button" class="obs-item" :aria-current="sel === 'o{{ forloop.counter }}'" @click="elegir('o{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<span class="obs-capa">Lingüístico</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.motivo|capfirst }}</strong>
-                <span class="cambio" title="Texto: {{ observacion.palabra }}{% if observacion.sugerencia %} · Sugerencia: {{ observacion.sugerencia }}{% endif %}"><span class="visually-hidden">Texto: </span><span class="tachado">{{ observacion.palabra }}</span>{% if observacion.sugerencia %}<span class="hacia"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="visually-hidden">, sugerencia: </span><span class="correcto">{{ observacion.sugerencia }}</span></span>{% endif %}</span>
+                {% include "expedientes/_obs_cambio.html" with hallado=observacion.palabra esperado=observacion.sugerencia dice="Texto" debe="Sugerencia" %}
               </button>
+              <div class="obs-fragmento" x-show="sel === 'o{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.palabra %}</div>
             </li>
           {% endfor %}
         </ul>
         <p class="obs-vacia" x-show="!visibles.length" x-cloak>No hay observaciones con este filtro.</p>
-      </section>
-
-      <section class="panel" aria-label="Detalle de la observación" x-show="sel" x-ref="detalle">
-        {% for observacion in resultado.personas %}
-          <article class="obs-detalle" x-show="sel === 'p{{ forloop.counter }}'" x-cloak>
-            <div class="obs-detalle-cab">
-              <div>
-                <span class="obs-etiquetas">{% include "core/_chip.html" with estado=observacion.severidad texto="Severidad "|add:observacion.severidad clase="sev" %}<span class="eyebrow">Generales de ley · Documento</span></span>
-                <h2>{{ observacion.nombre }}</h2>
-                <p>{{ observacion.motivo }}</p>
-              </div>
-              {% include "expedientes/_obs_nav.html" %}
-            </div>
-            <div class="documentos">
-              {% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}
-              <div class="doc doc-fuente">
-                <div class="doc-cab"><strong>Fuente</strong><span>Procedencia del documento esperado</span></div>
-                <div class="doc-cuerpo">
-                  <ul class="doc-lista">
-                    {% for procedencia in observacion.procedencias %}<li>{{ procedencia.archivo }}, página {{ procedencia.pagina }}</li>{% empty %}<li class="texto-suave">No ubicada</li>{% endfor %}
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <dl class="valores">
-              {% if observacion.aviso %}
-              <div><dt>En el borrador</dt><dd>{{ observacion.aviso.borrador }}</dd></div>
-              <div><dt>Qué verificar</dt><dd class="verificar">{{ observacion.aviso.verificar }}</dd></div>
-              {% else %}
-              <div><dt>Dice</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
-              <div><dt>Debe decir</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
-              {% endif %}
-              <div><dt>Persona</dt><dd>{{ observacion.nombre }}</dd></div>
-            </dl>
-            {% include "expedientes/_obs_correccion.html" with prefijo="p" numero=forloop.counter %}
-          </article>
-        {% endfor %}
-        {% for observacion in resultado.regla %}
-          <article class="obs-detalle" x-show="sel === 'r{{ forloop.counter }}'" x-cloak>
-            <div class="obs-detalle-cab">
-              <div>
-                <span class="obs-etiquetas">{% include "core/_chip.html" with estado=observacion.severidad texto="Severidad "|add:observacion.severidad clase="sev" %}<span class="eyebrow">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %} · {% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</span></span>
-                <h2>{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</h2>
-                {% if observacion.motivo %}<p>{{ observacion.motivo }}</p>{% endif %}
-              </div>
-              {% include "expedientes/_obs_nav.html" %}
-            </div>
-            <div class="documentos">
-              {% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}
-            </div>
-            <dl class="valores">
-              {% if observacion.aviso %}
-              <div><dt>En el borrador</dt><dd>{{ observacion.aviso.borrador }}</dd></div>
-              <div><dt>Qué verificar</dt><dd class="verificar">{{ observacion.aviso.verificar }}</dd></div>
-              {% else %}
-              <div><dt>Dice</dt><dd class="hallado">{{ observacion.hallado }}</dd></div>
-              <div><dt>Debe decir</dt><dd class="esperado">{{ observacion.esperado }}</dd></div>
-              {% endif %}
-            </dl>
-            {% include "expedientes/_obs_correccion.html" with prefijo="r" numero=forloop.counter %}
-          </article>
-        {% endfor %}
-        {% for observacion in resultado.ortografia %}
-          <article class="obs-detalle" x-show="sel === 'o{{ forloop.counter }}'" x-cloak>
-            <div class="obs-detalle-cab">
-              <div>
-                <span class="obs-etiquetas">{% include "core/_chip.html" with estado="BAJA" texto="Severidad baja" clase="sev" %}<span class="eyebrow">Lingüístico</span></span>
-                <h2>«{{ observacion.palabra }}»</h2>
-                <p>{{ observacion.motivo }}</p>
-              </div>
-              {% include "expedientes/_obs_nav.html" %}
-            </div>
-            <div class="documentos">
-              {% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.palabra %}
-              <div class="doc doc-sugerencia">
-                <div class="doc-cab"><strong>Sugerencia</strong></div>
-                <div class="doc-cuerpo">
-                  <span class="sugerencia-grande">{{ observacion.sugerencia|default:"Sin sugerencia" }}</span>
-                  <p class="nota-info"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>Solo informa: no corrige el documento ni decide sobre nombres, documentos, montos ni domicilios.</p>
-                </div>
-              </div>
-            </div>
-            <dl class="valores">
-              <div><dt>Texto</dt><dd class="hallado">{{ observacion.palabra }}</dd></div>
-              <div><dt>Sugerencia</dt><dd class="esperado">{{ observacion.sugerencia|default:"—" }}</dd></div>
-            </dl>
-          </article>
-        {% endfor %}
       </section>
       </div>
     </div>
@@ -762,13 +679,8 @@
       contarCapa(capa) { return this.obs.filter((o) => o.capa === capa).length; },
       elegir(id) {
         this.sel = id;
-        if (window.innerWidth < 960) this.$nextTick(() => this.$refs.detalle?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       },
       ajustarSeleccion() { if (!this.visibles.some((o) => o.id === this.sel)) this.sel = this.visibles[0]?.id || null; },
-      posicion() {
-        const i = this.visibles.findIndex((o) => o.id === this.sel);
-        return i < 0 ? '' : (i + 1) + ' de ' + this.visibles.length;
-      },
       paso(d) {
         const l = this.visibles;
         if (!l.length) return;
