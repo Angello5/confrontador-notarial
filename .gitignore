@@ -45,6 +45,7 @@ htmlcov/
 dist/
 *.egg-info/
 capturas*/
+staticfiles/
 
 # ---- Sistema ----
 .DS_Store

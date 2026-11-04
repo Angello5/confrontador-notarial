@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from django import forms
+from django.utils import timezone
 
 from adaptadores import extraccion
 
@@ -21,11 +22,31 @@ class MultipleFileField(forms.FileField):
         return data if isinstance(data, list) else [data]
 
 
-def codigo_ocupado(tipo):
-    """F55: el número es único entre tipos; el mensaje nombra el que ya lo usa."""
-    if tipo == Expediente.VEHICULAR:
-        return "Ya existe una TV activa con ese número. Ingrese otro número."
-    return "Ya existe un kardex activo con ese número. Ingrese otro número."
+def codigo_ocupado(tipo, ocupado=None):
+    """F55: el número es único entre tipos; el mensaje nombra el que ya lo usa.
+
+    Con `ocupado` (el expediente activo que tiene el número) dice además quién lo
+    creó y cuándo, para que la usuaria sepa a quién consultar.
+    """
+    vehicular = tipo == Expediente.VEHICULAR
+    que = "una TV activa" if vehicular else "un kardex activo"
+    autor = ""
+    if ocupado is not None:
+        usuario = ocupado.creado_por
+        nombre = usuario.get_full_name().strip() or usuario.get_username()
+        fecha = timezone.localtime(ocupado.creado_el).strftime("%d/%m/%Y")
+        autor = f", {'creada' if vehicular else 'creado'} por {nombre} el {fecha}"
+    return f"Ya existe {que} con ese número{autor}. Ingrese otro número."
+
+
+def expediente_con_codigo(codigo, excluir=None):
+    """Expediente activo que ya usa `codigo`, con su autor, o None."""
+    return (
+        Expediente.objects.filter(codigo=codigo.strip(), archivado_el__isnull=True)
+        .exclude(pk=excluir)
+        .select_related("creado_por")
+        .first()
+    )
 
 
 class ExpedienteForm(forms.ModelForm):
@@ -53,13 +74,9 @@ class ExpedienteForm(forms.ModelForm):
             raise forms.ValidationError(
                 self.fields["codigo"].error_messages["required"]
             )
-        ocupado = (
-            Expediente.objects.filter(codigo=codigo, archivado_el__isnull=True)
-            .exclude(pk=self.instance.pk)
-            .first()
-        )
+        ocupado = expediente_con_codigo(codigo, excluir=self.instance.pk)
         if ocupado:
-            raise forms.ValidationError(codigo_ocupado(ocupado.tipo))
+            raise forms.ValidationError(codigo_ocupado(ocupado.tipo, ocupado))
         return codigo
 
 

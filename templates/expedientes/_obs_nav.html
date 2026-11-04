@@ -1,6 +1,0 @@
-{% comment %}Posición y flechas para recorrer las observaciones visibles (también con ↑ y ↓).{% endcomment %}
-<div class="obs-nav">
-  <span x-text="posicion()"></span>
-  <button type="button" class="btn" aria-label="Observación anterior" @click="paso(-1)"><svg class="ico" aria-hidden="true"><use href="#i-chevron-up"/></svg></button>
-  <button type="button" class="btn" aria-label="Observación siguiente" @click="paso(1)"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
-</div>

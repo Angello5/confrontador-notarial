@@ -457,7 +457,9 @@ def test_pantallas_notariales_siguen_diciendo_kardex(client, usuario_ficticio):
         html = client.get(url).content.decode()
         resto = _sin_menu(html)
         assert not re.search(r"\bTV\b|Transferencia vehicular", resto), url
-        assert "Expedientes" not in _migas(html), url
+        # Las migas siguen al menú lateral: Expedientes › Kardex, como en la TV.
+        assert _migas(html).count("Expedientes") == 1, url
+        assert "Kardex" in _migas(html), url
         for texto in textos:
             assert texto in html, (url, texto)
 

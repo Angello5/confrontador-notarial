@@ -4,18 +4,47 @@
 F46 · Django admin con la marca de la notaría. Reutiliza `core/_marca.html`
 (nombre y logo configurables, F28) y `css/admin.css`, que se carga al final
 para redefinir las variables de color del admin.
+Una sola página (la lista de usuarios), solo en claro y con vuelta al ERP visible.
 {% endcomment %}
 
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title }} · {{ erp_nombre }}{% endblock %}
 
-{% block extrahead %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin.css' %}?v={{ static_v }}">{% endblock %}
+{# Sin modo oscuro: ni su hoja de estilos ni el script del selector de tema. #}
+{% block dark-mode-vars %}{% endblock %}
+
+{% block extrahead %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin.css' %}?v={{ static_v }}">{% include "core/_icono.html" %}<script defer src="{% static 'js/clave-visible.js' %}?v={{ static_v }}"></script>{% endblock %}
 
 {% block branding %}
-<div id="site-name"><a href="{% url 'admin:index' %}">{% include "core/_marca.html" %}</a></div>
+{% url 'admin:accounts_user_changelist' as lista_usuarios %}
+<div id="site-name"><a href="{{ lista_usuarios }}">{% include "core/_marca.html" %}</a></div>
 <span class="admin-seccion">{{ site_header }}</span>
-{% if user.is_anonymous %}
-  {% include "admin/color_theme_toggle.html" %}
-{% endif %}
+{% endblock %}
+
+{% block welcome-msg %}<span class="admin-usuario">{% firstof user.get_short_name user.get_username %}</span>{% endblock %}
+
+{% block userlinks %}
+  {% if site_url %}<a class="admin-volver" href="{{ site_url }}"><span aria-hidden="true">←</span> Volver al ERP</a>{% endif %}
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+    {% csrf_token %}
+    <button type="submit">Cerrar sesión</button>
+  </form>
 {% endblock %}
 
 {% block nav-global %}{% endblock %}
+
+{# Un solo nivel: en la lista, «Usuarios»; dentro de una cuenta, un botón para volver a ella. #}
+{% block nav-breadcrumbs %}
+  {% if has_permission %}
+    {% url 'admin:accounts_user_changelist' as lista_usuarios %}
+    <nav aria-label="Migas de pan">
+      <div class="breadcrumbs">
+        {% if request.path == lista_usuarios %}
+          <span aria-current="page">Usuarios</span>
+        {% else %}
+          <a class="admin-volver-lista" href="{{ lista_usuarios }}"><span aria-hidden="true">←</span> Volver a usuarios</a>
+          <span class="admin-migas-actual" aria-current="page">{% if add %}Nuevo usuario{% elif original %}{{ original }}{% else %}{{ title }}{% endif %}</span>
+        {% endif %}
+      </div>
+    </nav>
+  {% endif %}
+{% endblock %}

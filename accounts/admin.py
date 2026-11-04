@@ -3,10 +3,13 @@ from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import router, transaction
+from django.db.models.deletion import Collector, ProtectedError, RestrictedError
 from django.template.response import TemplateResponse
 from django.contrib.admin import helpers
+from django.urls import reverse
 
+from .admin_site import resumen_cuentas
 from .forms import AccountChangeForm, AccountCreationForm, ROLES
 from .models import User
 
@@ -39,21 +42,28 @@ class UserAdmin(DjangoUserAdmin):
             },
         ),
     )
-    list_display = ("username", "role_name", "is_active", "intentos_fallidos")
+    list_display = ("username", "role_name", "is_active")
     list_filter = ("is_active",)
     search_fields = ("username",)
     ordering = ("username",)
-    actions = ("deactivate_accounts", "activate_accounts", "unlock_accounts")
+    actions = ("deactivate_accounts", "activate_accounts")
 
     def role_name(self, obj):
         return obj.groups.filter(name__in=ROLES).first()
 
     role_name.short_description = "Rol"
 
-    # F49: cabecera en español sin migración (el verbose_name sigue en inglés).
-    @admin.display(description="Intentos fallidos", ordering="failed_login_attempts")
-    def intentos_fallidos(self, obj):
-        return obj.failed_login_attempts
+    def changelist_view(self, request, extra_context=None):
+        # Única página del admin: el resumen de cuentas va sobre la lista.
+        lista = reverse("admin:accounts_user_changelist")
+        return super().changelist_view(
+            request,
+            {
+                "title": "Usuarios",
+                "resumen_cuentas": resumen_cuentas(lista),
+                **(extra_context or {}),
+            },
+        )
 
     def get_fieldsets(self, request, obj=None):
         return self.add_fieldsets if obj is None else self.fieldsets
@@ -64,8 +74,60 @@ class UserAdmin(DjangoUserAdmin):
             form.operator = request.user
         return form
 
+    def motivo_para_no_eliminar(self, request, obj):
+        """Por qué no se puede eliminar `obj`, o None si se puede.
+
+        Kardex, documentos, confrontaciones y correcciones guardan quién los hizo
+        (PROTECT, auditoría inmutable): una cuenta con historial se desactiva.
+        """
+        if obj.pk == request.user.pk:
+            return "No puede eliminar su propia cuenta."
+        if (
+            obj.is_active
+            and obj.groups.filter(name=ADMIN_ROLE).exists()
+            and not User.objects.filter(is_active=True, groups__name=ADMIN_ROLE)
+            .exclude(pk=obj.pk)
+            .exists()
+        ):
+            return "No se puede eliminar el último Administrador activo."
+        try:
+            Collector(using=router.db_for_write(User)).collect([obj])
+        except (ProtectedError, RestrictedError):
+            return (
+                "Esta cuenta tiene historial (kardex, documentos o confrontaciones) "
+                "que debe conservarse. Desactívela para que ya no pueda ingresar."
+            )
+        return None
+
     def has_delete_permission(self, request, obj=None):
-        return False
+        # Solo cuenta por cuenta (sin acción masiva) y solo si no tiene historial.
+        if obj is None or not self.has_change_permission(request, obj):
+            return False
+        return self.motivo_para_no_eliminar(request, obj) is None
+
+    def get_actions(self, request):
+        acciones = super().get_actions(request)
+        acciones.pop("delete_selected", None)
+        return acciones
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        obj = self.get_object(request, object_id)
+        motivo = obj and self.motivo_para_no_eliminar(request, obj)
+        return super().change_view(
+            request,
+            object_id,
+            form_url,
+            {"motivo_no_eliminar": motivo, **(extra_context or {})},
+        )
+
+    def delete_model(self, request, obj):
+        # Revalida dentro de la transacción: otra sesión pudo cambiarla.
+        with transaction.atomic():
+            Group.objects.select_for_update().get(name=ADMIN_ROLE)
+            motivo = self.motivo_para_no_eliminar(request, obj)
+            if motivo:
+                raise PermissionDenied(motivo)
+            super().delete_model(request, obj)
 
     def save_model(self, request, obj, form, change):
         with transaction.atomic():
@@ -167,19 +229,3 @@ class UserAdmin(DjangoUserAdmin):
         action = "reactivó" if is_active else "desactivó"
         noun = "cuenta" if len(changed) == 1 else "cuentas"
         self.message_user(request, f"Se {action} {len(changed)} {noun}.")
-
-    @admin.action(description="Desbloquear intentos de ingreso")
-    def unlock_accounts(self, request, queryset):
-        with transaction.atomic():
-            accounts = User.objects.select_for_update().filter(
-                pk__in=queryset.values("pk")
-            )
-            changed = []
-            for user in accounts:
-                if user.failed_login_attempts or user.login_locked_until:
-                    changed.append(user)
-                user.failed_login_attempts = 0
-                user.login_locked_until = None
-                user.save(update_fields=["failed_login_attempts", "login_locked_until"])
-        noun = "cuenta" if len(changed) == 1 else "cuentas"
-        self.message_user(request, f"Se desbloquearon {len(changed)} {noun}.")

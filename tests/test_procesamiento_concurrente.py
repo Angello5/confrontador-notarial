@@ -1,4 +1,4 @@
-"""Locks reales entre conexiones SQL Server, sin documentos privados."""
+"""Locks reales entre conexiones PostgreSQL, sin documentos privados."""
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
@@ -38,7 +38,7 @@ def test_lock_excluye_otro_proceso_y_se_libera():
         with exclusivo("test", "ficticio") as adquirido:
             return adquirido
 
-    assert connection.vendor == "microsoft"
+    assert connection.vendor == "postgresql"
     with exclusivo("test", "ficticio") as adquirido:
         assert adquirido
         assert otra_conexion(intentar) is False

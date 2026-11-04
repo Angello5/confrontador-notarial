@@ -15,6 +15,7 @@ from .forms import (
     DocumentoUploadForm,
     ExpedienteForm,
     codigo_ocupado,
+    expediente_con_codigo,
     formatos_admitidos,
 )
 from .models import DecisionCorreccion, Documento, Expediente
@@ -184,8 +185,12 @@ def expediente_lista(request, tipo=Expediente.NOTARIAL):
                     expediente.creado_por = request.user
                     expediente.save()
             except IntegrityError:
-                # Carrera con otra alta simultánea: se asume que es del mismo tipo.
-                form.add_error("codigo", codigo_ocupado(tipo))
+                # Carrera con otra alta simultánea: se nombra al que ganó.
+                ocupado = expediente_con_codigo(form.cleaned_data["codigo"])
+                form.add_error(
+                    "codigo",
+                    codigo_ocupado(ocupado.tipo if ocupado else tipo, ocupado),
+                )
             else:
                 messages.success(
                     request,
@@ -230,7 +235,15 @@ def expediente_editar(request, pk):
                 with transaction.atomic():
                     form.save()
             except IntegrityError:
-                form.add_error("codigo", codigo_ocupado(expediente.tipo))
+                ocupado = expediente_con_codigo(
+                    form.cleaned_data["codigo"], excluir=expediente.pk
+                )
+                form.add_error(
+                    "codigo",
+                    codigo_ocupado(
+                        ocupado.tipo if ocupado else expediente.tipo, ocupado
+                    ),
+                )
             else:
                 messages.success(
                     request,

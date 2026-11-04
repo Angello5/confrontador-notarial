@@ -1123,17 +1123,13 @@ def test_f60_la_pantalla_dice_que_verificar_sin_debe_decir(
     assert 'class="tachado">80000002' in corregible
     assert 'class="correcto">80000001' in corregible
 
-    # Detalle: «En el borrador» y «Qué verificar» en lugar de «Dice» / «Debe decir».
-    assert contenido.count("<dt>En el borrador</dt>") == 3
-    assert contenido.count("<dt>Qué verificar</dt>") == 3
-    assert contenido.count("<dt>Debe decir</dt>") == 1
+    # Sin panel de detalle: el «Qué verificar» completo va bajo la observación
+    # elegida de la lista, solo en los avisos (la corrección real no lo lleva).
+    assert "obs-detalle" not in contenido
+    assert contenido.count('<p class="obs-verificar">') == 3
     assert (
-        '<dd class="verificar">La cifra y las letras no valen lo mismo. '
-        "Corrija la que no corresponda.</dd>"
-    ) in contenido
-    assert (
-        "<dd>ALBA ZURBELIA LUMARIA: su domicilio de RENIEC no aparece en el "
-        "borrador</dd>"
+        '<p class="obs-verificar"><strong>Qué verificar:</strong> La cifra y las '
+        "letras no valen lo mismo. Corrija la que no corresponda.</p>"
     ) in contenido
 
     # Datos del informe Word y de la tabla exportada: el aviso no trae «debe decir».

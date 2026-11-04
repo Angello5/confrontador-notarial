@@ -1,4 +1,4 @@
-"""Exclusión entre workers; SQL Server libera el lock si muere la conexión."""
+"""Exclusión entre workers; PostgreSQL libera el lock si muere la conexión."""
 
 import hashlib
 from contextlib import contextmanager
@@ -8,24 +8,17 @@ from django.db import connection
 
 @contextmanager
 def exclusivo(tipo, identidad):
-    recurso = (
-        "notaria:"
-        + hashlib.sha256(f"notaria:{tipo}:{identidad}".encode()).hexdigest()[:16]
+    clave = int.from_bytes(
+        hashlib.sha256(f"notaria:{tipo}:{identidad}".encode()).digest()[:8],
+        "big",
+        signed=True,
     )
     with connection.cursor() as cursor:
-        cursor.execute(
-            "SET NOCOUNT ON; DECLARE @r int; EXEC @r = sp_getapplock "
-            "@Resource = %s, @LockMode = 'Exclusive', @LockOwner = 'Session', "
-            "@LockTimeout = 0; SELECT @r",
-            [recurso],
-        )
-        adquirido = cursor.fetchone()[0] >= 0
+        cursor.execute("SELECT pg_try_advisory_lock(%s)", [clave])
+        adquirido = cursor.fetchone()[0]
     try:
         yield adquirido
     finally:
         if adquirido:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "EXEC sp_releaseapplock @Resource = %s, @LockOwner = 'Session'",
-                    [recurso],
-                )
+                cursor.execute("SELECT pg_advisory_unlock(%s)", [clave])

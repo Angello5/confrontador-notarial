@@ -21,6 +21,7 @@ def marca(request):
     return {
         "erp_nombre": nombre,
         "erp_logo": settings.ERP_LOGO,
+        "erp_icono": settings.ERP_ICONO,
         "erp_direccion": settings.ERP_DIRECCION,
         "erp_iniciales": "".join(p[0] for p in nombre.split()[:2]).upper(),
         "static_v": version_estaticos(settings.STATICFILES_DIRS[0]),

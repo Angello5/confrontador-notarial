@@ -823,16 +823,23 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 @media (max-width: 599.98px) { .toasts { right: 16px; left: 16px; bottom: 16px; } }
 
 /* ── Ingreso ───────────────────────────────────────────────────────── */
-.ingreso { min-height: 100vh; display: grid; grid-template-columns: minmax(420px, 1fr) minmax(0, 1.1fr); background: var(--ne-white); }
-.ingreso-main { display: flex; flex-direction: column; gap: 40px; padding: 48px clamp(24px, 6vw, 72px); min-height: 100vh; }
+/* Tarjeta centrada sobre el degradado de marca (verde en la esquina, lejos del texto). */
+.ingreso {
+  min-height: 100vh; display: grid; place-items: center; padding: 32px 16px;
+  background: radial-gradient(circle at 100% 0, rgba(68, 216, 128, 0.45), transparent 32%), linear-gradient(160deg, var(--ne-ink) 15%, var(--ne-navy) 70%);
+}
+.ingreso-main {
+  width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 32px;
+  padding: 48px clamp(24px, 6vw, 56px); background: var(--ne-white); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+}
 /* F54: marca, título y campos más grandes, legibles a distancia de escritorio */
-.ingreso .marca { padding: 0; border: 0; gap: 12px; }
-.ingreso .marca-logo { width: 300px; }
+.ingreso .marca { padding: 0; border: 0; gap: 12px; align-items: center; text-align: center; }
+.ingreso .marca-logo { width: 300px; margin-inline: auto; }
 .ingreso .marca-fila { gap: 16px; }
 .ingreso .marca-sello { width: 60px; height: 60px; font-size: 22px; }
 .ingreso .marca-nombre { font-size: 30px; }
 .ingreso .marca-sub { font-size: 13px; }
-.ingreso-caja { width: 100%; max-width: 440px; margin-block: auto; display: flex; flex-direction: column; gap: 28px; }
+.ingreso-caja { width: 100%; display: flex; flex-direction: column; gap: 28px; }
 .ingreso-caja h1 { font: 700 40px/48px var(--ne-display); }
 .ingreso-caja > div > p { font-size: 18px; line-height: 28px; color: var(--ne-slate); margin-top: 8px; }
 .ingreso .formulario { gap: 20px; }
@@ -843,27 +850,11 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .ingreso .btn-verde { height: 56px; font-size: 15px; }
 /* Foco con el verde AA sobre blanco (4,8:1); el verde de marca da 1,85:1 */
 .ingreso :focus-visible, .ingreso .campo input:focus { box-shadow: 0 0 0 2px #fff, 0 0 0 5px var(--ne-green-text); }
-/* La banda lleva el nombre y la dirección: el pie solo aparece cuando ella se oculta. */
-.ingreso-pie { display: none; font-size: 15px; color: var(--ne-slate); }
-.ingreso-banda {
-  display: flex; flex-direction: column; justify-content: space-between; gap: 48px;
-  padding: 64px clamp(40px, 5vw, 80px); color: #fff;
-  /* Degradado de marca con el verde en la esquina, lejos del texto (contraste AA) */
-  background: radial-gradient(circle at 100% 0, rgba(68, 216, 128, 0.45), transparent 32%), linear-gradient(160deg, var(--ne-ink) 15%, var(--ne-navy) 70%);
-}
-.ingreso-banda h2 { max-width: 520px; font: 400 36px/46px var(--ne-display); text-wrap: balance; }
-.ingreso-puntos { max-width: 540px; list-style: none; padding: 0; display: flex; flex-direction: column; gap: 28px; }
-.ingreso-puntos li { display: flex; align-items: flex-start; gap: 18px; font-size: 20px; line-height: 30px; }
-.ingreso-puntos .ico { width: 48px; height: 48px; padding: 12px; margin-top: -9px; background: rgba(68, 216, 128, 0.16); color: var(--ne-green); }
-.ingreso-notaria { display: flex; flex-direction: column; gap: 4px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.24); font-size: 17px; color: #dfe4f2; }
-.ingreso-notaria strong { font: 700 22px/30px var(--ne-display); color: #fff; }
-@media (max-width: 959.98px) {
-  .ingreso { grid-template-columns: minmax(0, 1fr); }
-  .ingreso-banda { display: none; }
-  .ingreso-pie { display: block; }
-}
+.ingreso-pie { display: flex; flex-direction: column; gap: 2px; padding-top: 20px; border-top: 1px solid var(--ne-line); text-align: center; font-size: 14px; color: var(--ne-slate); }
+.ingreso-pie strong { font-size: 15px; color: var(--ne-ink); }
 @media (max-width: 599.98px) {
-  .ingreso-main { gap: 32px; padding-block: 32px; }
+  .ingreso { padding: 0; }
+  .ingreso-main { gap: 32px; padding-block: 32px; min-height: 100vh; box-shadow: none; }
   .ingreso .marca-logo { width: 260px; }
   .ingreso .marca-sello { width: 52px; height: 52px; font-size: 19px; }
   .ingreso .marca-nombre { font-size: 24px; }
@@ -944,20 +935,22 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .ayuda-lectura { color: var(--ne-slate); font-size: 13px; }
 .revision-documento { grid-template-columns: minmax(0, 1fr) minmax(300px, 350px); gap: 20px; }
 .revision-lateral { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.revision-documento .obs-panel { position: static; max-height: 32vh; overflow-y: auto; }
-.revision-documento .visor-borrador { position: sticky; top: 20px; }
+/* La lista llega hasta el final del documento: la columna se estira a la altura del
+   visor y `contain: size` evita que la lista larga agrande la fila. */
+.revision-documento .revision-lateral { align-self: stretch; contain: size; }
+.revision-documento .obs-panel { position: static; flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; }
 .revision-documento .visor-borrador .panel-cab { flex-wrap: wrap; gap: 12px; }
 .revision-documento .visor-paginas { max-height: 75vh; }
-.revision-documento .obs-detalle { padding: 18px; }
-.revision-documento .obs-detalle-cab { flex-wrap: wrap; gap: 10px; }
-.revision-documento .documentos, .revision-documento .valores { grid-template-columns: minmax(0, 1fr); }
-.revision-documento .obs-correccion { margin-top: 16px; }
-.revision-documento .obs-correccion p { margin-bottom: 12px; }
+/* Casilla de corrección bajo la observación elegida, dentro de la lista. */
+.obs-lista .obs-correccion { padding: 12px 18px 14px; gap: 10px; border-top: 0; }
+.obs-lista .obs-correccion p { margin: 0; }
+.obs-seleccion { background: var(--ne-soft); border-bottom: 1px solid var(--ne-line); }
+.obs-verificar { margin: 0; padding: 12px 18px; font-size: 14px; line-height: 21px; color: var(--ne-navy); }
 @media (max-width: 1100px) {
   .revision-documento { grid-template-columns: minmax(0, 1fr); }
-  .revision-documento .visor-borrador { position: static; }
   .revision-documento .visor-paginas { max-height: 65vh; }
-  .revision-lateral { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .revision-documento .revision-lateral { contain: none; }
+  .revision-documento .obs-panel { max-height: 60vh; }
 }
 @media (max-width: 640px) {
   .carga-accion { flex-direction: column; }
@@ -977,3 +970,15 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .sentido-detalle { font-size: 14px; color: var(--ne-slate); }
 .sentido-dice { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .sentido-dice p { margin-top: 4px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+
+/* Botón «Mostrar clave» de static/js/clave-visible.js (también en el admin). */
+.clave-campo { position: relative; display: block; width: 100%; }
+.clave-campo > input { width: 100%; }
+.clave-ver {
+  position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  padding: 0; border: 0; background: transparent; color: var(--ne-slate, #4b5d8c); cursor: pointer;
+}
+.clave-ver:hover { color: var(--ne-navy, #0f2765); }
+.clave-ver:focus-visible { outline: 3px solid #0b7a45; outline-offset: -3px; }
+.clave-ver svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
