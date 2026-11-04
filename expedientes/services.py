@@ -690,8 +690,10 @@ def recuperar_documentos_vencidos():
 
 def tomar_pendiente(excluir=()):
     with transaction.atomic():
+        # Solo el documento: sin `of`, PostgreSQL también bloquea el expediente
+        # del JOIN y el otro worker salta todos sus documentos.
         documento = (
-            Documento.objects.select_for_update(skip_locked=True)
+            Documento.objects.select_for_update(skip_locked=True, of=("self",))
             .filter(estado=Documento.PENDIENTE, expediente__archivado_el__isnull=True)
             .exclude(pk__in=excluir)
             .order_by("id")

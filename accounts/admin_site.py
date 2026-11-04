@@ -1,6 +1,39 @@
 from django.contrib.admin import AdminSite
 from django.db.models import Count, Q
+from django.shortcuts import redirect
 from django.urls import reverse
+
+
+def resumen_cuentas(lista):
+    """F49: recuadros Todas/Activas/Inactivas que abren la lista ya filtrada."""
+    from .models import User
+
+    cuentas = User.objects.aggregate(
+        activas=Count("pk", filter=Q(is_active=True)),
+        inactivas=Count("pk", filter=Q(is_active=False)),
+    )
+    return [
+        {
+            "etiqueta": "Todas",
+            "valor": cuentas["activas"] + cuentas["inactivas"],
+            "enlace": lista,
+            "apoyo": "Registradas en el sistema",
+        },
+        {
+            "etiqueta": "Activas",
+            "valor": cuentas["activas"],
+            "enlace": f"{lista}?is_active__exact=1",
+            "tono": "verde",
+            "apoyo": "Con acceso al ERP",
+        },
+        {
+            "etiqueta": "Inactivas",
+            "valor": cuentas["inactivas"],
+            "enlace": f"{lista}?is_active__exact=0",
+            "tono": "gris",
+            "apoyo": "Sin acceso al ERP",
+        },
+    ]
 
 
 class ERPAdminSite(AdminSite):
@@ -17,36 +50,15 @@ class ERPAdminSite(AdminSite):
             and user.groups.filter(name="Administrador").exists()
         )
 
-    def index(self, request, extra_context=None):
-        from .models import User
+    def _lista_usuarios(self):
+        return redirect(
+            reverse("admin:accounts_user_changelist", current_app=self.name)
+        )
 
-        cuentas = User.objects.aggregate(
-            activas=Count("pk", filter=Q(is_active=True)),
-            inactivas=Count("pk", filter=Q(is_active=False)),
-        )
-        lista = reverse("admin:accounts_user_changelist", current_app=self.name)
-        resumen = [
-            {
-                "etiqueta": "Todas",
-                "valor": cuentas["activas"] + cuentas["inactivas"],
-                "enlace": lista,
-                "apoyo": "Registradas en el sistema",
-            },
-            {
-                "etiqueta": "Activas",
-                "valor": cuentas["activas"],
-                "enlace": f"{lista}?is_active__exact=1",
-                "tono": "verde",
-                "apoyo": "Con acceso al ERP",
-            },
-            {
-                "etiqueta": "Inactivas",
-                "valor": cuentas["inactivas"],
-                "enlace": f"{lista}?is_active__exact=0",
-                "tono": "gris",
-                "apoyo": "Sin acceso al ERP",
-            },
-        ]
-        return super().index(
-            request, {"resumen_cuentas": resumen, **(extra_context or {})}
-        )
+    # El admin tiene un solo modelo: el inicio y la página de la aplicación
+    # llevan directo a la lista de usuarios, que reúne el resumen y la gestión.
+    def index(self, request, extra_context=None):
+        return self._lista_usuarios()
+
+    def app_index(self, request, app_label, extra_context=None):
+        return self._lista_usuarios()

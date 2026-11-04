@@ -1,0 +1,17 @@
+{% extends "admin/change_list.html" %}
+{% comment %}
+Única página del admin (el inicio redirige aquí). Bajo el botón «Añadir
+usuario», el resumen de cuentas de F49 con `core/_metrica.html`; cada recuadro
+filtra la lista.
+{% endcomment %}
+
+{% block object-tools %}
+  {{ block.super }}
+  {% if resumen_cuentas %}
+  <section class="metricas" aria-label="Resumen de cuentas">
+    {% for m in resumen_cuentas %}
+      {% include "core/_metrica.html" with etiqueta=m.etiqueta valor=m.valor enlace=m.enlace tono=m.tono apoyo=m.apoyo %}
+    {% endfor %}
+  </section>
+  {% endif %}
+{% endblock %}

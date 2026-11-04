@@ -133,15 +133,6 @@ def pytest_sessionfinish(session, exitstatus):
             )
 
 
-@pytest.fixture(scope="session")
-def django_db_setup(django_db_setup, django_db_blocker):
-    """F63: la base de pruebas se comporta como SQL Server 2016, el de producción."""
-    from django.db import connection
-
-    with django_db_blocker.unblock(), connection.cursor() as cursor:
-        cursor.execute("ALTER DATABASE CURRENT SET COMPATIBILITY_LEVEL = 130")
-
-
 @pytest.fixture
 def usuario_ficticio(db):
     from django.contrib.auth import get_user_model

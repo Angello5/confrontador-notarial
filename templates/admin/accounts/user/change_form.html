@@ -1,0 +1,12 @@
+{% extends "admin/change_form.html" %}
+{% comment %}
+Si la cuenta no se puede eliminar (historial de auditoría, propia cuenta o
+último Administrador), el botón «Eliminar» no aparece y se explica por qué.
+{% endcomment %}
+
+{% block submit_buttons_bottom %}
+  {{ block.super }}
+  {% if motivo_no_eliminar %}
+    <p class="admin-nota-eliminar">{{ motivo_no_eliminar }}</p>
+  {% endif %}
+{% endblock %}
