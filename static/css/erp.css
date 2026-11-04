@@ -121,6 +121,7 @@ table { border-collapse: collapse; }
 .marca:hover { color: var(--ne-navy); }
 .marca-logo { display: block; width: 212px; max-width: 100%; height: auto; }
 .marca-fila { display: flex; align-items: center; gap: 10px; }
+.marca-logo[hidden], .marca-fila[hidden], .marca-sub[hidden] { display: none; } /* F65: logo que no carga */
 .marca-sello {
   width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center;
   background: var(--ne-navy); color: var(--ne-green); font: 700 14px var(--ne-display);
@@ -933,7 +934,7 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .carga-borrador + .carga-borrador { border-top: 1px solid #e2e6ed; padding-top: 16px; }
 .carga-mensaje { margin: 0; }
 .ayuda-lectura { color: var(--ne-slate); font-size: 13px; }
-.revision-documento { grid-template-columns: minmax(0, 1fr) minmax(300px, 350px); gap: 20px; }
+.revision-documento { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 20px; }
 .revision-lateral { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* La lista llega hasta el final del documento: la columna se estira a la altura del
    visor y `contain: size` evita que la lista larga agrande la fila. */
@@ -941,11 +942,6 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .revision-documento .obs-panel { position: static; flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; }
 .revision-documento .visor-borrador .panel-cab { flex-wrap: wrap; gap: 12px; }
 .revision-documento .visor-paginas { max-height: 75vh; }
-/* Casilla de corrección bajo la observación elegida, dentro de la lista. */
-.obs-lista .obs-correccion { padding: 12px 18px 14px; gap: 10px; border-top: 0; }
-.obs-lista .obs-correccion p { margin: 0; }
-.obs-seleccion { background: var(--ne-soft); border-bottom: 1px solid var(--ne-line); }
-.obs-verificar { margin: 0; padding: 12px 18px; font-size: 14px; line-height: 21px; color: var(--ne-navy); }
 @media (max-width: 1100px) {
   .revision-documento { grid-template-columns: minmax(0, 1fr); }
   .revision-documento .visor-paginas { max-height: 65vh; }
@@ -982,3 +978,20 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .clave-ver:hover { color: var(--ne-navy, #0f2765); }
 .clave-ver:focus-visible { outline: 3px solid #0b7a45; outline-offset: -3px; }
 .clave-ver svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* F65: cada fila dice, en pequeño, lo hallado y lo correcto, con lo distinto resaltado. */
+.obs-lineas { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; font-size: 12px; line-height: 17px; color: var(--ne-slate); overflow-wrap: anywhere; }
+.obs-rot { margin-right: 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.obs-lineas .tachado { text-decoration: none; }
+.obs-lineas mark { padding: 0 2px; background: var(--ne-err-bg); color: var(--ne-err-fg); font-weight: 800; }
+.obs-lineas .correcto mark { background: var(--ne-ok-bg); color: var(--ne-ok-fg); }
+.obs-sugerencia .obs-rot { color: var(--ne-ok-fg); }
+.obs-fuente { font-size: 12px; color: var(--ne-slate); overflow-wrap: anywhere; }
+.obs-lista > li > .obs-correccion { padding: 0 14px 10px 16px; border-bottom: 1px solid var(--ne-line); margin-top: -1px; }
+.obs-lista > li > .obs-correccion .casilla { gap: 8px; font-size: 12px; font-weight: 700; }
+.obs-lista > li > .obs-correccion .casilla span span { display: inline; font-size: 12px; font-weight: 400; }
+.obs-fragmento { padding: 0 14px 10px 16px; }
+.obs-fragmento .doc { font-size: 12px; }
+@media (max-width: 1279.98px) { .sev-pref { display: none; } } /* F65: «Alta», «Media», «Baja» sin cortarse */
+.obs-fragmento .doc-cab { display: none; }
+.obs-fragmento .doc-cuerpo { padding: 6px 10px; }
+.obs-fragmento .doc-linea { font-size: 12px; line-height: 18px; }

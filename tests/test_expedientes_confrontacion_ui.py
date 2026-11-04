@@ -743,6 +743,11 @@ def _items(contenido):
     )
 
 
+def _texto(html):
+    """El texto visible de un fragmento, con espacios simples."""
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", html)).strip()
+
+
 def test_f56_cada_item_muestra_lo_hallado_y_lo_correcto(
     client, usuario_ficticio, monkeypatch
 ):
@@ -799,24 +804,18 @@ def test_f56_cada_item_muestra_lo_hallado_y_lo_correcto(
 
     assert len(items) == 4
     pares = [
-        ("90000002", "90000001", "Dice", "debe decir"),
-        ("ALBA LUNARIA", "ALBA LUMARIA", "Dice", "debe decir"),
-        ("80000002", "80000001", "Dice", "debe decir"),
-        ("clausla", "cláusula", "Texto", "sugerencia"),
+        ("90000002", "90000001", "Dice", "Debe decir", "90000002", "90000001"),
+        ("ALBA LUNARIA", "ALBA LUMARIA", "Dice", "Debe decir", "LUNARIA", "LUMARIA"),
+        ("80000002", "80000001", "Dice", "Debe decir", "80000002", "80000001"),
+        ("clausla", "cláusula", "Texto", "Sugerencia", "clausla", "cláusula"),
     ]
-    for hallado, esperado, dice, debe in pares:
-        item = next(i for i in items if f">{hallado}</span>" in i)
-        # La flecha es decorativa: el lector de pantalla oye «Dice…, debe decir…».
-        assert re.search(
-            rf'<span class="visually-hidden">{dice}: </span><span class="tachado">'
-            rf'{hallado}</span><span class="hacia"><svg class="ico" aria-hidden="true">'
-            r".*?</svg>"
-            rf'<span class="visually-hidden">, {debe}: </span>'
-            rf'<span class="correcto">{esperado}</span>',
-            item,
-        )
-        # Si el valor no cabe y se recorta, se lee completo al pasar el ratón.
-        assert f'title="{dice}: {hallado} · {debe.capitalize()}: {esperado}"' in item
+    for hallado, esperado, dice, debe, distinto, correcto in pares:
+        item = next(i for i in items if f"{dice} {hallado} " in _texto(i))
+        # F65: dos líneas pequeñas con su rótulo, sin recortar el texto.
+        assert f"{dice} {hallado} {debe} {esperado}" in _texto(item)
+        # Solo lo que cambia va resaltado.
+        assert '<span class="tachado">' in item and f"<mark>{distinto}</mark>" in item
+        assert '<span class="correcto">' in item and f"<mark>{correcto}</mark>" in item
     assert '<span class="obs-capa">Generales de ley</span>' in contenido
     assert '<span class="obs-capa">Regla</span>' in contenido
     assert '<span class="obs-capa">Lingüístico</span>' in contenido
@@ -1103,34 +1102,35 @@ def test_f60_la_pantalla_dice_que_verificar_sin_debe_decir(
     # Ningún sitio de la pantalla dice «Debe decir: RENIEC: CASADO».
     assert "RENIEC: CASADO" not in contenido
 
-    bien_propio = next(i for i in items if "confirme bien propio" in i)
+    bien_propio = next(i for i in items if "por ser bien propio" in i)
     assert "tachado" not in bien_propio
-    assert re.search(
-        r'<span class="cambio aviso-linea" title="En el borrador: ALBA ZURBELIA '
-        r"LUMARIA: Interviene sin su cónyuge por ser bien propio · Qué verificar: "
-        r'RENIEC indica CASADO\. [^"]*"><span class="visually-hidden">Qué verificar: '
-        r"</span>ALBA ZURBELIA LUMARIA: casado según RENIEC · confirme bien propio"
-        r"</span>",
-        bien_propio,
+    assert (
+        "En el borrador ALBA ZURBELIA LUMARIA: Interviene sin su cónyuge por ser "
+        "bien propio Qué verificar RENIEC indica CASADO." in _texto(bien_propio)
     )
-    letras = next(i for i in items if "Cifra y letras no coinciden" in i)
+    letras = next(i for i in items if "La cifra y las letras no valen" in i)
     assert "tachado" not in letras
     domicilio = next(i for i in items if "CALLE FICTICIA 123" in i)
     assert "No aparece en el borrador" not in domicilio
     assert "su domicilio de RENIEC no aparece" in domicilio
     # La corrección de verdad conserva el tachado → correcto de F56.
-    corregible = next(i for i in items if ">80000002</span>" in i)
-    assert 'class="tachado">80000002' in corregible
-    assert 'class="correcto">80000001' in corregible
+    corregible = next(i for i in items if "<mark>80000002</mark>" in i)
+    assert "<mark>80000002</mark>" in corregible
+    assert "<mark>80000001</mark>" in corregible
 
-    # Sin panel de detalle: el «Qué verificar» completo va bajo la observación
-    # elegida de la lista, solo en los avisos (la corrección real no lo lleva).
-    assert "obs-detalle" not in contenido
-    assert contenido.count('<p class="obs-verificar">') == 3
+    # F65: sin panel de detalle; la fila dice «En el borrador» y «Qué verificar».
+    assert "Detalle de la observación" not in contenido
+    assert contenido.count('<span class="obs-rot">En el borrador</span>') == 3
+    assert contenido.count('<span class="obs-rot">Qué verificar</span>') == 3
+    assert contenido.count('<span class="obs-rot">Debe decir</span>') == 1
     assert (
-        '<p class="obs-verificar"><strong>Qué verificar:</strong> La cifra y las '
-        "letras no valen lo mismo. Corrija la que no corresponda.</p>"
-    ) in contenido
+        "Qué verificar La cifra y las letras no valen lo mismo. "
+        "Corrija la que no corresponda."
+    ) in _texto(letras)
+    assert (
+        "En el borrador ALBA ZURBELIA LUMARIA: su domicilio de RENIEC no aparece "
+        "en el borrador"
+    ) in _texto(domicilio)
 
     # Datos del informe Word y de la tabla exportada: el aviso no trae «debe decir».
     assert re.search(

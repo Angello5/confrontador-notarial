@@ -3,7 +3,7 @@
 
 {% block title %}Confrontación · {{ expediente.codigo }}{% endblock %}
 {% block breadcrumb %}<ol>
-  <li>Expedientes</li>
+  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Confrontación</li>
@@ -107,7 +107,7 @@
       <span class="atajos" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd>recorrer observaciones</span>
     </div>
 
-    {# ── Documento + lista de observaciones (con su casilla de corrección) ── #}
+    {# ── F65: vista del documento + lista; sin panel de detalle ── #}
     <div class="revision revision-documento">
       {% include "expedientes/_vista_borrador.html" %}
       <div class="revision-lateral">
@@ -118,10 +118,11 @@
               <button type="button" class="obs-item" :aria-current="sel === 'p{{ forloop.counter }}'" @click="elegir('p{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Generales de ley</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.nombre }}</strong>
-                {% include "expedientes/_obs_cambio.html" %}
-                <span class="obs-marca" x-show="estaMarcadaObs('p{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
+                {% include "expedientes/_obs_cambio.html" with hallado=observacion.hallado esperado=observacion.esperado %}
+                {% if observacion.procedencias %}<span class="obs-l obs-fuente">{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}</span>{% endif %}
               </button>
-              {% include "expedientes/_obs_seleccion.html" with prefijo="p" numero=forloop.counter %}
+              {% include "expedientes/_obs_correccion.html" with prefijo="p" numero=forloop.counter %}
+              <div class="obs-fragmento" x-show="sel === 'p{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}</div>
             </li>
           {% endfor %}
           {% for observacion in resultado.regla %}
@@ -129,10 +130,11 @@
               <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %}</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
-                {% include "expedientes/_obs_cambio.html" %}
-                <span class="obs-marca" x-show="estaMarcadaObs('r{{ forloop.counter }}')" x-cloak><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>Marcada para corregir</span>
+                {% include "expedientes/_obs_cambio.html" with hallado=observacion.hallado esperado=observacion.esperado %}
+                {% if observacion.motivo %}<span class="obs-l obs-fuente">{{ observacion.motivo }}</span>{% endif %}
               </button>
-              {% include "expedientes/_obs_seleccion.html" with prefijo="r" numero=forloop.counter %}
+              {% include "expedientes/_obs_correccion.html" with prefijo="r" numero=forloop.counter %}
+              <div class="obs-fragmento" x-show="sel === 'r{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}</div>
             </li>
           {% endfor %}
           {% for observacion in resultado.ortografia %}
@@ -140,8 +142,9 @@
               <button type="button" class="obs-item" :aria-current="sel === 'o{{ forloop.counter }}'" @click="elegir('o{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<span class="obs-capa">Lingüístico</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.motivo|capfirst }}</strong>
-                <span class="cambio" title="Texto: {{ observacion.palabra }}{% if observacion.sugerencia %} · Sugerencia: {{ observacion.sugerencia }}{% endif %}"><span class="visually-hidden">Texto: </span><span class="tachado">{{ observacion.palabra }}</span>{% if observacion.sugerencia %}<span class="hacia"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg><span class="visually-hidden">, sugerencia: </span><span class="correcto">{{ observacion.sugerencia }}</span></span>{% endif %}</span>
+                {% include "expedientes/_obs_cambio.html" with hallado=observacion.palabra esperado=observacion.sugerencia dice="Texto" debe="Sugerencia" %}
               </button>
+              <div class="obs-fragmento" x-show="sel === 'o{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.palabra %}</div>
             </li>
           {% endfor %}
         </ul>
@@ -533,6 +536,19 @@
     const SEV_TEXTO = { ALTA: 'alta', MEDIA: 'media', BAJA: 'baja' };
     const cruzan = (a, b) => a.pagina === b.pagina && a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
     const normal = (texto) => String(texto || '').toUpperCase().replace(/\s+/g, ' ').trim();
+    const marcar = (el) => {
+      const buscado = el.dataset.marcar;
+      const texto = el.textContent;
+      if (!buscado) return;
+      const tienePosicion = el.dataset.inicio !== undefined && el.dataset.inicio !== '' && el.dataset.fin !== undefined && el.dataset.fin !== '';
+      const i = tienePosicion ? Number(el.dataset.inicio) : texto.toUpperCase().indexOf(buscado.toUpperCase());
+      const fin = tienePosicion ? Number(el.dataset.fin) : i + buscado.length;
+      if (!Number.isInteger(i) || !Number.isInteger(fin) || fin <= i || fin > texto.length) return;
+      if (i < 0) return;
+      const mark = document.createElement('mark');
+      mark.textContent = texto.slice(i, fin);
+      el.replaceChildren(document.createTextNode(texto.slice(0, i)), mark, document.createTextNode(texto.slice(fin)));
+    };
     return {
       ...window.aplicarCorrecciones(),
       sev: 'TODAS', sel: null, modal: null,
@@ -561,6 +577,7 @@
           o.corr = compatibles.length === 1 ? compatibles[0].id : '';
         });
         this.sel = this.visibles[0]?.id || null;
+        this.$el.querySelectorAll('[data-marcar]').forEach(marcar);
         this.$watch('sev', () => this.ajustarSeleccion());
         this.$watch('sel', () => {
           if (this.desdeMarca) { this.desdeMarca = false; return; }

@@ -135,6 +135,12 @@ F62: cookies propias del ERP. El usuario reportó que cada clic lo mandaba al lo
 
 F63: base de datos en SQL Server. La notaría exige que la base del ERP esté en SQL Server 2016, el motor de su servidor SQLSERVER. El usuario confirmó que el ERP se conecta con un login propio de SQL Server. La edición se confirma en la instalación (se asume Standard). La constitución pasa a 2.1.0. No hay datos que trasladar: el despliegue es F8. Aviso a la notaría: SQL Server 2016 está fuera de soporte extendido desde el 14/07/2026 y solo recibe parches con ESU de pago. Alcance en `specs/045-sql-server/`.
 
+## Continuación autorizada · 2026-10-30
+
+F64: sugerencias en cifras y cuotas. El usuario pidió que los avisos de cifra y letras, área y cuotas digan, resumido y en lenguaje sencillo, lo que encontraron en la minuta y la sugerencia concreta. Decidió que la suma de cuotas se revise en todos los actos que reparten entre personas (copropiedad, aportes, herencias y otros), sin intereses, moras ni tasas, y que el aviso no elija cuando la minuta no trae el dato. Todo por código, sin modelos. Alcance en `specs/047-sugerencias-cifras/`.
+
+F65: lista de observaciones compacta. El usuario pidió quitar el panel de detalle de la pantalla de resultado, porque repite lo que dice la lista, y que cada fila muestre en pequeño lo hallado y lo correcto. Sumó cuatro mejoras de la revisión de interfaz: la sugerencia en su propia línea, resaltar solo lo que cambia, contadores de severidad sin cortes y un sello de reemplazo si el logo no carga. Solo presentación. Alcance en `specs/048-lista-compacta/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

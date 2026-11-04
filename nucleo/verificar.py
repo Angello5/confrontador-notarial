@@ -1793,30 +1793,21 @@ def montos_exigibles(textos) -> frozenset[str]:
     return frozenset(m for texto in textos for m in montos_de(norm(texto)))
 
 
+_BASICOS = (
+    "CERO UNO DOS TRES CUATRO CINCO SEIS SIETE OCHO NUEVE DIEZ ONCE DOCE "
+    "TRECE CATORCE QUINCE DIECISEIS DIECISIETE DIECIOCHO DIECINUEVE VEINTE "
+    "VEINTIUNO VEINTIDOS VEINTITRES VEINTICUATRO VEINTICINCO VEINTISEIS "
+    "VEINTISIETE VEINTIOCHO VEINTINUEVE".split()
+)
+_DECENAS = "TREINTA CUARENTA CINCUENTA SESENTA SETENTA OCHENTA NOVENTA".split()
+_CENTENAS = (
+    "CIENTO DOSCIENTOS TRESCIENTOS CUATROCIENTOS QUINIENTOS SEISCIENTOS "
+    "SETECIENTOS OCHOCIENTOS NOVECIENTOS".split()
+)
 _NUMEROS = {
-    **{
-        w: i
-        for i, w in enumerate(
-            "CERO UNO DOS TRES CUATRO CINCO SEIS SIETE OCHO NUEVE DIEZ ONCE DOCE "
-            "TRECE CATORCE QUINCE DIECISEIS DIECISIETE DIECIOCHO DIECINUEVE VEINTE "
-            "VEINTIUNO VEINTIDOS VEINTITRES VEINTICUATRO VEINTICINCO VEINTISEIS "
-            "VEINTISIETE VEINTIOCHO VEINTINUEVE".split()
-        )
-    },
-    **{
-        w: 30 + 10 * i
-        for i, w in enumerate(
-            "TREINTA CUARENTA CINCUENTA SESENTA SETENTA OCHENTA NOVENTA".split()
-        )
-    },
-    **{
-        w: 100 * (i + 1)
-        for i, w in enumerate(
-            "CIENTO DOSCIENTOS TRESCIENTOS CUATROCIENTOS QUINIENTOS SEISCIENTOS "
-            "SETECIENTOS OCHOCIENTOS NOVECIENTOS".split()
-        )
-        for w in {w, w[:-2] + "AS"}
-    },
+    **{w: i for i, w in enumerate(_BASICOS)},
+    **{w: 30 + 10 * i for i, w in enumerate(_DECENAS)},
+    **{w: 100 * (i + 1) for i, w in enumerate(_CENTENAS) for w in {w, w[:-2] + "AS"}},
     "UN": 1,
     "UNA": 1,
     "VEINTIUN": 21,
@@ -1854,6 +1845,78 @@ def numero_en_letras(palabras) -> int | None:
         else:
             actual += _NUMEROS[w]
     return millones + total + actual
+
+
+def _apocope(texto: str) -> str:
+    """«UNO» final pasa a «UN» antes de «MIL», «MILLONES» o la moneda."""
+    return re.sub(r"UNO$", "UN", texto)
+
+
+def _hasta_mil(n: int) -> str:
+    if n == 100:
+        return "CIEN"
+    centenas, resto = divmod(n, 100)
+    partes = [_CENTENAS[centenas - 1]] if centenas else []
+    if resto >= 30:
+        decena, unidad = divmod(resto, 10)
+        partes.append(
+            _DECENAS[decena - 3] + (f" Y {_BASICOS[unidad]}" if unidad else "")
+        )
+    elif resto:
+        partes.append(_BASICOS[resto])
+    return " ".join(partes)
+
+
+def _hasta_millon(n: int) -> str:
+    miles, resto = divmod(n, 1000)
+    partes = []
+    if miles:
+        partes.append("MIL" if miles == 1 else f"{_apocope(_hasta_mil(miles))} MIL")
+    if resto:
+        partes.append(_hasta_mil(resto))
+    return " ".join(partes)
+
+
+def letras_de(n: int, apocope: bool = False) -> str:
+    """F64: el inverso de ``numero_en_letras`` (0 a 999 999 999 999), sin tildes
+    como el texto normalizado. ``apocope``: «VEINTIUN SOLES»."""
+    if n == 0:
+        return "CERO"
+    millones, resto = divmod(n, 10**6)
+    partes = []
+    if millones:
+        partes.append(
+            "UN MILLON"
+            if millones == 1
+            else f"{_apocope(_hasta_millon(millones))} MILLONES"
+        )
+    if resto:
+        partes.append(_hasta_millon(resto))
+    texto = " ".join(partes)
+    return _apocope(texto) if apocope else texto
+
+
+def _reparar(palabras: list[str]) -> list[str] | None:
+    """F64: las letras con cada palabra mal escrita cambiada por la palabra
+    numérica más parecida; None si alguna no se parece a ninguna o empata entre
+    dos valores. «TREINTAY» se separa en «TREINTA Y»."""
+    salida = []
+    for w in palabras:
+        if w == "Y" or w in _NUMEROS:
+            salida.append(w)
+        elif w.endswith("Y") and w[:-1] in _NUMEROS:
+            salida += [w[:-1], "Y"]
+        else:
+            parecidas = process.extract(
+                w, _NUMEROS.keys(), scorer=fuzz.ratio, score_cutoff=75, limit=None
+            )
+            if not parecidas or any(
+                puntaje == parecidas[0][1] and _NUMEROS[p] != _NUMEROS[parecidas[0][0]]
+                for p, puntaje, _ in parecidas
+            ):
+                return None
+            salida.append(parecidas[0][0])
+    return salida
 
 
 def _cola_en_letras(texto: str) -> tuple[int, list[str]] | None:
@@ -1941,27 +2004,120 @@ RE_LETRAS_PARENTESIS = re.compile(
 # F30: el orden inverso, «S/ 1,500.00 (MIL QUINIENTOS Y 00/100 SOLES)».
 
 
-def _numeros_en_letras(d: str) -> list[str]:
-    """F19: letras y su cifra entre paréntesis (o al revés) que no valen lo mismo."""
-    obs = []
+def _pares_en_letras(d: str):
+    """F19: (cifra, letras sin unidad, leído, hallado, ¿cifra primero?) de cada
+    número en letras con su cifra entre paréntesis, o al revés."""
     for m in RE_CIFRA_PARENTESIS.finditer(d):
         base = max(0, m.start() - 300)  # el número en letras más largo cabe
-        antes = _sin_unidad(d[base : m.start()].rstrip(), m[3])
-        leido = _leer_letras(antes) if antes else None
-        if leido and not _mismo_numero(leido, m[1], m[2]):
-            hallado = d[base + leido[0] : m.end()]
-            obs.append(
-                f"[NUMERO_EN_LETRAS] «{hallado}» debe decir «{_cifra(m)}{m[3] or ''}»"
-            )
+        letras = _sin_unidad(d[base : m.start()].rstrip(), m[3])
+        leido = _leer_letras(letras) if letras else None
+        if leido:
+            yield m, letras, leido, d[base + leido[0] : m.end()], False
     for m in RE_LETRAS_PARENTESIS.finditer(d):
         letras = _sin_unidad(m[4].strip(), m[3])
         leido = _leer_letras(letras) if letras else None
         # Las letras deben ser todo el paréntesis: «(DEL CODIGO CIVIL)» no es número.
-        if leido and leido[0] == 0 and not _mismo_numero(leido, m[1], m[2]):
-            obs.append(
-                f"[NUMERO_EN_LETRAS] «{m[0]}» debe decir «{_cifra(m)}{m[3] or ''}»"
-            )
-    return obs
+        if leido and leido[0] == 0:
+            yield m, letras, leido, m[0], True
+
+
+def _numeros_en_letras(d: str, valores=None) -> list[str]:
+    """F19: letras y su cifra entre paréntesis (o al revés) que no valen lo mismo.
+    F64: con la sugerencia de ``_detalle``."""
+    return [
+        f"[NUMERO_EN_LETRAS] «{hallado}» debe decir «{_cifra(m)}{m[3] or ''}»"
+        + _detalle(
+            _palabras(letras),
+            leido,
+            m,
+            hallado,
+            _unidad(m, hallado),
+            valores,
+            cifra_primero,
+        )
+        for m, letras, leido, hallado, cifra_primero in _pares_en_letras(d)
+        if not _mismo_numero(leido, m[1], m[2])
+    ]
+
+
+def _centesimas(valor: int, decimales: str | None) -> int:
+    return valor * 100 + int((decimales or "0").ljust(2, "0")[:2])
+
+
+def _palabras(letras: str) -> list[str]:
+    """Las palabras del número entero con que terminan ``letras``."""
+    return _cola_en_letras(_separar_decimales(letras)[0])[1]
+
+
+def _unidad(m: re.Match, hallado: str) -> str:
+    if m[3]:
+        return "%"
+    if "$" in m[0] or "DOLARES" in hallado:
+        return "US$"
+    return "S/" if "S/" in m[0] or "SOLES" in hallado else ""
+
+
+def _formato(centesimas: int, unidad: str) -> str:
+    entero, decimales = divmod(centesimas, 100)
+    cifra = f"{entero:,}"
+    if decimales or unidad in ("S/", "US$", "M2"):
+        cifra += f".{decimales:02d}"
+    return {"%": f"{cifra}%", "M2": f"{cifra} M2"}.get(
+        unidad, f"{unidad} {cifra}".strip()
+    )
+
+
+def _nueva_cifra(centesimas: int, m: re.Match) -> str:
+    """La cifra con el valor nuevo y el formato de la del proyecto."""
+    entero, decimales = divmod(centesimas, 100)
+    cifra = f"{entero:,}" if "," in m[1] else str(entero)
+    return cifra + (f".{decimales:02d}"[: len(m[2]) + 1] if m[2] else "")
+
+
+def _detalle(palabras, leido, m, hallado, unidad, valores, cifra_primero) -> str:
+    """F64: «   (…)» con lo que dice la minuta y la sugerencia; "" si no hay nada
+    seguro que decir. ``valores``: los de la minuta (``_valores_minuta``)."""
+    _, valor, decimales = leido
+    if not decimales.isdigit():  # decímetros ilegibles
+        return ""
+    cifra = _centesimas(int(m[1].replace(",", "")), m[2])
+    escrito = corregido = " ".join(palabras)
+    if valor is None:
+        reparadas = _reparar(palabras)
+        valor = numero_en_letras(reparadas) if reparadas else None
+        if valor is None:
+            return ""
+        corregido = " ".join(reparadas)
+        if _centesimas(valor, decimales) == cifra:
+            sugerido = hallado.replace(escrito, corregido, 1)
+            return f"   (letras mal escritas; se sugiere «{sugerido}»)"
+    if valores is None:
+        return ""
+    letras = _centesimas(valor, decimales)
+    partes = [f"las letras dicen «{_formato(letras, unidad)}»"]
+    en_minuta = valores.get(unidad, set())
+    if (cifra in en_minuta) == (letras in en_minuta):
+        partes.append("la minuta no trae el dato")
+    elif cifra in en_minuta:
+        partes.append(f"la minuta dice «{_formato(cifra, unidad)}»")
+        sugerido = hallado.replace(
+            escrito, letras_de(cifra // 100, apocope=unidad in ("S/", "US$")), 1
+        )
+        antes, ahora = f"{letras % 100:02d}/100", f"{cifra % 100:02d}/100"
+        if antes == ahora or antes in sugerido:
+            sugerido = sugerido.replace(antes, ahora, 1)
+            partes.append(f"se sugiere corregir las letras «{sugerido}»")
+    else:
+        partes.append(f"la minuta dice «{_formato(letras, unidad)}»")
+        sugerido = hallado.replace(escrito, corregido, 1)
+        vieja, nueva = _cifra(m), _nueva_cifra(letras, m)
+        sugerido = (
+            sugerido.replace(vieja, nueva, 1)
+            if cifra_primero
+            else nueva.join(sugerido.rsplit(vieja, 1))
+        )
+        partes.append(f"se sugiere corregir la cifra «{sugerido}»")
+    return f"   ({'; '.join(partes)})"
 
 
 _UNIDAD_AREA = r"\s*(?:M2|MTS?\.?\s?2|METROS CUADRADOS)\.?"
@@ -1994,20 +2150,75 @@ def _leer_area(texto: str) -> Leido | None:
     return inicio, metros, decimales or decimales_letras
 
 
-def _areas_en_letras(d: str) -> list[str]:
-    """F30: área en letras y su cifra en m² (en cualquier orden) que no valen lo mismo."""
+def _palabras_area(texto: str) -> list[str]:
+    """Las palabras de los metros enteros de un área que ``_leer_area`` leyó."""
+    if texto.endswith(" DECIMETROS CUADRADOS"):
+        inicio = _leer_letras(texto.removesuffix(" DECIMETROS CUADRADOS"))[0]
+        texto = re.sub(r"\s(?:Y|CON)$", "", texto[:inicio].rstrip())
+    return _palabras(texto.removesuffix(" METROS CUADRADOS"))
+
+
+def _areas_en_letras(d: str, valores=None) -> list[str]:
+    """F30: área en letras y su cifra en m² (en cualquier orden) que no valen lo
+    mismo. F64: con la sugerencia de ``_detalle``."""
     obs = []
     for m in RE_AREA_PARENTESIS.finditer(d):
         base = max(0, m.start() - 300)
-        leido = _leer_area(d[base : m.start()].rstrip(" ,"))
+        texto = d[base : m.start()].rstrip(" ,")
+        leido = _leer_area(texto)
         if leido and not _mismo_numero(leido, m[1], m[2]):
             hallado = d[base + leido[0] : m.end()]
-            obs.append(f"[AREA] «{hallado}» debe decir «{_cifra(m)} M2»")
+            obs.append(
+                f"[AREA] «{hallado}» debe decir «{_cifra(m)} M2»"
+                + _detalle(
+                    _palabras_area(texto), leido, m, hallado, "M2", valores, False
+                )
+            )
     for m in RE_AREA_LETRAS.finditer(d):
-        leido = _leer_area(m[3].strip())
+        texto = m[3].strip()
+        leido = _leer_area(texto)
         if leido and leido[0] == 0 and not _mismo_numero(leido, m[1], m[2]):
-            obs.append(f"[AREA] «{m[0]}» debe decir «{_cifra(m)} M2»")
+            obs.append(
+                f"[AREA] «{m[0]}» debe decir «{_cifra(m)} M2»"
+                + _detalle(_palabras_area(texto), leido, m, m[0], "M2", valores, True)
+            )
     return obs
+
+
+_RE_AREA_CIFRA = re.compile(r"(?<![\d,.])(\d[\d,]*)(?:\.(\d{1,2}))?" + _UNIDAD_AREA)
+
+
+def _oraciones(texto: str):
+    for linea in texto.splitlines():
+        yield from re.split(r"(?<!S/)\.\s+", norm(linea))
+
+
+def _valores_minuta(minutas: Mapping[str, str]) -> dict[str, set[int]]:
+    """F64: los valores de la minuta, en centésimas, por unidad: %, S/, US$ y
+    M2; sin unidad, solo los escritos en letras y cifra (un número suelto puede
+    ser una fecha, un DNI o una partida)."""
+    valores = {}
+    for texto in minutas.values():
+        t = norm(texto)
+        hallados = [("%", c) for o in _oraciones(texto) for *_, c in _cuotas(o)]
+        for monto in montos_de(t):
+            entero, _, decimales = (
+                monto.removeprefix("US$ ").replace(",", "").partition(".")
+            )
+            unidad = "US$" if monto.startswith("US$") else "S/"
+            hallados.append((unidad, _centesimas(int(entero), decimales)))
+        hallados += [
+            ("M2", _centesimas(int(m[1].replace(",", "")), m[2]))
+            for m in _RE_AREA_CIFRA.finditer(t)
+        ]
+        hallados += [
+            (_unidad(m, hallado), _centesimas(int(m[1].replace(",", "")), m[2]))
+            for m, _, leido, hallado, _ in _pares_en_letras(t)
+            if _mismo_numero(leido, m[1], m[2])
+        ]
+        for unidad, valor in hallados:
+            valores.setdefault(unidad, set()).add(valor)
+    return valores
 
 
 _ORDINALES = {
@@ -2125,7 +2336,13 @@ def _correlativos(destino: str) -> list[str]:
     return obs
 
 
-_RE_COPROPIEDAD = re.compile(r"COPROPIE|ACCIONES Y DERECHOS|CUOTA IDEAL|PARTICIPACION")
+_RE_REPARTO = re.compile(
+    r"COPROPIE|ACCION|CUOTA|PARTICIPACION|APORT|HERENCIA|HEREDER|LEGITIMA"
+)
+_RE_NO_REPARTO = re.compile(
+    r"(?<![A-ZÑ])(?:INTERES(?:ES)?|MORAS?|MORATORI[AO]S?|PENALIDAD(?:ES)?|TASAS?"
+    r"|COMISION(?:ES)?|DESCUENTOS?|IGV|IMPUESTOS?)(?![A-ZÑ])"
+)
 _RE_PORCENTAJE = re.compile(r"(?<![\d.,])(\d{1,3})(?:[.,](\d{1,2}))?\s*%")
 _RE_POR_CIENTO = re.compile(r"(?<![A-ZÑ])POR CIENTO(?![A-ZÑ])")
 
@@ -2153,37 +2370,102 @@ def _porcentaje(centesimas: int) -> str:
     return f"{entero}.{resto:02d}" if resto else str(entero)
 
 
-def _copropiedad(destino: str) -> list[str]:
-    """F30: cuotas de copropiedad de una misma oración que no suman 100 %.
+def _duenos(oracion: str, cuotas, nombres) -> list[str] | None:
+    """F64: el nombre de cada cuota, antes («ANA EL 50 %») o después («50 % DE
+    ANA»); None si a alguna le falta o dos comparten nombre."""
 
-    Vale también un múltiplo de 100 (vendedores y compradores en la misma
-    oración) o que una cuota sea la suma de las demás (se transfiere el 50 % y
-    se adquiere 25 % y 25 %). Con «CADA UNO» no se puede sumar: se omite.
+    def asignar(tramos, mas_cerca):
+        duenos = []
+        for tramo in tramos:
+            presentes = [n for n in nombres if n in tramo]
+            if not presentes:
+                return None
+            duenos.append(max(presentes, key=lambda n, t=tramo: mas_cerca(n, t)))
+        return duenos if len(set(duenos)) == len(duenos) else None
+
+    inicios = [0, *(fin for _, fin, _ in cuotas)]
+    fines = [*(inicio for inicio, _, _ in cuotas[1:]), len(oracion)]
+    return asignar(
+        [oracion[inicios[i] : c[0]] for i, c in enumerate(cuotas)],
+        lambda n, t: (t.rfind(n) + len(n), len(n)),
+    ) or asignar(
+        [oracion[c[1] : fines[i]] for i, c in enumerate(cuotas)],
+        lambda n, t: (-t.find(n), len(n)),
+    )
+
+
+def _suma_valida(cuotas) -> bool:
+    """100 % o un múltiplo (vendedores y compradores en la misma oración), o una
+    cuota que es la suma de las demás (se transfiere el 50 % y se adquiere 25 %
+    y 25 %)."""
+    total = sum(c for _, _, c in cuotas)
+    tolerancia = len(cuotas)  # redondeo: 33.33 % tres veces suma 99.99 %
+    resto = total % 10000
+    return min(resto, 10000 - resto) <= tolerancia or any(
+        abs(total - 2 * c) <= tolerancia for _, _, c in cuotas
+    )
+
+
+def _repartos(texto: str, nombres):
+    """F30/F64: (oración, cuotas, dueños) de cada oración que reparte entre
+    personas: nombra a cada dueño o usa un término de reparto. Con «CADA UNO»
+    no se puede sumar; intereses, moras y tasas no reparten.
     ponytail: solo dentro de la oración; si las cuotas se reparten en varias,
-    no se detecta. [NEEDS CLARIFICATION] confirmar con escrituras reales.
+    no se detecta.
     """
+    for oracion in _oraciones(texto):
+        if re.search(r"CADA UN[AO]", oracion) or _RE_NO_REPARTO.search(oracion):
+            continue
+        cuotas = _cuotas(oracion)
+        if len(cuotas) < 2:
+            continue
+        duenos = _duenos(oracion, cuotas, nombres)
+        if duenos or _RE_REPARTO.search(oracion):
+            yield oracion, cuotas, duenos
+
+
+def _copropiedad(destino: str, nombres=frozenset(), minutas=None) -> list[str]:
+    """F30: cuotas de una misma oración que no suman 100 %. F64: en todo acto
+    que reparte entre personas, con la cuota que la minuta da a cada una."""
+    en_minuta = [
+        dict(zip(duenos, (c for _, _, c in cuotas)))
+        for texto in (minutas or {}).values()
+        for _, cuotas, duenos in _repartos(texto, nombres)
+        if duenos and _suma_valida(cuotas)
+    ]
     obs = []
-    for linea in destino.splitlines():
-        for oracion in re.split(r"(?<!S/)\.\s+", norm(linea)):
-            if not _RE_COPROPIEDAD.search(oracion) or re.search(
-                r"CADA UN[AO]", oracion
-            ):
-                continue
-            cuotas = _cuotas(oracion)
-            if len(cuotas) < 2:
-                continue
-            total = sum(c for _, _, c in cuotas)
-            tolerancia = len(cuotas)  # redondeo: 33.33 % tres veces suma 99.99 %
-            resto = total % 10000
-            if min(resto, 10000 - resto) <= tolerancia or any(
-                abs(total - 2 * c) <= tolerancia for _, _, c in cuotas
-            ):
-                continue
-            tramo = oracion[cuotas[0][0] : cuotas[-1][1]]
-            obs.append(
-                f"[COPROPIEDAD] «{tramo}» debe decir «100 %»   "
-                f"(las cuotas suman {_porcentaje(total)} %)"
+    for oracion, cuotas, duenos in _repartos(destino, nombres):
+        if _suma_valida(cuotas):
+            continue
+        total = sum(c for _, _, c in cuotas)
+        partes = [f"las cuotas suman {_porcentaje(total)} %"]
+        if minutas is not None:
+            reparto = next(
+                (r for r in en_minuta if duenos and set(r) == set(duenos)), None
             )
+            distintas = [
+                (n, reparto[n], c)
+                for n, (_, _, c) in zip(duenos or (), cuotas)
+                if reparto and reparto[n] != c
+            ]
+            if distintas:
+                partes += [
+                    "la minuta dice «"
+                    + ", ".join(f"{n} {_porcentaje(m)} %" for n, m, _ in distintas)
+                    + "»",
+                    "se sugiere «"
+                    + ", ".join(
+                        f"{n} {_porcentaje(m)} % (dice {_porcentaje(c)} %)"
+                        for n, m, c in distintas
+                    )
+                    + "»",
+                ]
+            else:
+                partes.append("la minuta no trae el dato")
+        tramo = oracion[cuotas[0][0] : cuotas[-1][1]]
+        obs.append(
+            f"[COPROPIEDAD] «{tramo}» debe decir «100 %»   ({'; '.join(partes)})"
+        )
     return obs
 
 
@@ -2577,14 +2859,18 @@ def revisar(
         cat.get("DIRECCION", ()), destino, getattr(cat, "vocabulario", Counter())
     ):
         obs.append(f"[DIRECCION] «{hallado}» debe decir «{esperado}»")
-    obs += _numeros_en_letras(d)
+    # F64: los valores de la minuta desempatan cifra y letras.
+    valores = _valores_minuta(minutas) if minutas is not None else None
+    obs += _numeros_en_letras(d, valores)
     # F30: el dict legado no trae cantidades ni datos registrales.
     obs += _cantidades_observadas(getattr(cat, "cantidades", ()), d, obs)
-    obs += _areas_en_letras(d)
+    obs += _areas_en_letras(d, valores)
     obs += _registrales_observados(getattr(cat, "registrales", ()), d)
     obs += _empresas_observadas(getattr(cat, "empresas", ()), d)
     obs += _correlativos(destino)
-    obs += _copropiedad(destino)
+    obs += _copropiedad(
+        destino, frozenset(norm(n) for n in cat.get("NOMBRE", ())), minutas
+    )
 
     for campo, vals in cat.items():
         if campo == "DIRECCION":

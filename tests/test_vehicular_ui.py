@@ -166,9 +166,9 @@ def test_resultado_vehicular_avisa_al_informe(client, usuario_ficticio, vehicula
         re.S,
     ).group(0)
     assert re.search(
-        r'<span class="tachado">QWE128</span>.*?'
-        r'<span class="visually-hidden">, debe decir: </span>'
-        r'<span class="correcto">QWE123</span>',
+        r'<span class="obs-rot">Dice</span> <span class="tachado"><mark>QWE128</mark>'
+        r'.*?<span class="obs-rot">Debe decir</span> <span class="correcto">'
+        r"<mark>QWE123</mark>",
         item,
         re.S,
     )

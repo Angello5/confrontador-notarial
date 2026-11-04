@@ -1,8 +1,0 @@
-{% comment %}
-Bajo la observación elegida de la lista: qué verificar (F60, si es un aviso) y la
-casilla de su corrección. Reemplaza al antiguo panel de detalle.
-{% endcomment %}
-<div class="obs-seleccion" x-show="sel === '{{ prefijo }}{{ numero }}'" x-cloak>
-  {% if observacion.aviso %}<p class="obs-verificar"><strong>Qué verificar:</strong> {{ observacion.aviso.verificar }}</p>{% endif %}
-  {% include "expedientes/_obs_correccion.html" %}
-</div>

@@ -1,11 +1,16 @@
 {% comment %}
 Marca de la notaría. `erp_logo` (URL de la imagen, configurable por notaría
 como `erp_nombre`) muestra el logo; sin él, el sello con las iniciales.
+F65: si el logo no carga, se muestra el sello (sin Alpine: vale también en el admin).
 El nombre real nunca se escribe en el repositorio (F28 · FR-005).
 {% endcomment %}
 {% if erp_logo %}
-  <img class="marca-logo" src="{{ erp_logo }}" alt="{{ erp_nombre }}">
-  <span class="marca-sub">Confrontador Notarial</span>
+  <img class="marca-logo" src="{{ erp_logo }}" alt="{{ erp_nombre }}" onerror="this.hidden = true; this.nextElementSibling.hidden = false; this.nextElementSibling.nextElementSibling.hidden = true;">
+  <span class="marca-fila" hidden>
+    <span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>
+    <span><span class="marca-nombre">{{ erp_nombre }}</span><span class="marca-sub">Confrontador Notarial</span></span>
+  </span>
+  <span class="marca-sub marca-sub-logo">Confrontador Notarial</span>
 {% else %}
   <span class="marca-fila">
     <span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>
