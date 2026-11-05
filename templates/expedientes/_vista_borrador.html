@@ -11,9 +11,9 @@ revisionConfrontacion() de confrontacion.html los enlaza con la lista.
       <p>{{ borrador.nombre_original }}</p>
     </div>
     <ul class="visor-leyenda" aria-label="Colores por severidad">
-      <li><span class="marca-muestra" data-sev="ALTA" aria-hidden="true"></span>Alta</li>
-      <li><span class="marca-muestra" data-sev="MEDIA" aria-hidden="true"></span>Media</li>
-      <li><span class="marca-muestra" data-sev="BAJA" aria-hidden="true"></span>Baja</li>
+      <li><span class="marca-muestra" data-sev="ALTA" aria-hidden="true"></span>Alta · continua</li>
+      <li><span class="marca-muestra" data-sev="MEDIA" aria-hidden="true"></span>Media · discontinua</li>
+      <li><span class="marca-muestra" data-sev="BAJA" aria-hidden="true"></span>Baja · punteada</li>
     </ul>
     <div class="visor-zoom" role="group" aria-label="Tamaño de la página" x-show="vista.estado === 'LISTA'" x-cloak>
       <button type="button" class="btn" :aria-pressed="(zoom === 'ancho').toString()" @click="zoom = 'ancho'">Ajustar al ancho</button>
@@ -34,10 +34,20 @@ revisionConfrontacion() de confrontacion.html los enlaza con la lista.
     <p class="visor-sin-marca" role="status" x-show="vista.estado === 'LISTA' && noUbicadaDe(sel)" x-cloak>
       <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span x-text="noUbicadaDe(sel)"></span>
     </p>
-    <div class="visor-apariciones" x-show="aparicionesSel() > 1" x-cloak>
-      <span x-text="'Aparición ' + (aparicion + 1) + ' de ' + aparicionesSel()"></span>
-      <button type="button" class="btn" @click="cambiarAparicion(-1)" aria-label="Aparición anterior"><svg class="ico" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
-      <button type="button" class="btn" @click="cambiarAparicion(1)" aria-label="Aparición siguiente"><svg class="ico" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+    {# F73: qué observación se está mirando (propuesta 4a). #}
+    <div class="visor-elegida" x-show="obsElegida" x-cloak>
+      <span class="chip sev" :data-estado="obsElegida?.sev" x-text="obsElegida?.sev"></span>
+      <strong x-text="obsElegida?.titulo"></strong>
+      <span class="texto-suave" x-show="obsElegida?.linea" x-text="'Línea ' + obsElegida?.linea"></span>
+      <div class="visor-apariciones" x-show="aparicionesSel() > 1">
+        <span x-text="'Aparición ' + (aparicion + 1) + ' de ' + aparicionesSel()"></span>
+        <button type="button" class="btn" @click="cambiarAparicion(-1)" aria-label="Aparición anterior"><svg class="ico" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+        <button type="button" class="btn" @click="cambiarAparicion(1)" aria-label="Aparición siguiente"><svg class="ico" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+      </div>
+      <div class="visor-pasos solo-estrecho">
+        <button type="button" class="btn" @click="paso(-1)" aria-label="Observación anterior"><svg class="ico" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+        <button type="button" class="btn" @click="paso(1)" aria-label="Observación siguiente"><svg class="ico" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+      </div>
     </div>
     <div class="visor-paginas" x-ref="paginas" :data-zoom="zoom" x-show="vista.estado === 'LISTA'" x-cloak>
       <template x-for="pagina in vista.paginas" :key="pagina.numero">

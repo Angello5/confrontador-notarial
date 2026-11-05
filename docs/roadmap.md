@@ -155,6 +155,8 @@ F70: menú de iconos en la confrontación. El usuario pidió que el panel izquie
 
 F71: lista sin fragmento y pruebas aisladas. El usuario pidió quitar el fragmento bajo cada observación; el informe impreso lo conserva. Las pruebas pasan a usar carpetas propias, porque en un equipo con datos borraban originales reales. Alcance en `specs/054-lista-sin-fragmento/`.
 
+F73: rediseño de cuatro pantallas. El usuario eligió en Claude Design: barra de filtros en el Inicio (periodo y persona), columna con el siguiente paso en el kardex, modal amplio con vista previa del informe y detalle desplegado en la lista del resultado. F72 queda reservada para el flujo entre dos personas. Alcance en `specs/055-rediseno-pantallas/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

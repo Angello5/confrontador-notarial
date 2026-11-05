@@ -15,6 +15,7 @@ from pathlib import Path
 from time import perf_counter
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.db.models import Count, DateField, F, Max, OuterRef, Q, Subquery
@@ -1510,6 +1511,14 @@ def cifras_por_tipo(usuario):
 
 
 PERIODOS = ("semana", "mes")
+# F73: filtros del Inicio y cómo se nombran en sus títulos.
+FILTROS = {
+    "hoy": "hoy",
+    "ayer": "ayer",
+    "semana": "esta semana",
+    "mes": "este mes",
+    "rango": "el rango elegido",
+}
 MESES = (
     "enero",
     "febrero",
@@ -1540,31 +1549,62 @@ def rango_periodo(periodo, hoy=None):
     )
 
 
-def _kardex_por(truncar, desde, hasta):
+def _fecha_iso(texto):
+    try:
+        return date.fromisoformat(texto)
+    except (TypeError, ValueError):
+        return None
+
+
+def dias_filtro(filtro, desde=None, hasta=None, hoy=None):
+    """F73: (primer día, último día) del filtro; None si no hay uno válido."""
+    hoy = hoy or timezone.localdate()
+    if filtro == "hoy":
+        return hoy, hoy
+    if filtro == "ayer":
+        return hoy - timedelta(days=1), hoy - timedelta(days=1)
+    if filtro == "semana":
+        return hoy - timedelta(days=hoy.weekday()), hoy
+    if filtro == "mes":
+        return hoy.replace(day=1), hoy
+    if filtro == "rango":
+        inicio, fin = _fecha_iso(desde), _fecha_iso(hasta)
+        if inicio and fin and inicio <= fin:
+            return inicio, fin
+    return None
+
+
+def _inicio_dia(dia):
+    return timezone.make_aware(datetime.combine(dia, time.min))
+
+
+def _kardex_por(truncar, desde, hasta, usuario_id=None):
     # Incluye kardex archivados: la actividad es un registro histórico.
+    corridas = Corrida.objects.filter(creado_el__gte=desde, creado_el__lt=hasta)
+    if usuario_id:
+        corridas = corridas.filter(expediente__creado_por_id=usuario_id)
     return dict(
-        Corrida.objects.filter(creado_el__gte=desde, creado_el__lt=hasta)
-        .annotate(tramo=truncar("creado_el", output_field=DateField()))
+        corridas.annotate(tramo=truncar("creado_el", output_field=DateField()))
         .values_list("tramo")
         .annotate(kardex=Count("expediente", distinct=True))
         .order_by()
     )
 
 
-def actividad_semanal(hoy=None):
+def actividad_semanal(hoy=None, usuario_id=None):
     """F53: kardex distintos confrontados por semana (lunes, hora local)."""
     desde, hasta = rango_periodo("semana", hoy)
-    por_semana = _kardex_por(TruncWeek, desde, hasta)
+    por_semana = _kardex_por(TruncWeek, desde, hasta, usuario_id)
     inicios = [desde.date() + timedelta(weeks=numero) for numero in range(12)]
     return [
         {"inicio": inicio, "kardex": por_semana.get(inicio, 0)} for inicio in inicios
     ]
 
 
-def actividad_mensual(hoy=None):
+def actividad_mensual(hoy=None, usuario_id=None):
     """F53: kardex distintos confrontados por mes, de enero al mes de `hoy`."""
     hoy = hoy or timezone.localdate()
-    por_mes = _kardex_por(TruncMonth, *rango_periodo("mes", hoy))
+    por_mes = _kardex_por(TruncMonth, *rango_periodo("mes", hoy), usuario_id)
     inicios = [date(hoy.year, mes, 1) for mes in range(1, hoy.month + 1)]
     return [{"inicio": inicio, "kardex": por_mes.get(inicio, 0)} for inicio in inicios]
 
@@ -1582,14 +1622,21 @@ def avisos_documentos_ilegibles(usuario):
     )
 
 
-def ultimas_confrontaciones(limite=5):
-    """F53: kardex activos confrontados más recientemente, con su última corrida."""
+def ultimas_confrontaciones(limite=5, desde=None, hasta=None, usuario_id=None):
+    """F53: kardex activos confrontados más recientemente, con su última corrida.
+
+    F73: con `desde` y `hasta`, la última corrida dentro de ese periodo.
+    """
     ultima = Corrida.objects.filter(expediente=OuterRef("pk")).order_by(
         "-creado_el", "-pk"
     )
+    if desde:
+        ultima = ultima.filter(creado_el__gte=desde, creado_el__lt=hasta)
+    activos = Expediente.objects.filter(archivado_el__isnull=True)
+    if usuario_id:
+        activos = activos.filter(creado_por_id=usuario_id)
     expedientes = (
-        Expediente.objects.filter(archivado_el__isnull=True)
-        .annotate(
+        activos.annotate(
             fecha=Subquery(ultima.values("creado_el")[:1]),
             nombre=Subquery(ultima.values("usuario__first_name")[:1]),
             apellido=Subquery(ultima.values("usuario__last_name")[:1]),
@@ -1637,7 +1684,20 @@ def _ancho(valor, maximo):
     return round(100 * valor / maximo) if maximo else 0
 
 
-def indicadores_calidad(desde, hasta):
+def personas_con_confrontaciones():
+    """F73: quienes crearon algún kardex confrontado, para el filtro del Inicio."""
+    usuarios = (
+        get_user_model()
+        .objects.filter(expedientes_creados__corridas__isnull=False)
+        .distinct()
+    )
+    return sorted(
+        ({"id": usuario.pk, "nombre": _nombre(usuario)} for usuario in usuarios),
+        key=lambda persona: persona["nombre"],
+    )
+
+
+def indicadores_calidad(desde, hasta, usuario_id=None):
     """F53: calidad de las confrontaciones del periodo, por quien creó el kardex.
 
     Una confrontación repetida con los mismos documentos cuenta una sola vez.
@@ -1649,6 +1709,8 @@ def indicadores_calidad(desde, hasta):
         .select_related("expediente__creado_por")
         .order_by("creado_el", "pk")
     )
+    if usuario_id:
+        corridas = corridas.filter(expediente__creado_por_id=usuario_id)
     for corrida in corridas:
         clave = (
             corrida.expediente_id,
@@ -1704,6 +1766,8 @@ def indicadores_calidad(desde, hasta):
     corregidos = DecisionCorreccion.objects.filter(
         creado_el__gte=desde, creado_el__lt=hasta
     ).exclude(hash_corregido="")
+    if usuario_id:
+        corregidos = corregidos.filter(corrida__expediente__creado_por_id=usuario_id)
     return {
         "gravedad": gravedad,
         "usuarias": usuarias,
@@ -1732,33 +1796,83 @@ def _explicar(inicio, periodo):
     return etiqueta, f"en la semana del {etiqueta}"
 
 
-def datos_inicio_administrador(usuario, periodo="semana"):
-    """F53: todo el Inicio del administrador, serializable para la pantalla y el JSON."""
+def _fin_tramo(inicio, periodo):
+    if periodo == "mes":
+        return date(inicio.year + inicio.month // 12, inicio.month % 12 + 1, 1)
+    return inicio + timedelta(weeks=1)
+
+
+def _rango_texto(primero, ultimo):
+    if primero == ultimo:
+        return f"el {primero:%d/%m/%Y}"
+    return f"del {primero:%d/%m/%Y} al {ultimo:%d/%m/%Y}"
+
+
+def datos_inicio_administrador(
+    usuario, periodo="semana", filtro=None, desde=None, hasta=None, persona=None
+):
+    """F53: todo el Inicio del administrador, serializable para la pantalla y el JSON.
+
+    F73: `filtro` (con `desde` y `hasta` si es un rango) y `persona` acotan los
+    indicadores; un valor no válido se ignora y la respuesta dice lo aplicado.
+    """
     periodo = periodo if periodo in PERIODOS else "semana"
     ahora = timezone.localtime()
     hoy = ahora.date()
-    desde, hasta = rango_periodo(periodo, hoy)
-    tramos = actividad_mensual(hoy) if periodo == "mes" else actividad_semanal(hoy)
+    personas = personas_con_confrontaciones()
+    elegida = next((p for p in personas if str(p["id"]) == str(persona)), None)
+    usuario_id = elegida["id"] if elegida else None
+    dias = dias_filtro(filtro, desde, hasta, hoy)
+    filtro = filtro if dias else None
+    if dias:
+        inicio_filtro, fin_filtro = (
+            _inicio_dia(dias[0]),
+            _inicio_dia(dias[1] + timedelta(days=1)),
+        )
+    else:
+        inicio_filtro, fin_filtro = rango_periodo(periodo, hoy)
+    tramos = (
+        actividad_mensual(hoy, usuario_id)
+        if periodo == "mes"
+        else actividad_semanal(hoy, usuario_id)
+    )
     maximo = max(tramo["kardex"] for tramo in tramos)
     actividad = []
     for tramo in tramos:
         etiqueta, cuando = _explicar(tramo["inicio"], periodo)
         confrontados = "confrontado" if tramo["kardex"] == 1 else "confrontados"
+        dentro = not dias or (
+            tramo["inicio"] <= dias[1]
+            and dias[0] < _fin_tramo(tramo["inicio"], periodo)
+        )
         actividad.append(
             {
                 "etiqueta": etiqueta,
                 "kardex": tramo["kardex"],
                 "alto": _ancho(tramo["kardex"], maximo),
-                "explicacion": f"{tramo['kardex']} kardex {confrontados} {cuando}",
+                "dentro": dentro,
+                "explicacion": f"{tramo['kardex']} kardex {confrontados} {cuando}"
+                + (" · dentro del periodo elegido" if dias and dentro else ""),
             }
         )
+    titulo_historia = (
+        "las últimas 12 semanas" if periodo == "semana" else f"lo que va de {hoy.year}"
+    )
     return {
         "periodo": periodo,
-        "titulo_periodo": "las últimas 12 semanas"
-        if periodo == "semana"
-        else f"lo que va de {hoy.year}",
+        "filtro": filtro,
+        "desde": dias[0].isoformat() if dias else "",
+        "hasta": dias[1].isoformat() if dias else "",
+        "usuario": usuario_id,
+        "persona": elegida["nombre"] if elegida else "",
+        "personas": personas,
+        "titulo_historia": titulo_historia,
+        "titulo_periodo": FILTROS.get(filtro, titulo_historia),
         # F57: fechas absolutas para la versión impresa.
-        "rango": f"del {desde:%d/%m/%Y} al {hoy:%d/%m/%Y}",
+        "rango": _rango_texto(*dias)
+        if dias
+        else _rango_texto(inicio_filtro.date(), hoy),
+        "hoy": hoy.isoformat(),
         "fecha": hoy.strftime("%d/%m/%Y"),
         "actualizado": ahora.strftime("%H:%M"),
         "cifras": cifras_por_tipo(usuario),
@@ -1771,9 +1885,13 @@ def datos_inicio_administrador(usuario, periodo="semana"):
                 "fecha": timezone.localtime(fila["fecha"]).strftime("%d/%m/%Y %H:%M"),
                 "url": reverse("expediente_detalle", args=[fila["expediente"].pk]),
             }
-            for fila in ultimas_confrontaciones()
+            for fila in ultimas_confrontaciones(
+                desde=inicio_filtro if dias else None,
+                hasta=fin_filtro if dias else None,
+                usuario_id=usuario_id,
+            )
         ],
-        "indicadores": indicadores_calidad(desde, hasta),
+        "indicadores": indicadores_calidad(inicio_filtro, fin_filtro, usuario_id),
     }
 
 

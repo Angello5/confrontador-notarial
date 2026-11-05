@@ -20,40 +20,75 @@
     {% if erp_logo %}<img class="marca-logo" src="{{ erp_logo }}" alt="">{% endif %}
     <p class="reporte-meta">{{ erp_nombre }}</p>
     <h1>Ranking de errores por digitadora</h1>
-    <p class="reporte-meta">Periodo: <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>, <span x-text="datos.rango">{{ datos_inicio.rango }}</span> · Emitido por {{ user.username }} el <span x-text="datos.fecha">{{ datos_inicio.fecha }}</span> a las <span x-text="datos.actualizado">{{ datos_inicio.actualizado }}</span></p>
+    <p class="reporte-meta">Periodo: <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>, <span x-text="datos.rango">{{ datos_inicio.rango }}</span><span x-show="datos.persona" x-text="` · Persona: ${datos.persona}`"></span> · Emitido por {{ user.username }} el <span x-text="datos.fecha">{{ datos_inicio.fecha }}</span> a las <span x-text="datos.actualizado">{{ datos_inicio.actualizado }}</span></p>
   </header>
 
   {% include "core/_avisos_ilegibles.html" %}
 
-  <div class="inicio-barra">
-    <div class="segmentado" role="group" aria-label="Periodo de los indicadores">
-      <button type="button" :aria-pressed="(periodo === 'semana').toString()" aria-pressed="true" @click="elegir('semana')">Por semana</button>
-      <button type="button" :aria-pressed="(periodo === 'mes').toString()" aria-pressed="false" @click="elegir('mes')">Por mes</button>
+  {# F73: barra de filtros (propuesta 1a). #}
+  <section class="panel inicio-filtros" aria-label="Filtros de los indicadores">
+    <div class="filtros-controles">
+      <div class="filtro-campo">
+        <span class="filtro-rotulo" id="filtro-periodo">Periodo</span>
+        <div class="filtro-periodos" role="group" aria-labelledby="filtro-periodo">
+          <template x-for="opcion in filtros" :key="opcion.id">
+            <button type="button" :aria-pressed="(filtro === opcion.id).toString()" @click="elegirFiltro(opcion.id)" x-text="opcion.texto"></button>
+          </template>
+        </div>
+      </div>
+      <label class="filtro-campo filtro-persona">
+        <span class="filtro-rotulo">Persona</span>
+        <select x-model="persona" @change="actualizar()">
+          <option value="">Todas las personas</option>
+          <template x-for="opcion in datos.personas" :key="opcion.id">
+            <option :value="String(opcion.id)" x-text="opcion.nombre"></option>
+          </template>
+        </select>
+      </label>
+      <p class="inicio-estado" aria-live="polite" :data-cargando="cargando">
+        <span x-show="!error"><span class="inicio-pulso" aria-hidden="true"></span>Actualizado a las <span x-text="datos.actualizado">{{ datos_inicio.actualizado }}</span> · se actualiza cada minuto</span>
+        <span x-show="error" x-cloak class="inicio-error">No se pudo actualizar. Se muestran los últimos datos y se reintentará en un minuto.</span>
+      </p>
     </div>
-    <p class="inicio-estado" aria-live="polite" :data-cargando="cargando">
-      <span x-show="!error"><span class="inicio-pulso" aria-hidden="true"></span>Actualizado a las <span x-text="datos.actualizado">{{ datos_inicio.actualizado }}</span>. Se actualiza solo cada minuto.</span>
-      <span x-show="error" x-cloak class="inicio-error">No se pudo actualizar. Se muestran los últimos datos y se reintentará en un minuto.</span>
-    </p>
-  </div>
+    <div class="filtros-rango" x-show="filtro === 'rango'" x-cloak>
+      <label class="filtro-campo"><span class="filtro-rotulo">Desde</span><input type="date" x-model="desde" :max="hasta || null" @change="actualizar()"></label>
+      <label class="filtro-campo"><span class="filtro-rotulo">Hasta</span><input type="date" x-model="hasta" :min="desde || null" @change="actualizar()"></label>
+      <span class="filtros-ayuda" :class="rangoIncompleto && 'inicio-error'" x-text="rangoIncompleto ? 'Elija las dos fechas, con «Desde» antes de «Hasta». Mientras tanto no se aplica el rango.' : 'Se aplica al cambiar las fechas.'"></span>
+    </div>
+    <div class="filtros-activos">
+      <strong>Mostrando</strong>
+      <span class="filtros-defecto" x-show="!hayFiltros"><strong x-text="`${datos.titulo_periodo} · todas las personas`">{{ datos_inicio.titulo_periodo }} · todas las personas</strong> (predeterminado)</span>
+      <span class="filtro-activo" x-show="datos.filtro" x-cloak><span x-text="`Periodo: ${textoFiltro}`"></span><button type="button" aria-label="Quitar filtro de periodo" @click="quitarFiltro()"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+      <span class="filtro-activo" x-show="datos.persona" x-cloak><span x-text="`Persona: ${datos.persona}`"></span><button type="button" aria-label="Quitar filtro de persona" @click="quitarPersona()"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+      <button type="button" class="btn-texto" x-show="hayFiltros" x-cloak @click="limpiar()">Limpiar filtros</button>
+    </div>
+  </section>
 
-  <div class="metricas">
-    {% include "core/_metrica.html" with etiqueta="Total" valor=cifras.total apoyo="Kardex y transferencias activos" modelo="cifra.total" %}
-    {% url 'expediente_lista' as url_kardex %}
-    {% include "core/_metrica.html" with etiqueta="Kardex" valor=cifras.notariales apoyo="Escrituras notariales" enlace=url_kardex modelo="cifra.notariales" %}
-    {% url 'vehicular_lista' as url_vehicular %}
-    {% include "core/_metrica.html" with etiqueta="Transferencias vehiculares" valor=cifras.vehiculares apoyo="Actas de transferencia" tono="verde" enlace=url_vehicular modelo="cifra.vehiculares" %}
-  </div>
+  <section class="inicio-bloque" aria-labelledby="resumen-titulo">
+    <div class="bloque-cab"><h2 id="resumen-titulo">Kardex y transferencias</h2><span>Totales activos ahora; no dependen del periodo.</span></div>
+    <div class="metricas">
+      {% include "core/_metrica.html" with etiqueta="Total" valor=cifras.total apoyo="Kardex y transferencias activos" modelo="cifra.total" %}
+      {% url 'expediente_lista' as url_kardex %}
+      {% include "core/_metrica.html" with etiqueta="Kardex" valor=cifras.notariales apoyo="Escrituras notariales" enlace=url_kardex modelo="cifra.notariales" %}
+      {% url 'vehicular_lista' as url_vehicular %}
+      {% include "core/_metrica.html" with etiqueta="Transferencias vehiculares" valor=cifras.vehiculares apoyo="Actas de transferencia" tono="verde" enlace=url_vehicular modelo="cifra.vehiculares" %}
+    </div>
+  </section>
 
   <section class="panel" aria-labelledby="actividad-titulo">
     <div class="panel-cab">
       <div>
         <h2 id="actividad-titulo" x-text="periodo === 'mes' ? 'Actividad por mes' : 'Actividad por semana'">Actividad por semana</h2>
-        <p>Kardex confrontados en <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>. Un kardex cuenta una vez por periodo. Pase el puntero o el teclado por una barra para ver su detalle.</p>
+        <p>Kardex confrontados en <span x-text="datos.titulo_historia">{{ datos_inicio.titulo_historia }}</span>. Un kardex cuenta una vez por periodo. <span x-text="datos.filtro ? 'En azul, lo que cae dentro del periodo elegido.' : 'Pase el puntero o el teclado por una barra para ver su detalle.'">Pase el puntero o el teclado por una barra para ver su detalle.</span></p>
+      </div>
+      <div class="segmentado" role="group" aria-label="Agrupar actividad">
+        <button type="button" :aria-pressed="(periodo === 'semana').toString()" aria-pressed="true" @click="elegir('semana')">Por semana</button>
+        <button type="button" :aria-pressed="(periodo === 'mes').toString()" aria-pressed="false" @click="elegir('mes')">Por mes</button>
       </div>
     </div>
-    <ol class="semanas" :style="`--tramos: ${datos.actividad.length}`" :aria-label="`Kardex confrontados, ${datos.titulo_periodo}`">
+    <ol class="semanas" :style="`--tramos: ${datos.actividad.length}`" :aria-label="`Kardex confrontados, ${datos.titulo_historia}`">
       <template x-for="(tramo, i) in datos.actividad" :key="datos.periodo + tramo.etiqueta">
-        <li class="semana" tabindex="0" :aria-label="tramo.explicacion">
+        <li class="semana" tabindex="0" :aria-label="tramo.explicacion" :data-fuera="!tramo.dentro">
           <span class="semana-ayuda" aria-hidden="true" x-text="tramo.explicacion"></span>
           <span class="semana-cifra" aria-hidden="true" x-text="tramo.kardex"></span>
           <span class="semana-columna" aria-hidden="true"><span class="semana-relleno" :style="`height: ${altos[i] ?? 0}%`"></span></span>
@@ -63,11 +98,33 @@
     </ol>
   </section>
 
-  <section class="panel imprimir" aria-labelledby="ranking-titulo">
+  <section class="inicio-bloque imprimir" aria-labelledby="calidad-titulo">
+    <div class="bloque-cab"><h2 id="calidad-titulo">Calidad de la confrontación</h2><span><span class="primera-mayuscula" x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>, <span x-text="datos.rango">{{ datos_inicio.rango }}</span><span x-show="datos.persona" x-text="` · ${datos.persona}`"></span></span></div>
+    <div class="calidad-banda">
+      <dl class="calidad-celda">
+        <div>{% include "core/_chip.html" with estado="ALTA" texto="Alta" clase="sev" %}<dd x-text="cifra.alta ?? 0">{{ datos_inicio.indicadores.gravedad.ALTA }}</dd><dt>Datos de validación obligatoria</dt></div>
+      </dl>
+      <dl class="calidad-celda">
+        <div>{% include "core/_chip.html" with estado="MEDIA" texto="Media" clase="sev" %}<dd x-text="cifra.media ?? 0">{{ datos_inicio.indicadores.gravedad.MEDIA }}</dd><dt>Reglas de persona</dt></div>
+      </dl>
+      <dl class="calidad-celda">
+        <div>{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<dd x-text="cifra.baja ?? 0">{{ datos_inicio.indicadores.gravedad.BAJA }}</dd><dt>Ortografía y redacción</dt></div>
+      </dl>
+      <div class="calidad-celda calidad-correcciones">
+        <h3 id="correcciones-titulo">Correcciones aplicadas</h3>
+        <dl aria-labelledby="correcciones-titulo">
+          <div><dd x-text="cifra.documentos ?? 0">{{ datos_inicio.indicadores.correcciones.documentos }}</dd><dt>Documentos corregidos generados</dt></div>
+          <div><dd x-text="cifra.aplicadas ?? 0">{{ datos_inicio.indicadores.correcciones.aplicadas }}</dd><dt>Correcciones aplicadas en ellos</dt></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="calidad-rejilla">
+  <section class="panel" aria-labelledby="ranking-titulo">
     <div class="panel-cab">
       <div>
-        <h2 id="ranking-titulo">Errores por digitadora</h2>
-        <p>Errores en <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>, de más a menos. Cada observación del confrontador cuenta para quien creó el kardex; confrontar de nuevo con los mismos archivos no suma. El promedio por kardex solo informa.</p>
+        <h3 id="ranking-titulo">Errores por digitadora</h3>
+        <p>De más a menos. Cada observación del confrontador cuenta para quien creó el kardex; confrontar de nuevo con los mismos archivos no suma. El promedio por kardex solo informa.</p>
       </div>
     </div>
     <div class="tabla-desliza" x-show="datos.indicadores.usuarias.length">
@@ -76,12 +133,12 @@
         <thead><tr>
           <th scope="col" class="num">Puesto</th>
           <th scope="col">Digitadora</th>
-          <th scope="col" class="num">Kardex confrontados</th>
+          <th scope="col" class="num">Kardex</th>
           <th scope="col">Total de errores</th>
           <th scope="col" class="num" data-sev="ALTA">Alta</th>
           <th scope="col" class="num" data-sev="MEDIA">Media</th>
           <th scope="col" class="num" data-sev="BAJA">Baja</th>
-          <th scope="col" class="num">Promedio por kardex</th>
+          <th scope="col" class="num">Prom. por kardex</th>
         </tr></thead>
         <tbody>
           <template x-for="(persona, i) in datos.indicadores.usuarias" :key="i">
@@ -102,25 +159,10 @@
     <p class="vacio-breve" x-show="!datos.indicadores.usuarias.length">Sin confrontaciones en este periodo.</p>
   </section>
 
-  <div class="rejilla-indicadores imprimir">
-    <section class="panel" aria-labelledby="gravedad-titulo">
-      <div class="panel-cab">
-        <div>
-          <h2 id="gravedad-titulo">Observaciones por gravedad</h2>
-          <p>Lo que encontró el confrontador en <span x-text="datos.titulo_periodo">{{ datos_inicio.titulo_periodo }}</span>.</p>
-        </div>
-      </div>
-      <dl class="gravedades">
-        <div>{% include "core/_chip.html" with estado="ALTA" texto="Alta" clase="sev" %}<dd x-text="cifra.alta ?? 0">{{ datos_inicio.indicadores.gravedad.ALTA }}</dd><dt>Datos de validación obligatoria</dt></div>
-        <div>{% include "core/_chip.html" with estado="MEDIA" texto="Media" clase="sev" %}<dd x-text="cifra.media ?? 0">{{ datos_inicio.indicadores.gravedad.MEDIA }}</dd><dt>Reglas de persona</dt></div>
-        <div>{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<dd x-text="cifra.baja ?? 0">{{ datos_inicio.indicadores.gravedad.BAJA }}</dd><dt>Ortografía y redacción</dt></div>
-      </dl>
-    </section>
-
     <section class="panel" aria-labelledby="frecuentes-titulo">
       <div class="panel-cab">
         <div>
-          <h2 id="frecuentes-titulo">Errores más frecuentes</h2>
+          <h3 id="frecuentes-titulo">Errores más frecuentes</h3>
           <p>Los cinco tipos de observación que más se repiten.</p>
         </div>
       </div>
@@ -137,40 +179,37 @@
       </ol>
       <p class="vacio-breve" x-show="!datos.indicadores.frecuentes.length">Sin observaciones en este periodo.</p>
     </section>
-
-    <section class="panel" aria-labelledby="correcciones-titulo">
-      <div class="panel-cab">
-        <div>
-          <h2 id="correcciones-titulo">Correcciones aplicadas</h2>
-          <p>Lo que el equipo corrigió con el sistema en este periodo.</p>
-        </div>
-      </div>
-      <dl class="gravedades">
-        <div><dd x-text="cifra.documentos ?? 0">{{ datos_inicio.indicadores.correcciones.documentos }}</dd><dt>Documentos corregidos generados</dt></div>
-        <div><dd x-text="cifra.aplicadas ?? 0">{{ datos_inicio.indicadores.correcciones.aplicadas }}</dd><dt>Correcciones aplicadas en ellos</dt></div>
-      </dl>
-    </section>
-  </div>
+    </div>
+  </section>
 
   <section class="panel" aria-labelledby="confrontaciones-titulo">
     <div class="panel-cab">
       <div>
         <h2 id="confrontaciones-titulo">Últimas confrontaciones</h2>
-        <p>Los cinco kardex confrontados más recientemente y quién lo hizo.</p>
+        <p>Los cinco kardex confrontados más recientemente<span x-show="datos.persona" x-text="` · ${datos.persona}`"></span>, y quién lo hizo.</p>
       </div>
     </div>
-    <ul class="filas" aria-label="Últimas confrontaciones" x-show="datos.confrontaciones.length">
-      <template x-for="fila in datos.confrontaciones" :key="fila.codigo + fila.fecha">
-        <li class="aparece">
-          <a class="fila" :href="fila.url">
-            <strong x-text="fila.codigo"></strong>
-            <span class="fila-detalle"><span class="chip" x-text="fila.tipo"></span><span x-text="fila.usuario"></span></span>
-            <span class="fila-fecha" x-text="fila.fecha"></span>
-          </a>
-        </li>
-      </template>
-    </ul>
-    <div class="vacio" role="status" x-show="!datos.confrontaciones.length">
+    <div class="tabla-desliza" x-show="datos.confrontaciones.length">
+      <table class="tabla" aria-label="Últimas confrontaciones">
+        <thead><tr>
+          <th scope="col">Kardex</th><th scope="col">Tipo</th><th scope="col">Responsable</th>
+          <th scope="col" class="num">Fecha</th><th scope="col"><span class="visually-hidden">Abrir</span></th>
+        </tr></thead>
+        <tbody>
+          <template x-for="fila in datos.confrontaciones" :key="fila.codigo + fila.fecha">
+            <tr class="aparece">
+              <th scope="row"><a :href="fila.url" x-text="fila.codigo"></a></th>
+              <td><span class="chip" x-text="fila.tipo"></span></td>
+              <td x-text="fila.usuario"></td>
+              <td class="num fila-fecha" x-text="fila.fecha"></td>
+              <td class="num"><svg class="ico texto-suave" aria-hidden="true"><use href="#i-chevron-right"/></svg></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+    <p class="vacio-breve" role="status" x-show="!datos.confrontaciones.length && hayFiltros" x-cloak>Sin confrontaciones con estos filtros. <button type="button" class="btn-texto" @click="limpiar()">Limpiar filtros</button></p>
+    <div class="vacio" role="status" x-show="!datos.confrontaciones.length && !hayFiltros">
       <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
       <strong>Aún no hay confrontaciones</strong>
       <span>Aparecerán aquí cuando se confronte el primer kardex.</span>

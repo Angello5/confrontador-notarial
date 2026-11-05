@@ -41,6 +41,36 @@
     }
   }
 
+  // F73: un rango solo se aplica con las dos fechas y en orden.
+  function rangoValido(desde, hasta) {
+    return Boolean(desde && hasta && desde <= hasta);
+  }
+
+  function parametros({ periodo, filtro, desde, hasta, persona }) {
+    const valores = new URLSearchParams({ periodo });
+    if (filtro && (filtro !== 'rango' || rangoValido(desde, hasta))) {
+      valores.set('filtro', filtro);
+      if (filtro === 'rango') {
+        valores.set('desde', desde);
+        valores.set('hasta', hasta);
+      }
+    }
+    if (persona) valores.set('usuario', persona);
+    return valores.toString();
+  }
+
+  function restarDias(iso, dias) {
+    const fecha = new Date(`${iso}T12:00:00`);
+    fecha.setDate(fecha.getDate() - dias);
+    const dos = n => String(n).padStart(2, '0');
+    return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`;
+  }
+
+  function fechaCorta(iso) {
+    const [anio, mes, dia] = (iso || '').split('-');
+    return dia ? `${dia}/${mes}/${anio}` : '';
+  }
+
   function inicioAdmin(inicial) {
     return {
       datos: inicial,
@@ -50,6 +80,60 @@
       error: false,
       cargando: false,
       temporizador: null,
+      pedido: 0,
+      filtro: null,
+      persona: '',
+      desde: '',
+      hasta: '',
+      filtros: [
+        { id: 'hoy', texto: 'Hoy' },
+        { id: 'ayer', texto: 'Ayer' },
+        { id: 'semana', texto: 'Esta semana' },
+        { id: 'mes', texto: 'Este mes' },
+        { id: 'rango', texto: 'Rango de fechas…' },
+      ],
+
+      get rangoIncompleto() {
+        return this.filtro === 'rango' && !rangoValido(this.desde, this.hasta);
+      },
+
+      // Lo que muestra «Mostrando» sale de lo que el servidor aplicó de verdad.
+      get textoFiltro() {
+        const elegido = this.filtros.find(f => f.id === this.datos.filtro);
+        if (!elegido) return '';
+        return elegido.id === 'rango'
+          ? `${fechaCorta(this.datos.desde)} – ${fechaCorta(this.datos.hasta)}`
+          : elegido.texto;
+      },
+
+      get hayFiltros() {
+        return Boolean(this.datos.filtro || this.datos.persona);
+      },
+
+      elegirFiltro(id) {
+        this.filtro = this.filtro === id && id !== 'rango' ? null : id;
+        if (this.filtro === 'rango' && !this.desde) {
+          this.hasta = this.datos.hoy;
+          this.desde = restarDias(this.datos.hoy, 14);
+        }
+        this.actualizar();
+      },
+
+      quitarFiltro() {
+        this.filtro = null;
+        this.actualizar();
+      },
+
+      quitarPersona() {
+        this.persona = '';
+        this.actualizar();
+      },
+
+      limpiar() {
+        this.filtro = null;
+        this.persona = '';
+        this.actualizar();
+      },
 
       iniciar() {
         this.animar(inicial);
@@ -83,23 +167,29 @@
       async actualizar() {
         clearTimeout(this.temporizador);
         this.cargando = true;
+        // F73: al cambiar filtros seguidos, solo manda la última respuesta.
+        const pedido = (this.pedido = this.pedido + 1);
+        const consulta = parametros(this);
         try {
-          const respuesta = await fetch(`/inicio/datos/?periodo=${this.periodo}`, {
+          const respuesta = await fetch(`/inicio/datos/?${consulta}`, {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin',
           });
           if (!respuesta.ok) throw new Error(String(respuesta.status));
           const datos = await respuesta.json();
+          if (pedido !== this.pedido) return;
           // Al cambiar de periodo cambia el número de barras: crecen desde cero.
           if (datos.actividad.length !== this.altos.length) this.altos = datos.actividad.map(() => 0);
           this.datos = datos;
           this.error = false;
           this.animar(datos);
         } catch (error) {
-          this.error = true; // Se conservan los datos ya mostrados.
+          if (pedido === this.pedido) this.error = true; // Se conservan los datos ya mostrados.
         } finally {
-          this.cargando = false;
-          this.programar();
+          if (pedido === this.pedido) {
+            this.cargando = false;
+            this.programar();
+          }
         }
       },
 
@@ -149,7 +239,7 @@
     };
   }
 
-  const api = { interpolar, periodoValido, periodoGuardado, inicioAdmin };
+  const api = { interpolar, periodoValido, periodoGuardado, rangoValido, parametros, restarDias, fechaCorta, inicioAdmin };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else raiz.inicioAdmin = inicioAdmin;
 })(typeof window !== 'undefined' ? window : globalThis);

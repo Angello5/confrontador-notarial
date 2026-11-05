@@ -288,7 +288,11 @@ def test_detalle_usa_paneles_chips_y_privacidad(client, usuario_ficticio):
     assert "Documentos del kardex" in contenido
     assert "Borrador a confrontar" in contenido
     assert "Historial de confrontaciones" in contenido
-    assert 'class="rejilla-detalle"' in contenido
+    # F73: secciones por grupo y columna de estado con «¿Qué debe hacer?».
+    assert 'class="rejilla-paso"' in contenido
+    assert 'class="panel paso-lateral"' in contenido
+    assert "¿Qué debe hacer?" in contenido
+    assert "Volver a subir" in contenido
     assert 'class="chip" data-estado="LISTO"' in contenido
     assert "archivos temporales de lectura se eliminan al terminar" in contenido
     # Tres zonas con la carga continua y tres de la alternativa sin JavaScript.

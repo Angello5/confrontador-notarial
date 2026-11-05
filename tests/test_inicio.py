@@ -697,3 +697,140 @@ def test_version_imprimible_lleva_marca_periodo_y_fecha(
         "del 01/01/2026 al 20/10/2026",
         "20/10/2026",
     )
+
+
+# --- F73: barra de filtros --------------------------------------------------
+
+
+def _ahora_menos(dias):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    return timezone.now() - timedelta(days=dias)
+
+
+def _dos_personas(usuario, administrador):
+    propio = _expediente("EXP-FICTICIO-F1", usuario)
+    _corrida(propio, usuario, _ahora_menos(0), [("regla", "DNI")])
+    ajeno = _expediente("EXP-FICTICIO-F2", administrador)
+    _corrida(ajeno, administrador, _ahora_menos(1), [("regla", "DNI")], borrador="d")
+
+
+def test_f73_el_filtro_de_periodo_acota_calidad_y_ultimas_no_los_totales(
+    client, usuario_ficticio, administrador_ficticio
+):
+    _dos_personas(usuario_ficticio, administrador_ficticio)
+    client.force_login(administrador_ficticio)
+
+    hoy = client.get(reverse("home_datos"), {"filtro": "hoy"}).json()
+    ayer = client.get(reverse("home_datos"), {"filtro": "ayer"}).json()
+
+    assert hoy["filtro"] == "hoy"
+    assert hoy["desde"] == hoy["hasta"] == hoy["hoy"]
+    assert [fila["codigo"] for fila in hoy["confrontaciones"]] == ["EXP-FICTICIO-F1"]
+    assert [p["usuario"] for p in hoy["indicadores"]["usuarias"]] == [
+        "usuario_ficticio"
+    ]
+    assert [fila["codigo"] for fila in ayer["confrontaciones"]] == ["EXP-FICTICIO-F2"]
+    assert hoy["cifras"] == ayer["cifras"]
+    assert hoy["cifras"]["total"] == 2
+    # La actividad conserva sus 12 semanas y resalta las del periodo.
+    assert len(hoy["actividad"]) == 12
+    assert hoy["actividad"][-1]["dentro"] is True
+    assert hoy["actividad"][0]["dentro"] is False
+    assert "dentro del periodo elegido" in hoy["actividad"][-1]["explicacion"]
+
+
+def test_f73_el_rango_incluye_sus_dos_extremos(
+    client, usuario_ficticio, administrador_ficticio
+):
+    from django.utils import timezone
+
+    _dos_personas(usuario_ficticio, administrador_ficticio)
+    client.force_login(administrador_ficticio)
+    dia = timezone.localdate().isoformat()
+
+    datos = client.get(
+        reverse("home_datos"), {"filtro": "rango", "desde": dia, "hasta": dia}
+    ).json()
+
+    assert datos["filtro"] == "rango"
+    assert [fila["codigo"] for fila in datos["confrontaciones"]] == ["EXP-FICTICIO-F1"]
+    assert datos["rango"].startswith("el ")
+
+
+@pytest.mark.parametrize(
+    "consulta",
+    [
+        {"filtro": "siempre"},
+        {"filtro": "rango"},
+        {"filtro": "rango", "desde": "no-es-fecha", "hasta": "2026-01-01"},
+        {"filtro": "rango", "desde": "2026-02-01", "hasta": "2026-01-01"},
+    ],
+)
+def test_f73_un_filtro_no_valido_se_ignora_y_lo_dice(
+    client, administrador_ficticio, consulta
+):
+    client.force_login(administrador_ficticio)
+
+    datos = client.get(reverse("home_datos"), consulta).json()
+
+    assert datos["filtro"] is None
+    assert (datos["desde"], datos["hasta"]) == ("", "")
+    assert datos["titulo_periodo"] == "las últimas 12 semanas"
+
+
+def test_f73_la_persona_es_quien_creo_el_kardex_y_acota_los_indicadores(
+    client, usuario_ficticio, administrador_ficticio
+):
+    _dos_personas(usuario_ficticio, administrador_ficticio)
+    client.force_login(administrador_ficticio)
+
+    todas = client.get(reverse("home_datos")).json()
+    assert {p["nombre"] for p in todas["personas"]} == {
+        "usuario_ficticio",
+        administrador_ficticio.username,
+    }
+    assert todas["usuario"] is None
+
+    datos = client.get(reverse("home_datos"), {"usuario": usuario_ficticio.pk}).json()
+
+    assert datos["usuario"] == usuario_ficticio.pk
+    assert datos["persona"] == "usuario_ficticio"
+    assert [fila["codigo"] for fila in datos["confrontaciones"]] == ["EXP-FICTICIO-F1"]
+    assert [p["usuario"] for p in datos["indicadores"]["usuarias"]] == [
+        "usuario_ficticio"
+    ]
+    assert sum(t["kardex"] for t in datos["actividad"]) == 1
+    # Elegir un periodo no borra a la persona de la lista.
+    assert len(datos["personas"]) == 2
+
+
+@pytest.mark.parametrize("persona", ["no-es-id", "999999"])
+def test_f73_una_persona_no_valida_se_ignora(client, administrador_ficticio, persona):
+    client.force_login(administrador_ficticio)
+
+    datos = client.get(reverse("home_datos"), {"usuario": persona}).json()
+
+    assert datos["usuario"] is None
+    assert datos["persona"] == ""
+
+
+def test_f73_filtrar_sigue_siendo_solo_del_administrador(client, usuario_ficticio):
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.get(reverse("home_datos"), {"filtro": "hoy"})
+
+    assert respuesta.status_code == 403
+
+
+def test_f73_el_inicio_pinta_la_barra_de_filtros(client, administrador_ficticio):
+    client.force_login(administrador_ficticio)
+
+    content = client.get(reverse("home")).content.decode()
+
+    assert 'aria-label="Filtros de los indicadores"' in content
+    assert "Calidad de la confrontación" in content
+    assert "no dependen del periodo" in content
+    assert 'aria-label="Agrupar actividad"' in content
