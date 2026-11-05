@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ingresar · {{ erp_nombre }}</title>
+    {% if erp_icono %}<link rel="icon" href="{{ erp_icono }}">{% endif %}
     <link rel="stylesheet" href="{% static 'css/erp.css' %}?v={{ static_v }}">
   </head>
   <body>

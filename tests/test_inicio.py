@@ -388,8 +388,13 @@ def test_rango_de_cada_periodo():
 def test_datos_del_inicio_en_json_solo_para_el_administrador(
     client, usuario_ficticio, administrador_ficticio
 ):
+    from django.utils import timezone
+
+    from expedientes.services import MESES
+
+    ahora = timezone.localtime()  # el mes en curso, sea cual sea la fecha
     expediente = _expediente("EXP-FICTICIO-J1", usuario_ficticio)
-    _corrida(expediente, usuario_ficticio, datetime(2026, 10, 14, 9, tzinfo=LIMA))
+    _corrida(expediente, usuario_ficticio, ahora)
     url = reverse("home_datos")
 
     assert client.get(url).status_code == 302  # anónimo: al login
@@ -408,11 +413,13 @@ def test_datos_del_inicio_en_json_solo_para_el_administrador(
         "periodo",
         "actualizado",
     }
-    octubre = datos["actividad"][-1]
-    assert octubre["etiqueta"] == "Oct"
-    assert octubre["kardex"] == 1
-    assert octubre["alto"] == 100
-    assert octubre["explicacion"] == "1 kardex confrontado en octubre de 2026"
+    mes = MESES[ahora.month - 1]
+    actual = datos["actividad"][-1]
+    assert len(datos["actividad"]) == ahora.month
+    assert actual["etiqueta"] == mes[:3].capitalize()
+    assert actual["kardex"] == 1
+    assert actual["alto"] == 100
+    assert actual["explicacion"] == f"1 kardex confrontado en {mes} de {ahora.year}"
     assert client.get(url, {"periodo": "x"}).json()["periodo"] == "semana"
     semana = client.get(url).json()["actividad"][-1]
     assert semana["explicacion"].endswith(f"en la semana del {semana['etiqueta']}")

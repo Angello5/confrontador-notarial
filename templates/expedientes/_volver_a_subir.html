@@ -1,12 +1,21 @@
 {% if por_volver_a_subir %}
+{% if compacto %}
+<details class="aviso-compacto" aria-labelledby="volver-a-subir">
+  <summary><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><strong id="volver-a-subir">Algunos documentos se leyeron con una versión anterior del sistema.</strong><span>{{ por_volver_a_subir|length }} documento{{ por_volver_a_subir|length|pluralize }}</span></summary>
+{% else %}
 <section class="aviso" role="status" aria-labelledby="volver-a-subir">
   <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
   <div class="aviso-texto">
     <strong id="volver-a-subir">Algunos documentos se leyeron con una versión anterior del sistema.</strong>
+{% endif %}
     <span>Elimínelos y vuelva a subirlos para aplicar las mejoras de lectura.</span>
     <ul>
       {% for documento in por_volver_a_subir %}<li>{{ documento.nombre_original }}</li>{% endfor %}
     </ul>
+{% if compacto %}
+</details>
+{% else %}
   </div>
 </section>
+{% endif %}
 {% endif %}

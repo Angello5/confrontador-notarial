@@ -141,6 +141,20 @@ F64: sugerencias en cifras y cuotas. El usuario pidió que los avisos de cifra y
 
 F65: lista de observaciones compacta. El usuario pidió quitar el panel de detalle de la pantalla de resultado, porque repite lo que dice la lista, y que cada fila muestre en pequeño lo hallado y lo correcto. Sumó cuatro mejoras de la revisión de interfaz: la sugerencia en su propia línea, resaltar solo lo que cambia, contadores de severidad sin cortes y un sello de reemplazo si el logo no carga. Solo presentación. Alcance en `specs/048-lista-compacta/`.
 
+## Continuación autorizada · 2026-11-02
+
+F66: letras mal escritas en la corrección automática. El usuario pidió poder corregir «TREINTA Y SEI (36)», que salía bloqueada. Solo entra cuando las letras reparadas valen lo mismo que la cifra; si valen distinto sigue decidiendo el abogado. Sube el catálogo para recalcular las confrontaciones guardadas. Alcance en `specs/049-correccion-letras/`.
+
+F67: icono de la notaría en la pestaña del navegador, con el isotipo «E» de la guía de marca. La imagen no se versiona, como el logo; se configura con `ERP_ICONO`. Alcance en `specs/050-icono-pestana/`.
+
+F68: avisos de lectura compactos. El usuario pidió reducir «Lectura que necesita revisión» en el resultado. Pasa a una línea desplegable, igual que el de versión anterior, también en el kardex; el informe impreso conserva completo el de lectura. Alcance en `specs/051-avisos-lectura-compactos/`.
+
+F69: sentido sin falsas alarmas. El usuario vio anotaciones por oraciones cortadas y pidió otro enfoque, sin falsas alarmas y digerible. La búsqueda contra el documento completo ignora puntuación, cifras y letras sueltas, sin perder palabras reales, y la pantalla muestra solo lo que cambia. Mantuvo la sección aparte: no se enmienda la constitución. Alcance en `specs/052-sentido-sin-falsas-alarmas/`.
+
+F70: menú de iconos en la confrontación. El usuario pidió que el panel izquierdo se achique en esa pantalla, para dar espacio al documento. Se abre sobre el contenido con el puntero o el teclado. Alcance en `specs/053-menu-iconos-confrontacion/`.
+
+F71: lista sin fragmento y pruebas aisladas. El usuario pidió quitar el fragmento bajo cada observación; el informe impreso lo conserva. Las pruebas pasan a usar carpetas propias, porque en un equipo con datos borraban originales reales. Alcance en `specs/054-lista-sin-fragmento/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

@@ -97,13 +97,15 @@ def test_observacion_sin_detalle_no_cambia():
     assert fila["esperado"] == "36"
 
 
-def test_las_sugerencias_no_entran_en_el_documento_corregido():
-    """FR-010: siguen fuera de la corrección automática (F21)."""
+def test_solo_las_letras_mal_escritas_entran_en_el_documento_corregido():
+    """FR-010 con F66: lo demás sigue fuera de la corrección automática (F21)."""
     salidas = _obs(
         "EL TREINTA Y SEI POR CIENTO (36%).", "NUMERO_EN_LETRAS", "MINUTA."
     ) + _obs("EN COPROPIEDAD EL 40% DE ANA Y EL 50% DE EVA.", "COPROPIEDAD", "MINUTA.")
     assert len(salidas) == 2
-    assert correcciones(salidas, {"minuta-ficticia.txt": "TREINTA Y SEIS"}) == []
+    carga = correcciones(salidas, {"minuta-ficticia.txt": "TREINTA Y SEIS"})
+    assert [c["campo"] for c in carga] == ["NUMERO_EN_LETRAS"]
+    assert carga[0]["correcto"] == "TREINTA Y SEIS POR CIENTO (36%)"
 
 
 # --- Historia 1: letras mal escritas -------------------------------------------

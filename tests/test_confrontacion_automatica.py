@@ -459,6 +459,9 @@ def test_aviso_pide_volver_a_subir_lo_que_no_se_puede_releer(
             assert f"<li>{nombre}</li>" in html
         assert f"<li>{releible.nombre_original}</li>" not in html
     assert AVISO_RELEER not in Corrida.objects.get().hallazgos
+    # F68: en el resultado y en el kardex es una línea desplegable.
+    assert '<details class="aviso-compacto"' in client.get(resultado).content.decode()
+    assert '<details class="aviso-compacto"' in client.get(detalle).content.decode()
 
     TextoExtraido.objects.update(version_extractor=extraccion.version_extractor())
     assert AVISO_RELEER not in client.get(detalle).content.decode()

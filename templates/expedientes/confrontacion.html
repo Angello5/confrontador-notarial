@@ -8,6 +8,7 @@
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Confrontación</li>
 </ol>{% endblock %}
+{% block shell_clase %} shell-iconos{% endblock %}
 {% block cabecera %}{% endblock %}
 {% block content %}
 <div class="pila" x-data="revisionConfrontacion()" x-init="iniciar()" @keydown.window="teclado($event)">
@@ -28,8 +29,8 @@
     </div>
   </div>
 
-  {% include "expedientes/_calidad_lectura.html" %}
-  {% include "expedientes/_volver_a_subir.html" %}
+  {% include "expedientes/_calidad_lectura.html" with compacto=True %}
+  {% include "expedientes/_volver_a_subir.html" with compacto=True %}
   {% if resultado.estado == "ADVERTENCIA_CORRESPONDENCIA" %}
     <section class="aviso aviso-grande" data-tono="advertencia" role="alert" aria-live="polite">
       <svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
@@ -122,11 +123,10 @@
                 {% if observacion.procedencias %}<span class="obs-l obs-fuente">{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}</span>{% endif %}
               </button>
               {% include "expedientes/_obs_correccion.html" with prefijo="p" numero=forloop.counter %}
-              <div class="obs-fragmento" x-show="sel === 'p{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}</div>
             </li>
           {% endfor %}
           {% for observacion in resultado.regla %}
-            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-sugerencia="{{ observacion.aviso.sugerencia|default:'' }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
               <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %}</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
@@ -134,7 +134,6 @@
                 {% if observacion.motivo %}<span class="obs-l obs-fuente">{{ observacion.motivo }}</span>{% endif %}
               </button>
               {% include "expedientes/_obs_correccion.html" with prefijo="r" numero=forloop.counter %}
-              <div class="obs-fragmento" x-show="sel === 'r{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}</div>
             </li>
           {% endfor %}
           {% for observacion in resultado.ortografia %}
@@ -144,7 +143,6 @@
                 <strong class="obs-titulo">{{ observacion.motivo|capfirst }}</strong>
                 {% include "expedientes/_obs_cambio.html" with hallado=observacion.palabra esperado=observacion.sugerencia dice="Texto" debe="Sugerencia" %}
               </button>
-              <div class="obs-fragmento" x-show="sel === 'o{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.palabra %}</div>
             </li>
           {% endfor %}
         </ul>
@@ -301,7 +299,7 @@
             {# F48: una fila por observación (el total del resumen); las propuestas solo son datos. #}
             <ul hidden>
               {% for correccion in resultado.correcciones %}
-                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}" data-fuente="{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}"></li>
+                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{% if correccion.apariciones != None %}{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}{% endif %}" data-fuente="{{ correccion.fuente.archivo }}{% if correccion.fuente.pagina %}, página {{ correccion.fuente.pagina }}{% endif %}"></li>
               {% endfor %}
             </ul>
             <ul class="lista-cambios">
@@ -456,7 +454,7 @@
           <thead><tr><th scope="col">Valor erróneo</th><th scope="col">Valor correcto</th><th scope="col">Documento fuente</th><th scope="col">Apariciones</th></tr></thead>
           <tbody>
             {% for correccion in resultado.correcciones %}
-              <tr><td>{{ correccion.erroneo }}</td><td>{{ correccion.correcto }}</td><td>{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}</td><td>{{ correccion.apariciones }}</td></tr>
+              <tr><td>{{ correccion.erroneo }}</td><td>{{ correccion.correcto }}</td><td>{{ correccion.fuente.archivo }}{% if correccion.fuente.pagina %}, página {{ correccion.fuente.pagina }}{% endif %}</td><td>{{ correccion.apariciones }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -536,19 +534,6 @@
     const SEV_TEXTO = { ALTA: 'alta', MEDIA: 'media', BAJA: 'baja' };
     const cruzan = (a, b) => a.pagina === b.pagina && a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
     const normal = (texto) => String(texto || '').toUpperCase().replace(/\s+/g, ' ').trim();
-    const marcar = (el) => {
-      const buscado = el.dataset.marcar;
-      const texto = el.textContent;
-      if (!buscado) return;
-      const tienePosicion = el.dataset.inicio !== undefined && el.dataset.inicio !== '' && el.dataset.fin !== undefined && el.dataset.fin !== '';
-      const i = tienePosicion ? Number(el.dataset.inicio) : texto.toUpperCase().indexOf(buscado.toUpperCase());
-      const fin = tienePosicion ? Number(el.dataset.fin) : i + buscado.length;
-      if (!Number.isInteger(i) || !Number.isInteger(fin) || fin <= i || fin > texto.length) return;
-      if (i < 0) return;
-      const mark = document.createElement('mark');
-      mark.textContent = texto.slice(i, fin);
-      el.replaceChildren(document.createTextNode(texto.slice(0, i)), mark, document.createTextNode(texto.slice(fin)));
-    };
     return {
       ...window.aplicarCorrecciones(),
       sev: 'TODAS', sel: null, modal: null,
@@ -571,13 +556,13 @@
         this.marcadas = this.correcciones.map((c) => c.id);
         this.obs.forEach((o) => {
           const hallado = normal(o.hallado);
-          const esperado = normal(o.esperado);
+          /* F66: las letras mal escritas se corrigen con la sugerencia. */
+          const esperado = normal(o.sugerencia || o.esperado);
           const compatibles = this.correcciones.filter((c) => hallado && esperado &&
             normal(c.erroneo) === hallado && normal(c.correcto) === esperado);
           o.corr = compatibles.length === 1 ? compatibles[0].id : '';
         });
         this.sel = this.visibles[0]?.id || null;
-        this.$el.querySelectorAll('[data-marcar]').forEach(marcar);
         this.$watch('sev', () => this.ajustarSeleccion());
         this.$watch('sel', () => {
           if (this.desdeMarca) { this.desdeMarca = false; return; }
@@ -708,7 +693,11 @@
          total del resumen. Sin corrección propuesta (F21) la fila queda bloqueada. Una propuesta
          sin observación compatible se lista igual: si no, se registraría como excluida. */
       filasCorreccion() {
-        const filas = this.obs.map((o) => ({ id: o.id, hallado: o.hallado, esperado: o.esperado, aviso: o.aviso, corr: this.corrDe(o.id) }));
+        const filas = this.obs.map((o) => {
+          const corr = this.corrDe(o.id);
+          const corregida = corr && o.sugerencia;
+          return { id: o.id, hallado: o.hallado, esperado: corregida ? o.sugerencia : o.esperado, aviso: corregida ? '' : o.aviso, corr };
+        });
         this.correcciones.filter((c) => !this.obs.some((o) => o.corr === c.id))
           .forEach((c) => filas.push({ id: c.id, hallado: c.erroneo, esperado: c.correcto, corr: c }));
         return filas;

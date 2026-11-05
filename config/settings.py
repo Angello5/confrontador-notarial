@@ -105,6 +105,8 @@ ROOT_URLCONF = "config.urls"
 # F28: nombre de la notaría en la interfaz; el real se configura en el servidor.
 ERP_NOMBRE = os.environ.get("ERP_NOMBRE", "ERP Notarial")
 ERP_LOGO = os.environ.get("ERP_LOGO", "").strip()
+# F67: icono de la pestaña; el logo entero no se lee a ese tamaño.
+ERP_ICONO = os.environ.get("ERP_ICONO", "").strip()
 ERP_DIRECCION = os.environ.get("ERP_DIRECCION", "").strip()
 TEMPLATES = [
     {

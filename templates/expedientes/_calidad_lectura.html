@@ -1,7 +1,16 @@
+{% comment %}
+F68: con `compacto`, una línea desplegable (pantalla de resultado); sin él, el
+aviso completo (informe impreso, F31 FR-005).
+{% endcomment %}
 {% if resultado.calidad_lectura %}
+{% if compacto %}
+<details class="aviso-compacto" data-tono="advertencia" aria-label="Calidad de lectura">
+  <summary><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg><strong>Lectura que necesita revisión</strong><span>{{ resultado.calidad_lectura|length }} documento{{ resultado.calidad_lectura|length|pluralize }}</span></summary>
+{% else %}
 <section class="aviso" data-tono="advertencia" aria-label="Calidad de lectura" role="status">
   <div class="aviso-texto">
     <h2>Lectura que necesita revisión</h2>
+{% endif %}
     <p>Revise las páginas indicadas o cargue una copia más clara. Una lectura incompleta puede ocultar discrepancias o producir diferencias aparentes.</p>
     <ul>
       {% for aviso in resultado.calidad_lectura %}
@@ -11,8 +20,10 @@
       </li>
       {% endfor %}
     </ul>
+{% if not compacto %}
   </div>
 </section>
+{% endif %}
 {% endif %}
 <details class="ayuda-lectura">
   <summary>¿Qué significa calidad de lectura?</summary>
@@ -21,3 +32,4 @@
   <p>Compare el dato con el original. Si el texto leído no coincide con la imagen, es un problema de lectura; si los originales difieren en el mismo dato y contexto, es una discrepancia documental. Una confianza alta también puede contener errores.</p>
   <p>Revise la página indicada y, si es necesario, cargue una copia más clara. Los archivos con texto propio no tienen puntuación OCR; los resultados antiguos pueden carecer de medición. Sin observaciones no significa que todo se haya podido comprobar.</p>
 </details>
+{% if compacto and resultado.calidad_lectura %}</details>{% endif %}

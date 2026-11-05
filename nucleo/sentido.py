@@ -40,6 +40,10 @@ RE_ROTULO = re.compile(
     r"D[EÉ]CIM|UND[EÉ]CIM|DUOD[EÉ]CIM)[OA]S?)\s*[.:-]",
     re.IGNORECASE,
 )
+RE_BORDE_PALABRA = re.compile(r"^[^\w#]+|[^\w#]+$")
+LETRAS_CON_SENTIDO = frozenset("YOAEU")
+PALABRAS_DE_CONTEXTO = 5
+MAX_PALABRAS_SIN_CAMBIO = 30
 RE_RELLENO = re.compile(r"[=_~*]{2,}|-{3,}")  # líneas de relleno del proyecto notarial
 RE_PIE = re.compile(r"P[AÁ]GINA\s+\d+\s+DE\s+\d+", re.IGNORECASE)
 RE_FIN_CLAUSULAS = re.compile(r"AGREGUE\s+USTED|CONCLUSI[OÓ]N", re.IGNORECASE)
@@ -166,6 +170,8 @@ def misma_palabra(p, q):
     """Dos palabras que solo difieren por letras mal leídas."""
     if {"#", "/"} & set(p) and {"#", "/"} & set(q):
         return True  # cifras: las revisan las reglas («00/100» leído «oo/1oo»)
+    if min(len(p), len(q)) == 1 or "NO" in (p, q):
+        return p == q  # F69: «Y»/«O» y «NO»/«LO» cambian el sentido
     if len(p) == len(q) and Levenshtein.distance(p, q) <= 1:
         return True  # «EI»/«EL»
     return abs(len(p) - len(q)) <= 1 and fuzz.ratio(p, q) >= 70
@@ -189,6 +195,19 @@ def solo_lectura(a, b):
     return True
 
 
+def _sin_signos(palabras):
+    """F69: sin la puntuación pegada al corte («EL.» es «EL»; «,» no es palabra)."""
+    limpias = (RE_BORDE_PALABRA.sub("", p) for p in palabras)
+    return [p for p in limpias if p]
+
+
+def _sin_contenido(palabras):
+    """F69: cifras (las juzgan las reglas) y letras sueltas de lectura; «Y» u «O» no."""
+    return all(
+        "#" in p or (len(p) == 1 and p not in LETRAS_CON_SENTIDO) for p in palabras
+    )
+
+
 def esta_en(texto, doc):
     """¿La oración está en el documento (ya pasado por ``comparable``) palabra por
     palabra, salvo letras mal leídas? Distingue un corte de oración distinto de un
@@ -202,7 +221,8 @@ def esta_en(texto, doc):
     # ventana holgada hasta límites de palabra: lo que sobra en los bordes no cuenta
     ini = doc.rfind(" ", 0, max(0, al.dest_start - 30)) + 1
     fin = doc.find(" ", min(len(doc), al.dest_end + 30))
-    x, ventana = t.split(), doc[ini : fin if fin >= 0 else len(doc)].split()
+    x = _sin_signos(t.split())
+    ventana = _sin_signos(doc[ini : fin if fin >= 0 else len(doc)].split())
     for op, i1, i2, j1, j2 in SequenceMatcher(
         None, x, ventana, autojunk=False
     ).get_opcodes():
@@ -210,8 +230,94 @@ def esta_en(texto, doc):
             continue
         if op == "replace" and _iguales_salvo_lectura(x[i1:i2], ventana[j1:j2]):
             continue
+        # F69: una cifra o letra suelta en medio, o cifra en el borde del corte
+        if op == "insert" and _sin_contenido(ventana[j1:j2]):
+            continue
+        if op == "delete" and _sin_contenido(x[i1:i2]):
+            continue
+        if op == "replace" and _sin_contenido(x[i1:i2]) and (i1 == 0 or i2 == len(x)):
+            continue
         return False
     return True
+
+
+# --- Lo que se muestra ----------------------------------------------------------------
+def _tramos(palabras, foco, marcadas):
+    """(texto, ¿distinto?) de las palabras en ``foco``; lo demás se resume con «…»."""
+    tramos, previa = [], -1
+    for i in sorted(foco):
+        separador = " " if tramos else ""
+        if i > previa + 1:
+            separador = " … " if tramos else "… "
+        distinto = i in marcadas
+        if tramos and tramos[-1][1] == distinto and separador == " ":
+            tramos[-1] = (tramos[-1][0] + " " + palabras[i], distinto)
+        elif distinto or separador.strip():
+            if separador:
+                tramos.append((separador, False))
+            tramos.append((palabras[i], distinto))
+        else:
+            tramos.append((separador + palabras[i], False))
+        previa = i
+    if tramos and previa < len(palabras) - 1:
+        tramos.append((" …", False))
+    return tramos
+
+
+def tramos_de_cambio(minuta, proyecto):
+    """F69: los dos textos reducidos a lo que cambia, con unas palabras de contexto.
+
+    Mismo criterio que ``esta_en``: la puntuación, las cifras sueltas, las letras
+    mal leídas y lo que sigue tras un corte de oración no se resaltan."""
+    a, b = minuta.split(), proyecto.split()
+    if not a:
+        foco = range(min(len(b), MAX_PALABRAS_SIN_CAMBIO))
+        return [], _tramos(b, foco, set())
+    x = [RE_BORDE_PALABRA.sub("", plano(p)) for p in a]
+    y = [RE_BORDE_PALABRA.sub("", plano(p)) for p in b]
+    foco_a, foco_b, marca_a, marca_b = set(), set(), set(), set()
+    en_borde = []
+
+    def marcar(i1, i2, j1, j2):
+        marca_a.update(range(i1, i2))
+        marca_b.update(range(j1, j2))
+        foco_a.update(
+            range(
+                max(0, i1 - PALABRAS_DE_CONTEXTO),
+                min(len(a), i2 + PALABRAS_DE_CONTEXTO),
+            )
+        )
+        foco_b.update(
+            range(
+                max(0, j1 - PALABRAS_DE_CONTEXTO),
+                min(len(b), j2 + PALABRAS_DE_CONTEXTO),
+            )
+        )
+
+    for op, i1, i2, j1, j2 in SequenceMatcher(None, x, y, autojunk=False).get_opcodes():
+        if op == "equal":
+            continue
+        if op == "replace" and _iguales_salvo_lectura(x[i1:i2], y[j1:j2]):
+            continue
+        if _sin_contenido([p for p in x[i1:i2] + y[j1:j2] if p]):
+            continue
+        # un texto que empieza a media frase («, IDENTIFICADO…»): solo había un signo
+        if (i1 == 0 and not any(y[j1:j2])) or (j1 == 0 and not any(x[i1:i2])):
+            continue
+        if (op == "insert" and i1 in (0, len(x))) or (
+            op == "delete" and j1 in (0, len(y))
+        ):
+            en_borde.append((i1, i2, j1, j2))  # puede ser solo otro corte de oración
+            continue
+        marcar(i1, i2, j1, j2)
+    if not marca_a and not marca_b:
+        # Sin otra diferencia, lo de los bordes es justo lo que el aviso señala.
+        for tramo in en_borde:
+            marcar(*tramo)
+    if not foco_a and not foco_b:
+        foco_a = set(range(min(len(a), MAX_PALABRAS_SIN_CAMBIO)))
+        foco_b = set(range(min(len(b), MAX_PALABRAS_SIN_CAMBIO)))
+    return _tramos(a, foco_a, marca_a), _tramos(b, foco_b, marca_b)
 
 
 # --- Veredicto ------------------------------------------------------------------------

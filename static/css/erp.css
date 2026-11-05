@@ -122,6 +122,9 @@ table { border-collapse: collapse; }
 .marca-logo { display: block; width: 212px; max-width: 100%; height: auto; }
 .marca-fila { display: flex; align-items: center; gap: 10px; }
 .marca-logo[hidden], .marca-fila[hidden], .marca-sub[hidden] { display: none; } /* F65: logo que no carga */
+.marca-iconos { display: none; }
+.marca-iconos [hidden] { display: none; }
+.marca-iconos img { display: block; width: 36px; height: 36px; object-fit: contain; }
 .marca-sello {
   width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center;
   background: var(--ne-navy); color: var(--ne-green); font: 700 14px var(--ne-display);
@@ -185,6 +188,27 @@ table { border-collapse: collapse; }
 .cabecera-meta span { display: inline-flex; align-items: center; gap: 6px; }
 
 .sidebar-overlay { display: none; border: 0; padding: 0; }
+
+/* F70: en la confrontación el menú se reduce a iconos y se abre sobre el contenido. */
+@media (min-width: 960px) {
+  .shell-iconos { --ne-lateral: 72px; }
+  .shell-iconos .lateral { overflow: hidden; transition: width 0.2s var(--ne-ease), box-shadow 0.2s var(--ne-ease); }
+  .shell-iconos .lateral:hover, .shell-iconos .lateral:focus-within { width: 252px; box-shadow: var(--ne-shadow); }
+  .shell-iconos .lateral:not(:hover, :focus-within) .marca { align-items: center; padding: 16px 0; }
+  .shell-iconos .lateral:not(:hover, :focus-within) .marca > * { display: none; }
+  .shell-iconos .lateral:not(:hover, :focus-within) .marca > .marca-iconos { display: block; }
+  .shell-iconos .lateral:not(:hover, :focus-within) nav { padding: 16px 8px; gap: 12px; overflow: hidden; }
+  .shell-iconos .lateral:not(:hover, :focus-within) .menu-seccion,
+  .shell-iconos .lateral:not(:hover, :focus-within) .submenu { display: none; }
+  .shell-iconos .lateral:not(:hover, :focus-within) .menu a,
+  .shell-iconos .lateral:not(:hover, :focus-within) .menu-grupo { justify-content: center; gap: 0; padding: 0; }
+  .shell-iconos .lateral:not(:hover, :focus-within) .menu a > span,
+  .shell-iconos .lateral:not(:hover, :focus-within) .menu-grupo > span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .shell-iconos .lateral:not(:hover, :focus-within) .lateral-pie { justify-content: center; padding: 14px 0; }
+  .shell-iconos .lateral:not(:hover, :focus-within) .lateral-pie > :not(.avatar) { display: none; }
+}
 
 @media (max-width: 959.98px) {
   .shell { grid-template-columns: minmax(0, 1fr); }
@@ -297,6 +321,16 @@ a.metrica:hover { background: var(--ne-hover); color: var(--ne-navy); }
 .aviso[data-tono="peligro"] { background: var(--ne-err-bg); border-color: var(--ne-err-bd); color: var(--ne-err-fg); }
 .aviso[data-tono="neutro"] { background: var(--ne-white); border-color: var(--ne-subtle); color: var(--ne-navy); }
 .aviso-grande { padding: 20px 22px; gap: 14px; }
+/* F68: aviso secundario en una línea; el detalle se despliega. */
+.aviso-compacto { border-left: 3px solid var(--ne-subtle); background: var(--ne-white); padding: 8px 12px; font-size: 13px; color: var(--ne-slate); }
+.aviso-compacto[data-tono="advertencia"] { border-left-color: var(--ne-warn-bd); }
+.aviso-compacto > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; cursor: pointer; }
+.aviso-compacto > summary strong { font-size: 13px; color: var(--ne-navy); }
+.aviso-compacto > summary .ico { font-size: 15px; flex: none; }
+.aviso-compacto[data-tono="advertencia"] > summary .ico { color: var(--ne-warn-bd); }
+.aviso-compacto > p, .aviso-compacto > span, .aviso-compacto > ul, .aviso-compacto > .ayuda-lectura { margin: 8px 0 0; }
+.aviso-compacto > span { display: block; }
+.aviso-compacto > ul { padding-left: 18px; }
 .aviso-grande > .ico { font-size: 22px; }
 .aviso-grande .aviso-texto { gap: 6px; max-width: 720px; }
 .aviso-grande h2 { font: 700 18px/26px var(--ne-display); }
@@ -970,8 +1004,15 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .sentido-cuenta { display: flex; flex-wrap: wrap; gap: 8px; }
 .sentido-cuerpo { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
 .sentido-guia { font-size: 13px; }
-.sentido-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-.sentido-item { border: 1px solid var(--ne-border); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.sentido-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sentido-item { border-top: 1px solid var(--ne-line); padding: 12px 0; display: flex; flex-direction: column; gap: 6px; }
+.sentido-item:first-child { border-top: 0; padding-top: 0; }
+.sentido-cambio { display: flex; flex-direction: column; gap: 2px; }
+.sentido-cambio p { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.sentido-rotulo { font-size: 12px; line-height: 21px; font-weight: 800; color: var(--ne-slate); }
+.sentido-cambio mark { padding: 0 2px; background: var(--ne-err-bg); color: var(--ne-err-fg); font-weight: 800; }
+.sentido-completo > summary { cursor: pointer; font-size: 13px; color: var(--ne-slate); }
+.sentido-completo > .sentido-dice { margin-top: 8px; }
 .sentido-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--ne-navy); }
 .sentido-detalle { font-size: 14px; color: var(--ne-slate); }
 .sentido-dice { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
@@ -988,9 +1029,4 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .obs-lista > li > .obs-correccion { padding: 0 14px 10px 16px; border-bottom: 1px solid var(--ne-line); margin-top: -1px; }
 .obs-lista > li > .obs-correccion .casilla { gap: 8px; font-size: 12px; font-weight: 700; }
 .obs-lista > li > .obs-correccion .casilla span span { display: inline; font-size: 12px; font-weight: 400; }
-.obs-fragmento { padding: 0 14px 10px 16px; }
-.obs-fragmento .doc { font-size: 12px; }
 @media (max-width: 1279.98px) { .sev-pref { display: none; } } /* F65: «Alta», «Media», «Baja» sin cortarse */
-.obs-fragmento .doc-cab { display: none; }
-.obs-fragmento .doc-cuerpo { padding: 6px 10px; }
-.obs-fragmento .doc-linea { font-size: 12px; line-height: 18px; }

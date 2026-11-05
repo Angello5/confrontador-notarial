@@ -214,6 +214,7 @@ def para_pantalla(corrida):
             "tipo_texto": TIPOS[a["tipo"]],
             "nivel_texto": NIVELES[a["nivel"]],
             "chip": CHIPS[a["nivel"]],
+            "cambio": nucleo.tramos_de_cambio(a["minuta"], a["proyecto"]),
         }
         for a in analisis.anotaciones
     ]
