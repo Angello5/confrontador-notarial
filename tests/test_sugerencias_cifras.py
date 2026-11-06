@@ -97,15 +97,21 @@ def test_observacion_sin_detalle_no_cambia():
     assert fila["esperado"] == "36"
 
 
-def test_solo_las_letras_mal_escritas_entran_en_el_documento_corregido():
-    """FR-010 con F66: lo demás sigue fuera de la corrección automática (F21)."""
+def test_solo_la_errata_de_las_letras_entra_en_el_documento_corregido():
+    """La errata se corrige con el texto de la propia cifra; las demás sugerencias no (F21)."""
     salidas = _obs(
         "EL TREINTA Y SEI POR CIENTO (36%).", "NUMERO_EN_LETRAS", "MINUTA."
     ) + _obs("EN COPROPIEDAD EL 40% DE ANA Y EL 50% DE EVA.", "COPROPIEDAD", "MINUTA.")
     assert len(salidas) == 2
-    carga = correcciones(salidas, {"minuta-ficticia.txt": "TREINTA Y SEIS"})
-    assert [c["campo"] for c in carga] == ["NUMERO_EN_LETRAS"]
-    assert carga[0]["correcto"] == "TREINTA Y SEIS POR CIENTO (36%)"
+    (propuesta,) = correcciones(salidas, {"minuta-ficticia.txt": "TREINTA Y SEIS"})
+    assert propuesta["erroneo"] == "TREINTA Y SEI POR CIENTO (36%)"
+    assert propuesta["correcto"] == "TREINTA Y SEIS POR CIENTO (36%)"
+    assert propuesta["fuente"]["pagina"] is None
+
+
+def test_la_cifra_que_no_coincide_con_las_letras_no_se_corrige_sola():
+    salidas = _obs("EL TREINTA Y CINCO POR CIENTO (36%).", "NUMERO_EN_LETRAS", "36%.")
+    assert salidas and correcciones(salidas, {"minuta-ficticia.txt": "36%"}) == []
 
 
 # --- Historia 1: letras mal escritas -------------------------------------------
