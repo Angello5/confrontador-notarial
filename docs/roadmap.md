@@ -5,10 +5,10 @@ pequeña que se termina completa antes de empezar la siguiente: pasa por el
 ciclo de Spec Kit en su propio worktree de Orca y se integra a `main` por Pull
 Request. Las reglas están en `.specify/memory/constitution.md`.
 
-## Estado al 2026-10-12
+## Estado al 2026-10-20
 
-Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-notarial/pull/88)
-(2026-10-09). F17 no existe: la numeración la saltó.
+Integrado en `main` hasta F53 (PR #105, 2026-10-18). F17 no existe: la
+numeración la saltó.
 
 ### Terminadas
 
@@ -54,6 +54,13 @@ Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-n
 | **F43** · Transferencia vehicular | Submenú bajo «Kardex» que compara boleta informativa, DNI y cheques con el acta | Sin minuta; precio obligatorio en el acta; cheques por monto transferido | #85, #86 | 037 |
 | **F44** · Submenú e informe vehicular | Submenú visible e informe Word sin minuta | — | #87 | 037 |
 | **F45** · Ajustes vehiculares | Actas en tabla, vehículo a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO» | — | #88 | 037 |
+| **F46** · Administración con la marca | El admin de cuentas con colores, sello y nombre de la notaría; «Cuentas» en español | Cabecera blanca con línea verde, también en modo oscuro | #95 | 038 |
+| **F47** · Menú «Expedientes» | «Expedientes» agrupa «Kardex» y «Transferencia vehicular» en la barra lateral | «Expedientes» es solo rótulo de grupo; matiza a F36 únicamente en el menú | #94 | 039 |
+| **F48** · Total de errores al corregir | Sin «Revisión N» en la cabecera; la ventana de correcciones muestra el total de observaciones y bloquea las no corregibles | No cambia qué es corregible (F21); el número de corrida sigue en el informe | #96 | 040 |
+| **F49** · Administración interactiva | Fondo blanco, recuadros de cuentas, filas y acciones con respuesta visual, foco visible | Sin JavaScript ni dependencias; revisión de diseño y accesibilidad WCAG AA | #98 | 038 |
+| **F50** · Texto leído con versiones anteriores | El borrador `.docx` se relee solo; aviso para volver a subir los demás documentos; reextraer y suprimir con códigos repetidos | Se releen los borradores; minuta y recaudos se vuelven a subir; la supresión actúa solo sobre el kardex activo | #99 | 033 |
+| **F51** · Persona sin ficha | Un solo aviso «Persona sin ficha» por persona; rótulos legibles en lugar de códigos | Sin ficha en los recaudos basta el aviso MEDIA, sin la ALTA de documento | #100 | 032 |
+| **F52** · Visor: ubicación y recuadros | Las observaciones de persona se marcan sobre el nombre en su línea; recuadros con el ancho real de cada carácter | — | #101 | 026 |
 | **F53** · Inicio del administrador | Cifras por tipo que suman el total, actividad por semana o por mes que se actualiza sola cada minuto, indicadores de calidad (gravedad, usuarias con más errores, errores frecuentes, correcciones), últimas confrontaciones y aviso de documento ilegible para quien lo subió | Sin «Pendientes de confrontar»; kardex distintos por periodo; errores atribuidos a quien creó el kardex; mismos archivos no suman dos veces | pendiente | 041 |
 
 ### En curso o pendientes
@@ -73,7 +80,10 @@ Integrado en `main` hasta el [PR #88](https://github.com/Angello5/confrontador-n
 - **Aclaraciones abiertas** (`[NEEDS CLARIFICATION]`): severidades, versión y
   orden de hallazgos en `specs/014-manifiesto-auditoria/spec.md`; FR-005 en
   `specs/015-capa-correccion/spec.md`; prioridad de procesamiento y progreso
-  por página en `docs/ocr-tiempos-2026-10-02.md`.
+  por página en `docs/ocr-tiempos-2026-10-02.md`; qué cuenta como total en
+  `specs/040-resumen-errores/spec.md`; supresión de un kardex solo archivado o
+  con el código repetido entre kardex y transferencia vehicular en
+  `specs/033-linguistico-tipeo/spec.md`.
 - **Versión del ERP**: `ERP_VERSION` sigue en `0.20.0` desde F20 y
   `sonar-project.properties` no define `sonar.projectVersion`.
 
@@ -119,6 +129,14 @@ F44: «Transferencia vehicular» como submenú visible de «Kardex» y el inform
 
 F45: ajustes de la transferencia vehicular con dos actas reales más: actas en tabla, vehículo entregado a cuenta, propietario persona natural, RUC sin ficha y nombres con «PERUANO». Alcance en `specs/037-transferencia-vehicular/` (sección F45).
 
+## Continuación autorizada · 2026-10-16
+
+F46–F49: el usuario pidió el admin con la marca, «Expedientes» como submenú con «Kardex» y «Transferencia vehicular», quitar «Revisión N» de la cabecera del resultado con el total de errores al corregir y las no corregibles bloqueadas, y luego el admin con fondo blanco y más interactivo usando las skills de diseño. Se hicieron en paralelo, cada una en su worktree y PR.
+
+F50–F52: a partir del kardex privado 72193. Las «mayúsculas mezcladas» venían de texto leído antes de F39; el usuario decidió releer los borradores `.docx` (únicos archivos conservados por la constitución), avisar para volver a subir la minuta y los recaudos, y que la supresión (Ley 29733) actúe solo sobre el kardex activo. Para una persona sin ficha basta el aviso MEDIA. El visor ubica las observaciones de persona y ajusta el ancho de los recuadros.
+
+Además, los enlaces a CSS y JS llevan versión (`?v=`, PR #97) para que el navegador no use hojas viejas tras actualizar. En SonarCloud se activó la regla `css:S9423` («!important»): se reanalizó `main` para que las líneas existentes no cuenten como nuevas.
+
 ## Continuación autorizada · 2026-10-18
 
 F53: Inicio del administrador. Tras revisar la pantalla como notario, el usuario pidió que las cifras cuadren con el total, separar kardex y transferencias vehiculares, ver la actividad por semana y quién ejecutó cada confrontación, y quitar «Procesando», «Con error», «Requieren su atención» y «Control administrativo». Descartó la tarjeta «Pendientes de confrontar» porque la confrontación es automática (F26), y decidió contar kardex distintos por semana. Quien sube un documento ilegible recibe el aviso en su Inicio, sea cual sea su rol; el Inicio de las usuarias no cambia en lo demás. Alcance en `specs/041-inicio-administrador/`.
@@ -140,6 +158,24 @@ F63: base de datos en SQL Server. La notaría exige que la base del ERP esté en
 F64: sugerencias en cifras y cuotas. El usuario pidió que los avisos de cifra y letras, área y cuotas digan, resumido y en lenguaje sencillo, lo que encontraron en la minuta y la sugerencia concreta. Decidió que la suma de cuotas se revise en todos los actos que reparten entre personas (copropiedad, aportes, herencias y otros), sin intereses, moras ni tasas, y que el aviso no elija cuando la minuta no trae el dato. Todo por código, sin modelos. Alcance en `specs/047-sugerencias-cifras/`.
 
 F65: lista de observaciones compacta. El usuario pidió quitar el panel de detalle de la pantalla de resultado, porque repite lo que dice la lista, y que cada fila muestre en pequeño lo hallado y lo correcto. Sumó cuatro mejoras de la revisión de interfaz: la sugerencia en su propia línea, resaltar solo lo que cambia, contadores de severidad sin cortes y un sello de reemplazo si el logo no carga. Solo presentación. Alcance en `specs/048-lista-compacta/`.
+
+## Continuación autorizada · 2026-11-02
+
+F66: letras mal escritas en la corrección automática. El usuario pidió poder corregir «TREINTA Y SEI (36)», que salía bloqueada. Solo entra cuando las letras reparadas valen lo mismo que la cifra; si valen distinto sigue decidiendo el abogado. Sube el catálogo para recalcular las confrontaciones guardadas. Alcance en `specs/049-correccion-letras/`.
+
+F67: icono de la notaría en la pestaña del navegador, con el isotipo «E» de la guía de marca. La imagen no se versiona, como el logo; se configura con `ERP_ICONO`. Alcance en `specs/050-icono-pestana/`.
+
+F68: avisos de lectura compactos. El usuario pidió reducir «Lectura que necesita revisión» en el resultado. Pasa a una línea desplegable, igual que el de versión anterior, también en el kardex; el informe impreso conserva completo el de lectura. Alcance en `specs/051-avisos-lectura-compactos/`.
+
+F69: sentido sin falsas alarmas. El usuario vio anotaciones por oraciones cortadas y pidió otro enfoque, sin falsas alarmas y digerible. La búsqueda contra el documento completo ignora puntuación, cifras y letras sueltas, sin perder palabras reales, y la pantalla muestra solo lo que cambia. Mantuvo la sección aparte: no se enmienda la constitución. Alcance en `specs/052-sentido-sin-falsas-alarmas/`.
+
+F70: menú de iconos en la confrontación. El usuario pidió que el panel izquierdo se achique en esa pantalla, para dar espacio al documento. Se abre sobre el contenido con el puntero o el teclado. Alcance en `specs/053-menu-iconos-confrontacion/`.
+
+F71: lista sin fragmento y pruebas aisladas. El usuario pidió quitar el fragmento bajo cada observación; el informe impreso lo conserva. Las pruebas pasan a usar carpetas propias, porque en un equipo con datos borraban originales reales. Alcance en `specs/054-lista-sin-fragmento/`.
+
+F73: rediseño de cuatro pantallas. El usuario eligió en Claude Design: barra de filtros en el Inicio (periodo y persona), columna con el siguiente paso en el kardex, modal amplio con vista previa del informe y detalle desplegado en la lista del resultado. F72 queda reservada para el flujo entre dos personas. Alcance en `specs/055-rediseno-pantallas/`.
+
+F74: DNI del cónyuge y registro de otra entidad. Los usuarios, al validar con casos reales, reportaron que el sistema cambiaba «Registro de Personas Jurídicas» por el registro del bien y que asignaba a la esposa el DNI del esposo en la fórmula «CASADO CON». Un registro de personas ya no se observa frente a uno de bienes, y el nombre tras «CASADO CON» nunca se queda con el DNI. Alcance en `specs/056-conyuge-y-registro/`.
 
 ## Prompts de arranque para `/speckit-specify`
 

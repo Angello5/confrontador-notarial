@@ -41,7 +41,7 @@ Guía de instalación, operación y validación. La ejecuta el desarrollador por
 1. Completar `C:\ProgramData\ConfrontadorNotarial\erp.env` desde la plantilla ([contrato](contracts/servidor.md)).
 2. Aprovisionar OCR y diccionario como la cuenta de servicio (paso «Verify public test resources» del CI, ejecutado con `runas /user:svc-confrontador`).
 3. Enlazar el certificado al sitio de IIS (puerto 443) y poner su huella en `IIS_CERTIFICADO`.
-4. Copiar el logo de la notaría (PNG o JPEG) a `C:\ConfrontadorNotarial\staticfiles\marca\logo.png`. Es compartido entre versiones, así que no se pierde al actualizar.
+4. Copiar el logo de la notaría (PNG o JPEG) a `C:\ConfrontadorNotarial\staticfiles\marca\logo.png`. Es compartido entre versiones, así que no se pierde al actualizar. Para el icono de la pestaña, copiar el isotipo a `marca\icono.png` y configurar `ERP_ICONO=/static/marca/icono.png` (F67).
 5. `iniciar.ps1 -Rol tarea -Comando migrate`, y después `bootstrap_admin`.
 6. `verificar.ps1`: todo en verde.
 

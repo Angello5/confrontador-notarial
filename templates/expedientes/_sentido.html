@@ -8,7 +8,7 @@ sentido: van aparte de las observaciones y no cambian el documento.
     <div>
       <span class="eyebrow">Apoyo para la revisión</span>
       <h2 id="sentido-titulo">Sentido frente a la minuta</h2>
-      <p>Compara el sentido de cada cláusula del proyecto con la minuta. No cambia las observaciones ni el documento: la revisión del abogado sigue siendo la que decide.</p>
+      <p>Avisos de apoyo: no cambian las observaciones ni el documento. Decide el abogado.</p>
     </div>
     {% if sentido.estado == "LISTO" and sentido.anotaciones %}
       <span class="sentido-cuenta">{% if sentido.observaciones %}{% include "core/_chip.html" with estado="MEDIA" texto=sentido.texto_observaciones clase="sev" %}{% endif %}{% if sentido.revisar %}{% include "core/_chip.html" with estado="BAJA" texto=sentido.texto_revisar clase="sev" %}{% endif %}</span>
@@ -29,16 +29,23 @@ sentido: van aparte de las observaciones y no cambian el documento.
     {% elif not sentido.anotaciones %}
       <div class="aviso" data-tono="exito" role="status"><svg class="ico" aria-hidden="true"><use href="#i-circle-check"/></svg><div class="aviso-texto"><span>No se encontraron cambios de sentido entre las cláusulas del proyecto y la minuta.</span></div></div>
     {% else %}
-      <p class="sentido-guia texto-suave"><strong>Observación:</strong> los dos modelos ven el cambio. <strong>Para revisar:</strong> lo ve uno solo; es una alerta más débil.</p>
+      <p class="sentido-guia texto-suave"><strong>Observación:</strong> aviso más seguro. <strong>Para revisar:</strong> aviso más débil. En rojo, las palabras que cambian.</p>
       <ol class="sentido-lista">
         {% for anotacion in sentido.anotaciones %}
           <li class="sentido-item">
             <div class="sentido-cab">{% include "core/_chip.html" with estado=anotacion.chip texto=anotacion.nivel_texto clase="sev" %}<strong>{{ anotacion.tipo_texto }}</strong></div>
             {% if anotacion.detalle %}<p class="sentido-detalle">{{ anotacion.detalle }}</p>{% endif %}
-            <div class="sentido-dice">
-              {% if anotacion.minuta %}<div><span class="eyebrow">Dice minuta</span><p>{{ anotacion.minuta }}</p></div>{% endif %}
-              <div><span class="eyebrow">Dice proyecto</span><p>{{ anotacion.proyecto }}</p></div>
+            <div class="sentido-cambio">
+              {% if anotacion.minuta %}<p><span class="sentido-rotulo">Minuta</span> <span>{% for texto, distinto in anotacion.cambio.0 %}{% if distinto %}<mark>{{ texto }}</mark>{% else %}{{ texto }}{% endif %}{% endfor %}</span></p>{% endif %}
+              <p><span class="sentido-rotulo">Proyecto</span> <span>{% for texto, distinto in anotacion.cambio.1 %}{% if distinto %}<mark>{{ texto }}</mark>{% else %}{{ texto }}{% endif %}{% endfor %}</span></p>
             </div>
+            <details class="sentido-completo">
+              <summary>Ver cláusula completa</summary>
+              <div class="sentido-dice">
+                {% if anotacion.minuta %}<div><span class="eyebrow">Dice minuta</span><p>{{ anotacion.minuta }}</p></div>{% endif %}
+                <div><span class="eyebrow">Dice proyecto</span><p>{{ anotacion.proyecto }}</p></div>
+              </div>
+            </details>
           </li>
         {% endfor %}
       </ol>

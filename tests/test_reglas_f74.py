@@ -1,0 +1,81 @@
+"""F74: DNI del cónyuge y registro de otra entidad. Solo datos ficticios."""
+
+from nucleo import correccion
+from nucleo.verificar import (
+    _registrales_observados,
+    catalogo,
+    datos_registrales,
+    norm,
+)
+
+
+def _registrales(fuente, borrador):
+    pares = [(clase, valor) for clase, valor, _ in datos_registrales(norm(fuente))]
+    return _registrales_observados(pares, norm(borrador))
+
+
+def _asignados(texto):
+    return [
+        (persona.nombre, persona.documento)
+        for persona in catalogo({"borrador": texto})._registros()
+    ]
+
+
+BOLETA = "BOLETA INFORMATIVA\nREGISTRO DE PROPIEDAD VEHICULAR\n"
+ACTA_EMPRESA = (
+    "TRANSFERENCIA QUE OTORGA EMPRESA FICTICIA S.A.C., INSCRITA EN LA PARTIDA "
+    "ELECTRONICA N° 70000001 DEL REGISTRO DE PERSONAS JURIDICAS DE LIMA."
+)
+
+
+def test_registro_de_personas_juridicas_no_se_cambia_por_el_del_vehiculo():
+    observaciones = _registrales(BOLETA, ACTA_EMPRESA)
+
+    assert observaciones == []
+    assert correccion.correcciones(observaciones, {"boleta.pdf": BOLETA}) == []
+
+
+def test_registro_del_mismo_grupo_se_sigue_observando():
+    fuente = "INSCRITO EN EL REGISTRO DE PREDIOS."
+    borrador = "INSCRITO EN EL REGISTRO DE PROPIEDAD VEHICULAR."
+
+    assert _registrales(fuente, borrador) == [
+        "[DATO_REGISTRAL] «REGISTRO DE PROPIEDAD VEHICULAR» debe decir "
+        "«REGISTRO DE PREDIOS»"
+    ]
+
+
+def test_el_conyuge_no_se_queda_con_el_dni_de_quien_comparece():
+    texto = (
+        "COMPARECEN: DON ALBERTO FICTICIO RAMOS.- CASADO CON DOÑA BEATRIZ INVENTADA "
+        "SOTO, IDENTIFICADO CON DOCUMENTO NACIONAL DE IDENTIDAD NUMERO 90000001, "
+        "DOMICILIADO EN LIMA."
+    )
+
+    assert ("BEATRIZ INVENTADA SOTO", "90000001") not in _asignados(texto)
+
+
+def test_con_el_compareciente_en_la_linea_el_dni_es_suyo():
+    texto = (
+        "DON ALBERTO FICTICIO RAMOS, DE NACIONALIDAD PERUANA, CASADO CON DOÑA BEATRIZ "
+        "INVENTADA SOTO, IDENTIFICADO CON DOCUMENTO NACIONAL DE IDENTIDAD NUMERO "
+        "90000001, DOMICILIADO EN LIMA."
+    )
+
+    asignados = _asignados(texto)
+
+    assert ("ALBERTO FICTICIO RAMOS", "90000001") in asignados
+    assert ("BEATRIZ INVENTADA SOTO", "90000001") not in asignados
+
+
+def test_el_conyuge_que_comparece_conserva_su_propio_dni():
+    texto = (
+        "DOÑA BEATRIZ INVENTADA SOTO, DE NACIONALIDAD PERUANA, CASADA CON DON ALBERTO "
+        "FICTICIO RAMOS, IDENTIFICADA CON DOCUMENTO NACIONAL DE IDENTIDAD NUMERO "
+        "90000002, DOMICILIADA EN LIMA."
+    )
+
+    asignados = _asignados(texto)
+
+    assert ("BEATRIZ INVENTADA SOTO", "90000002") in asignados
+    assert ("ALBERTO FICTICIO RAMOS", "90000002") not in asignados

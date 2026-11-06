@@ -3,23 +3,24 @@ Zona de carga con el diseño de siempre y la carga continua de F34: cada
 archivo se envía al elegirlo o soltarlo, sin recargar la página. Sin
 JavaScript se oculta (x-cloak) y queda la zona clásica de _zona_carga.html.
 {% endcomment %}
-<section class="zona" aria-label="{{ zona.titulo }}" x-cloak>
+<section class="panel zona" aria-label="{{ zona.titulo }}" x-cloak>
   <div class="zona-cab">
     <div>
-      <h3>{{ zona.titulo }}</h3>
+      <h3>{% if zona.rol == "BORRADOR" %}Borrador a confrontar{% else %}{{ zona.titulo }}{% endif %}</h3>
       <p>{{ zona.descripcion }}</p>
     </div>
-    <span class="chip chip-etiqueta">Obligatorio</span>
+    <span class="zona-resumen" :data-tono="tonoGrupo('{{ zona.rol }}')" x-text="resumenGrupo('{{ zona.rol }}')">Obligatorio</span>
   </div>
   <ul class="archivos" aria-label="Archivos de {{ zona.titulo }}" x-show="delRol('{{ zona.rol }}').length || cargasDelRol('{{ zona.rol }}').length">
     <template x-for="d in delRol('{{ zona.rol }}')" :key="d.id">
       <li class="archivo" :data-estado="d.estado">
-        <svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>
+        <svg class="ico" :class="d.estado === 'PROCESANDO' && 'ico-gira'" aria-hidden="true"><use :href="iconosDocumento[d.estado]"/></svg>
         <div class="archivo-texto">
           <span class="archivo-nombre" :title="d.nombre" x-text="d.nombre || 'Documento recibido en otra sesión'"></span>
-          <span class="archivo-nota" x-show="d.estado === 'ERROR'">Motivo: no se pudo procesar el archivo. Elimine el documento y vuelva a subirlo.</span>
+          <span class="archivo-nota archivo-nota-viva" x-text="notaDocumento(d)"></span>
         </div>
         <span class="chip" :data-estado="d.estado" x-text="etiquetas[d.estado]"></span>
+        <button type="button" class="btn btn-sm btn-primario" x-show="d.estado === 'ERROR'" @click="volverASubir(d, $el)"><svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg>Volver a subir</button>
         <button type="button" class="btn-quitar" @click="quitar(d.id)" title="Eliminar documento" :aria-label="'Eliminar ' + (d.nombre || 'documento')"><svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg></button>
       </li>
     </template>
@@ -43,7 +44,7 @@ JavaScript se oculta (x-cloak) y queda la zona clásica de _zona_carga.html.
       <span class="zona-titulo">{% if zona.rol == "BORRADOR" %}<strong>Adjuntar borrador</strong> · Word (.docx) admite corrección automática{% else %}<strong>Adjuntar {{ zona.titulo|lower }}</strong> · arrastre archivos aquí o pulse para elegir{% endif %}</span>
       <span class="zona-ayuda">Formatos: {{ formatos_admitidos }} · máximo {{ max_file_size_mb|floatformat:0 }} MB por archivo</span>
     </span>
-    <input type="file" multiple aria-label="Adjuntar {{ zona.titulo|lower }}" @change="seleccionar($event, '{{ zona.rol }}')">
+    <input type="file" multiple aria-label="Adjuntar {{ zona.titulo|lower }}" @change="seleccionar($event, '{{ zona.rol }}')" @cancel="reemplazar = null">
   </div>
 </section>
 <noscript>{% include "expedientes/_zona_carga.html" %}</noscript>

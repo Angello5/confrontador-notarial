@@ -409,3 +409,98 @@ def test_concordancia_ignora_sujeto_lejano_del_verbo():
         ("declara", "VERB", "ROOT", {"Number": "Sing", "VerbForm": "Fin"}, None),
     )
     assert s.concordancias(tokens) == []
+
+
+# --- F69: falsas alarmas por oraciones cortadas ----------------------------------------
+def test_f69_esta_en_tolera_la_puntuacion_pegada_al_corte():
+    doc = s.comparable("GIRADO POR EXPRESA INSTRUCCION DE EL MUTUATARIO DEL CONTRATO")
+    assert s.esta_en("GIRADO POR EXPRESA INSTRUCCION DE EL.", doc)
+    doc = s.comparable("LA EMPRESA FICTICIA S.A.C., IDENTIFICADA CON RUC EN LIMA")
+    assert s.esta_en(", IDENTIFICADA CON RUC EN LIMA", doc)
+
+
+def test_f69_esta_en_tolera_una_cifra_suelta():
+    # Las cifras las juzgan las reglas, no esta capa.
+    doc = s.comparable("LA PENALIDAD ES DE DOSCIENTOS POR CADA 1 DIA DE ATRASO")
+    assert s.esta_en("LA PENALIDAD ES DE DOSCIENTOS POR CADA DIA DE ATRASO", doc)
+    doc = s.comparable("LA PENALIDAD ES DE DOSCIENTOS POR CADA DIA DE ATRASO")
+    assert s.esta_en("LA PENALIDAD ES DE DOSCIENTOS POR CADA 1", doc)
+
+
+def test_f69_esta_en_tolera_una_letra_suelta_de_lectura():
+    doc = s.comparable("EL BIEN ESTA LIBRE DE CARGAS Y GRAVAMENES EN LIMA")
+    assert s.esta_en("EL BIEN ESTA LIBRE L DE CARGAS Y GRAVAMENES", doc)
+
+
+def test_f69_esta_en_no_pierde_los_cambios_reales():
+    doc = s.comparable(
+        "EL VENDEDOR SE OBLIGA A ENTREGAR EL BIEN A LA FIRMA DE LA ESCRITURA"
+    )
+    # palabra quitada, en medio
+    assert not s.esta_en("EL VENDEDOR NO SE OBLIGA A ENTREGAR EL BIEN", doc)
+    # última palabra cambiada, aunque esté en el borde del corte
+    assert not s.esta_en("EL VENDEDOR SE OBLIGA A ENTREGAR EL COMPRADOR", doc)
+    # primera palabra cambiada
+    assert not s.esta_en("COMPRADOR SE OBLIGA A ENTREGAR EL BIEN", doc)
+    # conjunción: una letra suelta que sí cambia el sentido
+    doc = s.comparable("PAGARA EN EFECTIVO O CON CHEQUE DE GERENCIA EN LIMA")
+    assert not s.esta_en("PAGARA EN EFECTIVO Y CON CHEQUE DE GERENCIA", doc)
+    # varias palabras en medio
+    doc = s.comparable("LA SUMA SE ENTREGA MEDIANTE CHEQUE A LA FIRMA")
+    assert not s.esta_en(
+        "LA SUMA SE ENTREGA CON GARANTIA HIPOTECARIA MEDIANTE CHEQUE", doc
+    )
+
+
+def test_f69_tramos_muestran_solo_lo_que_cambia():
+    largo = "UNA DOS TRES CUATRO CINCO SEIS SIETE OCHO NUEVE DIEZ ONCE DOCE "
+    minuta = largo + "EL VENDEDOR NO SE OBLIGA A ENTREGAR " + largo
+    proyecto = largo + "EL VENDEDOR SE OBLIGA A ENTREGAR " + largo
+    tramos_m, tramos_p = s.tramos_de_cambio(minuta, proyecto)
+    assert [t for t, distinto in tramos_m if distinto] == ["NO"]
+    assert [t for t, distinto in tramos_p if distinto] == []
+    visible = "".join(t for t, _ in tramos_m)
+    assert visible.startswith("… ")
+    assert visible.endswith(" …")
+    assert "EL VENDEDOR NO SE OBLIGA" in visible
+    assert len(visible.split()) < len(minuta.split()) / 2
+
+
+def test_f69_tramos_no_resaltan_cifras_ni_letras_mal_leidas():
+    tramos_m, tramos_p = s.tramos_de_cambio(
+        "LA PENALIDAD POR CADA 1 DIA EI VENDEDOR PAGARA",
+        "LA PENALIDAD POR CADA DIA EL VENDEDOR PAGARA.",
+    )
+    assert not [t for t, distinto in tramos_m if distinto]
+    assert not [t for t, distinto in tramos_p if distinto]
+
+
+def test_f69_tramos_sin_minuta_recorta_el_proyecto():
+    largo = " ".join(f"PALABRA{i}" for i in range(60))
+    tramos_m, tramos_p = s.tramos_de_cambio("", largo)
+    assert tramos_m == []
+    assert "".join(t for t, _ in tramos_p).endswith(" …")
+    assert len("".join(t for t, _ in tramos_p).split()) <= 31
+
+
+def test_f69_tramos_no_resaltan_lo_anterior_a_un_corte_con_signo():
+    tramos_m, tramos_p = s.tramos_de_cambio(
+        "LA EMPRESA FICTICIA DE LIMA, IDENTIFICADA CON RUC EN LA CIUDAD DE TRUJILLO",
+        ", IDENTIFICADA CON RUC EN LA CIUDAD DE TRUJILLO",
+    )
+    assert not [t for t, distinto in tramos_m if distinto]
+    assert not [t for t, distinto in tramos_p if distinto]
+
+
+def test_f69_tramos_resaltan_lo_agregado_al_final_si_no_hay_otra_diferencia():
+    base = "EL PAGO SE HARA MEDIANTE CHEQUE DE GERENCIA"
+    tramos_m, tramos_p = s.tramos_de_cambio(base, base + " NO NEGOCIABLE")
+    assert [t for t, distinto in tramos_p if distinto] == ["NO NEGOCIABLE"]
+    assert not [t for t, distinto in tramos_m if distinto]
+    # Con otra diferencia en medio, lo del borde se toma como otro corte.
+    tramos_m, tramos_p = s.tramos_de_cambio(
+        "EL VENDEDOR NO PAGARA LOS GASTOS DE LA ESCRITURA",
+        "EL VENDEDOR PAGARA LOS GASTOS DE LA ESCRITURA PUBLICA Y SUS TRASLADOS",
+    )
+    assert [t for t, distinto in tramos_m if distinto] == ["NO"]
+    assert not [t for t, distinto in tramos_p if distinto]

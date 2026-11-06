@@ -63,7 +63,8 @@ def test_riel_nombra_el_primer_paso_como_su_zona(
     client.force_login(administrador_ficticio)
 
     contenido = client.get(reverse("expediente_detalle", args=[expediente.pk]))
-    assert f"<li>{primer_paso}</li><li>Borrador</li>" in contenido.content.decode()
+    # F73: cada paso lleva su detalle en la columna de estado.
+    assert f"<li>{primer_paso}<small" in contenido.content.decode()
 
 
 def test_inicio_no_marca_ningun_tipo(client, administrador_ficticio):

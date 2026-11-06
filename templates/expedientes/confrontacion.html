@@ -8,9 +8,49 @@
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Confrontación</li>
 </ol>{% endblock %}
+{% block shell_clase %} shell-iconos{% endblock %}
 {% block cabecera %}{% endblock %}
 {% block content %}
 <div class="pila" x-data="revisionConfrontacion()" x-init="iniciar()" @keydown.window="teclado($event)">
+  {% if resultado.estado == "RESULTADO" %}
+  {# F73: un solo encabezado con el kardex, el resumen, los filtros y las acciones (propuesta 4a). #}
+  <section class="panel resultado-cab" aria-labelledby="resultado-titulo">
+    <div class="resultado-datos">
+      <p class="eyebrow">Resultado de la confrontación</p>
+      <div class="resultado-titulo">
+        <h1>{{ expediente.codigo }}</h1>
+        <span class="cabecera-meta"><span><svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>{{ borrador.nombre_original }}</span></span>
+      </div>
+      <output class="resultado-resumen" aria-live="polite">
+        {% if resultado.personas or resultado.regla or resultado.ortografia %}
+          <strong id="resultado-titulo" data-tono="alerta"><span x-text="obs.length"></span> observaciones para revisar</strong> · {{ resultado.extraccion.personas|length }} persona{{ resultado.extraccion.personas|length|pluralize }} con ficha{% if resultado.correcciones %} · {{ resultado.correcciones|length }} correccion{{ resultado.correcciones|length|pluralize:"es" }} propuesta{{ resultado.correcciones|length|pluralize }}{% endif %}
+        {% else %}
+          <strong id="resultado-titulo" data-tono="exito">Sin observaciones</strong> · {% if resultado.calidad_lectura %}No se encontraron observaciones en el texto leído. Revise los avisos de calidad.{% else %}No se encontraron observaciones en los datos detectados.{% endif %}
+        {% endif %}
+      </output>
+    </div>
+    <div class="resumen-sev" role="group" aria-label="Filtrar por severidad">
+      <button type="button" class="sev-filtro" data-sev="ALTA" :aria-pressed="sev === 'ALTA'" @click="sev = sev === 'ALTA' ? 'TODAS' : 'ALTA'">
+        <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg><span class="sev-pref">Severidad </span>alta</span>
+        <span class="sev-filtro-num" x-text="contarSev('ALTA')">0</span>
+      </button>
+      <button type="button" class="sev-filtro" data-sev="MEDIA" :aria-pressed="sev === 'MEDIA'" @click="sev = sev === 'MEDIA' ? 'TODAS' : 'MEDIA'">
+        <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg><span class="sev-pref">Severidad </span>media</span>
+        <span class="sev-filtro-num" x-text="contarSev('MEDIA')">0</span>
+      </button>
+      <button type="button" class="sev-filtro" data-sev="BAJA" :aria-pressed="sev === 'BAJA'" @click="sev = sev === 'BAJA' ? 'TODAS' : 'BAJA'">
+        <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span class="sev-pref">Severidad </span>baja</span>
+        <span class="sev-filtro-num" x-text="contarSev('BAJA')">0</span>
+      </button>
+    </div>
+    <div class="acciones resultado-acciones">
+      <a class="btn btn-icono" href="{% url 'expediente_historial' expediente.pk %}" title="Historial" aria-label="Historial"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg></a>
+      <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver {% if expediente.tipo == "VEHICULAR" %}a la TV{% else %}al kardex{% endif %}</a>
+      <button type="button" class="btn btn-borde-navy" @click="abrirVista()"><svg class="ico" aria-hidden="true"><use href="#i-file-search"/></svg>Vista previa del informe</button>
+      <button type="button" class="btn btn-primario" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar informe</button>
+    </div>
+  </section>
+  {% else %}
   <div class="cabecera">
     <div class="cabecera-texto">
       <p class="eyebrow">Resultado de la confrontación</p>
@@ -22,14 +62,12 @@
     <div class="acciones">
       <a class="btn" href="{% url 'expediente_historial' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-history"/></svg>Historial</a>
       <a class="btn" href="{% url 'expediente_detalle' expediente.pk %}"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg>Volver {% if expediente.tipo == "VEHICULAR" %}a la TV{% else %}al kardex{% endif %}</a>
-      {% if resultado.estado == "RESULTADO" %}
-        <button type="button" class="btn btn-primario" @click="modal = 'reporte'"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>Descargar informe</button>
-      {% endif %}
     </div>
   </div>
+  {% endif %}
 
-  {% include "expedientes/_calidad_lectura.html" %}
-  {% include "expedientes/_volver_a_subir.html" %}
+  {% include "expedientes/_calidad_lectura.html" with compacto=True %}
+  {% include "expedientes/_volver_a_subir.html" with compacto=True %}
   {% if resultado.estado == "ADVERTENCIA_CORRESPONDENCIA" %}
     <section class="aviso aviso-grande" data-tono="advertencia" role="alert" aria-live="polite">
       <svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg>
@@ -60,39 +98,6 @@
     </section>
   {% elif resultado.estado == "RESULTADO" %}
 
-    {# ── Resumen y filtro por severidad ── #}
-    <section class="panel resumen" aria-labelledby="resultado-titulo">
-      <div class="resumen-total" role="status" aria-live="polite">
-        {% if resultado.personas or resultado.regla or resultado.ortografia %}
-          <span class="resumen-ico"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg></span>
-          <div>
-            <strong id="resultado-titulo"><span x-text="obs.length"></span> observaciones para revisar</strong>
-            <span>{{ resultado.extraccion.personas|length }} persona{{ resultado.extraccion.personas|length|pluralize }} con ficha{% if resultado.correcciones %} · {{ resultado.correcciones|length }} correccion{{ resultado.correcciones|length|pluralize:"es" }} propuesta{{ resultado.correcciones|length|pluralize }}{% endif %}</span>
-          </div>
-        {% else %}
-          <span class="resumen-ico" data-tono="exito"><svg class="ico" aria-hidden="true"><use href="#i-circle-check"/></svg></span>
-          <div>
-            <strong id="resultado-titulo">Sin observaciones</strong>
-            <span>{% if resultado.calidad_lectura %}No se encontraron observaciones en el texto leído. Revise los avisos de calidad.{% else %}No se encontraron observaciones en los datos detectados.{% endif %}</span>
-          </div>
-        {% endif %}
-      </div>
-      <div class="resumen-sev" role="group" aria-label="Filtrar por severidad">
-        <button type="button" class="sev-filtro" data-sev="ALTA" :aria-pressed="sev === 'ALTA'" @click="sev = sev === 'ALTA' ? 'TODAS' : 'ALTA'">
-          <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-triangle-alert"/></svg><span class="sev-pref">Severidad </span>alta</span>
-          <span class="sev-filtro-num" x-text="contarSev('ALTA')">0</span>
-        </button>
-        <button type="button" class="sev-filtro" data-sev="MEDIA" :aria-pressed="sev === 'MEDIA'" @click="sev = sev === 'MEDIA' ? 'TODAS' : 'MEDIA'">
-          <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg><span class="sev-pref">Severidad </span>media</span>
-          <span class="sev-filtro-num" x-text="contarSev('MEDIA')">0</span>
-        </button>
-        <button type="button" class="sev-filtro" data-sev="BAJA" :aria-pressed="sev === 'BAJA'" @click="sev = sev === 'BAJA' ? 'TODAS' : 'BAJA'">
-          <span class="sev-filtro-etiqueta"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span class="sev-pref">Severidad </span>baja</span>
-          <span class="sev-filtro-num" x-text="contarSev('BAJA')">0</span>
-        </button>
-      </div>
-    </section>
-
     {% if resultado.linguistico_aviso %}
       <div class="aviso" role="status">
         <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
@@ -101,50 +106,59 @@
     {% endif %}
 
     {% if resultado.personas or resultado.regla or resultado.ortografia %}
-    {# ── F56: una sola lista, «Todas»; cada ítem lleva su capa y el filtro es por severidad ── #}
-    <div class="capas">
-      <h2 class="capa">Todas<span class="capa-num" x-text="visibles.length"></span></h2>
-      <span class="atajos" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd>recorrer observaciones</span>
+    {# ── F73: en pantallas estrechas, una pestaña para cada panel ── #}
+    <div class="revision-pestanas" role="tablist" aria-label="Vista">
+      <button type="button" role="tab" :aria-selected="(pestana === 'borrador').toString()" @click="verBorrador()">Borrador</button>
+      <button type="button" role="tab" :aria-selected="(pestana === 'obs').toString()" @click="pestana = 'obs'">Observaciones (<span x-text="visibles.length"></span>)</button>
     </div>
 
-    {# ── F65: vista del documento + lista; sin panel de detalle ── #}
-    <div class="revision revision-documento">
+    {# ── F65: vista del documento + lista. F73: el detalle se despliega en la fila ── #}
+    <div class="revision revision-documento" :data-pestana="pestana">
       {% include "expedientes/_vista_borrador.html" %}
       <div class="revision-lateral">
-      <section class="panel obs-panel" aria-label="Observaciones">
+      <section class="panel obs-panel" aria-labelledby="obs-titulo">
+        <div class="obs-panel-cab">
+          <h2 id="obs-titulo" class="obs-panel-titulo">Observaciones<span class="capa-num" x-text="visibles.length"></span></h2>
+          <span class="atajos" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd>recorrer</span>
+        </div>
         <ul class="obs-lista" x-ref="lista">
           {% for observacion in resultado.personas %}
             <li data-id="p{{ forloop.counter }}" data-capa="IDENTIDAD" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="Documento de identidad" data-titulo="{{ observacion.nombre }}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-persona="{{ observacion.nombre }}" data-procedencia="{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
-              <button type="button" class="obs-item" :aria-current="sel === 'p{{ forloop.counter }}'" @click="elegir('p{{ forloop.counter }}')">
+              <button type="button" class="obs-item" :aria-current="sel === 'p{{ forloop.counter }}'" :aria-expanded="(sel === 'p{{ forloop.counter }}').toString()" @click="elegir('p{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">Generales de ley</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.nombre }}</strong>
                 {% include "expedientes/_obs_cambio.html" with hallado=observacion.hallado esperado=observacion.esperado %}
-                {% if observacion.procedencias %}<span class="obs-l obs-fuente">{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}</span>{% endif %}
               </button>
-              {% include "expedientes/_obs_correccion.html" with prefijo="p" numero=forloop.counter %}
-              <div class="obs-fragmento" x-show="sel === 'p{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}</div>
+              <div class="obs-abierta" x-show="sel === 'p{{ forloop.counter }}'" x-cloak>
+                {% if observacion.motivo %}<p class="obs-motivo">{{ observacion.motivo }}</p>{% endif %}
+                {% if observacion.procedencias %}<dl class="obs-datos"><dt>Fuente</dt><dd>{% for procedencia in observacion.procedencias %}{{ procedencia.archivo }}, página {{ procedencia.pagina }}{% if not forloop.last %}; {% endif %}{% endfor %}</dd></dl>{% endif %}
+                {% include "expedientes/_obs_detalle.html" with prefijo="p" numero=forloop.counter %}
+              </div>
             </li>
           {% endfor %}
           {% for observacion in resultado.regla %}
-            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" data-sugerencia="{{ observacion.aviso.sugerencia|default:'' }}" x-show="visible($el.dataset)">
-              <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
+            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-sugerencia="{{ observacion.aviso.sugerencia|default:'' }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+              <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" :aria-expanded="(sel === 'r{{ forloop.counter }}').toString()" @click="elegir('r{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %}</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
                 {% include "expedientes/_obs_cambio.html" with hallado=observacion.hallado esperado=observacion.esperado %}
-                {% if observacion.motivo %}<span class="obs-l obs-fuente">{{ observacion.motivo }}</span>{% endif %}
               </button>
-              {% include "expedientes/_obs_correccion.html" with prefijo="r" numero=forloop.counter %}
-              <div class="obs-fragmento" x-show="sel === 'r{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.hallado %}</div>
+              <div class="obs-abierta" x-show="sel === 'r{{ forloop.counter }}'" x-cloak>
+                {% if observacion.motivo %}<p class="obs-motivo">{{ observacion.motivo }}</p>{% endif %}
+                {% include "expedientes/_obs_detalle.html" with prefijo="r" numero=forloop.counter %}
+              </div>
             </li>
           {% endfor %}
           {% for observacion in resultado.ortografia %}
             <li data-id="o{{ forloop.counter }}" data-capa="LINGUISTICO" data-sev="BAJA" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{{ observacion.motivo }}" data-titulo="«{{ observacion.palabra }}»" data-hallado="{{ observacion.palabra }}" data-esperado="{{ observacion.sugerencia|default:'' }}" data-persona="" data-procedencia="" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
-              <button type="button" class="obs-item" :aria-current="sel === 'o{{ forloop.counter }}'" @click="elegir('o{{ forloop.counter }}')">
+              <button type="button" class="obs-item" :aria-current="sel === 'o{{ forloop.counter }}'" :aria-expanded="(sel === 'o{{ forloop.counter }}').toString()" @click="elegir('o{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado="BAJA" texto="Baja" clase="sev" %}<span class="obs-capa">Lingüístico</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{{ observacion.motivo|capfirst }}</strong>
                 {% include "expedientes/_obs_cambio.html" with hallado=observacion.palabra esperado=observacion.sugerencia dice="Texto" debe="Sugerencia" %}
               </button>
-              <div class="obs-fragmento" x-show="sel === 'o{{ forloop.counter }}'" x-cloak>{% include "expedientes/_obs_borrador.html" with ubicacion=observacion.ubicacion marcar=observacion.palabra %}</div>
+              <div class="obs-abierta" x-show="sel === 'o{{ forloop.counter }}'" x-cloak>
+                {% include "expedientes/_obs_detalle.html" with prefijo="o" numero=forloop.counter solo_informa=True %}
+              </div>
             </li>
           {% endfor %}
         </ul>
@@ -301,7 +315,7 @@
             {# F48: una fila por observación (el total del resumen); las propuestas solo son datos. #}
             <ul hidden>
               {% for correccion in resultado.correcciones %}
-                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}" data-fuente="{{ correccion.fuente.archivo }}{% if correccion.fuente.pagina %}, página {{ correccion.fuente.pagina }}{% endif %}"></li>
+                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{% if correccion.apariciones != None %}{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}{% endif %}" data-fuente="{{ correccion.fuente.archivo }}{% if correccion.fuente.pagina %}, página {{ correccion.fuente.pagina }}{% endif %}"></li>
               {% endfor %}
             </ul>
             <ul class="lista-cambios">
@@ -328,6 +342,44 @@
 
     {% if resultado.correcciones and resultado.corregible %}{% include "expedientes/_modal_aplicando.html" %}{% endif %}
 
+    {# ── F73: vista previa del informe (propuesta 3a) ── #}
+    <div class="modal-fondo" x-show="modal === 'vista'" x-cloak @click.self="modal = null" @keydown.escape="modal = null">
+      <dialog class="modal modal-vista" open data-tono="exito" aria-modal="true" aria-labelledby="vista-titulo">
+        <div class="modal-cab vista-cab">
+          <div>
+            <h2 id="vista-titulo">Vista previa del informe</h2>
+            <p>{{ expediente.codigo }} · {{ borrador.nombre_original }} · Word (.docx)</p>
+          </div>
+          <button type="button" class="modal-cerrar" aria-label="Cerrar vista previa" @click="modal = null"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="vista-cuerpo">
+          <div class="vista-opciones">
+            {% include "expedientes/_reporte_contenido.html" %}
+            <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El informe registra {% if expediente.tipo == "VEHICULAR" %}TV{% else %}kardex{% endif %}, borrador, confrontación, usuario y fecha de emisión.</span></p>
+            <p class="texto-chico texto-suave">Para PDF o Excel use «Descargar informe».</p>
+          </div>
+          <div class="vista-hoja">
+            <div class="aviso" data-tono="peligro" role="alert" x-show="vistaError" x-cloak>
+              <svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg>
+              <div class="aviso-texto">
+                <strong>No se pudo preparar la vista previa</strong>
+                <span>El informe se puede descargar igualmente. Si el problema persiste, avise al administrador.</span>
+                <div><button type="button" class="btn btn-sm" @click="prepararVista()"><svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg>Reintentar</button></div>
+              </div>
+            </div>
+            <p class="vista-vacia" x-show="!vistaError && vistaVacia" x-cloak>No hay secciones seleccionadas. Marque al menos una para generar el informe.</p>
+            <article class="vista-informe" aria-label="Informe" x-ref="informe" x-show="!vistaError && !vistaVacia"></article>
+            <p class="vista-nota" x-show="!vistaError && !vistaVacia"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span>Mismos datos que el informe. El diseño y la paginación pueden variar al abrirlo en Word.</span></p>
+          </div>
+        </div>
+        <p class="aviso aviso-margen" role="alert" x-show="errorReporte" x-text="errorReporte" x-cloak></p>
+        <div class="modal-pie">
+          <button type="button" class="btn" @click="modal = null">Cerrar</button>
+          <button type="button" class="btn btn-primario" :disabled="generando || vistaVacia" @click="descargarWord()"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span x-text="generando ? 'Generando…' : 'Descargar Word'">Descargar Word</span></button>
+        </div>
+      </dialog>
+    </div>
+
     {# ── Modal: reporte ── #}
     <div class="modal-fondo" x-show="modal === 'reporte'" x-cloak @click.self="modal = null" @keydown.escape="modal = null">
       <div class="modal modal-ancho" data-tono="exito" role="dialog" aria-modal="true" aria-labelledby="reporte-titulo">
@@ -348,15 +400,7 @@
             </div>
           </fieldset>
           <p class="aviso" role="alert" x-show="errorReporte" x-text="errorReporte" x-cloak></p>
-          <fieldset class="opciones-reporte">
-            <legend>Contenido</legend>
-            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.IDENTIDAD"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Generales de ley</span><em x-text="contarCapa('IDENTIDAD')"></em></label>
-            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.REGLA"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones de regla</span><em x-text="contarCapa('REGLA')"></em></label>
-            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.LINGUISTICO"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones lingüísticas</span><em x-text="contarCapa('LINGUISTICO')"></em></label>
-            <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.CORRECCIONES"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Correcciones propuestas</span><em x-text="correcciones.length"></em></label>
-            {% if sentido.estado == "LISTO" %}<label class="casilla casilla-chica"><input type="checkbox" x-model="rep.SENTIDO"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Sentido frente a la minuta</span><em>{{ sentido.anotaciones|length }}</em></label>{% endif %}
-            <label class="casilla casilla-chica" x-show="rep.fmt !== 'EXCEL'"><input type="checkbox" x-model="rep.EXTRACCION"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Personas extraídas y procedencia</span><em>{{ resultado.extraccion.personas|length }}</em></label>
-          </fieldset>
+          {% include "expedientes/_reporte_contenido.html" %}
           <p class="nota-seguridad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg><span>El informe registra {% if expediente.tipo == "VEHICULAR" %}TV{% else %}kardex{% endif %}, borrador, confrontación, usuario y fecha de emisión.</span></p>
         </div>
         <div class="modal-pie">
@@ -536,19 +580,6 @@
     const SEV_TEXTO = { ALTA: 'alta', MEDIA: 'media', BAJA: 'baja' };
     const cruzan = (a, b) => a.pagina === b.pagina && a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
     const normal = (texto) => String(texto || '').toUpperCase().replace(/\s+/g, ' ').trim();
-    const marcar = (el) => {
-      const buscado = el.dataset.marcar;
-      const texto = el.textContent;
-      if (!buscado) return;
-      const tienePosicion = el.dataset.inicio !== undefined && el.dataset.inicio !== '' && el.dataset.fin !== undefined && el.dataset.fin !== '';
-      const i = tienePosicion ? Number(el.dataset.inicio) : texto.toUpperCase().indexOf(buscado.toUpperCase());
-      const fin = tienePosicion ? Number(el.dataset.fin) : i + buscado.length;
-      if (!Number.isInteger(i) || !Number.isInteger(fin) || fin <= i || fin > texto.length) return;
-      if (i < 0) return;
-      const mark = document.createElement('mark');
-      mark.textContent = texto.slice(i, fin);
-      el.replaceChildren(document.createTextNode(texto.slice(0, i)), mark, document.createTextNode(texto.slice(fin)));
-    };
     return {
       ...window.aplicarCorrecciones(),
       sev: 'TODAS', sel: null, modal: null,
@@ -556,6 +587,7 @@
       generando: false, errorReporte: '',
       rep: { fmt: 'WORD', IDENTIDAD: true, REGLA: true, LINGUISTICO: true, CORRECCIONES: true, SENTIDO: true, EXTRACCION: false },
       vista: { ...VISTA_VACIA }, zoom: 'ancho', aparicion: 0, desdeMarca: false,
+      pestana: 'obs', vistaError: false, vistaVacia: false,
       iniciar() {
         const lista = this.$refs.lista;
         if (lista) {
@@ -571,19 +603,20 @@
         this.marcadas = this.correcciones.map((c) => c.id);
         this.obs.forEach((o) => {
           const hallado = normal(o.hallado);
-          const esperado = normal(o.esperado || o.sugerencia);
+          /* F66: las letras mal escritas se corrigen con la sugerencia. */
+          const esperado = normal(o.sugerencia || o.esperado);
           const compatibles = this.correcciones.filter((c) => hallado && esperado &&
             normal(c.erroneo) === hallado && normal(c.correcto) === esperado);
           o.corr = compatibles.length === 1 ? compatibles[0].id : '';
         });
         this.sel = this.visibles[0]?.id || null;
-        this.$el.querySelectorAll('[data-marcar]').forEach(marcar);
         this.$watch('sev', () => this.ajustarSeleccion());
         this.$watch('sel', () => {
           if (this.desdeMarca) { this.desdeMarca = false; return; }
           this.aparicion = 0;
           this.irAMarca();
         });
+        this.$watch('rep', () => { if (this.modal === 'vista') this.prepararVista(); });
         window.addEventListener('afterprint', () => document.body.classList.remove('imprimiendo-reporte'));
         this.cargarVista();
       },
@@ -673,6 +706,36 @@
         caja.scrollBy({ top: d * caja.clientHeight * 0.9 });
         return true;
       },
+      /* F73: la vista previa es una copia del informe imprimible, con las secciones marcadas. */
+      abrirVista() {
+        this.errorReporte = '';
+        this.modal = 'vista';
+        this.prepararVista();
+      },
+      prepararVista() {
+        try {
+          const copia = document.querySelector('.reporte').cloneNode(true);
+          copia.classList.remove('solo-impresion');
+          copia.removeAttribute('aria-hidden');
+          copia.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+          const secciones = [...copia.querySelectorAll('[data-seccion]')];
+          secciones.forEach((s) => { s.hidden = !this.rep[s.dataset.seccion]; });
+          this.vistaVacia = secciones.every((s) => s.hidden);
+          this.$refs.informe.replaceChildren(copia);
+          this.vistaError = false;
+        } catch {
+          this.vistaError = true;
+        }
+      },
+      verBorrador() {
+        this.pestana = 'borrador';
+        this.irAMarca();
+      },
+      get obsElegida() { return this.obs.find((o) => o.id === this.sel) || null; },
+      posicion(id) {
+        const i = this.visibles.findIndex((o) => o.id === id);
+        return i < 0 ? '' : 'Observación ' + (i + 1) + ' de ' + this.visibles.length;
+      },
       visible(d) { return this.sev === 'TODAS' || d.sev === this.sev; },
       get visibles() { return this.obs.filter((o) => this.visible(o)); },
       contarSev(sev) { return this.obs.filter((o) => o.sev === sev).length; },
@@ -708,7 +771,11 @@
          total del resumen. Sin corrección propuesta (F21) la fila queda bloqueada. Una propuesta
          sin observación compatible se lista igual: si no, se registraría como excluida. */
       filasCorreccion() {
-        const filas = this.obs.map((o) => ({ id: o.id, hallado: o.hallado, esperado: o.esperado, aviso: o.aviso, corr: this.corrDe(o.id) }));
+        const filas = this.obs.map((o) => {
+          const corr = this.corrDe(o.id);
+          const corregida = corr && o.sugerencia;
+          return { id: o.id, hallado: o.hallado, esperado: corregida ? o.sugerencia : o.esperado, aviso: corregida ? '' : o.aviso, corr };
+        });
         this.correcciones.filter((c) => !this.obs.some((o) => o.corr === c.id))
           .forEach((c) => filas.push({ id: c.id, hallado: c.erroneo, esperado: c.correcto, corr: c }));
         return filas;

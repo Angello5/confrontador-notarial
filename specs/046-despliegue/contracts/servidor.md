@@ -8,7 +8,7 @@ Archivo `C:\ProgramData\ConfrontadorNotarial\erp.env`, una línea `NOMBRE=valor`
 |---|---|
 | `DJANGO_SECRET_KEY`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_TRUST_SERVER_CERTIFICATE` | Como hoy (F63) |
 | `DJANGO_ALLOWED_HOSTS` | El nombre interno del ERP, por ejemplo `erp.notaria.local` |
-| `ERP_NOMBRE`, `ERP_LOGO`, `ERP_DIRECCION` | Marca de la notaría (F28, F29). El logo vive en `C:\ConfrontadorNotarial\staticfiles\marca\logo.png`, compartido entre versiones (`collectstatic` sin `--clear`), con `ERP_LOGO=/static/marca/logo.png` |
+| `ERP_NOMBRE`, `ERP_LOGO`, `ERP_ICONO`, `ERP_DIRECCION` | Marca de la notaría (F28, F29, F67). El icono de la pestaña es opcional y va junto al logo, en `marca\icono.png`. El logo vive en `C:\ConfrontadorNotarial\staticfiles\marca\logo.png`, compartido entre versiones (`collectstatic` sin `--clear`), con `ERP_LOGO=/static/marca/logo.png` |
 | `EXPEDIENTES_TEMP_DIR`, `EXPEDIENTES_ORIGINALES_DIR` | Como hoy |
 | `ERP_REGISTROS_DIR` | **Nueva.** Carpeta de registros rotados; sin ella, consola |
 | `ERP_ESTADO_DIR` | **Nueva.** Carpeta de los archivos de estado; sin ella, sin avisos |

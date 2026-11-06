@@ -74,9 +74,9 @@ En un kardex real, la representante de una empresa no tenía ficha RENIEC en los
 - El total de observaciones (F48) sigue igual que el resumen: las observaciones se quitan antes de mostrarse.
 - Catálogo de reglas `2026.10.16-15`: las confrontaciones guardadas con el catálogo anterior se recalculan.
 
-### [NEEDS CLARIFICATION]
+### Decisión
 
-- **Quitar la ALTA de documento**: la decisión de F38 («cuando la información del cliente no está en los recaudos, la app diga “Sin ficha RENIEC en los recaudos” como aviso MEDIA») se aplicó solo a la capa de reglas. No menciona `DOCUMENTO_SIN_TITULAR`. Se aplica por defecto a la persona marcada sin ficha, porque es el mismo hecho dicho como error. Falta que el usuario lo confirme.
+- **Quitar la ALTA de documento** (confirmado por el usuario, 2026-10-16): para una persona sin ficha en los recaudos basta el aviso MEDIA «Persona sin ficha»; su «Documento sin titular» (ALTA) no se muestra. Extiende la decisión de F38, que solo hablaba de la capa de reglas.
 
 ### Límites
 

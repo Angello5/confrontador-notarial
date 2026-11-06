@@ -28,48 +28,42 @@
     </div>
   </div>
 
-  {% if not zonas.0.documentos or not vehicular and not zonas.1.documentos %}{% include "core/_riel.html" with actual=1 x_actual="pasoActual" %}
-  {% elif not zona_borrador.documentos %}{% include "core/_riel.html" with actual=2 x_actual="pasoActual" %}
-  {% elif resumen.estado == "LISTO" %}{% include "core/_riel.html" with actual=4 x_actual="pasoActual" %}
-  {% else %}{% include "core/_riel.html" with actual=3 x_actual="pasoActual" %}{% endif %}
+  {% include "expedientes/_volver_a_subir.html" with compacto=True %}
 
-  <section class="aviso" data-tono="{% if resumen.estado == 'VACIO' %}neutro{% elif resumen.estado == 'LISTO' %}exito{% elif resumen.estado == 'ERROR' %}peligro{% endif %}" :data-tono="tonos[estado]" aria-labelledby="estado-expediente">
-    <svg class="ico" :class="estado === 'PROCESANDO' && 'ico-gira'" aria-hidden="true"><use href="#i-info" :href="iconos[estado]"/></svg>
-    <div class="aviso-texto" aria-live="polite">
-      <h2 id="estado-expediente" class="visually-hidden">Estado {% if vehicular %}de la TV{% else %}del kardex{% endif %}</h2>
-      <strong x-show="estado === 'VACIO'">{% if vehicular %}Esta TV{% else %}Este kardex{% endif %} aún no tiene documentos.</strong>
-      <strong x-show="estado === 'PROCESANDO'" x-cloak>Leyendo documentos. Puede seguir adjuntando o salir y volver después.</strong>
-      <strong x-show="estado === 'LISTO'" x-cloak>Todos los documentos están listos.</strong>
-      <strong x-show="estado === 'ERROR'" x-cloak>No se pudo procesar uno o más documentos. Elimine el documento y vuelva a subirlo.</strong>
-      <span><span x-text="resumen.total">{{ resumen.total }}</span> documento(s): <span x-text="resumen.pendientes">{{ resumen.pendientes }}</span> en cola, <span x-text="resumen.procesando">{{ resumen.procesando }}</span> leyendo, <span x-text="resumen.listos">{{ resumen.listos }}</span> listo(s), <span x-text="resumen.errores">{{ resumen.errores }}</span> con error.</span>
-      <span x-show="mensaje" x-text="mensaje" x-cloak></span>
-    </div>
-  </section>
-  {% include "expedientes/_volver_a_subir.html" %}
-
-  <div class="rejilla-detalle">
-    <section class="panel" aria-labelledby="fuentes-titulo">
-      <div class="panel-cab">
-        <div>
-          <h2 id="fuentes-titulo">{% if vehicular %}Información de la transferencia{% else %}Documentos del kardex{% endif %}</h2>
-          <p>{% if vehicular %}Boleta informativa, DNI y cheques con los que se revisará el acta.{% else %}Minuta y recaudos con los que se revisará el proyecto.{% endif %}</p>
-        </div>
-      </div>
+  {# F73: cada grupo en su sección y, fija, qué pasa y qué hacer (propuesta 2b). #}
+  <div class="rejilla-paso">
+    <div class="pila">
+      <h2 class="visually-hidden">{% if vehicular %}Información de la transferencia{% else %}Documentos del kardex{% endif %}</h2>
       {% for zona in zonas_fuente %}
         {% include "expedientes/_zona_continua.html" %}
       {% endfor %}
-    </section>
-
-    <section class="panel panel-columna" aria-labelledby="borrador-titulo">
-      <div class="panel-cab">
-        <div>
-          <h2 id="borrador-titulo">Borrador a confrontar</h2>
-          <p>El documento elaborado que se comparará con {% if vehicular %}la información{% else %}los recaudos{% endif %}.</p>
-        </div>
-      </div>
       {% with zona=zona_borrador %}
         {% include "expedientes/_zona_continua.html" %}
       {% endwith %}
+    </div>
+
+    <aside class="panel paso-lateral" aria-labelledby="estado-expediente">
+      <div class="paso-cab">
+        <p class="eyebrow">Estado {% if vehicular %}de la TV{% else %}del kardex{% endif %}</p>
+        <h2 id="estado-expediente">
+          <span x-show="estado === 'VACIO'">{% if vehicular %}Esta TV{% else %}Este kardex{% endif %} aún no tiene documentos.</span>
+          <span x-show="estado === 'PROCESANDO'" x-cloak>Leyendo documentos</span>
+          <span x-show="estado === 'LISTO'" x-cloak>Todos los documentos están listos</span>
+          <span x-show="estado === 'ERROR'" x-cloak x-text="resumen.errores === 1 ? 'Un documento necesita atención' : resumen.errores + ' documentos necesitan atención'"></span>
+        </h2>
+      </div>
+      {% if not zonas.0.documentos or not vehicular and not zonas.1.documentos %}{% include "core/_riel.html" with actual=1 x_actual="pasoActual" %}
+      {% elif not zona_borrador.documentos %}{% include "core/_riel.html" with actual=2 x_actual="pasoActual" %}
+      {% elif resumen.estado == "LISTO" %}{% include "core/_riel.html" with actual=4 x_actual="pasoActual" %}
+      {% else %}{% include "core/_riel.html" with actual=3 x_actual="pasoActual" %}{% endif %}
+      <div class="aviso paso-aviso" data-tono="{% if resumen.estado == 'VACIO' %}neutro{% elif resumen.estado == 'LISTO' %}exito{% elif resumen.estado == 'ERROR' %}peligro{% endif %}" :data-tono="tonos[estado]">
+        <svg class="ico" :class="estado === 'PROCESANDO' && 'ico-gira'" aria-hidden="true"><use href="#i-info" :href="iconos[estado]"/></svg>
+        <div class="aviso-texto" aria-live="polite">
+          <strong>¿Qué debe hacer?</strong>
+          <span x-text="queHacer"></span>
+          <span x-show="mensaje" x-text="mensaje" x-cloak></span>
+        </div>
+      </div>
       <div class="confrontar" aria-label="Confrontación">
         <template x-for="b in delRol('BORRADOR')" :key="b.id">
           <div class="pila pila-chica">
@@ -78,7 +72,7 @@
             <button x-show="enCurso(b.id)" class="btn btn-lg btn-bloque" type="button" disabled><svg class="ico ico-gira" aria-hidden="true"><use href="#i-loader"/></svg><span x-text="intencion === b.id ? 'Esperando la carga…' : 'Confrontando…'"></span></button>
             <button x-show="!enCurso(b.id) && (!estadoDe(b.id).resultado_listo || pendientes || fallidas)" class="btn btn-primario btn-lg btn-bloque" type="button" :disabled="enviandoSolicitud || (!pendientes && !estadoDe(b.id).puede_solicitar)" @click="confrontar(b.id)">Confrontar borrador</button>
             <button x-show="enCurso(b.id)" class="btn btn-bloque" type="button" @click="cancelar(b.id)"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>Cancelar confrontación</button>
-            <p class="texto-chico texto-suave" role="status" x-text="estadoDe(b.id).mensaje || etapas[estadoDe(b.id).etapa] || ''"></p>
+            <output class="texto-chico texto-suave" x-text="motivoBoton(b.id)"></output>
           </div>
         </template>
         <div class="pila pila-chica" x-show="!delRol('BORRADOR').length">
@@ -87,7 +81,7 @@
         </div>
         <noscript>{% for borrador in borradores %}<p>{{ borrador.nombre_original }} · {{ borrador.confrontacion_estado.mensaje }}</p>{% if borrador.confrontacion_estado.resultado_listo %}<a class="btn btn-primario btn-bloque" href="{% url 'documento_resultado' expediente.pk borrador.pk %}">Ver resultado</a>{% else %}<form method="post" action="{% url 'documento_confrontar' expediente.pk borrador.pk %}">{% csrf_token %}<button class="btn btn-primario btn-bloque" type="submit" {% if not borrador.confrontacion_estado.puede_solicitar %}disabled{% endif %}>Confrontar borrador</button></form>{% endif %}{% if borrador.confrontacion_estado.solicitada %}<form method="post" action="{% url 'documento_cancelar_confrontacion' expediente.pk borrador.pk %}">{% csrf_token %}<button class="btn btn-bloque" type="submit">Cancelar confrontación</button></form>{% endif %}{% endfor %}<p class="texto-chico texto-suave">Recargue la página para consultar el avance.</p></noscript>
       </div>
-    </section>
+    </aside>
   </div>
   <p class="privacidad"><svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg>Privacidad: procesamiento local. El borrador Word original se conserva; los archivos temporales de lectura se eliminan al terminar.</p>
   {% include "expedientes/_modal_eliminar.html" %}

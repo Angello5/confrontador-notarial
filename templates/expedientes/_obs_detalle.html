@@ -1,0 +1,18 @@
+{% comment %}
+F73: final del detalle de la observación elegida (propuesta 4a), común a las
+capas: si no se ubicó, si se puede corregir y su posición. El motivo y la fuente
+los pone cada capa; lo hallado y lo correcto ya están en la fila (F65).
+{% endcomment %}
+<p class="visor-sin-marca" x-show="vista.estado === 'LISTA' && noUbicadaDe('{{ prefijo }}{{ numero }}')"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span x-text="noUbicadaDe('{{ prefijo }}{{ numero }}')"></span></p>
+{% if solo_informa %}
+  <p class="obs-nota">Solo informa: no corrige el documento ni decide sobre nombres, documentos, montos ni domicilios.</p>
+{% else %}
+  {% include "expedientes/_obs_correccion.html" %}
+  <template x-if="!corrDe('{{ prefijo }}{{ numero }}')"><p class="obs-nota">No admite corrección automática: corríjala a mano.</p></template>
+{% endif %}
+<div class="obs-nav">
+  <span x-text="posicion('{{ prefijo }}{{ numero }}')"></span>
+  <button type="button" class="btn" aria-label="Observación anterior" @click="paso(-1)"><svg class="ico" aria-hidden="true"><use href="#i-chevron-up"/></svg></button>
+  <button type="button" class="btn" aria-label="Observación siguiente" @click="paso(1)"><svg class="ico" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+  <button type="button" class="btn btn-sm solo-estrecho" @click="verBorrador()">Ver en el borrador</button>
+</div>

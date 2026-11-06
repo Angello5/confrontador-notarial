@@ -180,4 +180,6 @@ def test_pantalla_sin_panel_de_detalle(client, usuario_ficticio, monkeypatch):
     assert "<mark>ZAFIRO</mark>" in html
     # La casilla de corrección vive en la fila, fuera del botón.
     fila = re.search(r'<li data-id="r1".*?</li>', html, re.S).group(0)
-    assert re.search(r"</button>\s*<template x-if=\"corrDe\('r1'\)\">", fila)
+    assert re.search(
+        r"</button>\s*<div class=\"obs-abierta\".*?corrDe\('r1'\)", fila, re.S
+    )

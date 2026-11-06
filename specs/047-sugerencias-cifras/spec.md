@@ -114,7 +114,7 @@ El proyecto reparte un bien, unas acciones o una herencia: «JUAN PEREZ EL 20 %,
 - **FR-007**: Cada aviso tiene tres partes cortas: **lo hallado** en el proyecto, **lo que dice la minuta** (o que no lo trae) y **la sugerencia**, que empieza con «Se sugiere».
 - **FR-008**: La línea de la lista de errores resume la sugerencia en una línea («Letras mal escritas: … → …», «Las cuotas no suman 100 %: … → LUIS SOTO 60 %»).
 - **FR-009**: Las confrontaciones guardadas antes de F64 se muestran como hoy.
-- **FR-010**: Estos avisos siguen fuera del documento corregido automático (F21), salvo la errata de las letras («letras mal escritas»): se corrige con el texto de la propia cifra y trae su casilla.
+- **FR-010**: Estos avisos siguen fuera del documento corregido automático (F21), salvo la errata de las letras («letras mal escritas»): se corrige con el texto de la propia cifra y trae su casilla. F66 la extiende al área en letras (`specs/049-correccion-letras/`).
 - **FR-011**: La misma entrada da siempre el mismo aviso y la misma sugerencia (principio I).
 
 ### UX Requirements (principio VIII)

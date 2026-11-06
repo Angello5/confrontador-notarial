@@ -4,6 +4,6 @@
 -c requirements.txt
 -c requirements-dev.txt
 
-spacy==3.8.16
-tokenizers==0.23.2
+spacy==3.8.18
+tokenizers==0.23.3
 # El modelo de español de spaCy va en requirements-sentido-modelo.txt (no está en PyPI).

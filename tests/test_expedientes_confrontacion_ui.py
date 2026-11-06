@@ -852,10 +852,11 @@ def test_f56_una_sola_pestana_todas_y_siguen_los_filtros_de_severidad(
         client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
     ).content.decode()
 
-    assert 'role="tab"' not in contenido
-    assert 'role="tablist"' not in contenido
+    # F73: las pestañas separan documento y lista; las capas siguen sin pestañas.
+    assert 'role="tablist" aria-label="Vista"' in contenido
     assert re.search(
-        r'<h2 class="capa">Todas<span class="capa-num" x-text="visibles.length">',
+        r'<h2 id="obs-titulo" class="obs-panel-titulo">Observaciones'
+        r'<span class="capa-num" x-text="visibles.length">',
         contenido,
     )
     for retirada in ("IDENTIDAD", "REGLA", "LINGUISTICO"):
@@ -1155,3 +1156,125 @@ def test_f60_la_pantalla_dice_que_verificar_sin_debe_decir(
     assert "Qué verificar: RENIEC indica CASADO." in detalle
     assert '<span class="tachado">80000002</span>' in detalle
     assert '<span class="tachado">2,50 (DOS MIL' not in detalle
+
+
+def _resultado_f73(client, usuario, monkeypatch, codigo="EXP-FICTICIO-F73"):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(codigo=codigo, creado_por=usuario)
+    _, borrador = _documentos(expediente, usuario)
+    ubicacion = {"linea": 3, "fragmento": "Fragmento ficticio."}
+    monkeypatch.setattr(
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
+            "estado": "RESULTADO",
+            "personas": [
+                {
+                    "tipo": "DOCUMENTO_CRUZADO",
+                    "nombre": "ALBA ZURBELIA LUMARIA",
+                    "hallado": "90000002",
+                    "esperado": "90000001",
+                    "motivo": "Motivo ficticio de persona.",
+                    "procedencias": [{"archivo": "dni-ficticio.pdf", "pagina": 2}],
+                    "ubicacion": ubicacion,
+                }
+            ],
+            "regla": [
+                {
+                    "campo": "PARTIDA",
+                    "hallado": "80000002",
+                    "esperado": "80000001",
+                    "motivo": "Motivo ficticio de regla.",
+                    "ubicacion": ubicacion,
+                }
+            ],
+            "ortografia": [
+                {
+                    "palabra": "clausla",
+                    "motivo": "no existe en castellano",
+                    "sugerencia": "cláusula",
+                    "ubicacion": ubicacion,
+                }
+            ],
+        },
+    )
+    client.force_login(usuario)
+    return confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+
+def test_f73_encabezado_unico_con_resumen_filtros_y_acciones(
+    client, usuario_ficticio, monkeypatch
+):
+    contenido = _resultado_f73(client, usuario_ficticio, monkeypatch)
+
+    cabecera = re.search(
+        r'<section class="panel resultado-cab".*?</section>', contenido, re.S
+    ).group()
+    assert "<h1>EXP-FICTICIO-F73</h1>" in cabecera
+    assert "observaciones para revisar" in cabecera
+    assert 'aria-label="Filtrar por severidad"' in cabecera
+    assert "Vista previa del informe" in cabecera
+    assert "Descargar informe" in cabecera
+    assert 'class="panel resumen"' not in contenido
+
+
+def test_f73_el_detalle_se_despliega_en_la_fila(client, usuario_ficticio, monkeypatch):
+    contenido = _resultado_f73(client, usuario_ficticio, monkeypatch)
+
+    for identificador in ("p1", "r1", "o1"):
+        assert f":aria-expanded=\"(sel === '{identificador}').toString()\"" in contenido
+        assert f"""x-show="sel === '{identificador}'" x-cloak""" in contenido
+    assert '<p class="obs-motivo">Motivo ficticio de persona.</p>' in contenido
+    assert "<dt>Fuente</dt><dd>dni-ficticio.pdf, página 2</dd>" in contenido
+    assert '<p class="obs-motivo">Motivo ficticio de regla.</p>' in contenido
+    # Lingüístico solo informa; las demás capas dicen si se pueden corregir.
+    assert contenido.count("Solo informa: no corrige el documento") >= 1
+    assert "No admite corrección automática: corríjala a mano." in contenido
+    assert "Ver en el borrador" in contenido
+    # Lo hallado sigue en la fila (F65) y el fragmento sigue fuera de ella (F71).
+    for item in _items(contenido):
+        assert "Fragmento ficticio." not in item
+        assert "Motivo ficticio" not in item
+
+
+def test_f73_la_vista_previa_comparte_contenido_con_la_descarga(
+    client, usuario_ficticio, monkeypatch
+):
+    contenido = _resultado_f73(client, usuario_ficticio, monkeypatch)
+
+    assert contenido.count('x-model="rep.IDENTIDAD"') == 2
+    assert 'class="modal modal-vista"' in contenido
+    assert 'x-ref="informe"' in contenido
+    assert ':disabled="generando || vistaVacia"' in contenido
+    assert "No hay secciones seleccionadas" in contenido
+    assert "No se pudo preparar la vista previa" in contenido
+    assert "Para PDF o Excel use «Descargar informe»." in contenido
+
+
+def test_f73_sin_resultado_no_ofrece_informe(client, usuario_ficticio, monkeypatch):
+    from expedientes.models import Expediente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F73-NO", creado_por=usuario_ficticio
+    )
+    _, borrador = _documentos(expediente, usuario_ficticio)
+    monkeypatch.setattr(
+        "expedientes.services.confrontar_borrador",
+        lambda *_, **kwargs: {
+            "estado": "ERROR_SEGURO",
+            "mensaje": "Mensaje ficticio.",
+            "regla": [],
+            "ortografia": [],
+        },
+    )
+    client.force_login(usuario_ficticio)
+
+    contenido = confrontar_y_ver(
+        client, f"/expedientes/{expediente.pk}/documentos/{borrador.pk}/confrontar/"
+    ).content.decode()
+
+    assert "<h1>EXP-FICTICIO-F73-NO</h1>" in contenido
+    assert "Vista previa del informe" not in contenido
+    assert "Descargar informe" not in contenido

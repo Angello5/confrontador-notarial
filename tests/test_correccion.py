@@ -298,3 +298,37 @@ def test_prefijo_numerico_solo_con_limite_de_palabra(tmp_path):
     assert despues - antes == Counter({"90000112": 2})
     assert despues["90000111"] == 2
     assert despues["20000000011"] == 1
+
+
+def test_f66_letras_mal_escritas_se_corrigen_con_la_cifra_del_borrador():
+    from nucleo.correccion import correcciones
+
+    salidas = [
+        "[NUMERO_EN_LETRAS] «TREINTA Y SEI (36)» debe decir «36»   "
+        "(letras mal escritas; se sugiere «TREINTA Y SEIS (36)»)",
+        "[AREA] «CIENTO VEINTI METROS CUADRADOS (120 M2)» debe decir «120 M2»   "
+        "(letras mal escritas; se sugiere «CIENTO VEINTE METROS CUADRADOS (120 M2)»)",
+        # Cifra y letras valen distinto: decide el abogado, aunque haya sugerencia.
+        "[NUMERO_EN_LETRAS] «TREINTA Y SIETE (36)» debe decir «36»   "
+        "(las letras dicen «37»; la minuta dice «36»; "
+        "se sugiere corregir las letras «TREINTA Y SEIS (36)»)",
+        "[NUMERO_EN_LETRAS] «CUARENTA (41)» debe decir «41»",
+        "[COPROPIEDAD] «50%» debe decir «100%»   "
+        "(letras mal escritas; se sugiere «CINCUENTA POR CIENTO»)",
+    ]
+
+    # No necesita fuentes: las letras reparadas ya valen lo mismo que la cifra.
+    carga = correcciones(salidas, {})
+
+    assert [(c["campo"], c["erroneo"], c["correcto"]) for c in carga] == [
+        ("NUMERO_EN_LETRAS", "TREINTA Y SEI (36)", "TREINTA Y SEIS (36)"),
+        (
+            "AREA",
+            "CIENTO VEINTI METROS CUADRADOS (120 M2)",
+            "CIENTO VEINTE METROS CUADRADOS (120 M2)",
+        ),
+    ]
+    assert carga[0]["fuente"] == {
+        "archivo": "Cifra del propio borrador",
+        "pagina": None,
+    }
