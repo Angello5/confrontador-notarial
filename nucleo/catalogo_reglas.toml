@@ -4,7 +4,7 @@
 # Severidades [NEEDS CLARIFICATION]: ALTA datos de validación obligatoria,
 # MEDIA reglas de persona y párrafos, BAJA lingüísticas.
 
-version = "2026.11.02-18"
+version = "2026.11.06-19"
 default_severidad = "MEDIA"
 
 [reglas.NOMBRE]

@@ -157,6 +157,8 @@ F71: lista sin fragmento y pruebas aisladas. El usuario pidió quitar el fragmen
 
 F73: rediseño de cuatro pantallas. El usuario eligió en Claude Design: barra de filtros en el Inicio (periodo y persona), columna con el siguiente paso en el kardex, modal amplio con vista previa del informe y detalle desplegado en la lista del resultado. F72 queda reservada para el flujo entre dos personas. Alcance en `specs/055-rediseno-pantallas/`.
 
+F74: DNI del cónyuge y registro de otra entidad. Los usuarios, al validar con casos reales, reportaron que el sistema cambiaba «Registro de Personas Jurídicas» por el registro del bien y que asignaba a la esposa el DNI del esposo en la fórmula «CASADO CON». Un registro de personas ya no se observa frente a uno de bienes, y el nombre tras «CASADO CON» nunca se queda con el DNI. Alcance en `specs/056-conyuge-y-registro/`.
+
 ## Prompts de arranque para `/speckit-specify`
 
 **F1 · Base DevSecOps**

@@ -269,6 +269,14 @@ _REGISTROS = (
     "PERSONAS NATURALES|SOCIEDADES|MANDATOS Y PODERES|BIENES MUEBLES|TESTAMENTOS|"
     "SUCESIONES INTESTADAS"
 )
+# F74: un registro de personas describe a otra entidad del acto (la empresa que
+# vende), no al bien: nunca «debe decir» un registro de bienes, ni al revés.
+_REGISTROS_DE_BIENES = {
+    "PREDIOS",
+    "PROPIEDAD INMUEBLE",
+    "PROPIEDAD VEHICULAR",
+    "BIENES MUEBLES",
+}
 _DATOS_REGISTRALES = (
     (
         "ZONA",
@@ -412,14 +420,25 @@ def _sin_fragmentos(cat) -> frozenset[str]:
     )
 
 
-def nombres(t: str) -> list[str]:
-    out = []
+def _nombres_marcados(t: str):
+    """(nombre, es_mencion_de_conyuge) de cada nombre de RE_NOMBRE."""
     for grupos in RE_NOMBRE.findall(norm(t)):
-        nombre = next(g for g in grupos if g)
+        indice, nombre = next((i, g) for i, g in enumerate(grupos) if g)
         w = _sin_bordes([x for x in nombre.split() if len(x) > 1 or x in STOP])
         if 2 <= len(w) <= 7:
-            out.append(" ".join(w))
-    return out
+            yield " ".join(w), indice == 1
+
+
+def nombres(t: str) -> list[str]:
+    return [nombre for nombre, _ in _nombres_marcados(t)]
+
+
+def menciones_de_conyuge(t: str) -> set[str]:
+    """F74: nombres que solo aparecen tras «CASADO(A) CON»: no son comparecientes."""
+    marcados = list(_nombres_marcados(t))
+    return {n for n, conyuge in marcados if conyuge} - {
+        n for n, conyuge in marcados if not conyuge
+    }
 
 
 def nombre_reniec(raw: str) -> str | None:
@@ -716,9 +735,14 @@ def _registros_de_pagina(pagina: Pagina, tipo: str, excluido: str) -> list[Perso
     # primero para no cruzar a dos comparecientes de la misma página; los
     # formularios RENIEC/biométricos caen al bloque completo porque sus campos
     # viven en líneas distintas.
+    # F74: el cónyuge mencionado («CASADO CON …») nunca se queda con el DNI.
+    def titulares(texto, nombres_texto):
+        conyuges = menciones_de_conyuge(texto)
+        return [nombre for nombre in nombres_texto if nombre not in conyuges]
+
     asociados = []
     for linea in pagina.texto.splitlines():
-        nombres_linea = nombres_sin_excluido(linea)
+        nombres_linea = titulares(linea, nombres_sin_excluido(linea))
         documentos_linea = _documentos_de_pagina(linea, tipo, es_img)
         if len(nombres_linea) == 1 and len(documentos_linea) == 1:
             asociados.append(
@@ -728,9 +752,10 @@ def _registros_de_pagina(pagina: Pagina, tipo: str, excluido: str) -> list[Perso
         return _anotar_reniec(asociados, pagina, tipo)
     nombres_pagina = nombres_sin_excluido(pagina.texto)
     documentos = _documentos_de_pagina(pagina.texto, tipo, es_img)
-    if len(nombres_pagina) == 1 and len(documentos) == 1:
+    candidatos = titulares(pagina.texto, nombres_pagina)
+    if len(candidatos) == 1 and len(documentos) == 1:
         return _anotar_reniec(
-            [Persona(nombres_pagina[0], documentos[0], procedencia)], pagina, tipo
+            [Persona(candidatos[0], documentos[0], procedencia)], pagina, tipo
         )
     personas = [
         Persona(nombre, None, procedencia, "SIN_DOCUMENTO") for nombre in nombres_pagina
@@ -2529,6 +2554,12 @@ def _registrales_observados(fuente, d: str) -> list[str]:
                     f"(sede de la zona registral {valor})"
                 )
         esperados = por_clase.get(clase, set())
+        if clase == "REGISTRO":
+            esperados = {
+                e
+                for e in esperados
+                if (e in _REGISTROS_DE_BIENES) == (valor in _REGISTROS_DE_BIENES)
+            }
         if not esperados or valor in esperados:
             continue
         # «LIMA» y «LIMA SUPERINTENDENCIA NACIONAL» (pegada a la línea siguiente
