@@ -16,6 +16,12 @@ _SIN_TEXTO_CORRECTO = {
     "COPROPIEDAD",
     "DOMICILIO_FISCAL",
 }
+# F64: la errata de las letras («letras mal escritas; se sugiere «…»») sí se corrige:
+# el texto sale de la propia cifra del borrador, no de otra fuente.
+_RE_ERRATA = re.compile(
+    r"\(letras mal escritas; se sugiere «(?P<sugerido>[^»]*)»\)\s*$"
+)
+FUENTE_CIFRA = {"archivo": "Cifra del propio borrador", "pagina": None}
 # F30: reemplazar «CUARTA» o «50%» en todo el documento cambiaría texto ajeno.
 # F35: el domicilio de la ficha RUC viene en formato SUNAT, no en la redacción notarial.
 _PALABRA = "A-ZÑ0-9"
@@ -109,16 +115,22 @@ def correcciones(salidas, fuentes) -> list[dict]:
     carga, vistos = [], set()
     for salida in salidas:
         m = _RE_DEBE_DECIR.match(salida) if isinstance(salida, str) else None
-        if not m or m["campo"] in _SIN_TEXTO_CORRECTO:
+        if not m:
             continue
         campo, erroneo, correcto = m["campo"], m["erroneo"], m["correcto"]
+        fuente_fija = None
+        if campo in _SIN_TEXTO_CORRECTO:
+            errata = campo == "NUMERO_EN_LETRAS" and _RE_ERRATA.search(salida)
+            if not errata:
+                continue
+            correcto, fuente_fija = errata["sugerido"], FUENTE_CIFRA
         par = (_plano(erroneo)[0].strip(), _plano(correcto)[0].strip())
         # Igual (P-03) o prefijo propio: el reemplazo truncaría el texto.
         # Un par repetido es una sola fila: se aplica a todas las apariciones.
         if par[0].startswith(par[1]) or par in vistos:
             continue
         buscado = _palabras(correcto)
-        fuente = next(
+        fuente = fuente_fija or next(
             (
                 {"archivo": archivo, "pagina": numero}
                 for archivo, numero, palabras in paginas

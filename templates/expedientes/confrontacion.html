@@ -126,7 +126,7 @@
             </li>
           {% endfor %}
           {% for observacion in resultado.regla %}
-            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" x-show="visible($el.dataset)">
+            <li data-id="r{{ forloop.counter }}" data-capa="{{ observacion.capa|default:'REGLA' }}" data-sev="{{ observacion.severidad }}" data-linea="{{ observacion.ubicacion.linea|default:'' }}" data-campo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-titulo="{% include 'expedientes/_campo_nombre.html' with campo=observacion.campo %}" data-hallado="{% firstof observacion.aviso.borrador observacion.hallado %}" data-esperado="{% if not observacion.aviso %}{{ observacion.esperado }}{% endif %}" data-verificar="{{ observacion.aviso.verificar|default:'' }}" data-aviso="{{ observacion.aviso.lista|default:'' }}" data-persona="" data-procedencia="{{ observacion.motivo|default:'' }}" data-fragmento="{{ observacion.ubicacion.fragmento|default:'' }}" data-sugerencia="{{ observacion.aviso.sugerencia|default:'' }}" x-show="visible($el.dataset)">
               <button type="button" class="obs-item" :aria-current="sel === 'r{{ forloop.counter }}'" @click="elegir('r{{ forloop.counter }}')">
                 <span class="obs-item-cab">{% include "core/_chip.html" with estado=observacion.severidad texto=observacion.severidad clase="sev" %}<span class="obs-capa">{% if observacion.capa == "IDENTIDAD" %}Generales de ley{% else %}Regla{% endif %}</span>{% if observacion.ubicacion.linea %}<span class="obs-linea">Línea {{ observacion.ubicacion.linea }}</span>{% endif %}</span>
                 <strong class="obs-titulo">{% include "expedientes/_campo_nombre.html" with campo=observacion.campo %}</strong>
@@ -301,7 +301,7 @@
             {# F48: una fila por observación (el total del resumen); las propuestas solo son datos. #}
             <ul hidden>
               {% for correccion in resultado.correcciones %}
-                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}" data-fuente="{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}"></li>
+                <li data-correccion="{{ correccion.id }}" data-erroneo="{{ correccion.erroneo }}" data-correcto="{{ correccion.correcto }}" data-apariciones="{{ correccion.apariciones }} aparici{{ correccion.apariciones|pluralize:'ón,ones' }}" data-fuente="{{ correccion.fuente.archivo }}{% if correccion.fuente.pagina %}, página {{ correccion.fuente.pagina }}{% endif %}"></li>
               {% endfor %}
             </ul>
             <ul class="lista-cambios">
@@ -456,7 +456,7 @@
           <thead><tr><th scope="col">Valor erróneo</th><th scope="col">Valor correcto</th><th scope="col">Documento fuente</th><th scope="col">Apariciones</th></tr></thead>
           <tbody>
             {% for correccion in resultado.correcciones %}
-              <tr><td>{{ correccion.erroneo }}</td><td>{{ correccion.correcto }}</td><td>{{ correccion.fuente.archivo }}, página {{ correccion.fuente.pagina }}</td><td>{{ correccion.apariciones }}</td></tr>
+              <tr><td>{{ correccion.erroneo }}</td><td>{{ correccion.correcto }}</td><td>{{ correccion.fuente.archivo }}{% if correccion.fuente.pagina %}, página {{ correccion.fuente.pagina }}{% endif %}</td><td>{{ correccion.apariciones }}</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -571,7 +571,7 @@
         this.marcadas = this.correcciones.map((c) => c.id);
         this.obs.forEach((o) => {
           const hallado = normal(o.hallado);
-          const esperado = normal(o.esperado);
+          const esperado = normal(o.esperado || o.sugerencia);
           const compatibles = this.correcciones.filter((c) => hallado && esperado &&
             normal(c.erroneo) === hallado && normal(c.correcto) === esperado);
           o.corr = compatibles.length === 1 ? compatibles[0].id : '';
