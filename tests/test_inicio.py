@@ -403,7 +403,11 @@ def test_datos_del_inicio_en_json_solo_para_el_administrador(
     client.force_login(administrador_ficticio)
     assert client.post(url).status_code == 405
 
-    datos = client.get(url, {"periodo": "mes"}).json()
+    ahora = datetime(
+        2026, 10, 20, 15, 30, tzinfo=LIMA
+    )  # congelado: el mes no depende de hoy
+    with mock.patch("django.utils.timezone.now", return_value=ahora):
+        datos = client.get(url, {"periodo": "mes"}).json()
     assert datos["periodo"] == "mes"
     assert set(datos) >= {
         "cifras",

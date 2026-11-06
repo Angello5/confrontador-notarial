@@ -1,6 +1,5 @@
 """Pruebas del Django admin de cuentas con datos ficticios."""
 
-from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,7 +13,6 @@ from django.core.exceptions import PermissionDenied
 from django.templatetags.static import static
 from django.test import Client, override_settings
 from django.urls import reverse
-from django.utils import timezone
 
 from accounts.forms import AccountChangeForm
 
@@ -99,24 +97,20 @@ def test_admin_rejects_role_tampering_and_superuser_escalation(
     assert not get_user_model().objects.filter(username="cuenta_manipulada").exists()
 
 
-def test_admin_can_unlock_account_from_changelist(cliente_administrador):
-    blocked = get_user_model().objects.create_user(
-        username="cuenta_bloqueada",
-        failed_login_attempts=5,
-        login_locked_until=timezone.now() + timedelta(minutes=15),
+def test_sin_bloqueo_por_intentos_fallidos(client, cliente_administrador):
+    cuenta = get_user_model().objects.create_user(
+        username="cuenta_sin_bloqueo", password=CLAVE_TEMPORAL
     )
+    for _ in range(8):
+        client.post(
+            reverse("login"),
+            {"username": "cuenta_sin_bloqueo", "password": "clave-erronea"},
+        )
 
-    response = cliente_administrador.post(
-        reverse("admin:accounts_user_changelist"),
-        {"action": "unlock_accounts", "_selected_action": [blocked.pk], "index": 0},
-    )
-
-    blocked.refresh_from_db()
-    action_messages = list(get_messages(response.wsgi_request))
-    assert response.status_code == 302
-    assert str(action_messages[0]) == "Se desbloquearon 1 cuenta."
-    assert blocked.failed_login_attempts == 0
-    assert blocked.login_locked_until is None
+    assert client.login(username="cuenta_sin_bloqueo", password=CLAVE_TEMPORAL)
+    assert not hasattr(cuenta, "failed_login_attempts")
+    lista = cliente_administrador.get(reverse("admin:accounts_user_changelist"))
+    assert "Desbloquear" not in lista.content.decode()
 
 
 def test_admin_password_change_forces_new_password_and_revokes_sessions(
@@ -276,15 +270,21 @@ def test_admin_login_shows_the_notary_brand(client):
     assert static("css/admin.css") in content
 
 
-def test_admin_brand_stylesheet_is_local_and_covers_dark_mode(cliente_administrador):
-    content = cliente_administrador.get(reverse("admin:index")).content.decode()
+def test_admin_brand_stylesheet_is_local_and_light_only(cliente_administrador):
+    content = cliente_administrador.get(
+        reverse("admin:accounts_user_changelist")
+    ).content.decode()
     hoja = Path(finders.find("css/admin.css")).read_text(encoding="utf-8")
 
     assert static("css/admin.css") in content
     assert "://" not in hoja
     assert "@import" not in hoja
-    assert 'html[data-theme="dark"]' in hoja
-    assert "@media (prefers-color-scheme: dark)" in hoja
+    # Solo diseño claro: ni hoja oscura, ni script de tema, ni selector.
+    assert "data-theme" not in hoja
+    assert "prefers-color-scheme" not in hoja
+    assert "dark_mode.css" not in content
+    assert "admin/js/theme.js" not in content
+    assert "theme-toggle" not in content
     # F49: fondo blanco, foco visible, movimiento opcional y sin !important.
     assert "--darkened-bg: #fff;" in hoja
     assert ":focus-visible" in hoja
@@ -292,15 +292,40 @@ def test_admin_brand_stylesheet_is_local_and_covers_dark_mode(cliente_administra
     assert "!important" not in hoja
 
 
-def test_admin_index_summarizes_accounts_with_links_to_filtered_lists(
+def test_admin_es_una_sola_pagina(cliente_administrador):
+    lista = reverse("admin:accounts_user_changelist")
+
+    for url in (reverse("admin:index"), "/admin/accounts/"):
+        respuesta = cliente_administrador.get(url)
+        assert respuesta.status_code == 302, url
+        assert respuesta["Location"] == lista, url
+
+
+def test_admin_vuelve_al_erp_y_a_la_lista_con_botones_claros(cliente_administrador):
+    lista = reverse("admin:accounts_user_changelist")
+    en_lista = cliente_administrador.get(lista).content.decode()
+    nuevo = cliente_administrador.get(
+        reverse("admin:accounts_user_add")
+    ).content.decode()
+
+    assert '<a class="admin-volver" href="/">' in en_lista
+    assert "Volver al ERP" in en_lista
+    assert "Ver el sitio" not in en_lista
+    assert "Volver a usuarios" not in en_lista
+    assert f'<a class="admin-volver-lista" href="{lista}">' in nuevo
+    assert "Nuevo usuario" in nuevo
+    assert "Volver al ERP" in nuevo
+
+
+def test_admin_list_summarizes_accounts_with_links_to_filtered_lists(
     cliente_administrador,
 ):
     get_user_model().objects.create_user(username="cuenta_activa")
     get_user_model().objects.create_user(username="cuenta_inactiva", is_active=False)
 
-    response = cliente_administrador.get(reverse("admin:index"))
-    content = response.content.decode()
     lista = reverse("admin:accounts_user_changelist")
+    response = cliente_administrador.get(lista)
+    content = response.content.decode()
 
     assert [
         (m["etiqueta"], m["valor"]) for m in response.context["resumen_cuentas"]
@@ -320,12 +345,64 @@ def test_admin_without_nav_sidebar_and_with_spanish_columns(cliente_administrado
     ).content.decode()
 
     assert 'id="nav-sidebar"' not in content
-    assert "Intentos fallidos" in content
+    assert "Intentos fallidos" not in content
     assert "Failed login attempts" not in content
 
 
 def test_admin_names_the_accounts_app_in_spanish(cliente_administrador):
-    content = cliente_administrador.get(reverse("admin:index")).content.decode()
+    content = cliente_administrador.get(
+        reverse("admin:accounts_user_changelist")
+    ).content.decode()
 
-    assert ">Cuentas</a>" in content
     assert "Accounts" not in content
+
+
+def _admin_con_rol_real():
+    """Administrador con los permisos sembrados del rol, no con todos."""
+    admin = get_user_model().objects.create_user(
+        username="admin_rol_real", password=CLAVE_TEMPORAL, is_staff=True
+    )
+    admin.groups.add(Group.objects.get(name="Administrador"))
+    cliente = Client()
+    cliente.force_login(admin)
+    return admin, cliente
+
+
+def test_admin_elimina_una_cuenta_sin_historial(db):
+    _, cliente = _admin_con_rol_real()
+    cuenta = get_user_model().objects.create_user(username="cuenta_por_error")
+    ficha = reverse("admin:accounts_user_change", args=[cuenta.pk])
+    borrar = reverse("admin:accounts_user_delete", args=[cuenta.pk])
+
+    assert f'href="{borrar}"' in cliente.get(ficha).content.decode()
+    respuesta = cliente.post(borrar, {"post": "yes"})
+
+    assert respuesta.status_code == 302
+    assert not get_user_model().objects.filter(pk=cuenta.pk).exists()
+
+
+def test_cuenta_con_historial_no_se_elimina_y_dice_por_que(db):
+    from expedientes.models import Expediente
+
+    _, cliente = _admin_con_rol_real()
+    cuenta = get_user_model().objects.create_user(username="cuenta_con_kardex")
+    Expediente.objects.create(codigo="K-FICTICIO-HISTORIAL", creado_por=cuenta)
+    ficha = cliente.get(reverse("admin:accounts_user_change", args=[cuenta.pk]))
+    borrar = reverse("admin:accounts_user_delete", args=[cuenta.pk])
+
+    contenido = ficha.content.decode()
+    assert f'href="{borrar}"' not in contenido
+    assert "Desactívela para que ya no pueda ingresar." in contenido
+    assert cliente.post(borrar, {"post": "yes"}).status_code == 403
+    assert get_user_model().objects.filter(pk=cuenta.pk).exists()
+
+
+def test_no_puede_eliminarse_a_si_mismo_ni_en_lote(db):
+    admin, cliente = _admin_con_rol_real()
+    borrar = reverse("admin:accounts_user_delete", args=[admin.pk])
+
+    ficha = cliente.get(reverse("admin:accounts_user_change", args=[admin.pk]))
+    assert "No puede eliminar su propia cuenta." in ficha.content.decode()
+    assert cliente.post(borrar, {"post": "yes"}).status_code == 403
+    lista = cliente.get(reverse("admin:accounts_user_changelist")).content.decode()
+    assert "delete_selected" not in lista

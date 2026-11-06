@@ -5,9 +5,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ erp_nombre }}{% endblock %}</title>
-    {% if erp_icono %}<link rel="icon" href="{{ erp_icono }}">{% endif %}
+    {% include "core/_icono.html" %}
     <link rel="stylesheet" href="{% static 'css/erp.css' %}?v={{ static_v }}">
     <script defer src="{% static 'vendor/alpine/alpine.min.js' %}"></script>
+    <script defer src="{% static 'js/clave-visible.js' %}?v={{ static_v }}"></script>
   </head>
   <body x-data="{ menuAbierto: false }" :class="{ 'sidebar-open': menuAbierto }" @keydown.escape.window="menuAbierto = false">
     {% include "core/_iconos.html" %}
@@ -52,7 +53,7 @@
               <p class="menu-seccion">Administración</p>
               <ul class="menu">
                 <li>
-                  <a href="{% url 'admin:index' %}">
+                  <a href="{% url 'admin:accounts_user_changelist' %}">
                     <svg class="ico" aria-hidden="true"><use href="#i-users"/></svg><span>Usuarios y permisos</span>
                   </a>
                 </li>
@@ -62,7 +63,7 @@
         </nav>
         <div class="lateral-pie">
           <span class="avatar" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
-          <div class="usuario">
+          <div class="usuario" title="{{ user.username }}">
             <strong>{{ user.username }}</strong>
             <span>{% if es_administrador %}Administrador{% elif es_usuario %}Usuario{% endif %}</span>
           </div>
@@ -88,7 +89,7 @@
           {% endif %}
           <div class="sesion">
             <svg class="ico" aria-hidden="true"><use href="#i-shield-check"/></svg>
-            <span>Sesión segura{% if es_administrador %} · Administrador{% elif es_usuario %} · Usuario{% endif %}</span>
+            <span>Sesión segura</span>
             {% if user.force_password_change %}
               <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}

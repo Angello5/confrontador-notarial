@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}{{ expediente.codigo }} · {{ expediente.get_tipo_display }}{% endblock %}
 {% block breadcrumb %}<ol>
-  {% if expediente.tipo == "VEHICULAR" %}<li>Expedientes</li>{% endif %}
+  <li>Expedientes</li>
   <li><a href="{{ expediente.url_lista }}">{{ expediente.get_tipo_display }}</a></li>
   <li aria-current="page">{{ expediente.codigo }}</li>
 </ol>{% endblock %}

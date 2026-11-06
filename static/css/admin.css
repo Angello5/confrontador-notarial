@@ -1,11 +1,11 @@
 /*
  * F46 · Django admin con la marca de la notaría.
- * Redefine las variables de admin/css/base.css y dark_mode.css con los tokens
+ * Redefine las variables de admin/css/base.css con los tokens
+ * (solo diseño claro: el admin no carga dark_mode.css ni el selector de tema)
  * de docs/branding/tokens.css, con los mismos selectores que usa Django.
  * Sin recursos remotos: las fuentes de marca se usan solo si están instaladas.
  */
 
-html[data-theme="light"],
 :root {
   --primary: #4b5d8c;
   --secondary: #0f2765;
@@ -63,73 +63,7 @@ html[data-theme="light"],
   --ne-display: "Prompt", "Poppins", "Segoe UI", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #273b7b;
-    --primary-fg: #fff;
-    --body-fg: #edeff8;
-    --body-bg: #00112c;
-    --body-quiet-color: #b3bfe7;
-    --body-medium-color: #c3c9d9;
-    --body-loud-color: #fff;
-    --breadcrumbs-link-fg: #fff;
-    --breadcrumbs-bg: #0f2765;
-    --link-fg: #44d880;
-    --link-hover-color: #6ae29a;
-    --link-selected-fg: #8999d0;
-    --hairline-color: #141d3d;
-    --border-color: #273b7b;
-    --error-fg: #f08a96;
-    --message-success-bg: #0f5132;
-    --message-warning-bg: #5c4200;
-    --message-error-bg: #570808;
-    --darkened-bg: #141d3d;
-    --selected-bg: #0f2765;
-    --selected-row: #00363a;
-    --close-button-bg: #273b7b;
-    --close-button-hover-bg: #4b5d8c;
-    --button-bg: #273b7b;
-    --button-hover-bg: #4b5d8c;
-    --fila-hover: #0f2765;
-    --acento: #44d880;
-    --boton2-fg: #fff;
-    --boton2-borde: #8999d0;
-  }
-}
-
-html[data-theme="dark"] {
-  --primary: #273b7b;
-  --primary-fg: #fff;
-  --body-fg: #edeff8;
-  --body-bg: #00112c;
-  --body-quiet-color: #b3bfe7;
-  --body-medium-color: #c3c9d9;
-  --body-loud-color: #fff;
-  --breadcrumbs-link-fg: #fff;
-  --breadcrumbs-bg: #0f2765;
-  --link-fg: #44d880;
-  --link-hover-color: #6ae29a;
-  --link-selected-fg: #8999d0;
-  --hairline-color: #141d3d;
-  --border-color: #273b7b;
-  --error-fg: #f08a96;
-  --message-success-bg: #0f5132;
-  --message-warning-bg: #5c4200;
-  --message-error-bg: #570808;
-  --darkened-bg: #141d3d;
-  --selected-bg: #0f2765;
-  --selected-row: #00363a;
-  --close-button-bg: #273b7b;
-  --close-button-hover-bg: #4b5d8c;
-  --button-bg: #273b7b;
-  --button-hover-bg: #4b5d8c;
-  --fila-hover: #0f2765;
-  --acento: #44d880;
-  --boton2-fg: #fff;
-  --boton2-borde: #8999d0;
-}
-
-/* Cabecera blanca en ambos modos: el logo no tiene versión en negativo. */
+/* Cabecera blanca: el logo no tiene versión en negativo. */
 #header {
   --header-bg: #fff;
   --header-color: #4b5d8c;
@@ -168,7 +102,7 @@ html[data-theme="dark"] {
  * con selectores.
  */
 
-/* Foco visible de marca (WCAG 2.4.7): verde AA sobre blanco, verde vivo en oscuro. */
+/* Foco visible de marca (WCAG 2.4.7): verde AA sobre blanco. */
 :focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 div.breadcrumbs, .module h2, .module caption { --acento: #44d880; } /* sobre marino el verde AA no llega a 3:1 */
 input[type=checkbox], input[type=radio] { accent-color: var(--acento); }
@@ -214,7 +148,7 @@ ul.messagelist li.error { border-left-color: #c8283c; }
 
 /* Índice: resumen de cuentas con la métrica del ERP (core/_metrica.html). */
 .metricas {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1px; margin: 0 0 24px;
+  clear: both; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1px; margin: 0 0 24px;
   background: var(--border-color); border: 1px solid var(--border-color);
 }
 .metrica { position: relative; display: block; padding: 16px 20px; background: var(--body-bg); }
@@ -242,3 +176,40 @@ a.metrica::after { content: "→" / ""; position: absolute; top: 14px; right: 16
 @media (prefers-reduced-motion: reduce) {
   #container * { transition: none; }
 }
+
+/* Botón «Mostrar clave» de static/js/clave-visible.js (también en el admin). */
+/* En el admin el campo conserva el ancho de Django; el botón va dentro, a la derecha. */
+.clave-campo { position: relative; display: inline-block; max-width: 100%; }
+.clave-ver {
+  position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  padding: 0; border: 0; background: transparent; color: var(--ne-slate, #4b5d8c); cursor: pointer;
+}
+.clave-ver:hover { color: var(--ne-navy, #0f2765); }
+.clave-ver:focus-visible { outline: 3px solid #0b7a45; outline-offset: -3px; }
+.clave-ver svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Cabecera: usuario, «Volver al ERP» como botón visible y cierre de sesión secundario. */
+#user-tools { display: flex; align-items: center; gap: 12px; font-size: 0.875rem; text-transform: none; letter-spacing: normal; }
+#user-tools .admin-usuario { color: #4b5d8c; font-weight: 700; }
+#user-tools a.admin-volver:link, #user-tools a.admin-volver:visited {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px;
+  background: #0f2765; color: #fff; font-weight: 800; text-decoration: none; border-bottom: 0;
+}
+#user-tools a.admin-volver:hover, #user-tools a.admin-volver:focus { background: #273b7b; color: #fff; }
+#user-tools #logout-form button {
+  padding: 8px 14px; border: 1px solid #0f2765; background: #fff; color: #0f2765;
+  font-weight: 700; text-transform: none; letter-spacing: normal; cursor: pointer;
+}
+#user-tools #logout-form button:hover, #user-tools #logout-form button:focus { background: var(--fila-hover); }
+
+/* Migas de un solo nivel: «Volver a usuarios» se ve como enlace de acción. */
+div.breadcrumbs { display: flex; align-items: center; gap: 16px; font-size: 0.9375rem; }
+div.breadcrumbs a.admin-volver-lista { font-weight: 800; text-decoration: none; }
+div.breadcrumbs a.admin-volver-lista:hover, div.breadcrumbs a.admin-volver-lista:focus { text-decoration: underline; }
+.admin-migas-actual { padding-left: 16px; border-left: 1px solid rgba(255, 255, 255, 0.35); }
+
+/* Cuenta que no se puede eliminar: se explica junto a los botones. */
+.admin-nota-eliminar { margin: 16px 0 0; padding: 10px 14px; border-left: 4px solid #e0a400; background: #fff6db; color: #0f2765; }
+.submit-row a.deletelink { background: var(--delete-button-bg); color: #fff; }
+.submit-row a.deletelink:hover, .submit-row a.deletelink:focus { background: var(--delete-button-hover-bg); color: #fff; }

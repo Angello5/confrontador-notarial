@@ -77,6 +77,46 @@ def test_editar_valida_unicidad_y_obligatorio(client, usuario_ficticio, expedien
     assert expediente.codigo == "EXP-FICTICIO-F25"
 
 
+def test_kardex_repetido_dice_quien_lo_creo_y_cuando(
+    client, usuario_ficticio, administrador_ficticio
+):
+    from django.utils import timezone
+
+    from expedientes.models import Expediente
+
+    administrador_ficticio.first_name, administrador_ficticio.last_name = (
+        "Ana",
+        "Ficticia",
+    )
+    administrador_ficticio.save()
+    ocupado = Expediente.objects.create(
+        codigo="EXP-FICTICIO-AJENO", creado_por=administrador_ficticio
+    )
+    client.force_login(usuario_ficticio)
+
+    respuesta = client.post("/expedientes/", {"codigo": "EXP-FICTICIO-AJENO"})
+
+    fecha = timezone.localtime(ocupado.creado_el).strftime("%d/%m/%Y")
+    assert (
+        "Ya existe un kardex activo con ese número, creado por Ana Ficticia el "
+        f"{fecha}. Ingrese otro número."
+    ) in respuesta.content.decode()
+
+
+def test_sin_nombre_completo_usa_el_usuario(usuario_ficticio):
+    from expedientes.forms import codigo_ocupado
+    from expedientes.models import Expediente
+
+    ocupado = Expediente.objects.create(
+        codigo="EXP-FICTICIO-TV", tipo=Expediente.VEHICULAR, creado_por=usuario_ficticio
+    )
+
+    mensaje = codigo_ocupado(ocupado.tipo, ocupado)
+    assert mensaje.startswith(
+        "Ya existe una TV activa con ese número, creada por usuario_ficticio el "
+    )
+
+
 def test_otro_usuario_no_puede_editar_ni_eliminar(client, otro_usuario, expediente):
     client.force_login(otro_usuario)
     base = f"/expedientes/{expediente.pk}"

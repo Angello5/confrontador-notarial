@@ -1,4 +1,4 @@
-"""F63: lo que depende del motor SQL Server, con datos ficticios."""
+"""Lo que depende del motor PostgreSQL, con datos ficticios."""
 
 from datetime import date, datetime
 
@@ -19,7 +19,7 @@ def test_numero_de_kardex_distingue_mayusculas_y_solo_cuenta_activos(
     primero = Expediente.objects.create(codigo="K-100", creado_por=usuario_ficticio)
     formulario = ExpedienteForm(data={"codigo": "K-100"})
     assert not formulario.is_valid()
-    assert formulario.errors["codigo"] == [codigo_ocupado(Expediente.NOTARIAL)]
+    assert formulario.errors["codigo"] == [codigo_ocupado(Expediente.NOTARIAL, primero)]
     with pytest.raises(IntegrityError), transaction.atomic():
         Expediente.objects.create(codigo="K-100", creado_por=usuario_ficticio)
 
@@ -43,23 +43,7 @@ def test_usuarios_que_solo_difieren_en_mayusculas_son_distintos():
     )
 
 
-@pytest.mark.parametrize(("version", "errores"), [(2014, 1), (2016, 0)])
-def test_la_verificacion_exige_sql_server_2016(monkeypatch, version, errores):
-    from django.core.checks import Tags, run_checks
-    from django.db import connection
-
-    monkeypatch.setattr(connection, "sql_server_version", version, raising=False)
-    mensajes = [
-        e.msg
-        for e in run_checks(tags=[Tags.database], databases=["default"])
-        if e.id == "core.E001"
-    ]
-    assert mensajes == ["Se necesita SQL Server 2016 o posterior."] * errores
-
-
-def test_la_semana_empieza_en_lunes_con_el_servidor_en_espanol(usuario_ficticio):
-    from django.db import connection
-
+def test_la_semana_empieza_en_lunes_en_hora_de_lima(usuario_ficticio):
     from expedientes.services import actividad_semanal
     from tests.test_inicio import LIMA, _corrida, _expediente
 
@@ -67,17 +51,8 @@ def test_la_semana_empieza_en_lunes_con_el_servidor_en_espanol(usuario_ficticio)
     lunes = _expediente("EXP-FICTICIO-LUNES", usuario_ficticio)
     _corrida(domingo, usuario_ficticio, datetime(2026, 10, 11, 23, 0, tzinfo=LIMA))
     _corrida(lunes, usuario_ficticio, datetime(2026, 10, 12, 0, 30, tzinfo=LIMA))
-    try:
-        # Un login en español arranca con DATEFIRST 1; el conector lo fija en 7.
-        with connection.cursor() as cursor:
-            cursor.execute("SET LANGUAGE Spanish")
-        connection.init_connection_state()
-        semanas = {
-            s["inicio"]: s["kardex"] for s in actividad_semanal(hoy=date(2026, 10, 14))
-        }
-    finally:
-        with connection.cursor() as cursor:
-            cursor.execute("SET LANGUAGE us_english")
-        connection.init_connection_state()
+    semanas = {
+        s["inicio"]: s["kardex"] for s in actividad_semanal(hoy=date(2026, 10, 14))
+    }
     assert semanas[date(2026, 10, 5)] == 1
     assert semanas[date(2026, 10, 12)] == 1

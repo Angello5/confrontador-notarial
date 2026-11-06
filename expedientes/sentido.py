@@ -179,7 +179,6 @@ def suprimir(textos):
     pares = set(textos)
     if not pares:
         return 0
-    # F63: SQL Server no filtra dentro del JSON (`__contains`), se filtra aquí.
     # shortcut: recorre en memoria las entradas de todas las corridas analizadas;
     # pasar a una tabla de entradas si superan ~50 000 análisis.
     ids = [

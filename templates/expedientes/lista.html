@@ -1,7 +1,7 @@
 {% extends "core/base.html" %}
 
 {% block title %}{% if vehicular %}Transferencia vehicular{% else %}Kardex{% endif %} · {{ erp_nombre }}{% endblock %}
-{% block breadcrumb %}<ol>{% if vehicular %}<li>Expedientes</li><li aria-current="page">Transferencia vehicular</li>{% else %}<li aria-current="page">Kardex</li>{% endif %}</ol>{% endblock %}
+{% block breadcrumb %}<ol><li>Expedientes</li><li aria-current="page">{% if vehicular %}Transferencia vehicular{% else %}Kardex{% endif %}</li></ol>{% endblock %}
 {% block eyebrow %}Módulo{% endblock %}
 {% block heading %}{% if vehicular %}Transferencia vehicular{% else %}Kardex{% endif %}{% endblock %}
 {% block subtitle %}{% if vehicular %}Cree la TV con su número y cargue la información (boleta informativa, DNI y cheques) y el acta para confrontar.{% else %}Cree un kardex con su número y cargue sus documentos para confrontar.{% endif %}{% endblock %}

@@ -105,7 +105,7 @@ ROOT_URLCONF = "config.urls"
 # F28: nombre de la notaría en la interfaz; el real se configura en el servidor.
 ERP_NOMBRE = os.environ.get("ERP_NOMBRE", "ERP Notarial")
 ERP_LOGO = os.environ.get("ERP_LOGO", "").strip()
-# F67: icono de la pestaña; el logo entero no se lee a ese tamaño.
+# Ícono de la pestaña del navegador (URL de una imagen), igual de configurable.
 ERP_ICONO = os.environ.get("ERP_ICONO", "").strip()
 ERP_DIRECCION = os.environ.get("ERP_DIRECCION", "").strip()
 TEMPLATES = [
@@ -129,34 +129,21 @@ ASGI_APPLICATION = "config.asgi.application"
 _clave_db = os.environ.get("DB_PASSWORD")
 if not _clave_db:
     raise ImproperlyConfigured("DB_PASSWORD must be set.")
-# F63: SQL Server. Sin puerto, el driver resuelve la instancia (memoria
-# compartida en local, 1433 en la red); la confianza en un certificado propio
-# de la LAN se pide de forma explícita.
-_confiar = os.environ.get("DB_TRUST_SERVER_CERTIFICATE", "").lower() in {
-    "1",
-    "true",
-    "yes",
-}
+# PostgreSQL 17. La base se crea con scripts/postgresql/crear_base.sql, con una
+# colación determinista: distingue mayúsculas y tildes.
 DATABASES = {
     "default": {
-        "ENGINE": "mssql",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("DB_NAME", "confrontador"),
         "USER": os.environ.get("DB_USER", "confrontador"),
         "PASSWORD": _clave_db,
         "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", ""),
-        "OPTIONS": {
-            "driver": "ODBC Driver 18 for SQL Server",
-            "extra_params": "Encrypt=yes;TrustServerCertificate="
-            + ("yes" if _confiar else "no"),
-        },
-        # Distingue mayúsculas y tildes como la base de producción (research R2).
-        "TEST": {"COLLATION": "Modern_Spanish_100_CS_AS"},
+        "PORT": os.environ.get("DB_PORT", "5432"),
+        "OPTIONS": {"sslmode": os.environ.get("DB_SSLMODE", "prefer")},
     }
 }
 
 AUTH_USER_MODEL = "accounts.User"
-AUTHENTICATION_BACKENDS = ["accounts.backends.LockoutBackend"]
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
@@ -172,6 +159,33 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+# F8: IIS sirve /static/ desde aquí, compartido entre versiones.
+STATIC_ROOT = Path(os.environ.get("STATIC_ROOT", BASE_DIR / "staticfiles"))
+# F8: registros rotados en el servidor; sin la variable, consola como siempre.
+_registros = os.environ.get("ERP_REGISTROS_DIR", "").strip()
+if _registros:
+    Path(_registros).mkdir(parents=True, exist_ok=True)
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "simple": {
+                "format": "{asctime} {levelname} {name}: {message}",
+                "style": "{",
+            }
+        },
+        "handlers": {
+            "archivo": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": str(Path(_registros) / "erp.log"),
+                "maxBytes": 5 * 1024 * 1024,
+                "backupCount": 10,
+                "encoding": "utf-8",
+                "formatter": "simple",
+            }
+        },
+        "root": {"handlers": ["archivo"], "level": "WARNING"},
+    }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CRISPY_ALLOWED_TEMPLATE_PACKS = ["bootstrap5"]
 CRISPY_TEMPLATE_PACK = "bootstrap5"
