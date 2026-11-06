@@ -122,9 +122,9 @@ table { border-collapse: collapse; }
 .marca-logo { display: block; width: 212px; max-width: 100%; height: auto; }
 .marca-fila { display: flex; align-items: center; gap: 10px; }
 .marca-logo[hidden], .marca-fila[hidden], .marca-sub[hidden] { display: none; } /* F65: logo que no carga */
-.marca-iconos { display: none; }
+.marca-iconos { display: none; position: relative; }
 .marca-iconos [hidden] { display: none; }
-.marca-iconos img { display: block; width: 36px; height: 36px; object-fit: contain; }
+.marca-iconos img { display: block; position: absolute; inset: 0; width: 36px; height: 36px; object-fit: contain; background: var(--ne-white); }
 .marca-sello {
   width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center;
   background: var(--ne-navy); color: var(--ne-green); font: 700 14px var(--ne-display);
@@ -658,7 +658,7 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 
 .revision { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
 .obs-panel { position: sticky; top: 80px; max-height: calc(100vh - 190px); overflow: auto; }
-.obs-lista { list-style: none; padding: 0; }
+.obs-lista { list-style: none; padding: 0; flex: 1; min-height: 0; overflow: auto; }
 /* relative: los .visually-hidden de cada ítem no deben desbordar la lista desplazable. */
 .obs-item {
   position: relative; width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 12px 13px;
@@ -973,9 +973,9 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 /* La lista llega hasta el final del documento: la columna se estira a la altura del
    visor y `contain: size` evita que la lista larga agrande la fila. */
 .revision-documento .revision-lateral { align-self: stretch; contain: size; }
-.revision-documento .obs-panel { position: static; flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; }
+.revision-documento .obs-panel { position: static; display: flex; flex-direction: column; height: calc(100vh - 180px); min-height: 520px; max-height: none; overflow: hidden; }
 .revision-documento .visor-borrador .panel-cab { flex-wrap: wrap; gap: 12px; }
-.revision-documento .visor-paginas { max-height: 75vh; }
+.revision-documento .visor-paginas { max-height: calc(100vh - 340px); min-height: 360px; }
 @media (max-width: 1100px) {
   .revision-documento { grid-template-columns: minmax(0, 1fr); }
   .revision-documento .visor-paginas { max-height: 65vh; }
@@ -1064,8 +1064,8 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .bloque-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
 .bloque-cab h2 { font: 700 18px/26px var(--ne-display); color: var(--ne-navy); }
 .bloque-cab > span { font-size: 13px; color: var(--ne-slate); }
-.semana[data-fuera="true"] .semana-relleno { background: var(--ne-border); }
-.semana[data-fuera="true"] .semana-fecha { opacity: 0.7; }
+.semana-columna[data-fuera="true"] .semana-relleno { background: var(--ne-border); }
+.semana-fecha[data-fuera="true"] { opacity: 0.7; }
 .calidad-banda { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.6fr); gap: 1px; background: var(--ne-border); border: 1px solid var(--ne-border); }
 .calidad-celda { margin: 0; padding: 16px 20px; background: var(--ne-white); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .calidad-celda > div { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
@@ -1093,6 +1093,13 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
   .inicio-admin .calidad-celda dt { font-size: 8pt; }
   .inicio-admin .calidad-rejilla > .panel { margin-top: 10pt; }
 }
+
+/* Grupos de botones con <fieldset> y estados con <output>, sin roles ARIA. */
+fieldset.filtro-campo { margin: 0; padding: 0; min-width: 0; border: 0; }
+fieldset.segmentado { margin: 0; padding: 0; min-width: 0; }
+fieldset.filtro-campo > legend { padding: 0; margin-bottom: 6px; }
+output { display: block; }
+dialog.modal { position: static; margin: 0; padding: 0; border: 0; color: inherit; }
 
 /* Kardex: secciones por grupo y columna de estado fija (2b). */
 .rejilla-paso { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
@@ -1137,11 +1144,9 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .revision-pestanas { display: none; grid-template-columns: 1fr 1fr; border: 1px solid var(--ne-border); background: var(--ne-white); }
 .revision-pestanas button { height: 44px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ne-navy); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
 .revision-pestanas button[aria-selected="true"] { border-bottom-color: var(--ne-navy); }
-.revision-documento .obs-panel { display: flex; flex-direction: column; height: calc(100vh - 180px); min-height: 520px; max-height: none; overflow: hidden; }
 .obs-panel-cab { flex: none; padding: 10px 16px; border-bottom: 1px solid var(--ne-border); display: flex; align-items: center; gap: 10px; }
 .obs-panel-titulo { display: flex; align-items: center; gap: 8px; font: 700 16px/24px var(--ne-display); color: var(--ne-navy); }
 .obs-panel-cab .atajos { padding: 0; }
-.obs-lista { flex: 1; min-height: 0; overflow: auto; }
 .obs-abierta { padding: 4px 14px 14px 13px; border-left: 3px solid var(--ne-navy); border-bottom: 1px solid var(--ne-line); background: var(--ne-line); display: flex; flex-direction: column; gap: 10px; font-size: 13px; animation: ne-in 0.16s var(--ne-ease); }
 .obs-motivo, .obs-nota { color: var(--ne-slate); font-size: 13px; }
 .obs-datos { margin: 0; padding: 8px 10px; background: var(--ne-white); border: 1px solid var(--ne-border); overflow-wrap: anywhere; }
@@ -1158,7 +1163,6 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .visor-elegida .visor-apariciones { margin-left: auto; }
 .visor-pasos { gap: 6px; }
 .visor-pasos .btn { width: 32px; height: 32px; padding: 0; }
-.revision-documento .visor-paginas { max-height: calc(100vh - 340px); min-height: 360px; }
 @media (max-width: 1100px) {
   .revision-pestanas { display: grid; }
   .solo-estrecho { display: inline-flex; }
@@ -1182,7 +1186,7 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .vista-vacia { padding: 12px; border: 1px dashed var(--ne-subtle); background: var(--ne-white); font-size: 14px; }
 .vista-nota { display: flex; gap: 6px; font-size: 12px; color: var(--ne-slate); }
 .vista-nota .ico { flex: none; font-size: 14px; margin-top: 2px; }
-.vista-informe { padding: 56px 64px; background: #fff; box-shadow: 0 1px 4px rgba(0, 17, 44, 0.18); color: #000; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.vista-informe { padding: 56px 64px; background: #fff; box-shadow: 0 1px 4px rgba(0, 17, 44, 0.18); color: #000; font-size: 13px; line-height: 1.45; overflow-wrap: break-word; }
 .vista-informe h1 { font: 700 22px/1.2 var(--ne-display); margin-bottom: 4px; }
 .vista-informe h2 { font: 700 16px/1.3 var(--ne-display); margin: 18px 0 6px; }
 .vista-informe .reporte-meta { font-size: 12px; color: #333; margin-bottom: 6px; }
@@ -1202,4 +1206,3 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .calidad-rejilla .tabla th, .calidad-rejilla .tabla td { padding-inline: 8px; }
 .calidad-rejilla .ranking-total { min-width: 90px; }
 @media (max-width: 1379.98px) { .calidad-rejilla { grid-template-columns: minmax(0, 1fr); } }
-.vista-informe { overflow-wrap: break-word; }

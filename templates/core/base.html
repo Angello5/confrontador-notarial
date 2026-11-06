@@ -18,7 +18,7 @@
         <a class="marca navbar-brand" href="{% url 'home' %}">
           {% include "core/_marca.html" %}
           {# F70: lo que se ve de la marca con el menú reducido a iconos #}
-          <span class="marca-iconos">{% if erp_icono %}<img src="{{ erp_icono }}" alt="{{ erp_nombre }}" onerror="this.hidden = true; this.nextElementSibling.hidden = false;"><span class="marca-sello" aria-hidden="true" hidden>{{ erp_iniciales }}</span>{% else %}<span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>{% endif %}</span>
+          <span class="marca-iconos"><span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>{% if erp_icono %}<img src="{{ erp_icono }}" alt="">{% endif %}</span>
         </a>
         <nav aria-label="Navegación principal">
           <div>

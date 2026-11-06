@@ -28,14 +28,14 @@
   {# F73: barra de filtros (propuesta 1a). #}
   <section class="panel inicio-filtros" aria-label="Filtros de los indicadores">
     <div class="filtros-controles">
-      <div class="filtro-campo">
-        <span class="filtro-rotulo" id="filtro-periodo">Periodo</span>
-        <div class="filtro-periodos" role="group" aria-labelledby="filtro-periodo">
+      <fieldset class="filtro-campo">
+        <legend class="filtro-rotulo">Periodo</legend>
+        <div class="filtro-periodos">
           <template x-for="opcion in filtros" :key="opcion.id">
             <button type="button" :aria-pressed="(filtro === opcion.id).toString()" @click="elegirFiltro(opcion.id)" x-text="opcion.texto"></button>
           </template>
         </div>
-      </div>
+      </fieldset>
       <label class="filtro-campo filtro-persona">
         <span class="filtro-rotulo">Persona</span>
         <select x-model="persona" @change="actualizar()">
@@ -81,18 +81,19 @@
         <h2 id="actividad-titulo" x-text="periodo === 'mes' ? 'Actividad por mes' : 'Actividad por semana'">Actividad por semana</h2>
         <p>Kardex confrontados en <span x-text="datos.titulo_historia">{{ datos_inicio.titulo_historia }}</span>. Un kardex cuenta una vez por periodo. <span x-text="datos.filtro ? 'En azul, lo que cae dentro del periodo elegido.' : 'Pase el puntero o el teclado por una barra para ver su detalle.'">Pase el puntero o el teclado por una barra para ver su detalle.</span></p>
       </div>
-      <div class="segmentado" role="group" aria-label="Agrupar actividad">
+      <fieldset class="segmentado">
+        <legend class="visually-hidden">Agrupar actividad</legend>
         <button type="button" :aria-pressed="(periodo === 'semana').toString()" aria-pressed="true" @click="elegir('semana')">Por semana</button>
         <button type="button" :aria-pressed="(periodo === 'mes').toString()" aria-pressed="false" @click="elegir('mes')">Por mes</button>
-      </div>
+      </fieldset>
     </div>
     <ol class="semanas" :style="`--tramos: ${datos.actividad.length}`" :aria-label="`Kardex confrontados, ${datos.titulo_historia}`">
       <template x-for="(tramo, i) in datos.actividad" :key="datos.periodo + tramo.etiqueta">
-        <li class="semana" tabindex="0" :aria-label="tramo.explicacion" :data-fuera="!tramo.dentro">
+        <li class="semana" tabindex="0" :aria-label="tramo.explicacion">
           <span class="semana-ayuda" aria-hidden="true" x-text="tramo.explicacion"></span>
           <span class="semana-cifra" aria-hidden="true" x-text="tramo.kardex"></span>
-          <span class="semana-columna" aria-hidden="true"><span class="semana-relleno" :style="`height: ${altos[i] ?? 0}%`"></span></span>
-          <span class="semana-fecha" aria-hidden="true" x-text="tramo.etiqueta"></span>
+          <span class="semana-columna" aria-hidden="true" :data-fuera="!tramo.dentro"><span class="semana-relleno" :style="`height: ${altos[i] ?? 0}%`"></span></span>
+          <span class="semana-fecha" aria-hidden="true" :data-fuera="!tramo.dentro" x-text="tramo.etiqueta"></span>
         </li>
       </template>
     </ol>
@@ -198,7 +199,7 @@
         <tbody>
           <template x-for="fila in datos.confrontaciones" :key="fila.codigo + fila.fecha">
             <tr class="aparece">
-              <th scope="row"><a :href="fila.url" x-text="fila.codigo"></a></th>
+              <th scope="row"><a :href="fila.url" x-text="fila.codigo">Kardex</a></th>
               <td><span class="chip" x-text="fila.tipo"></span></td>
               <td x-text="fila.usuario"></td>
               <td class="num fila-fecha" x-text="fila.fecha"></td>
@@ -208,12 +209,12 @@
         </tbody>
       </table>
     </div>
-    <p class="vacio-breve" role="status" x-show="!datos.confrontaciones.length && hayFiltros" x-cloak>Sin confrontaciones con estos filtros. <button type="button" class="btn-texto" @click="limpiar()">Limpiar filtros</button></p>
-    <div class="vacio" role="status" x-show="!datos.confrontaciones.length && !hayFiltros">
+    <output class="vacio-breve" x-show="!datos.confrontaciones.length && hayFiltros" x-cloak>Sin confrontaciones con estos filtros. <button type="button" class="btn-texto" @click="limpiar()">Limpiar filtros</button></output>
+    <output class="vacio" x-show="!datos.confrontaciones.length && !hayFiltros">
       <svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg>
       <strong>Aún no hay confrontaciones</strong>
       <span>Aparecerán aquí cuando se confronte el primer kardex.</span>
-    </div>
+    </output>
   </section>
 </div>
 {% else %}

@@ -830,4 +830,4 @@ def test_f73_el_inicio_pinta_la_barra_de_filtros(client, administrador_ficticio)
     assert 'aria-label="Filtros de los indicadores"' in content
     assert "Calidad de la confrontación" in content
     assert "no dependen del periodo" in content
-    assert 'aria-label="Agrupar actividad"' in content
+    assert '<legend class="visually-hidden">Agrupar actividad</legend>' in content

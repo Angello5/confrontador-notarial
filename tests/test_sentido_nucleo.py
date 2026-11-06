@@ -460,7 +460,8 @@ def test_f69_tramos_muestran_solo_lo_que_cambia():
     assert [t for t, distinto in tramos_m if distinto] == ["NO"]
     assert [t for t, distinto in tramos_p if distinto] == []
     visible = "".join(t for t, _ in tramos_m)
-    assert visible.startswith("… ") and visible.endswith(" …")
+    assert visible.startswith("… ")
+    assert visible.endswith(" …")
     assert "EL VENDEDOR NO SE OBLIGA" in visible
     assert len(visible.split()) < len(minuta.split()) / 2
 

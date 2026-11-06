@@ -21,13 +21,13 @@
         <h1>{{ expediente.codigo }}</h1>
         <span class="cabecera-meta"><span><svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>{{ borrador.nombre_original }}</span></span>
       </div>
-      <p class="resultado-resumen" role="status" aria-live="polite">
+      <output class="resultado-resumen" aria-live="polite">
         {% if resultado.personas or resultado.regla or resultado.ortografia %}
           <strong id="resultado-titulo" data-tono="alerta"><span x-text="obs.length"></span> observaciones para revisar</strong> · {{ resultado.extraccion.personas|length }} persona{{ resultado.extraccion.personas|length|pluralize }} con ficha{% if resultado.correcciones %} · {{ resultado.correcciones|length }} correccion{{ resultado.correcciones|length|pluralize:"es" }} propuesta{{ resultado.correcciones|length|pluralize }}{% endif %}
         {% else %}
           <strong id="resultado-titulo" data-tono="exito">Sin observaciones</strong> · {% if resultado.calidad_lectura %}No se encontraron observaciones en el texto leído. Revise los avisos de calidad.{% else %}No se encontraron observaciones en los datos detectados.{% endif %}
         {% endif %}
-      </p>
+      </output>
     </div>
     <div class="resumen-sev" role="group" aria-label="Filtrar por severidad">
       <button type="button" class="sev-filtro" data-sev="ALTA" :aria-pressed="sev === 'ALTA'" @click="sev = sev === 'ALTA' ? 'TODAS' : 'ALTA'">
@@ -344,7 +344,7 @@
 
     {# ── F73: vista previa del informe (propuesta 3a) ── #}
     <div class="modal-fondo" x-show="modal === 'vista'" x-cloak @click.self="modal = null" @keydown.escape="modal = null">
-      <div class="modal modal-vista" data-tono="exito" role="dialog" aria-modal="true" aria-labelledby="vista-titulo">
+      <dialog class="modal modal-vista" open data-tono="exito" aria-modal="true" aria-labelledby="vista-titulo">
         <div class="modal-cab vista-cab">
           <div>
             <h2 id="vista-titulo">Vista previa del informe</h2>
@@ -377,7 +377,7 @@
           <button type="button" class="btn" @click="modal = null">Cerrar</button>
           <button type="button" class="btn btn-primario" :disabled="generando || vistaVacia" @click="descargarWord()"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span x-text="generando ? 'Generando…' : 'Descargar Word'">Descargar Word</span></button>
         </div>
-      </div>
+      </dialog>
     </div>
 
     {# ── Modal: reporte ── #}

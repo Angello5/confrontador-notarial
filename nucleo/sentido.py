@@ -40,7 +40,8 @@ RE_ROTULO = re.compile(
     r"D[EÉ]CIM|UND[EÉ]CIM|DUOD[EÉ]CIM)[OA]S?)\s*[.:-]",
     re.IGNORECASE,
 )
-RE_BORDE_PALABRA = re.compile(r"^[^\w#]+|[^\w#]+$")
+# Letra, cifra, «_» o «#»: lo que queda de una palabra al quitarle sus bordes.
+RE_CARACTER_DE_PALABRA = re.compile(r"[\w#]")
 LETRAS_CON_SENTIDO = frozenset("YOAEU")
 PALABRAS_DE_CONTEXTO = 5
 MAX_PALABRAS_SIN_CAMBIO = 30
@@ -71,6 +72,16 @@ ENLACES_CIFRA = frozenset(
 
 
 # --- Texto ---------------------------------------------------------------------------
+def sin_borde(palabra):
+    """La palabra sin los signos de sus extremos («,PERO.» -> «PERO»)."""
+    inicio, fin = 0, len(palabra)
+    while inicio < fin and not RE_CARACTER_DE_PALABRA.match(palabra[inicio]):
+        inicio += 1
+    while fin > inicio and not RE_CARACTER_DE_PALABRA.match(palabra[fin - 1]):
+        fin -= 1
+    return palabra[inicio:fin]
+
+
 def plano(texto):
     """Mayúsculas, sin tildes, cifras ni espacios dobles."""
     t = unicodedata.normalize("NFKD", texto.upper())
@@ -197,7 +208,7 @@ def solo_lectura(a, b):
 
 def _sin_signos(palabras):
     """F69: sin la puntuación pegada al corte («EL.» es «EL»; «,» no es palabra)."""
-    limpias = (RE_BORDE_PALABRA.sub("", p) for p in palabras)
+    limpias = (sin_borde(p) for p in palabras)
     return [p for p in limpias if p]
 
 
@@ -273,8 +284,8 @@ def tramos_de_cambio(minuta, proyecto):
     if not a:
         foco = range(min(len(b), MAX_PALABRAS_SIN_CAMBIO))
         return [], _tramos(b, foco, set())
-    x = [RE_BORDE_PALABRA.sub("", plano(p)) for p in a]
-    y = [RE_BORDE_PALABRA.sub("", plano(p)) for p in b]
+    x = [sin_borde(plano(p)) for p in a]
+    y = [sin_borde(plano(p)) for p in b]
     foco_a, foco_b, marca_a, marca_b = set(), set(), set(), set()
     en_borde = []
 

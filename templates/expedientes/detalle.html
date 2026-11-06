@@ -72,7 +72,7 @@
             <button x-show="enCurso(b.id)" class="btn btn-lg btn-bloque" type="button" disabled><svg class="ico ico-gira" aria-hidden="true"><use href="#i-loader"/></svg><span x-text="intencion === b.id ? 'Esperando la carga…' : 'Confrontando…'"></span></button>
             <button x-show="!enCurso(b.id) && (!estadoDe(b.id).resultado_listo || pendientes || fallidas)" class="btn btn-primario btn-lg btn-bloque" type="button" :disabled="enviandoSolicitud || (!pendientes && !estadoDe(b.id).puede_solicitar)" @click="confrontar(b.id)">Confrontar borrador</button>
             <button x-show="enCurso(b.id)" class="btn btn-bloque" type="button" @click="cancelar(b.id)"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg>Cancelar confrontación</button>
-            <p class="texto-chico texto-suave" role="status" x-text="motivoBoton(b.id)"></p>
+            <output class="texto-chico texto-suave" x-text="motivoBoton(b.id)"></output>
           </div>
         </template>
         <div class="pila pila-chica" x-show="!delRol('BORRADOR').length">
