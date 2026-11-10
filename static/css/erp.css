@@ -124,7 +124,9 @@ table { border-collapse: collapse; }
 .marca-logo[hidden], .marca-fila[hidden], .marca-sub[hidden] { display: none; } /* F65: logo que no carga */
 .marca-iconos { display: none; position: relative; }
 .marca-iconos [hidden] { display: none; }
-.marca-iconos img { display: block; position: absolute; inset: 0; width: 36px; height: 36px; object-fit: contain; background: var(--ne-white); }
+.marca-iconos img { display: block; width: 36px; height: 36px; object-fit: contain; }
+/* Sin ERP_ICONO: el menú reducido muestra solo la marca (la «E») del logo, a la izquierda de la imagen. */
+.marca-iconos .marca-e { display: block; width: 36px; height: 44px; object-fit: cover; object-position: left center; }
 .marca-sello {
   width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center;
   background: var(--ne-navy); color: var(--ne-green); font: 700 14px var(--ne-display);
@@ -188,26 +190,28 @@ table { border-collapse: collapse; }
 .cabecera-meta span { display: inline-flex; align-items: center; gap: 6px; }
 
 .sidebar-overlay { display: none; border: 0; padding: 0; }
-
-/* F70: en la confrontación el menú se reduce a iconos y se abre sobre el contenido. */
+.lateral-fijar { display: none; align-self: flex-end; margin: 0 16px 10px; }
 @media (min-width: 960px) {
-  .shell-iconos { --ne-lateral: 72px; }
-  .shell-iconos .lateral { overflow: hidden; transition: width 0.2s var(--ne-ease), box-shadow 0.2s var(--ne-ease); }
-  .shell-iconos .lateral:hover, .shell-iconos .lateral:focus-within { width: 252px; box-shadow: var(--ne-shadow); }
-  .shell-iconos .lateral:not(:hover, :focus-within) .marca { align-items: center; padding: 16px 0; }
-  .shell-iconos .lateral:not(:hover, :focus-within) .marca > * { display: none; }
-  .shell-iconos .lateral:not(:hover, :focus-within) .marca > .marca-iconos { display: block; }
-  .shell-iconos .lateral:not(:hover, :focus-within) nav { padding: 16px 8px; gap: 12px; overflow: hidden; }
-  .shell-iconos .lateral:not(:hover, :focus-within) .menu-seccion,
-  .shell-iconos .lateral:not(:hover, :focus-within) .submenu { display: none; }
-  .shell-iconos .lateral:not(:hover, :focus-within) .menu a,
-  .shell-iconos .lateral:not(:hover, :focus-within) .menu-grupo { justify-content: center; gap: 0; padding: 0; }
-  .shell-iconos .lateral:not(:hover, :focus-within) .menu a > span,
-  .shell-iconos .lateral:not(:hover, :focus-within) .menu-grupo > span {
+  .lateral-fijar { display: inline-flex; }
+  .shell-fijo .lateral-fijar { align-self: center; margin: 0 0 10px; }
+  /* Menú reducido a iconos; la elección se guarda en el navegador. */
+  .shell-fijo { --ne-lateral: 72px; }
+  .shell-fijo .contenido { max-width: none; }
+  .shell-fijo .lateral { overflow: hidden; }
+  .shell-fijo .lateral .marca { align-items: center; padding: 16px 0; }
+  .shell-fijo .lateral .marca > * { display: none; }
+  .shell-fijo .lateral .marca > .marca-iconos { display: block; }
+  .shell-fijo .lateral nav { padding: 16px 8px; gap: 12px; overflow: hidden; }
+  .shell-fijo .lateral .menu-seccion,
+  .shell-fijo .lateral .submenu { display: none; }
+  .shell-fijo .lateral .menu a,
+  .shell-fijo .lateral .menu-grupo { justify-content: center; gap: 0; padding: 0; }
+  .shell-fijo .lateral .menu a > span,
+  .shell-fijo .lateral .menu-grupo > span {
     position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
   }
-  .shell-iconos .lateral:not(:hover, :focus-within) .lateral-pie { justify-content: center; padding: 14px 0; }
-  .shell-iconos .lateral:not(:hover, :focus-within) .lateral-pie > :not(.avatar) { display: none; }
+  .shell-fijo .lateral .lateral-pie { justify-content: center; padding: 14px 0; }
+  .shell-fijo .lateral .lateral-pie > :not(.avatar) { display: none; }
 }
 
 @media (max-width: 959.98px) {

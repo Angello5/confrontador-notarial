@@ -8,7 +8,6 @@
   <li><a href="{% url 'expediente_detalle' expediente.pk %}">{{ expediente.codigo }}</a></li>
   <li aria-current="page">Confrontación</li>
 </ol>{% endblock %}
-{% block shell_clase %} shell-iconos{% endblock %}
 {% block cabecera %}{% endblock %}
 {% block content %}
 <div class="pila" x-data="revisionConfrontacion()" x-init="iniciar()" @keydown.window="teclado($event)">
@@ -282,7 +281,7 @@
     {% endif %}
 
     {# ── Barra de correcciones ── #}
-    {% if resultado.correcciones %}
+    {% if resultado.correcciones or resultado.corregible %}
       <div class="barra-correcciones">
         <div>
           {% if resultado.corregible %}
