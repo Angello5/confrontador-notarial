@@ -2,6 +2,7 @@
 
 from nucleo import correccion
 from nucleo.verificar import (
+    _nombres_de_pagina,
     _registrales_observados,
     catalogo,
     datos_registrales,
@@ -79,3 +80,24 @@ def test_el_conyuge_que_comparece_conserva_su_propio_dni():
 
     assert ("BEATRIZ INVENTADA SOTO", "90000002") in asignados
     assert ("ALBERTO FICTICIO RAMOS", "90000002") not in asignados
+
+
+def test_nombre_de_la_prosa_no_se_pega_a_lo_que_la_precede():
+    # La coma de «APELLIDOS, NOMBRES» no existe en esta prosa: lo de antes de
+    # la coma es una cláusula o una ocupación, nunca apellidos.
+    minuta = (
+        "UNA DE CONTRATO DE MUTUO CON GARANTIA HIPOTECARIA QUE OTORGA DE UNA "
+        "PARTE LA SOCIEDAD CONYUGAL, ALFREDO ZAFIRO LUMARIA DE NACIONALIDAD "
+        "PERUANA, IDENTIFICADO CON DNI 90000001, EMPRESARIO, Y SANDRA BRUNA "
+        "NEBULOSA DE NACIONALIDAD PERUANA, IDENTIFICADA CON DNI 90000002."
+    )
+    nombres = _nombres_de_pagina(minuta, "PROSA", False)
+    assert "ALFREDO ZAFIRO LUMARIA" in nombres
+    assert "SANDRA BRUNA NEBULOSA" in nombres
+    assert not [n for n in nombres if "SOCIEDAD" in n or n.startswith("Y ")]
+    assert not [n for n in nombres if n.endswith("EMPRESARIO")]
+
+
+def test_apellidos_coma_nombres_sigue_reordenandose():
+    texto = "ZAFIRO LUMARIA, ALBA DE NACIONALIDAD PERUANA"
+    assert "ALBA ZAFIRO LUMARIA" in _nombres_de_pagina(texto, "PROSA", False)
