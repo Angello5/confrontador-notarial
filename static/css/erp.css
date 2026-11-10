@@ -975,8 +975,9 @@ kbd { font-family: inherit; font-size: 11px; font-weight: 800; border: 1px solid
 .revision-documento { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 20px; }
 .revision-lateral { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 /* La lista llega hasta el final del documento: la columna se estira a la altura del
-   visor y `contain: size` evita que la lista larga agrande la fila. */
-.revision-documento .revision-lateral { align-self: stretch; contain: size; }
+   visor y `contain: size` evita que la lista larga agrande la fila. Con el visor aún
+   sin cargar (fila corta), el mínimo es la altura del panel: no se desborda. */
+.revision-documento .revision-lateral { align-self: stretch; contain: size; min-height: max(520px, calc(100vh - 180px)); }
 .revision-documento .obs-panel { position: static; display: flex; flex-direction: column; height: calc(100vh - 180px); min-height: 520px; max-height: none; overflow: hidden; }
 .revision-documento .visor-borrador .panel-cab { flex-wrap: wrap; gap: 12px; }
 .revision-documento .visor-paginas { max-height: calc(100vh - 340px); min-height: 360px; }
