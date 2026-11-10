@@ -14,24 +14,26 @@
     {% include "core/_iconos.html" %}
     <div class="shell{% if user.force_password_change %} shell-sin-menu{% endif %}{% block shell_clase %}{% endblock %}">
       {% if not user.force_password_change %}
+      {# Preferencia del menú (iconos o abierto) guardada en este navegador; sin ella manda la página. #}
+      <script>try{var p=localStorage.getItem('menu-lateral-2'),e=document.currentScript.parentElement.classList;if(p){e.remove('shell-iconos');e.toggle('shell-fijo',p==='iconos')}}catch(x){}</script>
       <aside id="menu-principal" class="lateral">
         <a class="marca navbar-brand" href="{% url 'home' %}">
           {% include "core/_marca.html" %}
           {# F70: lo que se ve de la marca con el menú reducido a iconos #}
-          <span class="marca-iconos"><span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>{% if erp_icono %}<img src="{{ erp_icono }}" alt="">{% endif %}</span>
+          <span class="marca-iconos">{% if erp_icono %}<img src="{{ erp_icono }}" alt="">{% elif erp_logo %}<span class="marca-e" style="background-image: url('{{ erp_logo }}')" aria-hidden="true"></span>{% else %}<span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>{% endif %}</span>
         </a>
         <nav aria-label="Navegación principal">
           <div>
             <p class="menu-seccion">Menú principal</p>
             <ul class="menu">
               <li>
-                <a href="{% url 'home' %}"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>
+                <a href="{% url 'home' %}" title="Inicio"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>
                   <svg class="ico" aria-hidden="true"><use href="#i-house"/></svg><span>Inicio</span>
                 </a>
               </li>
               {% if es_administrador or es_usuario %}
                 <li>
-                  <span class="menu-grupo"><svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg><span>Expedientes</span></span>
+                  <span class="menu-grupo" title="Expedientes"><svg class="ico" aria-hidden="true"><use href="#i-folder-open"/></svg><span>Expedientes</span></span>
                   <ul class="submenu" aria-label="Expedientes">
                     <li>
                       <a href="{% url 'expediente_lista' %}"{% if request.resolver_match.route|slice:":12" == "expedientes/" and request.resolver_match.url_name != "vehicular_lista" and expediente.tipo != "VEHICULAR" %} aria-current="page"{% endif %}>
@@ -53,7 +55,7 @@
               <p class="menu-seccion">Administración</p>
               <ul class="menu">
                 <li>
-                  <a href="{% url 'admin:accounts_user_changelist' %}">
+                  <a href="{% url 'admin:accounts_user_changelist' %}" title="Usuarios y permisos">
                     <svg class="ico" aria-hidden="true"><use href="#i-users"/></svg><span>Usuarios y permisos</span>
                   </a>
                 </li>
@@ -61,6 +63,10 @@
             </div>
           {% endif %}
         </nav>
+        <button type="button" class="btn btn-icono btn-sm lateral-fijar" title="Reducir o fijar el menú" aria-label="Reducir o fijar el menú"
+          onclick="var e=this.closest('.shell').classList,r=e.contains('shell-iconos')||e.contains('shell-fijo');e.remove('shell-iconos');e.toggle('shell-fijo',!r);this.blur();try{localStorage.setItem('menu-lateral-2',r?'abierto':'iconos')}catch(x){}">
+          <svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg>
+        </button>
         <div class="lateral-pie">
           <span class="avatar" aria-hidden="true">{{ user.username|slice:":2"|upper }}</span>
           <div class="usuario" title="{{ user.username }}">

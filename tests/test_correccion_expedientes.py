@@ -184,11 +184,10 @@ def test_f48_recuadro_de_aplicar_muestra_el_total_y_bloquea_las_no_corregibles(
     assert 'class="doc doc-fragmento"' not in pantalla
     assert "Línea 2:" in informe
 
-    # F70: aquí el menú lateral se reduce a iconos, para dar espacio al documento.
-    assert 'class="shell shell-iconos"' in html
+    # El menú lateral abre completo; el botón lo reduce a iconos y recuerda la elección.
+    assert 'class="shell shell-iconos"' not in html
     assert 'class="marca-iconos"' in html
-    lista = client.get(reverse("expediente_lista")).content.decode()
-    assert "shell-iconos" not in lista
+    assert "lateral-fijar" in html
 
     # La cabecera ya no muestra «Revisión N»; la corrida sigue en el formulario,
     # en el visor y en el informe imprimible.
