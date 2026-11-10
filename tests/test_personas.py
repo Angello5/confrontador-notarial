@@ -1864,3 +1864,16 @@ def test_reniec_sin_nombre_y_sin_ancla_no_cambia():
             "SIN_FICHA",
         ),
     )
+
+
+def test_dni_escaneado_da_ficha_con_nombre_y_cui():
+    """El DNI por tarjeta (rótulo y valor en líneas distintas; OCR «Prenembres») es ficha."""
+    texto = (
+        "REPÚBLICA DEL PERÚ  CUI\nREGISTRO NACIONAL DE IDENTIFICACIÓN Y ESTADO CIVIL\n"
+        "42580600-4\nDOCUMENTO NACIONAL DE IDENTIDAD\nPrimer Apellido\nALATA\n"
+        "Segundo Apellido\nRAMIREZ\nPrenembres\nCAROL JESSENIA\nSexo\nF\n"
+    )
+    cat = catalogo({"DNI - CAROL ALATA.pdf": texto})
+    assert [(p.nombre, p.documento) for p in cat.personas] == [
+        ("CAROL JESSENIA ALATA RAMIREZ", "42580600")
+    ]

@@ -638,11 +638,33 @@ def _anotar_reniec(personas: list[Persona], pagina: Pagina, tipo: str) -> list[P
     return personas
 
 
+_RE_PRENOMBRES = re.compile(r"PRE\w{0,3}BRES")  # el OCR lee «Prenembres»
+
+
+def _nombre_tarjeta_dni(raw: str) -> str | None:
+    """Nombre del DNI escaneado: cada rótulo trae su valor en la línea siguiente."""
+    lineas = [norm(linea) for linea in raw.splitlines()]
+    valores = {}
+    for i, linea in enumerate(lineas[:-1]):
+        for clave, rotulo in (("pat", "PRIMER APELLIDO"), ("mat", "SEGUNDO APELLIDO")):
+            if linea == rotulo:
+                valores[clave] = lineas[i + 1]
+        if _RE_PRENOMBRES.fullmatch(linea):
+            valores["nom"] = lineas[i + 1]
+    if len(valores) == 3 and all(
+        v.replace(" ", "").isalpha() for v in valores.values()
+    ):
+        return f"{valores['nom']} {valores['pat']} {valores['mat']}"
+    return None
+
+
 def _nombres_de_pagina(
     raw: str, tipo: str, es_pdf: bool, es_img: bool = False
 ) -> list[str]:
     t = norm(raw)
     out = list(nombres(t))
+    if tipo == "IDENTIDAD" and (tarjeta := _nombre_tarjeta_dni(raw)):
+        out.append(tarjeta)
     # Solo la coma delimita el orden ``APELLIDOS, NOMBRES``; no se reordena
     # ninguna línea de prosa que no tenga esa frontera explícita.
     if tipo in {"RENIEC", "BIOMETRICA", "SUNARP", "IDENTIDAD", "PROSA"}:
@@ -684,6 +706,8 @@ def _documentos_de_pagina(raw: str, tipo: str, es_img: bool) -> list[str]:
         )
     )
     t = norm(limpio)
+    if tipo == "IDENTIDAD" and not es_img:  # tarjeta (CUI) o prosa («DNI N° …»)
+        return list(dict.fromkeys(RE_CUI.findall(t) or RE_DNI_DOC.findall(t)))
     if es_img or tipo == "RENIEC":
         return list(dict.fromkeys(RE_CUI.findall(t)))
     return list(dict.fromkeys(RE_DNI_DOC.findall(t)))
@@ -1552,7 +1576,7 @@ def _paginas(fuentes: Mapping[str, str]) -> list[Pagina]:
     ]
 
 
-_TIPOS_ANCLA = {"RENIEC", "BIOMETRICA"}
+_TIPOS_ANCLA = {"RENIEC", "BIOMETRICA", "IDENTIDAD"}
 
 
 def _pegar(anclas, registros) -> tuple[tuple[Persona, ...], tuple[Persona, ...]]:
