@@ -332,7 +332,7 @@ def datos_registrales(t: str) -> list[tuple[str, str, re.Match]]:
 
 
 RE_NOMBRE = re.compile(
-    r"([A-ZÑ][A-ZÑ ]{8,60}?)[,.]{0,2}-?\s*(?:DE\s+)?NACIONALIDAD"
+    r"([A-ZÑ][A-ZÑ ]{8,60}?)[,.]{0,2}(?:\s*-)?\s*(?:DE\s+)?NACIONALIDAD"
     r"|CASAD[AO]\s+CON\s+([A-ZÑ][A-ZÑ ]{8,60}?)[,.]"
     # F45: las actas vehiculares escriben «NOMBRE, PERUANO,»; hasta 6 palabras.
     r"|\b((?:[A-ZÑ]+ ){1,5}[A-ZÑ]+),\s*PERUAN[OA]\b"
@@ -424,7 +424,10 @@ def _nombres_marcados(t: str):
     """(nombre, es_mencion_de_conyuge) de cada nombre de RE_NOMBRE."""
     for grupos in RE_NOMBRE.findall(norm(t)):
         indice, nombre = next((i, g) for i, g in enumerate(grupos) if g)
-        w = _sin_bordes([x for x in nombre.split() if len(x) > 1 or x in STOP])
+        palabras = nombre.split()
+        if "PARTE" in palabras:  # «LOS MUTUANTES Y DE LA OTRA PARTE <nombre>»
+            palabras = palabras[len(palabras) - palabras[::-1].index("PARTE") :]
+        w = _sin_bordes([x for x in palabras if len(x) > 1 or x in STOP])
         if 2 <= len(w) <= 7:
             yield " ".join(w), indice == 1
 
