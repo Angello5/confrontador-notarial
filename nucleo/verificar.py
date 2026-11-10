@@ -658,6 +658,25 @@ def _nombre_tarjeta_dni(raw: str) -> str | None:
     return None
 
 
+# Palabras de prosa que nunca van en unos apellidos: «DE», «LA»... sí pueden.
+_PROSA = STOP - {"DE", "DEL", "LA", "LAS", "LOS", "Y", "EL"}
+
+
+def _es_apellidos_coma_nombres(apellidos: str, nombres_propios: str) -> bool:
+    """Solo es «APELLIDOS, NOMBRES» si lo de antes de la coma parece apellidos.
+
+    En la prosa («…LA SOCIEDAD CONYUGAL, ALFREDO X DE NACIONALIDAD…») la coma
+    separa cláusulas: no se reordena ni se pega la cláusula al nombre.
+    """
+    antes, despues = apellidos.split(), nombres_propios.split()
+    return (
+        0 < len(antes) <= 4
+        and not _PROSA.intersection(antes)
+        and bool(despues)
+        and despues[0] not in STOP
+    )
+
+
 def _nombres_de_pagina(
     raw: str, tipo: str, es_pdf: bool, es_img: bool = False
 ) -> list[str]:
@@ -671,6 +690,7 @@ def _nombres_de_pagina(
         out.extend(
             f"{nombres_propios.strip().removesuffix(' DE')} {apellidos.strip()}"
             for apellidos, nombres_propios in RE_NOMBRE_APELLIDOS.findall(t)
+            if _es_apellidos_coma_nombres(apellidos, nombres_propios)
         )
     if tipo in {"RENIEC", "BIOMETRICA"}:
         if tipo == "BIOMETRICA":
