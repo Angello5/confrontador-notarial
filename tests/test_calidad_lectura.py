@@ -67,6 +67,12 @@ def test_resultado_y_corrida_guardan_aviso(escenario, usuario_ficticio):
     assert "Calidad de lectura" in html
     assert "Lectura dudosa" in html
     assert "página" in html
+    # F68: en pantalla es una línea desplegable; el informe impreso la lleva completa.
+    pantalla, informe = html.split('class="solo-impresion reporte"', 1)
+    assert '<details class="aviso-compacto" data-tono="advertencia"' in pantalla
+    assert "Lectura que necesita revisión" in pantalla.split("</summary>", 1)[0]
+    assert '<section class="aviso" data-tono="advertencia"' not in pantalla
+    assert '<section class="aviso" data-tono="advertencia"' in informe
 
 
 def test_historicos_sin_calidad_no_se_declaran_verificados(escenario):

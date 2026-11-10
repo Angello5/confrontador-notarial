@@ -53,5 +53,12 @@ def home_datos(request):
     if not _es_administrador(request.user):
         raise PermissionDenied
     return JsonResponse(
-        datos_inicio_administrador(request.user, request.GET.get("periodo", "semana"))
+        datos_inicio_administrador(
+            request.user,
+            request.GET.get("periodo", "semana"),
+            filtro=request.GET.get("filtro"),
+            desde=request.GET.get("desde"),
+            hasta=request.GET.get("hasta"),
+            persona=request.GET.get("usuario"),
+        )
     )

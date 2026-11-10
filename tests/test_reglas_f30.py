@@ -156,11 +156,9 @@ def test_registro_y_zona_con_fuente_y_sede_conocida():
     observaciones = _observaciones(fuente, borrador, "DATO_REGISTRAL")
     assert any("ZONA REGISTRAL N° VIII" in obs and "IX" in obs for obs in observaciones)
     assert any("SEDE LIMA" in obs and "HUANCAYO" in obs for obs in observaciones)
-    assert any(
-        "REGISTRO DE PERSONAS JURIDICAS" in obs and "PREDIOS" in obs
-        for obs in observaciones
-    )
-    assert len(observaciones) == 3
+    # F74: un registro de personas describe a otra entidad del acto, no al bien.
+    assert not any("REGISTRO DE PERSONAS JURIDICAS" in obs for obs in observaciones)
+    assert len(observaciones) == 2
     assert _observaciones(fuente, fuente, "DATO_REGISTRAL") == []
 
 

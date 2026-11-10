@@ -112,3 +112,80 @@ test('faltantes y confrontación en curso usan los roles y la solicitud', () => 
   app.intencion = 3;
   assert.equal(app.enCurso(3), true);
 });
+
+const conDocumentos = (documentos, borradores = []) => {
+  const app = crearCarga({ documentos, borradores, base: '/expedientes/1/', maximo: 25, extensiones: ['txt'], roles: [['MINUTA', 'Minuta'], ['CLIENTE', 'Recaudos'], ['BORRADOR', 'Borrador']] });
+  return app;
+};
+const completos = (estado) => [{ id: 1, rol: 'MINUTA', estado: 'LISTO' }, { id: 2, rol: 'CLIENTE', estado, nombre: 'ficticio.pdf' }, { id: 3, rol: 'BORRADOR', estado: 'LISTO', nombre: 'borrador-ficticio.docx' }];
+
+test('F73: qué debe hacer sigue el estado del kardex', () => {
+  assert.match(conDocumentos([]).queHacer, /Faltan: Minuta, Recaudos, Borrador\./);
+  assert.match(conDocumentos(completos('PROCESANDO')).queHacer, /No tiene que hacer nada/);
+  assert.match(conDocumentos(completos('LISTO')).queHacer, /Ya puede confrontar/);
+  assert.match(conDocumentos(completos('ERROR')).queHacer, /^ficticio\.pdf no se pudo leer/);
+});
+
+test('F73: el botón explica por qué no se puede confrontar', () => {
+  assert.match(conDocumentos(completos('ERROR')).motivoBoton(3), /documento con error se reemplace/);
+  assert.equal(conDocumentos(completos('PENDIENTE')).motivoBoton(3), 'Esperando 1 documento: preparando documentos.');
+  assert.equal(conDocumentos(completos('LISTO'), [{ id: 3, mensaje: 'Mensaje del servidor.' }]).motivoBoton(3), 'Mensaje del servidor.');
+});
+
+test('F73: etapas y resumen de cada grupo', () => {
+  const app = conDocumentos(completos('ERROR'));
+  assert.equal(app.detalleEtapa(1), '2 documentos cargados');
+  assert.equal(app.detalleEtapa(2), 'borrador-ficticio.docx');
+  assert.equal(app.detalleEtapa(3), '2 de 3 preparados · 1 con atención pendiente');
+  assert.equal(app.detalleEtapa(4), 'Se habilita cuando todo esté preparado');
+  assert.equal(app.resumenGrupo('CLIENTE'), '1 necesita atención');
+  assert.equal(app.tonoGrupo('CLIENTE'), 'peligro');
+  assert.equal(app.resumenGrupo('MINUTA'), 'Todo preparado');
+  assert.equal(conDocumentos([]).resumenGrupo('MINUTA'), 'Obligatorio · sin documentos');
+});
+
+const paraReemplazar = (borrar) => {
+  const app = conDocumentos(completos('ERROR'));
+  app.reemplazar = 2;
+  app.adjuntados = [];
+  app.borrados = [];
+  app.borrar = async (id) => { app.borrados.push(id); return borrar; };
+  app.adjuntar = (archivos) => app.adjuntados.push(...archivos);
+  return app;
+};
+const elegidos = (archivos) => ({ target: { files: archivos, value: 'x' } });
+
+test('F73: volver a subir solo elimina si hay un archivo admisible', async () => {
+  const bueno = { name: 'copia.txt', size: 2 };
+  const app = paraReemplazar(true);
+  await app.seleccionar(elegidos([bueno]), 'CLIENTE');
+  assert.deepEqual(app.borrados, [2]);
+  assert.deepEqual(app.adjuntados, [bueno]);
+  assert.equal(app.reemplazar, null);
+
+  const malo = { name: 'copia.exe', size: 2 };
+  const rechazado = paraReemplazar(true);
+  await rechazado.seleccionar(elegidos([malo]), 'CLIENTE');
+  assert.deepEqual(rechazado.borrados, []);
+  assert.deepEqual(rechazado.adjuntados, [malo], 'el archivo se lista con su error');
+
+  const vacio = paraReemplazar(true);
+  await vacio.seleccionar(elegidos([]), 'CLIENTE');
+  assert.deepEqual(vacio.borrados, []);
+});
+
+test('F73: si no se pudo eliminar, no se sube el reemplazo', async () => {
+  const app = paraReemplazar(false);
+  await app.seleccionar(elegidos([{ name: 'copia.txt', size: 2 }]), 'CLIENTE');
+  assert.deepEqual(app.borrados, [2]);
+  assert.deepEqual(app.adjuntados, []);
+});
+
+test('F73: la nota de cada archivo dice su estado', () => {
+  const app = conDocumentos([]);
+  assert.equal(app.notaDocumento({ estado: 'PENDIENTE' }), 'En espera de lectura');
+  assert.equal(app.notaDocumento({ estado: 'LISTO' }), 'Texto extraído');
+  assert.equal(app.notaDocumento({ estado: 'PROCESANDO' }), 'Leyendo el texto');
+  assert.match(app.notaDocumento({ estado: 'PROCESANDO', procesando_el: '2026-11-03T12:14:00-05:00' }), /^Leyendo el texto desde las \d{2}:\d{2}$/);
+  assert.match(app.notaDocumento({ estado: 'ERROR' }), /copia más clara/);
+});

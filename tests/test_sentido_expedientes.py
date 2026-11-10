@@ -121,6 +121,10 @@ def test_analiza_la_corrida_sin_tocar_sus_hallazgos(
     assert "Contradice la minuta" in pagina
     assert "1 observación" in pagina
     assert "Dice minuta" in pagina and "EL VENDEDOR NO SE OBLIGA" in pagina
+    # F69: se ve lo que cambia; la cláusula completa queda plegada.
+    assert "<mark>NO</mark>" in pagina
+    assert '<details class="sentido-completo">' in pagina
+    assert "Ver cláusula completa" in pagina
     assert 'data-seccion="SENTIDO"' in pagina  # también en el informe
     assert _estado(client, usuario_ficticio, corrida) == "LISTO"
 

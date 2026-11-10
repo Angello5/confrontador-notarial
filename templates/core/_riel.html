@@ -6,8 +6,8 @@ data-error en erp.css. En la TV el primer paso es «Información», como su zona
 {% endcomment %}
 {% with primero=vehicular|yesno:"Información,Recaudos" %}
 <div x-data="{ pasos: ['{{ primero }}', 'Borrador', 'Procesamiento', 'Resultado'] }">
-  <ol class="riel" data-actual="{{ actual }}"{% if x_actual %} :data-actual="{{ x_actual }}" :data-error="estado === 'ERROR' ? 1 : 0"{% endif %} aria-hidden="true">
-    <li>{{ primero }}</li><li>Borrador</li><li>Procesamiento</li><li>Resultado</li>
+  <ol class="riel" data-actual="{{ actual }}"{% if x_actual %} :data-actual="{{ x_actual }}" :data-error="estado === 'ERROR' ? 1 : 0" :data-resultado="hayResultado ? 1 : 0"{% endif %} aria-hidden="true">
+    <li>{{ primero }}<small x-text="detalleEtapa(1)"></small></li><li>Borrador<small x-text="detalleEtapa(2)"></small></li><li>Procesamiento<small x-text="detalleEtapa(3)"></small></li><li>Resultado<small x-text="detalleEtapa(4)"></small></li>
   </ol>
   <p class="visually-hidden" aria-live="polite">Paso actual: <span{% if x_actual %} x-text="pasos[({{ x_actual }}) - 1]"{% endif %}>{% if actual == 1 %}{{ primero }}{% elif actual == 2 %}Borrador{% elif actual == 3 %}Procesamiento{% else %}Resultado{% endif %}</span></p>
 </div>

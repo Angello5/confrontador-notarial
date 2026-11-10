@@ -54,6 +54,10 @@ def _texto(hash_archivo, texto):
 
 @pytest.fixture
 def escenario(usuario_ficticio, tmp_path):
+    return _crear_escenario(usuario_ficticio, tmp_path, BORRADOR)
+
+
+def _crear_escenario(usuario_ficticio, tmp_path, texto_borrador):
     from expedientes.models import Documento, Expediente
     from expedientes.services import registrar_documento
 
@@ -75,7 +79,7 @@ def escenario(usuario_ficticio, tmp_path):
             texto_extraido=_texto(hash_archivo, FUENTE),
             subido_por=usuario_ficticio,
         )
-    contenido = _docx_bytes(tmp_path, BORRADOR)
+    contenido = _docx_bytes(tmp_path, texto_borrador)
     borrador = registrar_documento(
         expediente,
         SimpleUploadedFile("borrador-ficticio.docx", contenido),
@@ -83,7 +87,7 @@ def escenario(usuario_ficticio, tmp_path):
         usuario_ficticio,
     )
     borrador.estado = Documento.LISTO
-    borrador.texto_extraido = _texto(borrador.hash_archivo, BORRADOR)
+    borrador.texto_extraido = _texto(borrador.hash_archivo, texto_borrador)
     borrador.save()
     return expediente, borrador, contenido
 
@@ -173,6 +177,18 @@ def test_f48_recuadro_de_aplicar_muestra_el_total_y_bloquea_las_no_corregibles(
         client, reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
     ).content.decode()
     corrida = Corrida.objects.get()
+
+    # F71: la lista no repite el fragmento del borrador; el informe impreso lo lleva.
+    pantalla, informe = html.split('class="solo-impresion reporte"', 1)
+    assert 'class="obs-fragmento"' not in pantalla
+    assert 'class="doc doc-fragmento"' not in pantalla
+    assert "Línea 2:" in informe
+
+    # F70: aquí el menú lateral se reduce a iconos, para dar espacio al documento.
+    assert 'class="shell shell-iconos"' in html
+    assert 'class="marca-iconos"' in html
+    lista = client.get(reverse("expediente_lista")).content.decode()
+    assert "shell-iconos" not in lista
 
     # La cabecera ya no muestra «Revisión N»; la corrida sigue en el formulario,
     # en el visor y en el informe imprimible.
@@ -555,3 +571,42 @@ def test_resultado_ofrece_el_popup_de_avance(client, escenario, usuario_ficticio
     assert "modal === 'aplicando'" in html
     assert "js/aplicar-correcciones.js" in html
     assert '<progress class="progreso"' in html
+
+
+def test_f66_letras_mal_escritas_se_proponen_y_se_aplican_en_el_word(
+    client, usuario_ficticio, tmp_path
+):
+    from expedientes.models import DecisionCorreccion
+    from expedientes.services import ruta_corregido
+
+    expediente, borrador, _ = _crear_escenario(
+        usuario_ficticio,
+        tmp_path,
+        BORRADOR + "\nEN EL PLAZO DE TREINTA Y SEI (36) MESES.",
+    )
+    correcciones, corrida_id = _propuesta(expediente, borrador)
+    letras = next(c for c in correcciones if c["campo"] == "NUMERO_EN_LETRAS")
+    assert letras["erroneo"] == "TREINTA Y SEI (36)"
+    assert letras["correcto"] == "TREINTA Y SEIS (36)"
+    assert letras["apariciones"] == 1
+
+    client.force_login(usuario_ficticio)
+    ruta = reverse("documento_confrontar", args=(expediente.pk, borrador.pk))
+    html = client.get(ruta.replace("/confrontar/", "/resultado/")).content.decode()
+    # La pantalla enlaza la observación con su corrección por la sugerencia.
+    assert 'data-sugerencia="TREINTA Y SEIS (36)"' in html
+    assert 'data-fuente="Cifra del propio borrador"' in html
+    assert "página None" not in html
+
+    _aplicar(
+        client,
+        expediente,
+        borrador,
+        {"corrida": corrida_id, "confirmado": "1", "aplicar": [letras["id"]]},
+    )
+    decision = DecisionCorreccion.objects.get()
+    assert decision.apariciones == {letras["id"]: 1}
+    with zipfile.ZipFile(ruta_corregido(decision)) as docx:
+        xml = docx.read("word/document.xml").decode()
+    assert "TREINTA Y SEIS (36)" in xml
+    assert "TREINTA Y SEI (36)" not in xml

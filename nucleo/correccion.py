@@ -16,14 +16,15 @@ _SIN_TEXTO_CORRECTO = {
     "COPROPIEDAD",
     "DOMICILIO_FISCAL",
 }
-# F64: la errata de las letras («letras mal escritas; se sugiere «…»») sí se corrige:
-# el texto sale de la propia cifra del borrador, no de otra fuente.
-_RE_ERRATA = re.compile(
-    r"\(letras mal escritas; se sugiere «(?P<sugerido>[^»]*)»\)\s*$"
-)
-FUENTE_CIFRA = {"archivo": "Cifra del propio borrador", "pagina": None}
 # F30: reemplazar «CUARTA» o «50%» en todo el documento cambiaría texto ajeno.
 # F35: el domicilio de la ficha RUC viene en formato SUNAT, no en la redacción notarial.
+# F66: salvo letras mal escritas que, reparadas, valen lo mismo que su cifra: no
+# hay nada que decidir y el texto correcto sale del propio borrador, no de una fuente.
+_LETRAS_REPARABLES = {"NUMERO_EN_LETRAS", "AREA"}
+_RE_LETRAS_MAL_ESCRITAS = re.compile(
+    r"\(letras mal escritas; se sugiere «(?P<sugerido>[^»]*)»\)\s*$"
+)
+_FUENTE_CIFRA = {"archivo": "Cifra del propio borrador", "pagina": None}
 _PALABRA = "A-ZÑ0-9"
 
 
@@ -118,25 +119,32 @@ def correcciones(salidas, fuentes) -> list[dict]:
         if not m:
             continue
         campo, erroneo, correcto = m["campo"], m["erroneo"], m["correcto"]
-        fuente_fija = None
-        if campo in _SIN_TEXTO_CORRECTO:
-            errata = campo == "NUMERO_EN_LETRAS" and _RE_ERRATA.search(salida)
-            if not errata:
-                continue
-            correcto, fuente_fija = errata["sugerido"], FUENTE_CIFRA
+        reparadas = (
+            _RE_LETRAS_MAL_ESCRITAS.search(salida)
+            if campo in _LETRAS_REPARABLES
+            else None
+        )
+        if reparadas:
+            correcto = reparadas["sugerido"]
+        elif campo in _SIN_TEXTO_CORRECTO:
+            continue
         par = (_plano(erroneo)[0].strip(), _plano(correcto)[0].strip())
         # Igual (P-03) o prefijo propio: el reemplazo truncaría el texto.
         # Un par repetido es una sola fila: se aplica a todas las apariciones.
         if par[0].startswith(par[1]) or par in vistos:
             continue
         buscado = _palabras(correcto)
-        fuente = fuente_fija or next(
-            (
-                {"archivo": archivo, "pagina": numero}
-                for archivo, numero, palabras in paginas
-                if buscado.strip() and buscado in palabras
-            ),
-            None,
+        fuente = (
+            dict(_FUENTE_CIFRA)
+            if reparadas
+            else next(
+                (
+                    {"archivo": archivo, "pagina": numero}
+                    for archivo, numero, palabras in paginas
+                    if buscado.strip() and buscado in palabras
+                ),
+                None,
+            )
         )
         if fuente is None:
             continue

@@ -1,0 +1,13 @@
+{% comment %}
+Casillas de las secciones del informe. F73: las comparten «Descargar informe» y
+la vista previa, para que ambos generen lo mismo.
+{% endcomment %}
+<fieldset class="opciones-reporte">
+  <legend>Contenido</legend>
+  <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.IDENTIDAD"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Generales de ley</span><em x-text="contarCapa('IDENTIDAD')"></em></label>
+  <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.REGLA"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones de regla</span><em x-text="contarCapa('REGLA')"></em></label>
+  <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.LINGUISTICO"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Observaciones lingüísticas</span><em x-text="contarCapa('LINGUISTICO')"></em></label>
+  <label class="casilla casilla-chica"><input type="checkbox" x-model="rep.CORRECCIONES"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Correcciones propuestas</span><em x-text="correcciones.length"></em></label>
+  {% if sentido.estado == "LISTO" %}<label class="casilla casilla-chica"><input type="checkbox" x-model="rep.SENTIDO"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Sentido frente a la minuta</span><em>{{ sentido.anotaciones|length }}</em></label>{% endif %}
+  <label class="casilla casilla-chica" x-show="modal === 'vista' || rep.fmt !== 'EXCEL'"><input type="checkbox" x-model="rep.EXTRACCION"><span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span><span>Personas extraídas y procedencia</span><em>{{ resultado.extraccion.personas|length }}</em></label>
+</fieldset>

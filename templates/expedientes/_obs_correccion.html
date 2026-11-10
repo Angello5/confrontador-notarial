@@ -9,7 +9,7 @@ desmarca la misma corrección que se envía en «Aplicar correcciones».
       <label class="casilla casilla-chica" title="Se aplica a todas sus apariciones compatibles en el Word.">
         <input type="checkbox" :checked="marcadas.includes(corrDe('{{ prefijo }}{{ numero }}').id)" @change="alternar(corrDe('{{ prefijo }}{{ numero }}').id)">
         <span class="casilla-caja"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span>
-        <span>Corregir en el Word<span class="texto-suave" x-text="' · ' + corrDe('{{ prefijo }}{{ numero }}').apariciones"></span></span>
+        <span>Corregir en el Word<span class="texto-suave" x-text="corrDe('{{ prefijo }}{{ numero }}').apariciones ? ' · ' + corrDe('{{ prefijo }}{{ numero }}').apariciones : ''"></span></span>
       </label>
     {% else %}
       <p class="texto-suave texto-chico">Este borrador no admite corrección automática.</p>

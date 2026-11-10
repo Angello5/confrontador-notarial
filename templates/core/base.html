@@ -12,11 +12,13 @@
   </head>
   <body x-data="{ menuAbierto: false }" :class="{ 'sidebar-open': menuAbierto }" @keydown.escape.window="menuAbierto = false">
     {% include "core/_iconos.html" %}
-    <div class="shell{% if user.force_password_change %} shell-sin-menu{% endif %}">
+    <div class="shell{% if user.force_password_change %} shell-sin-menu{% endif %}{% block shell_clase %}{% endblock %}">
       {% if not user.force_password_change %}
       <aside id="menu-principal" class="lateral">
         <a class="marca navbar-brand" href="{% url 'home' %}">
           {% include "core/_marca.html" %}
+          {# F70: lo que se ve de la marca con el menú reducido a iconos #}
+          <span class="marca-iconos"><span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>{% if erp_icono %}<img src="{{ erp_icono }}" alt="">{% endif %}</span>
         </a>
         <nav aria-label="Navegación principal">
           <div>
