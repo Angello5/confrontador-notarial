@@ -15,12 +15,12 @@
     <div class="shell{% if user.force_password_change %} shell-sin-menu{% endif %}{% block shell_clase %}{% endblock %}">
       {% if not user.force_password_change %}
       {# Preferencia del menú (iconos o abierto) guardada en este navegador; sin ella manda la página. #}
-      <script>try{var p=localStorage.getItem('menu-lateral-2'),e=document.currentScript.parentElement.classList;if(p){e.remove('shell-iconos');e.toggle('shell-fijo',p==='iconos')}}catch(x){}</script>
+      <script src="{% static 'js/menu-lateral.js' %}?v={{ static_v }}"></script>
       <aside id="menu-principal" class="lateral">
         <a class="marca navbar-brand" href="{% url 'home' %}">
           {% include "core/_marca.html" %}
           {# F70: lo que se ve de la marca con el menú reducido a iconos #}
-          <span class="marca-iconos">{% if erp_icono %}<img src="{{ erp_icono }}" alt="">{% elif erp_logo %}<span class="marca-e" style="background-image: url('{{ erp_logo }}')" aria-hidden="true"></span>{% else %}<span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>{% endif %}</span>
+          <span class="marca-iconos">{% if erp_icono %}<img src="{{ erp_icono }}" alt="">{% elif erp_logo %}<img class="marca-e" src="{{ erp_logo }}" alt="">{% else %}<span class="marca-sello" aria-hidden="true">{{ erp_iniciales }}</span>{% endif %}</span>
         </a>
         <nav aria-label="Navegación principal">
           <div>
@@ -63,8 +63,7 @@
             </div>
           {% endif %}
         </nav>
-        <button type="button" class="btn btn-icono btn-sm lateral-fijar" title="Reducir o fijar el menú" aria-label="Reducir o fijar el menú"
-          onclick="var e=this.closest('.shell').classList,r=e.contains('shell-iconos')||e.contains('shell-fijo');e.remove('shell-iconos');e.toggle('shell-fijo',!r);this.blur();try{localStorage.setItem('menu-lateral-2',r?'abierto':'iconos')}catch(x){}">
+        <button type="button" class="btn btn-icono btn-sm lateral-fijar" title="Reducir o fijar el menú" aria-label="Reducir o fijar el menú">
           <svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg>
         </button>
         <div class="lateral-pie">
