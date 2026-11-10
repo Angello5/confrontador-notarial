@@ -101,3 +101,17 @@ def test_nombre_de_la_prosa_no_se_pega_a_lo_que_la_precede():
 def test_apellidos_coma_nombres_sigue_reordenandose():
     texto = "ZAFIRO LUMARIA, ALBA DE NACIONALIDAD PERUANA"
     assert "ALBA ZAFIRO LUMARIA" in _nombres_de_pagina(texto, "PROSA", False)
+
+
+def test_nombre_tras_la_otra_parte_y_con_guion_se_reconoce():
+    # «LOS MUTUANTES Y DE LA OTRA PARTE <nombre>» y «<nombre>. - DE NACIONALIDAD»
+    # son formas habituales de presentar a una parte: el nombre es solo el nombre.
+    minuta = (
+        "ADELANTE SE LE DENOMINARA LOS MUTUANTES Y DE LA OTRA PARTE ALBA ZAFIRO "
+        "LUMARIA, DE NACIONALIDAD PERUANA, IDENTIFICADA CON DNI 90000003."
+    )
+    assert "ALBA ZAFIRO LUMARIA" in _nombres_de_pagina(minuta, "PROSA", False)
+    guion = (
+        "DE LA OTRA PARTE:\nBRUNO TELURIA NEBULOSA. - DE NACIONALIDAD PERUANA, SOLTERO"
+    )
+    assert "BRUNO TELURIA NEBULOSA" in _nombres_de_pagina(guion, "PROSA", False)
