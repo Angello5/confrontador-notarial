@@ -1433,8 +1433,9 @@ def revisar_persona_ampliada(
             marcadores = (
                 ["CASADO CON"]
                 if conyuge_de_otro
-                else (propio and _CIVIL_BORRADOR.findall(clausula[propio.end() :]))
-                or _CIVIL_BORRADOR.findall(clausula)
+                else _CIVIL_BORRADOR.findall(
+                    clausula[propio.end() :] if propio else clausula
+                )
             )
             hallado = marcadores[0] if marcadores else "Sin marcador de estado civil"
             if persona.estado_civil == "CASADO" and (
