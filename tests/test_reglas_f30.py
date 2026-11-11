@@ -210,3 +210,31 @@ def test_rotulo_parecido_que_no_es_ordinal_no_se_marca():
         "TERCERA: PLAZO\n"
     )
     assert _observaciones("MINUTA FICTICIA", borrador, "CORRELATIVO") == []
+
+
+def test_clausula_con_titulo_sin_signo_cuenta_en_la_numeracion():
+    # «CLÁUSULA SÉTIMA ALCANCE DE LA HIPOTECA.» no lleva «:» tras el ordinal;
+    # no contarla hacía pedir «SÉPTIMA» en la OCTAVA, que sí estaba bien.
+    borrador = (
+        "CLAUSULA SEXTA: OBJETO\n"
+        "CLAUSULA SETIMA ALCANCE DE LA HIPOTECA. ====================\n"
+        "7.1 LA AMPLIACION DE HIPOTECA CONSTITUIDA EN LA CLAUSULA SEXTA TIENE\n"
+        "CLAUSULA OCTAVA: PLAZO\n"
+    )
+    assert _observaciones("MINUTA FICTICIA", borrador, "CORRELATIVO") == []
+    salto = borrador.replace(
+        "CLAUSULA SETIMA ALCANCE DE LA HIPOTECA.", "CLAUSULA NOVENA ALCANCE."
+    )
+    assert _observaciones("MINUTA FICTICIA", salto, "CORRELATIVO") == [
+        "[CORRELATIVO] «CLAUSULA NOVENA» debe decir «CLAUSULA SEPTIMA»",
+        "[CORRELATIVO] «CLAUSULA OCTAVA:» debe decir «CLAUSULA DECIMA:»",
+    ]
+
+
+def test_frase_larga_que_empieza_por_clausula_no_es_un_titulo():
+    borrador = (
+        "CLAUSULA PRIMERA: OBJETO\n"
+        "CLAUSULA PRIMERA TIENE POR OBJETO GARANTIZAR EL PAGO DE LA DEUDA ASUMIDA POR LOS MUTUATARIOS.\n"
+        "CLAUSULA SEGUNDA: PLAZO\n"
+    )
+    assert _observaciones("MINUTA FICTICIA", borrador, "CORRELATIVO") == []
