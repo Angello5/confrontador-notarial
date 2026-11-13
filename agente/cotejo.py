@@ -2,8 +2,10 @@
 
 import re
 
-_NUM = r"(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)"
-AREA = re.compile(_NUM + r"\s*(?:m2|m²|mt2|metros\s+cuadrados)", re.I)
+from django.conf import settings
+
+_NUM = r"(\d[\d.,]{0,14})"  # acotado: sin retroceso cuadrático con textos hostiles
+AREA = re.compile(r"(?<![\d.,])" + _NUM + r"\s*(?:m2|m²|mt2|metros\s+cuadrados)", re.I)
 PARTIDA = re.compile(
     r"partida\s*(?:electr[oó]nica)?\s*(?:n[°º.o]*)?\s*:?\s*(\d{6,})", re.I
 )
@@ -17,6 +19,14 @@ SENALES = {
 }
 
 
+def _valores(rx, texto):
+    for m in rx.findall(texto):
+        try:
+            yield _numero(m)
+        except ValueError:
+            continue  # «1.2.3» u otro texto que no es un número
+
+
 def _numero(txt):
     # «1,200.50» y «1.200,50» → 1200.5; «120,50» → 120.5; «1,200» → 1200
     txt = re.sub(r"[.,](?=\d{3}(?:\D|$))", "", txt)
@@ -26,9 +36,9 @@ def _numero(txt):
 def _por_documento(documentos):
     datos = {}
     for d in documentos:
-        t = d["texto"]
+        t = d["texto"][: settings.AGENTE_MAX_CONTEXTO]  # mismo tope que el contexto
         datos[d["nombre"]] = {
-            "áreas (m²)": {_numero(m) for m in AREA.findall(t)},
+            "áreas (m²)": set(_valores(AREA, t)),
             "partidas": set(PARTIDA.findall(t)),
             "montos": {f"{m[0]} {m[1]}" for m in MONTO.findall(t)},
             "señales": [k for k, rx in SENALES.items() if re.search(rx, t, re.I)],

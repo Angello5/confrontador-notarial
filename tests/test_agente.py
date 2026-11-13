@@ -349,3 +349,11 @@ def test_el_modelo_recibe_cotejo_y_checklist_del_acto(monkeypatch):
     services.consultar("¿qué es una PEP?")
     assert "CHECKLIST DEL ACTO" not in captura["input"]
     assert "COTEJO DEL SISTEMA" not in captura["input"]
+
+
+def test_el_cotejo_resiste_textos_hostiles(settings):
+    settings.AGENTE_MAX_CONTEXTO = 20_000
+    t0 = __import__("time").time()
+    texto = cotejo.cotejar([_doc("x.txt", "1" * 500_000 + " 1.2.3 m2 ,,,, m2")])
+    assert __import__("time").time() - t0 < 2
+    assert "x.txt" in texto
