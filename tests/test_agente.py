@@ -146,7 +146,7 @@ def test_documentos_van_por_stdin_con_su_nombre_y_sin_claves_del_erp(monkeypatch
 
 def test_cmd_claude_solo_busca_en_la_web():
     cmd, _ = services._claude("sis")
-    assert cmd[cmd.index("--tools") + 1] == "WebSearch,WebFetch"
+    assert cmd[cmd.index("--tools") + 1] == "WebSearch"
     assert "Bash" not in " ".join(cmd) and "Edit" not in " ".join(cmd)
 
 
@@ -276,3 +276,16 @@ def test_el_modelo_recibe_la_marca_de_lectura_deficiente(monkeypatch):
     )
     assert "[LECTURA DEFICIENTE:" in captura["input"]
     assert "AVISO DEL SISTEMA" in captura["input"] and "escaneo.pdf" in captura["input"]
+
+
+def test_el_adjunto_no_deja_copia_en_la_cache_de_ocr(tmp_path, monkeypatch):
+    from adaptadores import extraccion
+
+    monkeypatch.setattr(extraccion, "CACHE", tmp_path / "cache")
+    ruta = tmp_path / "a.png"
+    ruta.write_bytes(b"datos")
+    llamadas = []
+    resultado = extraccion._cacheado(
+        ruta.read_bytes(), lambda: llamadas.append(1) or ["texto ficticio"], False
+    )
+    assert resultado == ["texto ficticio"] and not (tmp_path / "cache").exists()

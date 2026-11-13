@@ -20,7 +20,7 @@ La notaría quiere que el abogado haga el estudio de título sin leer a mano tod
 - **Qué falta: lo deduce el agente.** Decisión del usuario (2026-11-10): sin lista fija de requisitos. El prompt solo guía qué revisar (titularidad, cargas, descripción del inmueble, identidad y estado civil, poderes, tributos, medios de pago) y exige citar documento y dato, y «No consta» cuando algo no está. Menos reproducible que una lista; si la notaría entrega su lista por tipo de acto, entra como skill nueva.
 - **Documentos = datos, no instrucciones** (inyección de prompt): el prompt manda ignorar órdenes dentro de los adjuntos.
 - **Respuesta breve:** pregunta puntual, máximo 80 palabras más hasta 3 URLs. Estudio de título: *Conclusión* (una frase), *Falta*, *Riesgos / observaciones* (máx. 5) y *Fuentes*.
-- **Herramientas del agente:** solo `WebSearch` y `WebFetch`. Sin shell, sin edición de archivos, sin MCP. Corre en un directorio vacío y con un entorno mínimo por lista de permitidos. La pregunta y los documentos van por stdin, nunca por argumentos.
+- **Herramientas del agente:** solo `WebSearch` (sin `WebFetch`: un documento hostil no puede hacer que el agente abra una URL con datos del cliente). Sin shell, sin edición de archivos, sin MCP. Corre en un directorio vacío y con un entorno mínimo por lista de permitidos. La pregunta y los documentos van por stdin, nunca por argumentos.
 - **Proveedor:** `claude` por defecto. `codex` está desactivado: no puede quitarse el shell y su sandbox `read-only` aún lee el disco; solo con `AGENTE_CODEX_PERMITIDO=1` y en un usuario del sistema sin acceso al ERP ni a sus claves (hallazgo de la revisión de seguridad).
 - **Entorno del agente:** lista de permitidos (`PATH`, `HOME`…), no de bloqueo.
 - **Interruptor:** `AGENTE_ACTIVO` apagado por defecto. Apagado, `/agente/` da 404 y el menú no lo muestra (como F61).
@@ -74,7 +74,7 @@ Sin adjuntos, el abogado pregunta por un plazo o requisito. El agente busca en f
 
 - **FR-001**: Rutas `/agente/`, `/agente/adjuntar/` y `/agente/preguntar/`, con login y rol; 404 si `AGENTE_ACTIVO` está apagado.
 - **FR-002**: Solo se envía al proveedor el texto de lo que el abogado adjuntó o pegó; los adjuntos son ≤ 10 MB, máximo 8, validados por contenido y no se guardan.
-- **FR-003**: El agente solo puede usar `WebSearch` y `WebFetch`.
+- **FR-003**: El agente solo puede usar `WebSearch`.
 - **FR-004**: Respuestas de hasta 80 palabras más fuentes, impuestas por el system prompt.
 - **FR-005**: La auditoría no guarda pregunta ni respuesta.
 - **FR-005b**: Si los adjuntos superan el límite de contexto, el abogado y el modelo son avisados con los nombres de los documentos afectados.

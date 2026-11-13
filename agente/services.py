@@ -44,7 +44,9 @@ def leer_adjunto(archivo):
         ruta = Path(tmp) / f"adjunto{Path(archivo.name).suffix.lower()}"
         ruta.write_bytes(contenido)
         try:
-            informe = extraccion.leer_con_calidad(ruta)
+            informe = extraccion.leer_con_calidad(
+                ruta, cache=False
+            )  # sin copia en ~/.cache
         except Exception:
             raise AgenteError("No se pudo leer el archivo.") from None
     texto = informe["texto"].strip()
@@ -85,11 +87,11 @@ def _claude(sistema):
         "--system-prompt",
         sistema,
         "--tools",
-        "WebSearch,WebFetch",
+        "WebSearch",
         "--permission-mode",
         "dontAsk",
         "--allowedTools",
-        "WebSearch,WebFetch",
+        "WebSearch",
         "--disable-slash-commands",
         "--strict-mcp-config",
         "--no-session-persistence",
