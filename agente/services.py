@@ -41,7 +41,11 @@ def leer_adjunto(archivo):
     archivo.seek(0)
     contenido = archivo.read()
     with tempfile.TemporaryDirectory() as tmp:
-        ruta = Path(tmp) / f"adjunto{Path(archivo.name).suffix.lower()}"
+        # La extensión sale de la lista fija, nunca del nombre que envió el usuario.
+        sufijo = next(
+            (e for e in extraccion.DOCS if e == Path(archivo.name).suffix.lower()), ""
+        )
+        ruta = Path(tmp) / f"adjunto{sufijo}"
         ruta.write_bytes(contenido)
         try:
             informe = extraccion.leer_con_calidad(

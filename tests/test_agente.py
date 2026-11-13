@@ -56,7 +56,8 @@ def test_chat_muestra_menu_completo_y_no_menciona_kardex_selector(
 ):
     client.force_login(usuario_ficticio)
     html = client.get("/agente/").content.decode()
-    assert "Expedientes" in html and "Estudio de título" in html
+    assert "Expedientes" in html
+    assert "Estudio de título" in html
     assert 'id="kardex"' not in html
 
 
@@ -96,7 +97,8 @@ def test_responde_pasa_documentos_e_historial_y_audita_sin_contenido(
     previo = [{"rol": "usuario", "texto": "hola"}, {"rol": "otro", "texto": "x"}]
     docs = [{"nombre": "partida.txt", "texto": "Area 120 m2"}, {"nombre": 5}]
     r = _preguntar(client, "estudio de título", documentos=docs, historial=previo)
-    assert "Faltan 2" in r.json()["respuesta"] and r.json()["aviso"] == ""
+    assert "Faltan 2" in r.json()["respuesta"]
+    assert r.json()["aviso"] == ""
     assert visto["historial"] == [("usuario", "hola")]
     assert visto["documentos"] == [
         {"nombre": "partida.txt", "texto": "Area 120 m2", "aviso": ""}
@@ -147,7 +149,8 @@ def test_documentos_van_por_stdin_con_su_nombre_y_sin_claves_del_erp(monkeypatch
 def test_cmd_claude_solo_busca_en_la_web():
     cmd, _ = services._claude("sis")
     assert cmd[cmd.index("--tools") + 1] == "WebSearch"
-    assert "Bash" not in " ".join(cmd) and "Edit" not in " ".join(cmd)
+    assert "Bash" not in " ".join(cmd)
+    assert "Edit" not in " ".join(cmd)
 
 
 def test_codex_apagado_por_defecto():
@@ -186,8 +189,11 @@ def test_timeout_cli_ausente_y_sesion_vencida_son_errores_amigables(monkeypatch)
 
 def test_prompt_es_de_estudio_de_titulo_y_trata_documentos_como_datos():
     p = services.prompt_sistema()
-    assert "estudio de título" in p and "Falta" in p and "Fuentes:" in p
-    assert "no instrucciones" in p and "RENIEC" in p
+    assert "estudio de título" in p
+    assert "Falta" in p
+    assert "Fuentes:" in p
+    assert "no instrucciones" in p
+    assert "RENIEC" in p
 
 
 def test_el_recorte_nunca_es_silencioso_ni_deja_documentos_vacios(settings):
@@ -196,7 +202,8 @@ def test_el_recorte_nunca_es_silencioso_ni_deja_documentos_vacios(settings):
         [_doc("a.txt", "x" * 6), _doc("b.txt", "y" * 20), _doc("c.txt", "z" * 5)]
     )[:2]
     assert recortados == ["b.txt", "c.txt"]  # b cortado, c omitido por completo
-    assert "yyyy" in texto and "zzzzz" not in texto
+    assert "yyyy" in texto
+    assert "zzzzz" not in texto
     assert (
         services.contexto_documentos([_doc("a.txt", "x" * 10)])[1] == []
     )  # justo en el límite
@@ -213,7 +220,8 @@ def test_el_modelo_recibe_el_aviso_de_estudio_parcial(settings, monkeypatch):
     monkeypatch.setattr(subprocess, "run", run)
     _, recortados = services.consultar("p", [_doc("partida.txt", "x" * 50)])
     assert recortados == ["partida.txt"]
-    assert "AVISO DEL SISTEMA" in captura["input"] and "PARCIAL" in captura["input"]
+    assert "AVISO DEL SISTEMA" in captura["input"]
+    assert "PARCIAL" in captura["input"]
     services.consultar("p", [_doc("partida.txt", "xx")])
     assert "AVISO DEL SISTEMA" not in captura["input"]
 
@@ -231,7 +239,8 @@ def test_la_respuesta_trae_el_aviso_de_recorte_para_el_abogado(
     r = _preguntar(
         client, "estudio", documentos=[{"nombre": "partida.txt", "texto": "x" * 50}]
     )
-    assert "partida.txt" in r.json()["aviso"] and "parcial" in r.json()["aviso"]
+    assert "partida.txt" in r.json()["aviso"]
+    assert "parcial" in r.json()["aviso"]
     assert "límite 5" in r.json()["aviso"]
 
 
@@ -255,7 +264,8 @@ def test_pdf_de_varias_paginas_casi_vacio_se_marca_como_lectura_deficiente(
     escaneo = _pdf_de_paginas(["Sello ficticio"] + [""] * 4)
     r = _adjuntar(client, "escaneo.pdf", escaneo)
     assert r.status_code == 200
-    assert "escaneo" in r.json()["aviso"] and "5 páginas" in r.json()["aviso"]
+    assert "escaneo" in r.json()["aviso"]
+    assert "5 páginas" in r.json()["aviso"]
     normal = _pdf_de_paginas(
         ["\n".join(f"Linea {i} ficticia de la partida registral." for i in range(40))]
         * 2
@@ -275,7 +285,8 @@ def test_el_modelo_recibe_la_marca_de_lectura_deficiente(monkeypatch):
         "p", [_doc("escaneo.pdf", "poco", aviso="Se leyeron solo 4 caracteres")]
     )
     assert "[LECTURA DEFICIENTE:" in captura["input"]
-    assert "AVISO DEL SISTEMA" in captura["input"] and "escaneo.pdf" in captura["input"]
+    assert "AVISO DEL SISTEMA" in captura["input"]
+    assert "escaneo.pdf" in captura["input"]
 
 
 def test_el_adjunto_no_deja_copia_en_la_cache_de_ocr(tmp_path, monkeypatch):
@@ -288,4 +299,5 @@ def test_el_adjunto_no_deja_copia_en_la_cache_de_ocr(tmp_path, monkeypatch):
     resultado = extraccion._cacheado(
         ruta.read_bytes(), lambda: llamadas.append(1) or ["texto ficticio"], False
     )
-    assert resultado == ["texto ficticio"] and not (tmp_path / "cache").exists()
+    assert resultado == ["texto ficticio"]
+    assert not (tmp_path / "cache").exists()

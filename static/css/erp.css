@@ -1225,7 +1225,6 @@ dialog.modal { position: static; margin: 0; padding: 0; border: 0; color: inheri
 .chat-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-chip button { border: 0; background: none; cursor: pointer; font-size: 16px; line-height: 1; color: var(--ne-slate); }
 .chat-recorte { flex-basis: 100%; margin: 4px 0 0; padding: 8px 12px; background: var(--ne-warn-bg); border: 1px solid var(--ne-warn-bd); color: var(--ne-warn-fg); font-size: 13px; }
-.chat-fila { flex-wrap: wrap; }
 .chat-chip-aviso { background: var(--ne-warn-bg); border-color: var(--ne-warn-bd); color: var(--ne-warn-fg); }
 .chat-chip-leyendo { color: var(--ne-slate); }
 .chat-hilo { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; background: var(--ne-soft); }
@@ -1233,7 +1232,7 @@ dialog.modal { position: static; margin: 0; padding: 0; border: 0; color: inheri
 .chat-vacio h2 { font: 700 22px/30px var(--ne-display); color: var(--ne-navy); }
 .chat-vacio p { color: var(--ne-slate); }
 .chat-sugerencias { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.chat-fila { display: flex; }
+.chat-fila { display: flex; flex-wrap: wrap; }
 .chat-fila.usuario { justify-content: flex-end; }
 .chat-burbuja { max-width: 82%; padding: 10px 14px; border-radius: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .chat-fila.usuario .chat-burbuja { background: var(--ne-navy); color: #fff; border-bottom-right-radius: 4px; }
