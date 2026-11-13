@@ -1877,3 +1877,23 @@ def test_dni_escaneado_da_ficha_con_nombre_y_cui():
     assert [(p.nombre, p.documento) for p in cat.personas] == [
         ("CAROL JESSENIA ALATA RAMIREZ", "42580600")
     ]
+
+
+def test_estado_civil_de_otro_compareciente_de_la_clausula_no_se_atribuye():
+    """Si el borrador no dice nada del estado civil de la persona, el «CASADA CON»
+    de otra persona de la misma línea no es su estado civil."""
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "BRUNO TELURIO NEBULOSA",
+        "90000022",
+        (origen,),
+        estado_civil="SOLTERO",
+        procedencia_estado_civil=origen,
+    )
+    borrador = (
+        "ALBA LUMARIA ZAFIRO, CASADA CON CARLOS OTRO PERSONA, Y "
+        "BRUNO TELURIO NEBULOSA, DE NACIONALIDAD PERUANA, IDENTIFICADO CON DNI 90000022."
+    )
+    assert (
+        revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1)) == ()
+    )

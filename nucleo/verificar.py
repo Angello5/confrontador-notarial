@@ -1433,8 +1433,9 @@ def revisar_persona_ampliada(
             marcadores = (
                 ["CASADO CON"]
                 if conyuge_de_otro
-                else (propio and _CIVIL_BORRADOR.findall(clausula[propio.end() :]))
-                or _CIVIL_BORRADOR.findall(clausula)
+                else _CIVIL_BORRADOR.findall(
+                    clausula[propio.end() :] if propio else clausula
+                )
             )
             hallado = marcadores[0] if marcadores else "Sin marcador de estado civil"
             if persona.estado_civil == "CASADO" and (
@@ -2303,6 +2304,13 @@ RE_CLAUSULA = re.compile(
     rf"^(?:CLAUSULA\s+)?((?:(?:DECIM|VIGESIM|TRIGESIM)[AO]\s*)?(?:{_RAIZ_ORDINAL})([AO]))"
     r"\s*(?:\.-|[.:-])"
 )
+# «CLÁUSULA SÉTIMA ALCANCE DE LA HIPOTECA.»: el título sigue al ordinal sin signo.
+# Solo con «CLAUSULA» delante y un título corto en mayúsculas (hasta 8 palabras,
+# sin cifras): una frase larga que empieza por «CLAUSULA SEXTA…» no es un rótulo.
+RE_CLAUSULA_TITULO = re.compile(
+    rf"^CLAUSULA\s+((?:(?:DECIM|VIGESIM|TRIGESIM)[AO]\s*)?(?:{_RAIZ_ORDINAL})([AO]))"
+    r"(?=(?:\s+[A-ZÑ]+){1,8}\s*[.:]?[\s=]*$)"
+)
 # Rótulo al inicio de línea y con signo: «PRIMERA.-», «CLAUSULA SEGUNDA:».
 # Tras «.-» y «)» el espacio es opcional («B.-SUSCRIBIR»); tras «.» y «-» no,
 # para no leer como inciso una cifra decimal o una sigla.
@@ -2369,7 +2377,7 @@ def _correlativos(destino: str) -> list[str]:
     clausulas, incisos, clausula = {}, {}, ""
     for linea in destino.splitlines():
         t = norm(linea)
-        if m := RE_CLAUSULA.match(t):
+        if m := RE_CLAUSULA.match(t) or RE_CLAUSULA_TITULO.match(t):
             ordinal, genero = re.sub(r"\s+", " ", m[1]), m[2]
             valor = sum(_ORDINALES[r] for r in re.findall(_RAIZ_ORDINAL, ordinal))
             general, clausulas["*"] = clausulas.get("*", 0), valor
