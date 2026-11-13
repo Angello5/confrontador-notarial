@@ -1,7 +1,7 @@
 # Extracción y OCR local
 rapidocr==3.10.0
 onnxruntime==1.31.1
-pymupdf==1.28.2
+pymupdf==2.1
 openpyxl==3.1.5
 pillow==13.0.0
 colorama==0.4.6 ; sys_platform == "win32"
