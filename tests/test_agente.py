@@ -357,3 +357,15 @@ def test_el_cotejo_resiste_textos_hostiles(settings):
     texto = cotejo.cotejar([_doc("x.txt", "1" * 500_000 + " 1.2.3 m2 ,,,, m2")])
     assert __import__("time").time() - t0 < 2
     assert "x.txt" in texto
+
+
+def test_el_checklist_no_sale_de_una_palabra_dentro_de_un_documento(monkeypatch):
+    captura = {}
+
+    def run(cmd, **kw):
+        captura.update(kw)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    services.consultar("qué falta", [_doc("p.txt", "titular por compraventa del 2015")])
+    assert "CHECKLIST DEL ACTO" not in captura["input"]

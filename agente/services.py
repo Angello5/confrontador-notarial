@@ -155,9 +155,8 @@ def consultar(pregunta, documentos=(), historial=()):
         contexto, recortados, deficientes = contexto_documentos(documentos)
         prompt += f"\n\nDocumentos del cliente:\n{contexto}"
         prompt += f"\n\nCOTEJO DEL SISTEMA (calculado por código):\n{cotejo.cotejar(documentos)}"
-    acto = checklist_acto(
-        pregunta + " " + " ".join(d["texto"][:3000] for d in documentos)
-    )
+    # El acto lo dice el abogado, no un asiento histórico dentro de un documento.
+    acto = checklist_acto(pregunta + " " + " ".join(t for _, t in historial))
     if acto:
         prompt += f"\n\nCHECKLIST DEL ACTO:\n{acto}"
     if deficientes:
