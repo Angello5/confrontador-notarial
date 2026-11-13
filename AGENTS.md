@@ -20,6 +20,9 @@ la minuta y los documentos del cliente.
 - **Sin IA generativa en el ERP:** no importes nada de `experimental/` ni
   añadas llamadas a modelos de lenguaje. La única capa con modelos es la de
   sentido (F61), en las condiciones del principio I de la constitución.
+  Excepción en desarrollo: el módulo `agente/` (F75, `specs/057-agente/`), apagado
+  por defecto con `AGENTE_ACTIVO` y pendiente de enmienda constitucional; no lo
+  actives en el servidor ni envíes datos reales.
 - **Reglas de negocio:** no las inventes. Si falta información, márcala como
   `[NEEDS CLARIFICATION]` y pregunta.
 - **Simplicidad:** la solución más corta que funcione. Primero reutiliza lo que

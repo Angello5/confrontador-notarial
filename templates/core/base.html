@@ -48,6 +48,13 @@
                   </ul>
                 </li>
               {% endif %}
+              {% if agente_activo and es_administrador or agente_activo and es_usuario %}
+                <li>
+                  <a href="{% url 'agente' %}"{% if request.resolver_match.app_name == "agente" or request.resolver_match.url_name == "agente" %} aria-current="page"{% endif %}>
+                    <svg class="ico" aria-hidden="true"><use href="#i-circle-alert"/></svg><span>Agente</span>
+                  </a>
+                </li>
+              {% endif %}
             </ul>
           </div>
           {% if es_administrador %}

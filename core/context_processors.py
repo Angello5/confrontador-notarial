@@ -24,5 +24,6 @@ def marca(request):
         "erp_icono": settings.ERP_ICONO,
         "erp_direccion": settings.ERP_DIRECCION,
         "erp_iniciales": "".join(p[0] for p in nombre.split()[:2]).upper(),
+        "agente_activo": settings.AGENTE_ACTIVO,
         "static_v": version_estaticos(settings.STATICFILES_DIRS[0]),
     }
