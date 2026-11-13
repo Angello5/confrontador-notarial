@@ -41,3 +41,9 @@ Variables: `AGENTE_ACTIVO`, `AGENTE_PROVEEDOR` (`claude`|`codex`), `AGENTE_CODEX
 ## Complexity Tracking
 
 Ninguna adición fuera de lo permitido; la única excepción es la constitucional descrita arriba.
+
+## Más allá del chat: cotejo por código y checklist por acto
+
+- **Cotejo determinista** (`agente/cotejo.py`): el código extrae áreas, partidas, montos y señales (hipoteca, embargo, pago en efectivo, poder, casado) de cada documento y calcula las discrepancias entre ellos. El modelo recibe el resultado como «COTEJO DEL SISTEMA» y lo interpreta; lo exacto no lo decide el modelo. Alcance actual: áreas y partidas (si dos documentos no comparten ningún valor, se reporta). Siguiente: nombres, DNI y montos.
+- **Checklist por acto** (`agente/actos/<acto>.md`): se carga si la pregunta o los documentos nombran el acto. Hoy solo `compraventa.md`.
+  - [NEEDS CLARIFICATION] El checklist de compraventa es un **borrador técnico**; la notaría debe validarlo antes de producción, y definir los de poder, donación y vehicular.

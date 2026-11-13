@@ -7,11 +7,13 @@ from pathlib import Path
 from django.conf import settings
 
 from adaptadores import extraccion
+from agente import cotejo
 from expedientes.services import validar_archivo
 
 
 # Cada .md de prompt/ es una «skill»: añadir una es soltar un archivo.
 PROMPT = Path(__file__).parent / "prompt"
+ACTOS = Path(__file__).parent / "actos"
 _cupo = threading.BoundedSemaphore(settings.AGENTE_SIMULTANEAS)
 
 
@@ -64,6 +66,14 @@ def leer_adjunto(archivo):
             "probablemente es un escaneo sin texto legible. Pida el original o una copia en Word."
         )
     return {"texto": texto, "aviso": aviso}
+
+
+def checklist_acto(texto):
+    """Checklist del acto (actos/<acto>.md) si el texto lo nombra; si no, vacío."""
+    for f in sorted(ACTOS.glob("*.md")):
+        if f.stem in texto.lower():
+            return f.read_text(encoding="utf-8")
+    return ""
 
 
 def contexto_documentos(documentos):
@@ -144,6 +154,12 @@ def consultar(pregunta, documentos=(), historial=()):
     if documentos:
         contexto, recortados, deficientes = contexto_documentos(documentos)
         prompt += f"\n\nDocumentos del cliente:\n{contexto}"
+        prompt += f"\n\nCOTEJO DEL SISTEMA (calculado por código):\n{cotejo.cotejar(documentos)}"
+    acto = checklist_acto(
+        pregunta + " " + " ".join(d["texto"][:3000] for d in documentos)
+    )
+    if acto:
+        prompt += f"\n\nCHECKLIST DEL ACTO:\n{acto}"
     if deficientes:
         prompt += (
             "\n\nAVISO DEL SISTEMA: se leyeron casi vacíos (probables escaneos): "

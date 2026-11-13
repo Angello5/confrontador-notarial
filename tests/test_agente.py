@@ -7,7 +7,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
-from agente import services
+from agente import cotejo, services
 from agente.models import ConsultaAgente
 
 pytestmark = pytest.mark.django_db
@@ -301,3 +301,51 @@ def test_el_adjunto_no_deja_copia_en_la_cache_de_ocr(tmp_path, monkeypatch):
     )
     assert resultado == ["texto ficticio"]
     assert not (tmp_path / "cache").exists()
+
+
+def test_el_cotejo_detecta_areas_y_partidas_distintas():
+    docs = [
+        _doc("partida.txt", "Partida N° 99000001. Area: 120.00 m2."),
+        _doc("minuta.txt", "Partida N° 99000002. Area de 150 metros cuadrados."),
+    ]
+    texto = cotejo.cotejar(docs)
+    assert "áreas (m²) no coinciden" in texto
+    assert "partidas no coinciden" in texto
+
+
+def test_el_cotejo_no_inventa_discrepancias():
+    docs = [
+        _doc("partida.txt", "Partida N° 99000001. Area: 120.00 m2, techo 40 m2."),
+        _doc(
+            "minuta.txt",
+            "Partida 99000001. Area de 120 m2. Hipoteca. Pago en efectivo.",
+        ),
+    ]
+    texto = cotejo.cotejar(docs)
+    assert "Ninguna en áreas ni partidas" in texto
+    assert "hipoteca" in texto
+    assert "pago en efectivo" in texto
+
+
+def test_el_cotejo_entiende_los_formatos_de_numero():
+    assert cotejo._numero("1,200.50") == 1200.5
+    assert cotejo._numero("1.200,50") == 1200.5
+    assert cotejo._numero("120,50") == 120.5
+    assert cotejo._numero("1,200") == 1200
+
+
+def test_el_modelo_recibe_cotejo_y_checklist_del_acto(monkeypatch):
+    captura = {}
+
+    def run(cmd, **kw):
+        captura.update(kw)
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    services.consultar("estudio de título de una compraventa", [_doc("a.txt", "m2")])
+    assert "COTEJO DEL SISTEMA" in captura["input"]
+    assert "CHECKLIST DEL ACTO" in captura["input"]
+    assert "POR VALIDAR POR LA NOTARÍA" in captura["input"]
+    services.consultar("¿qué es una PEP?")
+    assert "CHECKLIST DEL ACTO" not in captura["input"]
+    assert "COTEJO DEL SISTEMA" not in captura["input"]
