@@ -208,3 +208,7 @@ F74: DNI del cónyuge y registro de otra entidad. Los usuarios, al validar con c
 > Con el texto extraído, el sistema ejecuta las capas de regla, léxico y
 > ortografía y muestra las observaciones agrupadas por capa, con la ubicación
 > en el borrador y el valor esperado según la fuente.
+
+## Continuación autorizada · 2026-11-04
+
+F75: agente de estudio de título para abogados. El usuario pidió un módulo «Agente» aparte de la confrontación: un agente de IA con system prompt y skills para abogados del Perú, que busque en internet y cite sus fuentes (RENIEC, SBS…). El 2026-11-10 aclaró que el propósito es el **estudio de título**, no consultar un kardex: el abogado adjunta (≤ 10 MB) o pega la información del cliente y el agente dice qué hay, qué falta y qué riesgos ve, deduciendo lo que falta sin lista fija. Por ahora usa la sesión de `claude` o `codex` del usuario y se prueba en otro puerto (`AGENTE_ACTIVO=1 python manage.py runserver 8001`). Apagado por defecto. **Contradice los principios I y VI de la constitución**: queda pendiente la enmienda 3.0.0 y la aceptación de la notaría antes de activarlo en el servidor. Alcance en `specs/057-agente/`.
