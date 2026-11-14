@@ -5,10 +5,11 @@ pequeña que se termina completa antes de empezar la siguiente: pasa por el
 ciclo de Spec Kit en su propio worktree de Orca y se integra a `main` por Pull
 Request. Las reglas están en `.specify/memory/constitution.md`.
 
-## Estado al 2026-10-20
+## Estado al 2026-11-14
 
-Integrado en `main` hasta F53 (PR #105, 2026-10-18). F17 no existe: la
-numeración la saltó.
+Integrado en `main` hasta F74 (F66–F74 en el PR #136) y los ajustes
+posteriores (#137–#142). F17 no existe: la numeración la saltó. F72 está
+reservada para el flujo entre dos personas.
 
 ### Terminadas
 
@@ -61,14 +62,34 @@ numeración la saltó.
 | **F50** · Texto leído con versiones anteriores | El borrador `.docx` se relee solo; aviso para volver a subir los demás documentos; reextraer y suprimir con códigos repetidos | Se releen los borradores; minuta y recaudos se vuelven a subir; la supresión actúa solo sobre el kardex activo | #99 | 033 |
 | **F51** · Persona sin ficha | Un solo aviso «Persona sin ficha» por persona; rótulos legibles en lugar de códigos | Sin ficha en los recaudos basta el aviso MEDIA, sin la ALTA de documento | #100 | 032 |
 | **F52** · Visor: ubicación y recuadros | Las observaciones de persona se marcan sobre el nombre en su línea; recuadros con el ancho real de cada carácter | — | #101 | 026 |
-| **F53** · Inicio del administrador | Cifras por tipo que suman el total, actividad por semana o por mes que se actualiza sola cada minuto, indicadores de calidad (gravedad, usuarias con más errores, errores frecuentes, correcciones), últimas confrontaciones y aviso de documento ilegible para quien lo subió | Sin «Pendientes de confrontar»; kardex distintos por periodo; errores atribuidos a quien creó el kardex; mismos archivos no suman dos veces | pendiente | 041 |
+| **F53** · Inicio del administrador | Cifras por tipo que suman el total, actividad por semana o por mes que se actualiza sola cada minuto, indicadores de calidad (gravedad, usuarias con más errores, errores frecuentes, correcciones), últimas confrontaciones y aviso de documento ilegible para quien lo subió | Sin «Pendientes de confrontar»; kardex distintos por periodo; errores atribuidos a quien creó el kardex; mismos archivos no suman dos veces | #105 | 041 |
+| **F54** · Ingreso con la marca | Pantalla de ingreso con la marca más grande y la banda completa | — | #109 | 042 |
+| **F55** · «TV» en lugar de «kardex» | «Transferencia vehicular» / «TV» en los textos de ese flujo | — | #107 | 037 |
+| **F56** · Observaciones con el dato a la vista | El dato a la vista y una sola pestaña «Todas» | — | #108 | 040 |
+| **F57** · Ranking por digitadora | Ranking de errores por digitadora y versión imprimible | — | #110 | 041 |
+| **F58** · Signo sin cerrar y domicilio OCR | Aviso comprensible de signo sin cerrar y de anexo que no se puede comprobar; domicilio leído por OCR con puntuación alterada | — | #114 (domicilio) | 033, 031 |
+| **F59** · Total y hora en la lista | Total de errores y hora real de actualización en la lista | — | #113 | 019 |
+| **F60** · Avisos legibles | Los avisos se entienden sin interpretar «Dice / Debe decir» | — | #115 | 040 |
+| **F61** · Capa de sentido | «Sentido frente a la minuta», con modelos locales no generativos, sin autoridad y apagada por defecto | Alternativa B del Informe de Evaluación v1.1 (constitución 2.0.0) | #117 | 043 |
+| **F62** · Cookies propias | Cada clic ya no lleva al login por la cookie de otra app Django | — | #118 | 044 |
+| **F63** · SQL Server (revertida) | La base del ERP pasó a SQL Server | Revertida a PostgreSQL 17 por el PR #126 (2026-11-03); constitución 2.3.0 | #122 | 045 |
+| **F64** · Sugerencias en cifras y cuotas | Los avisos de cifra y letras, área y cuotas dicen lo hallado y la sugerencia | Suma de cuotas en todos los actos que reparten; todo por código | #130 | 047 |
+| **F65** · Lista compacta | Resultado sin panel de detalle; cada fila muestra lo hallado y lo correcto | Solo presentación | #131 | 048 |
+| **F66** · Letras mal escritas | «TREINTA Y SEI (36)» se puede corregir si las letras reparadas valen lo mismo que la cifra | Si valen distinto, decide el abogado | #136 | 049 |
+| **F67** · Icono de la pestaña | Isotipo «E» en la pestaña del navegador | La imagen no se versiona; `ERP_ICONO` | #136 | 050 |
+| **F68** · Avisos de lectura compactos | «Lectura que necesita revisión» en una línea desplegable | El informe impreso la conserva completa | #136 | 051 |
+| **F69** · Sentido sin falsas alarmas | Búsqueda contra el documento completo; la pantalla muestra solo lo que cambia | Sección aparte; sin enmienda a la constitución | #136 | 052 |
+| **F70** · Menú de iconos en la confrontación | Panel izquierdo reducido en esa pantalla | Se abre con el puntero o el teclado | #136 | 053 |
+| **F71** · Lista sin fragmento y pruebas aisladas | Sin fragmento bajo cada observación; las pruebas usan carpetas propias | El informe impreso conserva el fragmento | #136 | 054 |
+| **F73** · Rediseño de cuatro pantallas | Filtros en el Inicio, siguiente paso en el kardex, modal con vista previa del informe, detalle desplegado | Elegido en Claude Design | #136 | 055 |
+| **F74** · DNI del cónyuge y registro de otra entidad | Un registro de personas ya no se observa frente a uno de bienes; el nombre tras «CASADO CON» no toma el DNI | — | #136 | 056 |
 
 ### En curso o pendientes
 
 | Fase | Qué se construye | Resultado visible | Depende de | Decisión que se toma |
 |---|---|---|---|---|
 | **F32 · parcial (PR #69)** | Vista del borrador con errores resaltados | Hecho para `.docx`. Escaneados y demás formatos (T018–T024) pendientes | F21, F31 | Conservar el borrador en cualquier formato exige la constitución 1.8.0, redactada y pendiente de aprobación |
-| **F8** | Despliegue | Funciona en el Windows Server, con respaldo diario | F5 | VM + Docker o nativo |
+| **F8** | Despliegue | Funciona en el Windows Server, con respaldo diario. En curso: constitución 2.2.0, spec, plan y tareas integrados (#124); 1 de 29 tareas hechas (`specs/046-despliegue/`) | F5 | Resuelta: nativo en Windows con IIS + waitress y PostgreSQL 17 (constitución 2.3.0) |
 | **F9** | Catálogo por tipo de acto | Campos a verificar definidos por tipo (donación, mutuo…) | F5 | Tipos de acto iniciales. La transferencia vehicular (F43–F45) ya tiene flujo propio |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 
@@ -150,6 +171,8 @@ F61: capa de sentido (CR-01, Alternativa B). La notaría eligió el verificador 
 F62: cookies propias del ERP. El usuario reportó que cada clic lo mandaba al login: otra app Django en el mismo host borraba la cookie `sessionid`. Alcance en `specs/044-cookies-propias/`.
 
 ## Continuación autorizada · 2026-10-24
+
+**Revertida el 2026-11-03 (PR #126):** la base volvió a PostgreSQL 17 y el despliegue pasó a IIS con waitress; el usuario lo confirmó el 2026-11-14 y la constitución pasa a 2.3.0. Lo que sigue es el registro histórico de F63.
 
 F63: base de datos en SQL Server. La notaría exige que la base del ERP esté en SQL Server 2016, el motor de su servidor SQLSERVER. El usuario confirmó que el ERP se conecta con un login propio de SQL Server. La edición se confirma en la instalación (se asume Standard). La constitución pasa a 2.1.0. No hay datos que trasladar: el despliegue es F8. Aviso a la notaría: SQL Server 2016 está fuera de soporte extendido desde el 14/07/2026 y solo recibe parches con ESU de pago. Alcance en `specs/045-sql-server/`.
 

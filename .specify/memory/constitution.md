@@ -64,6 +64,17 @@ Sync Impact Report
   Windows y Docker exige WSL o Hyper-V); la notaría aporta el certificado de
   su dominio y un disco para respaldos
 - Fecha: 2026-10-24
+- Version: 2.2.0 → 2.3.0 (MINOR: cambian de forma material dos restricciones
+  técnicas; ningún principio se elimina ni se redefine)
+- Principios modificados: ninguno. Restricciones técnicas: la base de datos
+  vuelve a PostgreSQL 17 (`psycopg`) y el despliegue pasa a IIS con
+  HttpPlatformHandler y waitress, con el worker en una tarea programada
+- Motivo: el PR #126 (commit `26d352f`, 2026-11-03) aplicó este cambio en el
+  código, `AGENTS.md` y el README sin enmendar la constitución; el usuario
+  confirmó el 2026-11-14 que PostgreSQL es el motor definitivo y que IIS con
+  waitress es el despliegue vigente. Reemplaza lo decidido en 2.1.0 (F63) y
+  2.2.0 (F8)
+- Fecha: 2026-11-14
 - TODO pendientes: ninguno.
 -->
 
@@ -265,15 +276,14 @@ con teclado, foco visible y contraste suficiente.
 
 ## Restricciones técnicas
 
-- **Backend:** Python + Django (versión LTS vigente) y SQL Server, con el
-  backend oficial de Microsoft `mssql-django` y el ODBC Driver 18. El ERP
-  tiene su propia base y su propio usuario en el SQL Server de la notaría,
-  separados de sus otros sistemas.
+- **Backend:** Python + Django (versión LTS vigente) y PostgreSQL 17, con el
+  backend nativo de Django y `psycopg`. El ERP tiene su propia base y su propio
+  rol, creados con `scripts/postgresql/crear_base.sql`.
 - **Frontend:** plantillas de Django + AdminLTE 4 (Bootstrap 5, sin jQuery) +
   Alpine.js. Assets guardados en `static/vendor/` con su versión anotada; sin
   CDN. Formularios con `crispy-bootstrap5`.
-- **Tareas en segundo plano:** worker con cola sobre la base del ERP en SQL
-  Server (sin Redis).
+- **Tareas en segundo plano:** worker con cola sobre la base del ERP en
+  PostgreSQL (sin Redis).
   El estado se consulta desde la página con Alpine + `fetch` a un endpoint JSON.
 - **Extracción:** RapidOCR sobre onnxruntime en CPU; PyMuPDF; lectura de
   `.docx` desde el XML; `.doc` con LibreOffice headless en Linux. La
@@ -290,11 +300,12 @@ con teclado, foco visible y contraste suficiente.
   `pytest` con cobertura.
 - **Seguridad:** SonarQube (Quality Gate), `gitleaks`, `pip-audit`,
   Dependabot, `pre-commit`.
-- **Despliegue:** on-premise y nativo en el Windows Server de la notaría
-  (SQLSERVER), junto a su SQL Server y dentro de la LAN, sin máquina virtual ni
-  contenedores. La web y el worker corren como servicios de Windows con una
-  cuenta propia sin privilegios de administrador. HTTPS con un certificado de
-  la autoridad del dominio de la notaría. Respaldo diario de la base del ERP y
+- **Despliegue:** on-premise y nativo en el Windows Server de la notaría,
+  dentro de la LAN, sin máquina virtual ni contenedores. La web corre en IIS
+  con HttpPlatformHandler, que arranca waitress en `127.0.0.1` mediante
+  `scripts/windows/iniciar.ps1`; IIS sirve `/static/`. El worker corre en una
+  tarea programada con una cuenta propia sin privilegios de administrador.
+  HTTPS con un certificado de la autoridad del dominio de la notaría. Respaldo diario de la base del ERP y
   de los originales en otro disco del servidor, con 30 días de retención.
 - **Prueba de concepto Streamlit** (`app.py`, `app_ortografia.py`): eliminada
   el 2026-10-20 al declarar el usuario la paridad funcional del ERP.
@@ -334,4 +345,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 2.2.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-10-24
+**Version**: 2.3.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-11-14

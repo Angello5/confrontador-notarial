@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Draft. Nota del 2026-11-14: el despliegue vigente usa PostgreSQL 17 e IIS con waitress (constitución 2.3.0, PR #126); donde esta spec y sus anexos hablan de SQL Server o de servicios de Windows para la web, manda la constitución.
 
 **Input**: User description: "El ERP debe quedar instalado y funcionando en el servidor SQLSERVER (Windows Server 2019) junto a su SQL Server 2016, dentro de la LAN y sin internet en ejecución. Las usuarias entran desde sus PC con el navegador, sin instalar nada, por HTTPS con un nombre interno; la web y el worker corren como servicios que arrancan con el servidor y se recuperan solos; respaldo diario de la base del ERP y de los originales, con restauración probada. Recomendación: Windows nativo, sin VM ni Docker."
 
