@@ -15,7 +15,7 @@ código viejo. Esta skill lo pone al día.
   arranca porque falta la clave secreta)
 - Intérprete: `/home/pibe/.venvs/confrontador/bin/python`
 - Worker de extracción: `~/pruebas-confrontador/worker.sh`
-- Base de datos: contenedor Docker `confrontador-sql` con SQL Server (F63; se crea con `specs/045-sql-server/quickstart.md` §2). El entorno define `DB_*`.
+- Base de datos: PostgreSQL 17 (se crea con `scripts/postgresql/crear_base.sql`). El entorno define `DB_*`.
 
 ## Pasos
 
