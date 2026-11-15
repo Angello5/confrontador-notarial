@@ -116,8 +116,11 @@ def _ocr():
     )
 
 
-def _cacheado(clave: bytes, calcular):
-    """Cachea OCR costoso usando también la identidad de sus modelos."""
+def _cacheado(clave: bytes, calcular, guardar: bool = True):
+    """Cachea OCR costoso usando también la identidad de sus modelos. Con
+    guardar=False no lee ni escribe en disco (adjuntos del agente: no persisten)."""
+    if not guardar:
+        return calcular()
     # Identificador de caché, no firma ni decisión de seguridad.
     identidad = json.dumps(
         {
@@ -642,8 +645,8 @@ def leer_paginas(p: Path) -> tuple[str, ...]:
     return tuple(pagina["texto"] for pagina in _leer_informes(p))
 
 
-def leer_con_calidad(p: Path) -> dict:
-    paginas = _leer_informes(p)
+def leer_con_calidad(p: Path, cache: bool = True) -> dict:
+    paginas = _leer_informes(p, cache)
     return {
         "texto": SEPARADOR_PAGINA.join(pagina["texto"] for pagina in paginas),
         "calidad": {
@@ -656,7 +659,7 @@ def leer_con_calidad(p: Path) -> dict:
     }
 
 
-def _leer_informes(p):
+def _leer_informes(p, cache=True):
     s = p.suffix.lower()
     p = p.resolve(strict=True)
     if s == ".docx":
@@ -666,7 +669,7 @@ def _leer_informes(p):
     if s == ".xlsx":
         return (_informe_nativo(_xlsx(p), "texto_nativo"),)
     if s == ".pdf":
-        paginas = _cacheado(p.read_bytes(), lambda: list(_pdf_informe(p)))
+        paginas = _cacheado(p.read_bytes(), lambda: list(_pdf_informe(p)), cache)
         if isinstance(paginas, str):
             paginas = [paginas]
         return tuple(
@@ -676,7 +679,7 @@ def _leer_informes(p):
             for pg in paginas
         )
     if s in IMGS:
-        pagina = _cacheado(p.read_bytes(), lambda: ocr_informe(p))
+        pagina = _cacheado(p.read_bytes(), lambda: ocr_informe(p), cache)
         if isinstance(pagina, str):
             pagina = _informe_nativo(pagina, "historico", ["calidad_no_disponible"])
         return (pagina,)

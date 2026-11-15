@@ -1,0 +1,55 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Agente{% endblock %}
+{% block breadcrumb %}<ol><li aria-current="page">Agente</li></ol>{% endblock %}
+{% block eyebrow %}Estudio de título{% endblock %}
+{% block heading %}Agente{% endblock %}
+{% block subtitle %}Adjunte la información del cliente y pida el estudio de título: el agente dice qué hay, qué falta y qué riesgos ve.{% endblock %}
+{% block content %}
+<script src="{% static 'js/agente.js' %}?v={{ static_v }}"></script>
+{% csrf_token %}
+<section class="panel chat" aria-label="Chat con el agente"
+         x-data="agenteChat({ url: '{% url 'agente_preguntar' %}', urlAdjuntar: '{% url 'agente_adjuntar' %}', maximo: 8, maxContexto: {{ max_contexto }}, csrf: () => document.querySelector('[name=csrfmiddlewaretoken]').value })">
+  <header class="chat-cab">
+    <p class="campo-ayuda">Los archivos se leen en el servidor y su texto se envía al servicio externo del asistente para responder. No se guardan.</p>
+    <button type="button" class="btn" @click="nueva()" :disabled="cargando || (!mensajes.length && !documentos.length)">Nueva conversación</button>
+  </header>
+  <div class="chat-hilo" x-ref="hilo" aria-live="polite">
+    <div class="chat-vacio" x-show="!mensajes.length">
+      <h2>¿Qué estudio hacemos?</h2>
+      <p>Adjunte los documentos del cliente (PDF, Word o imágenes, hasta 10 MB cada uno) o pegue su información, e indique el acto.</p>
+      <div class="chat-sugerencias">
+        <button type="button" class="btn" @click="usar('Haz el estudio de título con los documentos adjuntos. Acto: compraventa de inmueble.')" :disabled="!documentos.length">Hacer el estudio de título</button>
+        <button type="button" class="btn" @click="usar('¿Qué información o documentos faltan para cerrar el estudio?')" :disabled="!documentos.length">¿Qué falta para cerrar el estudio?</button>
+        <button type="button" class="btn" @click="usar('¿Qué es una persona expuesta políticamente (PEP) según la SBS?')">¿Qué es una PEP según la SBS?</button>
+      </div>
+    </div>
+    <template x-for="(m, i) in mensajes" :key="i">
+      <div class="chat-fila" :class="m.rol">
+        <div class="chat-burbuja" :class="{ error: m.error }" x-html="html(m.texto)"></div>
+        <p class="chat-recorte" x-show="m.aviso" x-text="m.aviso" role="alert"></p>
+      </div>
+    </template>
+    <div class="chat-fila agente" x-show="cargando" x-cloak>
+      <div class="chat-burbuja chat-escribiendo" aria-label="El agente está escribiendo"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+  <div class="chat-adjuntos" x-show="documentos.length || leyendo || aviso" x-cloak>
+    <p class="chat-recorte" x-show="excede" role="alert">Los adjuntos suman <span x-text="total.toLocaleString('es-PE')"></span> caracteres y el límite es {{ max_contexto|floatformat:"0g" }}: se recortará el final y el estudio será parcial.</p>
+    <template x-for="(d, i) in documentos" :key="i">
+      <span class="chat-chip" :class="{ 'chat-chip-aviso': d.aviso }" :title="d.aviso"><span x-text="(d.aviso ? '⚠ ' : '') + d.nombre"></span><button type="button" @click="quitar(i)" :aria-label="'Quitar ' + d.nombre">×</button></span>
+    </template>
+    <span class="chat-chip chat-chip-leyendo" x-show="leyendo">Leyendo archivo…</span>
+    <span class="campo-error-texto" role="alert" x-show="aviso" x-text="aviso"></span>
+  </div>
+  <form class="chat-entrada" @submit.prevent="enviar()">
+    <label class="btn" for="adjuntos" title="Adjuntar archivos">Adjuntar</label>
+    <input id="adjuntos" class="visually-hidden" type="file" multiple accept=".pdf,.docx,.doc,.rtf,.txt,.png,.jpg,.jpeg,.tif,.tiff,.webp" @change="adjuntar($event)">
+    <label class="visually-hidden" for="pregunta">Mensaje</label>
+    <textarea id="pregunta" rows="1" maxlength="20000" placeholder="Escriba o pegue la información del cliente…" x-model="pregunta"
+              @keydown.enter="if (!$event.shiftKey) { $event.preventDefault(); enviar(); }"></textarea>
+    <button class="btn btn-primario" type="submit" :disabled="cargando || leyendo || !pregunta.trim()">Enviar</button>
+  </form>
+</section>
+{% endblock %}

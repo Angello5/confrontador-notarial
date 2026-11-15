@@ -67,6 +67,21 @@ SENTIDO_MODELOS_DIR = (
     .resolve()
 )
 SENTIDO_HILOS = _positive_setting("SENTIDO_HILOS", 3)
+# F75: agente de consulta para abogados. Apagado por defecto (como F61): apagado,
+# la ruta no existe y el menú no lo muestra. Usa la sesión de la CLI de
+# `claude` o `codex` del servidor; no hay clave de API en el repositorio.
+AGENTE_ACTIVO = os.environ.get("AGENTE_ACTIVO", "").lower() in {"1", "true", "yes"}
+AGENTE_PROVEEDOR = os.environ.get("AGENTE_PROVEEDOR", "claude")  # claude | codex
+AGENTE_CODEX_PERMITIDO = os.environ.get("AGENTE_CODEX_PERMITIDO", "").lower() in {
+    "1",
+    "true",
+    "yes",
+}
+AGENTE_CODEX_MODELO = os.environ.get("AGENTE_CODEX_MODELO", "")  # vacío = el de la CLI
+AGENTE_MAX_ADJUNTO = _positive_setting("AGENTE_MAX_ADJUNTO", 10 * 1024 * 1024)
+AGENTE_MAX_CONTEXTO = _positive_setting("AGENTE_MAX_CONTEXTO", 120_000)  # caracteres
+AGENTE_TIMEOUT = _positive_setting("AGENTE_TIMEOUT", 120)
+AGENTE_SIMULTANEAS = _positive_setting("AGENTE_SIMULTANEAS", 2)
 # Versión del ERP registrada en cada corrida; incrementar junto con
 # sonar.projectVersion al publicar.
 ERP_VERSION = "0.20.0"
@@ -88,6 +103,7 @@ INSTALLED_APPS = [
     "accounts.apps.AccountsConfig",
     "core",
     "expedientes.apps.ExpedientesConfig",
+    "agente.apps.AgenteConfig",
 ]
 
 MIDDLEWARE = [
