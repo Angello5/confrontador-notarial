@@ -154,6 +154,15 @@ Reservas:
 - Con varios procesos y los hilos por defecto, cada página tardó 37 s dentro de
   su proceso: sin fijar los hilos, los procesos se estorban.
 
+Flujo completo, ya implementado (`scripts/medir_lectura_paralela.py`, 75
+páginas de la muestra, relecturas incluidas): 13,9 páginas/min con el motor
+actual en serie; 17,0 con OpenVINO y 3 procesos de 1 hilo (6,4 GB); 10,7 con el
+motor actual en 3 procesos. Los avisos de calidad coinciden en las 75 páginas,
+pero **el texto de 1 página cambia con OpenVINO: 2 letras de una línea**, ningún
+dígito. La medición directa del motor, sobre 18 páginas, no lo había visto. Por
+eso la lectura rápida queda apagada por defecto hasta medir en el servidor y
+decidir sobre esa diferencia.
+
 Decisión: **del propietario, 2026-11-16: adoptar OpenVINO**, dimensionado para
 el servidor y validado midiendo en él. Alcance en `specs/057-lectura-paralela/`.
 

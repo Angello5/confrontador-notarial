@@ -112,7 +112,7 @@ Quien opera el servidor fija cuántos procesos de lectura corren y puede volver 
 - **FR-003**: Los avisos de calidad de cada página (confianza, motivos, relecturas, giro elegido) DEBEN ser los mismos que con la lectura actual. Si el motor nuevo altera una confianza lo bastante para cambiar un aviso, la fase no se integra hasta resolverlo.
 - **FR-004**: La lectura DEBE usar el motor de ejecución que mejor rinde en el procesador del servidor, con los mismos modelos de OCR, la misma resolución y las mismas reglas de relectura. No cambian los modelos ni sus SHA-256.
 - **FR-005**: El motor de ejecución y el número de procesos DEBEN formar parte de la identidad de la lectura solo en lo que pueda cambiar el texto: el motor entra en la llave; el número de procesos no (principio IV, caché de texto).
-- **FR-006**: El número de procesos de lectura y los hilos de cada uno DEBEN ser configurables en el servidor. Valores por defecto, pensados para el Xeon de 6 núcleos: 3 procesos de 1 hilo. Con 1 proceso las páginas se leen en serie y los hilos quedan como los fija el motor, igual que hoy.
+- **FR-006**: El número de procesos de lectura y los hilos de cada uno DEBEN ser configurables en el servidor. Configuración propuesta para el Xeon de 6 núcleos: 3 procesos de 1 hilo. Sin configurar, el sistema lee como antes de esta fase (ver «Resultado de la medición privada»). Con 1 proceso las páginas se leen en serie y los hilos quedan como los fija el motor, igual que hoy.
 - **FR-007**: DEBE existir un interruptor para volver al motor actual sin desinstalar nada.
 - **FR-008**: La cola DEBE tomar primero los borradores y las minutas y después los recaudos; entre documentos del mismo grupo, el más antiguo.
 - **FR-009**: Un documento en lectura NO DEBE volver a la cola por tiempo límite mientras el proceso que lo lee siga vivo; si ese proceso muere, vuelve a la cola una vez. Ya se cumple desde F34 (el proceso mantiene un bloqueo sobre el documento): F76 no lo cambia y lo conserva.
@@ -129,6 +129,22 @@ Quien opera el servidor fija cuántos procesos de lectura corren y puede volver 
 - OCR fuera del servidor de la notaría (constitución, principio VI).
 - Sellos y número CAL: fase posterior.
 - Avance visible por página en la pantalla: fase de interfaz posterior.
+
+## Resultado de la medición privada · 2026-11-16
+
+Con el flujo completo (relecturas incluidas), 75 páginas de la muestra privada, en el equipo de desarrollo:
+
+| Configuración | Páginas/min | Memoria | Texto idéntico | Avisos idénticos |
+|---|---:|---:|---:|---:|
+| Motor actual, 1 proceso (referencia) | 13,9 | 2,3 GB | 75/75 | 75/75 |
+| OpenVINO, 3 procesos × 1 hilo | 17,0 | 6,4 GB | 74/75 | 75/75 |
+| OpenVINO, 2 procesos × 1 hilo | 15,5 | 5,2 GB | 74/75 | 75/75 |
+| OpenVINO, 1 proceso | 10,8 | 3,2 GB | 74/75 | 75/75 |
+| Motor actual, 3 procesos × 1 hilo | 10,7 | 6,0 GB | 75/75 | 75/75 |
+
+- **FR-002 no se cumple con OpenVINO**: en 1 página de 75 cambian 2 letras de una línea (ningún dígito), en un recuadro que el motor actual leyó con confianza 0,89. No se sabe cuál de las dos lecturas es la correcta.
+- La ganancia medida con el flujo completo (1,2×) es mucho menor que la del motor aislado (2× a 6×) y la memoria supera el presupuesto de 6 GB con 3 procesos.
+- **Decisión de implementación**: el código queda entregado pero apagado. Sin configurar, el sistema lee exactamente como antes. Activar OpenVINO exige dos cosas del propietario: aceptar o rechazar la diferencia de texto (principio I) y la medición en el servidor (SC-001, SC-003).
 
 ## Seguridad
 

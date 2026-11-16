@@ -76,8 +76,11 @@ def _sin_confianza(informes):
 def test_valores_por_defecto(monkeypatch):
     for nombre in ("OCR_MOTOR", "OCR_PROCESOS", "OCR_HILOS"):
         monkeypatch.delenv(nombre, raising=False)
-    assert extraccion.motor() == "openvino"
-    assert extraccion.procesos() == 3
+    # Sin configurar, se lee como antes de F76.
+    assert extraccion.motor() == "onnxruntime"
+    assert extraccion.procesos() == 1
+    assert extraccion.hilos() == 0
+    monkeypatch.setenv("OCR_PROCESOS", "3")
     assert extraccion.hilos() == 1
 
 

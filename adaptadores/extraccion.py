@@ -57,9 +57,10 @@ _OCR_FILES = {
 _OCR_USE_CLS = False
 
 # F76: motor de ejecución y reparto de páginas, por variables de entorno (el
-# adaptador no importa Django). Los valores por defecto están pensados para el
-# servidor de la notaría: 6 núcleos sin hilos lógicos, compartidos.
-MOTORES = ("openvino", "onnxruntime")
+# adaptador no importa Django). Por defecto se lee como antes de F76: la lectura
+# rápida se activa en el servidor cuando su medición la aprueba, porque OpenVINO
+# cambió 2 letras en 1 de 75 páginas de la muestra privada (principio I).
+MOTORES = ("onnxruntime", "openvino")
 
 
 def motor() -> str:
@@ -80,7 +81,7 @@ def _entero(nombre: str, defecto: int) -> int:
 
 def procesos() -> int:
     """Procesos de lectura; con 1 las páginas se leen en serie, como antes de F76."""
-    return _entero("OCR_PROCESOS", 3)
+    return _entero("OCR_PROCESOS", 1)
 
 
 def hilos() -> int:
@@ -206,9 +207,19 @@ def _grupo():
     if _GRUPO is not None and _GRUPO[0] != clave:
         cerrar_grupo()
     if _GRUPO is None:
+        import multiprocessing
         from concurrent.futures import ProcessPoolExecutor
 
-        _GRUPO = (clave, ProcessPoolExecutor(clave[0], initializer=_ocr))
+        # Procesos nuevos, no copias del principal: copiar un proceso que ya
+        # cargó un motor (hilos incluidos) deja la lectura colgada en Linux.
+        _GRUPO = (
+            clave,
+            ProcessPoolExecutor(
+                clave[0],
+                mp_context=multiprocessing.get_context("spawn"),
+                initializer=_ocr,
+            ),
+        )
     return _GRUPO[1]
 
 

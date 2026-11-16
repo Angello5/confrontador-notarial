@@ -55,9 +55,10 @@ Django rechaza el arranque) y `DB_SSLMODE` (`prefer`); la base se crea con
 final `colorama` y `tzdata` (solo Windows); un test lo exige.
 
 La lectura de escaneos (F76) se configura con `OCR_MOTOR` (`openvino` u
-`onnxruntime`), `OCR_PROCESOS` y `OCR_HILOS`; los valores por defecto están
-dimensionados para el servidor de la notaría (6 núcleos sin Hyper-Threading), no
-para el equipo de desarrollo. La suite fija `onnxruntime` y un proceso; la
+`onnxruntime`), `OCR_PROCESOS` y `OCR_HILOS`. Sin configurar se lee como antes de
+F76; la lectura rápida se activa en el servidor de la notaría (6 núcleos sin
+Hyper-Threading) cuando su medición la apruebe. La suite fija `onnxruntime` y un
+proceso; la
 lectura rápida se prueba en `tests/test_lectura_paralela.py` y se mide con
 `python scripts/medir_lectura_paralela.py`.
 

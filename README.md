@@ -51,9 +51,9 @@ Requiere `DJANGO_SECRET_KEY` y la conexión a PostgreSQL 17 (`DB_HOST`,
 `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSLMODE`) fuera del
 repositorio. La base y el rol del ERP se crean con
 `psql -U postgres -v ON_ERROR_STOP=1 -v erp_clave="<clave>" -f scripts/postgresql/crear_base.sql`.
-La lectura de escaneos se ajusta con `OCR_MOTOR` (`openvino` por defecto, u
-`onnxruntime`), `OCR_PROCESOS` (3) y `OCR_HILOS` (1 con varios procesos); con
-`OCR_MOTOR=onnxruntime` y `OCR_PROCESOS=1` se lee como antes de F76. Se ejecuta un
+La lectura de escaneos se ajusta con `OCR_MOTOR` (`onnxruntime` por defecto, u
+`openvino`), `OCR_PROCESOS` (1) y `OCR_HILOS` (1 con varios procesos); sin
+configurar nada se lee como antes de F76. Se ejecuta un
 solo worker por servidor. Detalle en
 [el contrato de F76](specs/057-lectura-paralela/contracts/configuracion.md).
 El worker procesa la cola y
