@@ -1211,3 +1211,88 @@ dialog.modal { position: static; margin: 0; padding: 0; border: 0; color: inheri
 .calidad-rejilla .tabla th, .calidad-rejilla .tabla td { padding-inline: 8px; }
 .calidad-rejilla .ranking-total { min-width: 90px; }
 @media (max-width: 1379.98px) { .calidad-rejilla { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── F77 · Interfaz fluida ───────────────────────────────────────────
+ * Movimiento con propósito y sin dependencias: confirma que la interfaz oyó
+ * (pulsación), evita saltos (páginas, ventanas, avisos) y muestra el estado
+ * (lectura en curso, documento listo). Guía de marca: 150–250 ms, salida
+ * suave, sin rebotes. Solo se animan opacidad y transformación.
+ * Con «reducir movimiento» del sistema, la regla global de arriba lo anula. */
+:root {
+  --ne-salida: cubic-bezier(0.23, 1, 0.32, 1);
+  --ne-t-pulso: 120ms;
+  --ne-t-corta: 160ms;
+  --ne-t-media: 220ms;
+}
+
+/* Pulsación: el botón cede un poco bajo el dedo o el puntero. */
+.btn, .btn-quitar, .modal-cerrar, .menu a {
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform var(--ne-t-pulso) var(--ne-salida);
+}
+.btn:active:not(:disabled):not(.btn-enlace), .btn-quitar:active, .modal-cerrar:active { transform: scale(0.97); }
+.btn:disabled { transition: none; }
+
+/* Paso de una página a otra: fundido corto en lugar del parpadeo en blanco.
+ * El menú lateral y la barra no se funden: quedan quietos. Mejora progresiva:
+ * el navegador que no lo admite navega como siempre. */
+@view-transition { navigation: auto; }
+.lateral { view-transition-name: ne-lateral; }
+.barra { view-transition-name: ne-barra; }
+.contenido { view-transition-name: ne-contenido; }
+::view-transition-group(*) { animation-duration: var(--ne-t-media); animation-timing-function: var(--ne-salida); }
+::view-transition-old(ne-contenido) { animation: ne-sale 90ms ease-out both; }
+::view-transition-new(ne-contenido) { animation: ne-entra var(--ne-t-media) var(--ne-salida) both; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--ne-t-corta); }
+@keyframes ne-sale { to { opacity: 0; } }
+@keyframes ne-entra { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
+
+/* Ventanas: el fondo se funde y la ventana crece desde casi su tamaño. */
+.modal-fondo { animation: ne-fondo var(--ne-t-corta) ease-out; }
+.modal { animation: ne-ventana var(--ne-t-media) var(--ne-salida); }
+.modal-pagina { animation: none; }
+@keyframes ne-fondo { from { opacity: 0; } }
+@keyframes ne-ventana { from { opacity: 0; transform: translateY(8px) scale(0.97); } }
+
+/* Avisos flotantes: entran desde abajo, de donde salen. */
+.toast { animation: ne-aviso var(--ne-t-media) var(--ne-salida); }
+@keyframes ne-aviso { from { opacity: 0; transform: translateY(12px); } }
+.ne-sale-activa { transition: opacity var(--ne-t-corta) ease-out, transform var(--ne-t-corta) ease-out; }
+.ne-sale-fin { opacity: 0; transform: translateY(6px); }
+.ne-funde-fin { opacity: 0; }
+
+/* Estado de cada documento: el color cambia sin salto, el que se está leyendo
+ * lo muestra con una línea que avanza y el que termina se confirma una vez. */
+.chip { transition: background var(--ne-t-media) ease, color var(--ne-t-media) ease, border-color var(--ne-t-media) ease; }
+.chip[data-estado="PROCESANDO"]::before { animation: ne-spin 0.9s linear infinite; }
+.archivo { position: relative; overflow: hidden; transition: border-color var(--ne-t-media) ease, background var(--ne-t-media) ease; }
+.archivo[data-estado="PROCESANDO"] { border-color: var(--ne-info-bd); }
+.archivo[data-estado="PROCESANDO"]::after {
+  content: ""; position: absolute; left: 0; bottom: 0; width: 40%; height: 2px; background: var(--ne-navy);
+  animation: ne-avanza 1.4s cubic-bezier(0.77, 0, 0.175, 1) infinite;
+}
+@keyframes ne-avanza { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+/* Solo el que acaba de terminar en esta visita: no parpadea al abrir la página. */
+.archivo.recien-listo { animation: ne-listo 0.9s ease-out; }
+@keyframes ne-listo { from { background: var(--ne-ok-bg); border-color: var(--ne-ok-bd); } }
+.archivo[data-estado="ERROR"] { border-color: var(--ne-err-bd); }
+
+/* Zona de arrastre y filas: respuesta inmediata al puntero. */
+@media (hover: hover) and (pointer: fine) {
+  .tabla tbody tr { transition: background 0.12s; }
+  .archivo:hover { border-color: var(--ne-slate); }
+}
+
+/* Estado vacío e ingreso: se ven pocas veces, pueden entrar con calma. */
+.vacio { animation: ne-in 0.3s var(--ne-salida); }
+.ingreso-caja { animation: ne-in 0.35s var(--ne-salida); }
+
+/* Espera de la vista del documento: una hoja que respira en vez de un hueco. */
+.visor-espera { width: 100%; max-width: 620px; aspect-ratio: 210 / 297; margin: 0 auto; box-shadow: 0 1px 4px rgba(0, 17, 44, 0.18); }
+.ne-espera {
+  background: linear-gradient(90deg, var(--ne-line) 25%, var(--ne-soft) 37%, var(--ne-line) 63%);
+  background-size: 400% 100%; animation: ne-brillo 1.4s ease infinite;
+}
+@keyframes ne-brillo { from { background-position: 100% 50%; } to { background-position: 0 50%; } }

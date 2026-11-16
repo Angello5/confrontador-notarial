@@ -22,8 +22,9 @@ revisionConfrontacion() de confrontacion.html los enlaza con la lista.
   </div>
   <div class="panel-cuerpo">
     <p class="visor-estado" role="status" aria-live="polite" x-show="vista.estado === 'CARGANDO' || vista.estado === 'PREPARANDO'">
-      <svg class="ico" aria-hidden="true"><use href="#i-loader"/></svg>Preparando la vista del borrador… Puede revisar la lista mientras tanto.
+      <svg class="ico ico-gira" aria-hidden="true"><use href="#i-loader"/></svg>Preparando la vista del borrador… Puede revisar la lista mientras tanto.
     </p>
+    <div class="visor-espera ne-espera" aria-hidden="true" x-show="vista.estado === 'CARGANDO' || vista.estado === 'PREPARANDO'"></div>
     <div class="aviso" role="status" x-show="vista.estado === 'NO_DISPONIBLE'" x-cloak>
       <svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>
       <div class="aviso-texto"><span x-text="motivoVista()"></span></div>

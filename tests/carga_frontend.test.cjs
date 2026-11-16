@@ -64,7 +64,7 @@ test('mezclar estados conserva nombres ya recibidos y refleja eliminaciones', ()
   const app = crear();
   app.documentos = [{id: 1, nombre: 'ficticio.txt', estado: 'PENDIENTE'}, {id: 2}];
   app.recibirEstado({documentos: [{id: 1, estado: 'LISTO'}], borradores: []});
-  assert.deepEqual(app.documentos, [{id: 1, nombre: 'ficticio.txt', estado: 'LISTO'}]);
+  assert.deepEqual(app.documentos, [{id: 1, nombre: 'ficticio.txt', estado: 'LISTO', recien: true}]);
 });
 
 test('un resultado solicitado abre la revisión, pero una carga pendiente lo pospone', () => {
@@ -188,4 +188,16 @@ test('F73: la nota de cada archivo dice su estado', () => {
   assert.equal(app.notaDocumento({ estado: 'PROCESANDO' }), 'Leyendo el texto');
   assert.match(app.notaDocumento({ estado: 'PROCESANDO', procesando_el: '2026-11-03T12:14:00-05:00' }), /^Leyendo el texto desde las \d{2}:\d{2}$/);
   assert.match(app.notaDocumento({ estado: 'ERROR' }), /copia más clara/);
+});
+
+test('F77: solo el documento que termina en esta visita queda como recién listo', () => {
+  const app = crear();
+  app.documentos = [{ id: 1, estado: 'PROCESANDO' }, { id: 2, estado: 'LISTO' }];
+  app.recibirEstado({ documentos: [{ id: 1, estado: 'LISTO' }, { id: 2, estado: 'LISTO' }, { id: 3, estado: 'LISTO' }], borradores: [] });
+  assert.deepEqual(app.documentos.map(d => d.recien), [true, false, false]);
+  // Se conserva en los sondeos siguientes: la confirmación no se repite ni se pierde.
+  app.recibirEstado({ documentos: [{ id: 1, estado: 'LISTO' }, { id: 2, estado: 'LISTO' }], borradores: [] });
+  assert.deepEqual(app.documentos.map(d => d.recien), [true, false]);
+  app.recibirEstado({ documentos: [{ id: 1, estado: 'ERROR' }, { id: 2, estado: 'LISTO' }], borradores: [] });
+  assert.deepEqual(app.documentos.map(d => d.recien), [false, false]);
 });
