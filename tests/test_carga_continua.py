@@ -198,7 +198,7 @@ def test_duraciones_separadas_sin_contenido_documental(
         "lectura_segundos",
         "reutilizada",
         # F76: con qué se leyó; tampoco es contenido documental.
-        "motor",
+        "openvino",
         "procesos",
         "paginas",
     }

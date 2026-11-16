@@ -27,7 +27,7 @@
 - [x] T009 [US1] Prueba: PDF con páginas digitales y escaneadas mezcladas conserva el orden; una imagen suelta y un PDF de una página se leen sin repartir; una hoja en blanco sigue sin lectura (edge cases).
 - [x] T010 [US1] Implementar el reparto en `adaptadores/extraccion.py`: grupo de procesos creado una vez (`concurrent.futures.ProcessPoolExecutor`, inicializador que carga el motor), tarea = ruta y número de página, informes recogidos por índice; `_pdf_informe` decide en el proceso principal qué páginas van al grupo y aplica después la comparación con la capa dudosa. Con 1 proceso, camino actual (research R2).
 - [x] T011 [US1] Prueba y manejo de fallo: si la lectura de una página lanza una excepción en su proceso, `leer_con_calidad()` la propaga; si el proceso muere, el grupo se descarta y el siguiente documento crea uno nuevo (FR-010, research R7).
-- [x] T012 [US1] Prueba en `tests/test_expedientes_worker.py`: tras un fallo de página, el documento queda en `ERROR` con el mensaje actual, sin `texto_extraido` y con el temporal borrado; `metricas` guarda `motor`, `procesos` y `paginas_leidas` en una lectura correcta. Implementar las métricas en `expedientes/services.py`.
+- [x] T012 [US1] Prueba en `tests/test_expedientes_worker.py`: tras un fallo de página, el documento queda en `ERROR` con el mensaje actual, sin `texto_extraido` y con el temporal borrado; `metricas` guarda `openvino`, `procesos` y `paginas` en una lectura correcta. Implementar las métricas en `expedientes/services.py`.
 
 **Checkpoint**: la lectura rápida funciona y es idéntica a la actual.
 

@@ -282,7 +282,7 @@ def test_las_metricas_guardan_con_que_se_leyo(usuario_ficticio, monkeypatch, tmp
     documento.refresh_from_db()
 
     assert documento.estado == "LISTO"
-    assert documento.metricas["motor"] == "onnxruntime"
+    assert documento.metricas["openvino"] is False
     assert documento.metricas["procesos"] == 1
     assert documento.metricas["paginas"] == 2
 

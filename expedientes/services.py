@@ -648,7 +648,7 @@ def _procesar_fila(documento):
             "lectura_segundos": round(perf_counter() - inicio, 4),
             "reutilizada": not extraido,
             # F76: con qué se leyó, para comparar tiempos entre configuraciones.
-            "motor": extraccion.motor(),
+            "openvino": extraccion.motor() == "openvino",
             "procesos": extraccion.procesos(),
             "paginas": len(texto.calidad.get("paginas", ())),
         }
