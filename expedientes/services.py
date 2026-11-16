@@ -18,7 +18,17 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.utils import timezone
-from django.db.models import Count, DateField, F, Max, OuterRef, Q, Subquery
+from django.db.models import (
+    Case,
+    Count,
+    DateField,
+    F,
+    Max,
+    OuterRef,
+    Q,
+    Subquery,
+    When,
+)
 from django.db.models.functions import Coalesce, TruncMonth, TruncWeek
 from django.urls import reverse
 
@@ -637,6 +647,10 @@ def _procesar_fila(documento):
             ),
             "lectura_segundos": round(perf_counter() - inicio, 4),
             "reutilizada": not extraido,
+            # F76: con qué se leyó, para comparar tiempos entre configuraciones.
+            "motor": extraccion.motor(),
+            "procesos": extraccion.procesos(),
+            "paginas": len(texto.calidad.get("paginas", ())),
         }
         Documento.objects.filter(pk=documento.pk).update(
             texto_extraido=texto,
@@ -697,7 +711,14 @@ def tomar_pendiente(excluir=()):
             Documento.objects.select_for_update(skip_locked=True, of=("self",))
             .filter(estado=Documento.PENDIENTE, expediente__archivado_el__isnull=True)
             .exclude(pk__in=excluir)
-            .order_by("id")
+            # F76: borrador y minuta primero, que son cortos; después recaudos.
+            .order_by(
+                Case(
+                    When(rol__in=(Documento.BORRADOR, Documento.MINUTA), then=0),
+                    default=1,
+                ),
+                "id",
+            )
             .first()
         )
         if documento is None:

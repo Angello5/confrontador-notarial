@@ -14,10 +14,11 @@ Sin `[NEEDS CLARIFICATION]` en la spec. Las decisiones salen del código y de la
 - **Rationale**: cada página ya se lee de forma independiente; el orden se conserva por índice. Los procesos de lectura solo importan el adaptador, no Django.
 - **Alternatives considered**: hilos (el motor escala mal con hilos); varios workers por documento (no aceleran un PDF grande y multiplican el riesgo del tiempo límite); enviar la imagen ya rasterizada (copia decenas de MB entre procesos).
 - Con `OCR_PROCESOS=1` no se crea ningún grupo de procesos: la lectura es en serie, como hoy.
+- Con varios procesos, las imágenes sueltas también se leen en un proceso de lectura: así el proceso principal nunca carga el motor.
 
 ## R3. Hilos por proceso
 
-- **Decision**: `OCR_HILOS` fija los hilos del motor en cada proceso (`inference_num_threads` en OpenVINO, `intra_op_num_threads` en ONNX Runtime). Por defecto 1.
+- **Decision**: `OCR_HILOS` fija los hilos del motor en cada proceso (`inference_num_threads` en OpenVINO, `intra_op_num_threads` en ONNX Runtime). Por defecto 1 cuando hay varios procesos; con un solo proceso no se fija y el motor usa los suyos, como antes de F76.
 - **Rationale**: sin fijarlos, cada proceso pide todos los núcleos y se estorban: una página llegó a tardar 37 s dentro de su proceso. El servidor no tiene hilos lógicos: 3 procesos de 1 hilo ocupan exactamente 3 núcleos.
 
 ## R4. Identidad de la lectura
@@ -25,11 +26,11 @@ Sin `[NEEDS CLARIFICATION]` en la spec. Las decisiones salen del código y de la
 - **Decision**: `version_extractor()` añade `"motor"` a su identidad solo cuando no es `onnxruntime`, junto con la versión de `openvino`. `OCR_PROCESOS` y `OCR_HILOS` no entran.
 - **Rationale**: con el motor actual la llave es la de antes (SC-005) y la caché existente sigue valiendo; con OpenVINO la caché se separa por construcción, como exige el principio IV. El número de procesos no cambia el texto.
 
-## R5. Tiempo límite por avance
+## R5. Documentos largos
 
-- **Decision**: `leer_con_calidad(ruta, avance=None)` llama a `avance()` al terminar cada página. `services._procesar_fila` pasa una función que actualiza `Documento.procesando_el`, como mucho una vez cada 30 s. `recuperar_documentos_vencidos` no cambia: sigue comparando `procesando_el` con el límite.
-- **Rationale**: el campo ya existe y ya gobierna la recuperación; pasa a significar «último avance». Sin migración.
-- **Alternatives considered**: subir el límite (un documento colgado tardaría más en recuperarse); un campo nuevo (no aporta nada).
+- **Decision**: no se añade nada. Al implementar se comprobó que `procesar_documento` mantiene un bloqueo (`exclusivo("documento", pk)`) mientras lee y que `recuperar_documentos_vencidos` solo devuelve a la cola los documentos cuyo bloqueo está libre, es decir, cuyo proceso murió (F34, `tests/test_procesamiento_concurrente.py::test_no_recupera_documento_lento_con_lock_vivo`).
+- **Rationale**: el riesgo que motivaba renovar la marca de tiempo por página ya no existe. Añadir un avance por página sería código sin uso (principio V).
+- **Alternatives considered**: renovar `procesando_el` al terminar cada página (se implementó y se retiró por redundante).
 
 ## R6. Prioridad de la cola
 
@@ -40,7 +41,7 @@ Sin `[NEEDS CLARIFICATION]` en la spec. Las decisiones salen del código y de la
 ## R7. Fallos
 
 - **Decision**: una excepción en un proceso de lectura se propaga al principal y el documento termina en «Error» por el camino actual, sin texto parcial. Si un proceso muere, el grupo se descarta y se crea de nuevo para el siguiente documento.
-- **Decision**: al arrancar, `procesar_documentos` carga el motor configurado; si falta `openvino` o un modelo, se detiene con un mensaje claro antes de tomar documentos.
+- **Decision**: al arrancar, `procesar_documentos` valida la configuración sin cargar el motor: valores de las tres variables, modelos presentes con su SHA-256 y motor instalado. Si algo falta, se detiene con un mensaje claro antes de tomar documentos. No carga el motor para que el proceso principal no ocupe otra copia de los modelos.
 
 ## R8. Memoria y convivencia
 

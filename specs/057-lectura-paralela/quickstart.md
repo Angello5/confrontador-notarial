@@ -6,7 +6,7 @@ Validación de extremo a extremo. Solo documentos ficticios.
 
 ```bash
 python scripts/generar_fixtures.py
-python -m pytest tests/test_lectura_paralela.py tests/test_expedientes_worker.py tests/test_procesamiento_concurrente.py
+python -m pytest tests/test_lectura_paralela.py tests/test_expedientes_worker.py
 python -m pytest --cov --cov-report=term
 ```
 
@@ -15,9 +15,9 @@ python -m pytest --cov --cov-report=term
 | 1 | PDF escaneado ficticio leído en serie y con 3 procesos | Mismo texto y mismos avisos, páginas en orden | FR-001 a FR-003 |
 | 2 | `OCR_MOTOR=onnxruntime`, `OCR_PROCESOS=1` | `version_extractor()` igual que antes de F76 | FR-005, SC-005 |
 | 3 | Recaudo encolado antes que borrador y minuta | El worker toma borrador y minuta primero | FR-008 |
-| 4 | Documento cuyo avance se renueva pasado el límite | No vuelve a la cola | FR-009 |
-| 5 | Documento sin avance pasado el límite | Vuelve a `PENDIENTE` una vez | FR-009 |
-| 6 | Una página falla en su proceso de lectura | Documento en «Error», sin texto, temporal borrado | FR-010 |
+| 4 | Documento lento con su proceso vivo, pasado el límite (prueba de F34) | No vuelve a la cola | FR-009 |
+| 5 | Imagen suelta con varios procesos | La lee un proceso de lectura; el principal no carga el motor | edge case |
+| 6 | Falla la lectura de una página o muere un proceso de lectura | Documento en «Error», sin texto, temporal borrado | FR-010 |
 | 7 | `OCR_MOTOR` con un valor desconocido | El worker no arranca y nombra la variable | [contrato](contracts/configuracion.md) |
 
 ## En el servidor de la notaría

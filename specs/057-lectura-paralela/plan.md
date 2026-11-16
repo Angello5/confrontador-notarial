@@ -6,7 +6,7 @@
 
 ## Summary
 
-La lectura de escaneos pasa a usar OpenVINO como motor de ejecución de RapidOCR, con los mismos modelos ONNX, y reparte las páginas escaneadas de cada documento entre varios procesos de lectura. La cola toma primero borradores y minutas, y un documento largo renueva su marca de tiempo al terminar cada página para no volver a la cola. Todo se dimensiona para el Xeon Bronze 3204 del servidor (6 núcleos, sin Hyper-Threading): 3 procesos de 1 hilo por defecto, configurables por variables de entorno.
+La lectura de escaneos pasa a usar OpenVINO como motor de ejecución de RapidOCR, con los mismos modelos ONNX, y reparte las páginas escaneadas de cada documento entre varios procesos de lectura. La cola toma primero borradores y minutas. La protección de los documentos largos ya existe desde F34 (bloqueo del proceso que lee) y no se toca. Todo se dimensiona para el Xeon Bronze 3204 del servidor (6 núcleos, sin Hyper-Threading): 3 procesos de 1 hilo por defecto, configurables por variables de entorno.
 
 ## Technical Context
 
@@ -33,8 +33,8 @@ La lectura de escaneos pasa a usar OpenVINO como motor de ejecución de RapidOCR
 | Principio | Cumplimiento |
 |---|---|
 | I. Determinismo | Mismos modelos, resolución y reglas de relectura. El texto debe salir idéntico; una diferencia bloquea la fase. El reparto entre procesos no altera el resultado: cada página se lee sola y el orden se reconstruye por índice. |
-| II. Núcleo puro | El núcleo no cambia. El reparto de páginas vive en `adaptadores/extraccion.py`; el adaptador sigue sin importar Django y recibe el avance como una función. |
-| III. Pruebas primero | Cada cambio empieza con su prueba: orden y texto idénticos, prioridad de la cola, tiempo límite por avance y fallo de una página. |
+| II. Núcleo puro | El núcleo no cambia. El reparto de páginas vive en `adaptadores/extraccion.py`; el adaptador sigue sin importar Django. |
+| III. Pruebas primero | Cada cambio empieza con su prueba: orden y texto idénticos, prioridad de la cola, arranque del worker y fallo de una página. |
 | IV. Privacidad | Los procesos de lectura reciben la ruta del temporal y el número de página; no se escriben copias. El motor entra en la llave de la caché de texto. Los registros solo llevan identificadores y tiempos. |
 | V. Simplicidad | Biblioteca estándar (`concurrent.futures`) para el reparto. Sin colas externas ni abstracciones nuevas. Una sola dependencia nueva, justificada abajo. |
 | VI. Seguridad | Sin cambios de permisos. Todo corre dentro del servidor, con la cuenta de servicio. |
@@ -62,13 +62,13 @@ specs/057-lectura-paralela/
 ### Source Code (repository root)
 
 ```text
-adaptadores/extraccion.py        # motor configurable, reparto de páginas, avance
-expedientes/services.py          # prioridad en tomar_pendiente, avance → procesando_el, métricas
+adaptadores/extraccion.py        # motor configurable y reparto de páginas
+expedientes/services.py          # prioridad en tomar_pendiente y métricas
 expedientes/management/commands/procesar_documentos.py   # comprobación del motor al arrancar
 requirements.in, requirements.txt                        # + openvino
 scripts/medir_lectura_paralela.py                        # medición reproducible (FR-012)
 tests/test_lectura_paralela.py                           # nuevo
-tests/test_expedientes_worker.py, tests/test_procesamiento_concurrente.py   # casos nuevos
+tests/test_expedientes_worker.py                         # casos nuevos
 specs/046-despliegue/quickstart.md                       # límites de recursos (FR-011)
 docs/mediciones-ocr.md                                   # resultado en el servidor
 ```

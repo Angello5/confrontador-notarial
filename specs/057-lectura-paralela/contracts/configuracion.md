@@ -6,7 +6,7 @@ Variables de entorno del proceso de lectura. En el servidor van en `erp.env` (F8
 |---|---|---|---|
 | `OCR_MOTOR` | `openvino`, `onnxruntime` | `openvino` | Motor de ejecución de los modelos de OCR. `onnxruntime` es la lectura anterior a F76. |
 | `OCR_PROCESOS` | entero ≥ 1 | `3` | Procesos de lectura por worker. Con `1` las páginas se leen en serie. |
-| `OCR_HILOS` | entero ≥ 1 | `1` | Hilos del motor en cada proceso de lectura. |
+| `OCR_HILOS` | entero ≥ 1 | `1` con varios procesos; sin fijar con uno | Hilos del motor en cada proceso de lectura. |
 
 Reglas:
 

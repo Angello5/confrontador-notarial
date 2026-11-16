@@ -6,6 +6,12 @@ from xml.etree import ElementTree
 
 import pytest
 
+# F76: la suite simula el motor en este proceso; la lectura rápida se prueba
+# aparte, en tests/test_lectura_paralela.py.
+os.environ["OCR_MOTOR"] = "onnxruntime"
+os.environ["OCR_PROCESOS"] = "1"
+os.environ.pop("OCR_HILOS", None)
+
 
 class _CoberturaInvalida(Exception):
     pass

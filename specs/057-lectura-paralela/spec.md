@@ -64,16 +64,18 @@ La digitadora sube el borrador, la minuta y los recaudos de un kardex. El sistem
 
 ### User Story 3 - Un documento largo no se repite ni se pierde (Priority: P2)
 
-Un PDF de 150 páginas tarda más que el tiempo límite de un documento. Mientras sus páginas sigan avanzando, el sistema no lo devuelve a la cola ni lo lee dos veces.
+Un PDF de 150 páginas tarda más que el tiempo límite de un documento. Mientras el proceso que lo lee siga vivo, el sistema no lo devuelve a la cola ni lo lee dos veces.
 
-**Why this priority**: con varios procesos y documentos largos, el límite actual haría repetir trabajo (riesgo descrito en `docs/ocr-tiempos-2026-10-02.md`, hallazgo 5).
+**Why this priority**: con documentos largos, repetir la lectura anularía la mejora.
 
-**Independent Test**: leer un documento cuya duración supera el límite con el avance activo y comprobar que no vuelve a la cola; detener el avance y comprobar que sí vuelve.
+**Estado**: ya resuelto antes de esta fase. El riesgo descrito en `docs/ocr-tiempos-2026-10-02.md` (hallazgo 5) se cerró en F34: el proceso mantiene un bloqueo sobre el documento y la recuperación por tiempo límite lo respeta (`tests/test_procesamiento_concurrente.py`). F76 no añade ningún mecanismo: lo comprueba al revisar el código y lo conserva.
+
+**Independent Test**: la prueba existente de F34; y un fallo de lectura deja el documento en «Error».
 
 **Acceptance Scenarios**:
 
-1. **Given** un documento en lectura cuyas páginas avanzan, **When** pasa el tiempo límite, **Then** no vuelve a la cola.
-2. **Given** un documento cuya lectura se interrumpió (el proceso murió), **When** pasa el tiempo límite sin avance, **Then** vuelve a la cola una sola vez y se lee de nuevo, como hoy.
+1. **Given** un documento en lectura con su proceso vivo, **When** pasa el tiempo límite, **Then** no vuelve a la cola.
+2. **Given** un documento cuyo proceso murió, **When** pasa el tiempo límite, **Then** vuelve a la cola una sola vez y se lee de nuevo.
 3. **Given** un proceso de lectura que falla en una página, **When** termina el documento, **Then** queda en «Error» con el mensaje actual y no se guarda texto parcial.
 
 ---
@@ -95,7 +97,7 @@ Quien opera el servidor fija cuántos procesos de lectura corren y puede volver 
 ### Edge Cases
 
 - PDF con páginas mezcladas, unas digitales y otras escaneadas: solo las escaneadas van a los procesos de lectura; el orden final es el del documento.
-- Documento de una sola página o imagen suelta: se lee sin repartir.
+- Documento de una sola página o imagen suelta: lo lee un único proceso de lectura, para no cargar otra copia de los modelos.
 - Dos documentos grandes a la vez: el total de procesos de lectura no supera el configurado.
 - La capa de sentido está activa: lectura y sentido no usan más núcleos de los que cada una tiene asignados.
 - El servidor se reinicia a mitad de un documento: se recupera como hoy, por tiempo límite sin avance.
@@ -110,10 +112,10 @@ Quien opera el servidor fija cuántos procesos de lectura corren y puede volver 
 - **FR-003**: Los avisos de calidad de cada página (confianza, motivos, relecturas, giro elegido) DEBEN ser los mismos que con la lectura actual. Si el motor nuevo altera una confianza lo bastante para cambiar un aviso, la fase no se integra hasta resolverlo.
 - **FR-004**: La lectura DEBE usar el motor de ejecución que mejor rinde en el procesador del servidor, con los mismos modelos de OCR, la misma resolución y las mismas reglas de relectura. No cambian los modelos ni sus SHA-256.
 - **FR-005**: El motor de ejecución y el número de procesos DEBEN formar parte de la identidad de la lectura solo en lo que pueda cambiar el texto: el motor entra en la llave; el número de procesos no (principio IV, caché de texto).
-- **FR-006**: El número de procesos de lectura y los hilos de cada uno DEBEN ser configurables en el servidor. Valores por defecto, pensados para el Xeon de 6 núcleos: 3 procesos de 1 hilo. Con 1 proceso el comportamiento es el actual.
+- **FR-006**: El número de procesos de lectura y los hilos de cada uno DEBEN ser configurables en el servidor. Valores por defecto, pensados para el Xeon de 6 núcleos: 3 procesos de 1 hilo. Con 1 proceso las páginas se leen en serie y los hilos quedan como los fija el motor, igual que hoy.
 - **FR-007**: DEBE existir un interruptor para volver al motor actual sin desinstalar nada.
 - **FR-008**: La cola DEBE tomar primero los borradores y las minutas y después los recaudos; entre documentos del mismo grupo, el más antiguo.
-- **FR-009**: Un documento en lectura NO DEBE volver a la cola por tiempo límite mientras sus páginas avancen; sin avance durante el tiempo límite, vuelve como hoy.
+- **FR-009**: Un documento en lectura NO DEBE volver a la cola por tiempo límite mientras el proceso que lo lee siga vivo; si ese proceso muere, vuelve a la cola una vez. Ya se cumple desde F34 (el proceso mantiene un bloqueo sobre el documento): F76 no lo cambia y lo conserva.
 - **FR-010**: Si falla la lectura de una página, el documento DEBE terminar en «Error», sin texto parcial, y su archivo temporal DEBE borrarse como hoy.
 - **FR-011**: Los límites de recursos del ERP en el servidor (`specs/046-despliegue/quickstart.md`, FR-013 de F8) DEBEN actualizarse con la memoria y los núcleos medidos de la lectura.
 - **FR-012**: DEBE existir una medición reproducible, con documentos ficticios, que se ejecute en el servidor y dé páginas por minuto, memoria máxima y la comprobación de texto y avisos idénticos para cada configuración.
