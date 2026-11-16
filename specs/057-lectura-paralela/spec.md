@@ -90,7 +90,7 @@ Quien opera el servidor fija cuántos procesos de lectura corren y puede volver 
 
 1. **Given** la configuración por defecto del servidor, **When** se leen escaneos, **Then** se usan como máximo 3 de los 6 núcleos.
 2. **Given** la lectura rápida apagada, **When** se lee cualquier documento, **Then** el texto, los avisos y la identidad de la lectura son los de antes de esta fase.
-3. **Given** la verificación del servidor (`verificar.ps1`), **When** el motor configurado no está disponible, **Then** lo avisa en el Visor de eventos y la lectura no arranca a medias.
+3. **Given** un motor configurado que no está disponible en el servidor, **When** arranca el proceso de lectura, **Then** se detiene con un mensaje claro antes de tomar ningún documento. La verificación periódica de F8 (`verificar.ps1`, aún sin implementar) recogerá este aviso.
 
 ### Edge Cases
 
