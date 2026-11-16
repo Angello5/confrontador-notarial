@@ -59,12 +59,16 @@ def _pdf(ruta, hojas, con_texto=()):
 
 
 def _sin_confianza(informes):
-    """Lo que debe coincidir entre motores: texto y avisos, no los decimales."""
+    """Lo que debe coincidir entre motores: texto y avisos, no los decimales.
+
+    Las coordenadas de los recuadros varían en fracciones de píxel entre motores;
+    de ahí salen la confianza y la inclinación, que se comparan con tolerancia.
+    """
     return [
         {
             k: v
             for k, v in informe.items()
-            if k not in ("confianza", "cajas", "descartadas")
+            if k not in ("confianza", "inclinacion", "cajas", "descartadas")
         }
         for informe in informes
     ]
@@ -203,6 +207,7 @@ def test_openvino_da_el_mismo_texto_y_los_mismos_avisos(
     nuevo = extraccion._pdf_informe(ruta)
     assert _sin_confianza(nuevo) == _sin_confianza(actual)
     for i, (a, n) in enumerate(zip(actual, nuevo), 1):
+        assert n["inclinacion"] == pytest.approx(a["inclinacion"], abs=0.5)
         assert n["confianza"] == pytest.approx(a["confianza"], abs=0.005), (
             f"página {i}: la confianza cambia de {a['confianza']} a {n['confianza']}"
         )

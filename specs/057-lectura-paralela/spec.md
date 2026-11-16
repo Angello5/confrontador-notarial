@@ -142,7 +142,7 @@ Con el flujo completo (relecturas incluidas), 75 páginas de la muestra privada,
 | OpenVINO, 1 proceso | 10,8 | 3,2 GB | 74/75 | 75/75 |
 | Motor actual, 3 procesos × 1 hilo | 10,7 | 6,0 GB | 75/75 | 75/75 |
 
-- **FR-002 no se cumple con OpenVINO**: en 1 página de 75 cambian 2 letras de una línea (ningún dígito), en un recuadro que el motor actual leyó con confianza 0,89. No se sabe cuál de las dos lecturas es la correcta.
+- **FR-002 no se cumple con OpenVINO**: en 1 página de 75 cambian 2 letras de una línea (ningún dígito), en un recuadro que el motor actual leyó con confianza 0,89. Revisado contra la imagen el 2026-11-16: es un rótulo impreso, pequeño y borroso, de un documento de identidad, no un dato; las dos lecturas están mal y ninguna forma una palabra. La confrontación no usa ese rótulo.
 - La ganancia medida con el flujo completo (1,2×) es mucho menor que la del motor aislado (2× a 6×) y la memoria supera el presupuesto de 6 GB con 3 procesos.
 - **Decisión de implementación**: el código queda entregado pero apagado. Sin configurar, el sistema lee exactamente como antes. Activar OpenVINO exige dos cosas del propietario: aceptar o rechazar la diferencia de texto (principio I) y la medición en el servidor (SC-001, SC-003).
 
