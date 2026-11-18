@@ -54,6 +54,14 @@ Django rechaza el arranque) y `DB_SSLMODE` (`prefer`); la base se crea con
 `CREATEDB`. Al regenerar `requirements.txt` en Linux, volver a añadir al
 final `colorama` y `tzdata` (solo Windows); un test lo exige.
 
+La lectura de escaneos (F76) se configura con `OCR_MOTOR` (`openvino` u
+`onnxruntime`), `OCR_PROCESOS` y `OCR_HILOS`. Sin configurar se lee como antes de
+F76; la lectura rápida se activa en el servidor de la notaría (6 núcleos sin
+Hyper-Threading) cuando su medición la apruebe. La suite fija `onnxruntime` y un
+proceso; la
+lectura rápida se prueba en `tests/test_lectura_paralela.py` y se mide con
+`python scripts/medir_lectura_paralela.py`.
+
 Usar Python 3.13 y aprovisionar OCR/diccionario según
 `specs/001-base-devsecops/quickstart.md`. Los tests predeterminados usan solo
 fixtures ficticios. En Linux, `.doc`/`.rtf` requieren LibreOffice (`soffice`).

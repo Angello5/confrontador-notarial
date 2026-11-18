@@ -121,6 +121,51 @@ Medido el 2026-09-27 sobre las 55 fichas oficiales de los 10 expedientes (28 REN
 
 **Decisión:** se mantiene 200 ppp. Subir o bajar la resolución empeora la lectura: los modelos PP-OCR están ajustados a ese tamaño de letra y a más resolución el detector parte o pierde líneas. Mejorar la calidad pasa por el origen del documento (consulta RENIEC guardada como PDF digital, con capa de texto) y no por la resolución.
 
+## Vías de velocidad · 2026-11-16
+
+Medido sobre los escaneos de la muestra privada (70 PDF, 546 páginas), en un
+portátil Intel i7-1360P (núcleos mezclados, 16 hilos) y Python 3.14. Solo
+tiempos y recuentos. El servidor de la notaría (Xeon Bronze 3204, 6 núcleos sin
+Hyper-Threading) dará cifras distintas: estas son indicativas.
+
+Qué se sube: 544 de 546 páginas son escaneos sin texto digital, cada una una
+sola imagen incrustada, casi todas a 200 ppp (418) y el resto entre 275 y 300.
+
+| Vía | Resultado | Decisión |
+|---|---|---|
+| OpenVINO como motor de ejecución, varios procesos | 58 a 69 páginas/min en cuatro mediciones (3×2, 6×1, 4×4 y 2×3 procesos × hilos) | **Adoptar** tras medir en el servidor (F76) |
+| OpenVINO, un proceso | 12 a 30 páginas/min con hilos por defecto; 52 con 4 hilos | Parte de lo anterior |
+| ONNX Runtime (actual), varios procesos | 9 a 33 páginas/min; la misma variante (3×2) dio 33 y 15 en rondas seguidas | Solo si se rechaza OpenVINO |
+| ONNX Runtime, un proceso (como hoy) | 8 a 21 páginas/min según la ronda | Línea base |
+| Caché por página | 14 de 544 páginas repetidas (2,6 %), ninguna entre expedientes | **Descartar** |
+| Clasificador de orientación | De 80 páginas, 74 se leen una vez, 5 dos veces y 1 cuatro; solo 1 venía girada. Las relecturas son el 16 % del tiempo | **Descartar**: ahorraría cerca del 5 % |
+
+Texto: idéntico en las 18 páginas comparadas (28 902 caracteres, ninguno
+distinto) en todas las variantes, con los mismos modelos y la misma resolución.
+
+Reservas:
+
+- 18 páginas por variante y un equipo cuyas cifras con ONNX Runtime varían
+  mucho entre rondas. Las de OpenVINO fueron estables.
+- Se comparó el texto, no las confianzas: falta comprobar que los avisos de
+  calidad no cambian.
+- Se midió el motor directamente, sin las relecturas por giro ni por marca de
+  agua, y no se midió la memoria con OpenVINO.
+- Con varios procesos y los hilos por defecto, cada página tardó 37 s dentro de
+  su proceso: sin fijar los hilos, los procesos se estorban.
+
+Flujo completo, ya implementado (`scripts/medir_lectura_paralela.py`, 75
+páginas de la muestra, relecturas incluidas): 13,9 páginas/min con el motor
+actual en serie; 17,0 con OpenVINO y 3 procesos de 1 hilo (6,4 GB); 10,7 con el
+motor actual en 3 procesos. Los avisos de calidad coinciden en las 75 páginas,
+pero **el texto de 1 página cambia con OpenVINO: 2 letras de una línea**, ningún
+dígito. La medición directa del motor, sobre 18 páginas, no lo había visto. Por
+eso la lectura rápida queda apagada por defecto hasta medir en el servidor y
+decidir sobre esa diferencia.
+
+Decisión: **del propietario, 2026-11-16: adoptar OpenVINO**, dimensionado para
+el servidor y validado midiendo en él. Alcance en `specs/057-lectura-paralela/`.
+
 ## Lecciones de método
 
 Dos veces se estuvo a punto de concluir en falso por medir con un instrumento

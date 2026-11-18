@@ -56,6 +56,43 @@ _OCR_FILES = {
 }
 _OCR_USE_CLS = False
 
+# F76: motor de ejecución y reparto de páginas, por variables de entorno (el
+# adaptador no importa Django). Por defecto se lee como antes de F76: la lectura
+# rápida se activa en el servidor cuando su medición la aprueba, porque OpenVINO
+# cambió 2 letras en 1 de 75 páginas de la muestra privada (principio I).
+MOTORES = ("onnxruntime", "openvino")
+
+
+def motor() -> str:
+    valor = os.environ.get("OCR_MOTOR", "").strip().lower() or MOTORES[0]
+    if valor not in MOTORES:
+        raise ValueError(f"OCR_MOTOR debe ser uno de: {', '.join(MOTORES)}.")
+    return valor
+
+
+def _entero(nombre: str, defecto: int) -> int:
+    valor = os.environ.get(nombre, "").strip()
+    if not valor:
+        return defecto
+    if not valor.isdigit() or int(valor) < 1:
+        raise ValueError(f"{nombre} debe ser un entero mayor o igual que 1.")
+    return int(valor)
+
+
+def procesos() -> int:
+    """Procesos de lectura; con 1 las páginas se leen en serie, como antes de F76."""
+    return _entero("OCR_PROCESOS", 1)
+
+
+def hilos() -> int:
+    """Hilos del motor por proceso; 0 deja el valor del motor (lectura en serie).
+
+    Con varios procesos y sin fijar los hilos, cada uno pide todos los núcleos y
+    se estorban (medido: 37 s por página).
+    """
+    return _entero("OCR_HILOS", 1 if procesos() > 1 else 0)
+
+
 # 1: texto unido en una cadena. 2: una entrada por pagina.
 _FORMATO_CACHE = 3
 # Forma del texto extraido que no pasa por la cache de OCR (identidad en la base).
@@ -76,26 +113,28 @@ def version_extractor() -> str:
     altera el texto y su version sube a menudo, lo que invalidaria la cache sin
     motivo.
     """
-    identidad = json.dumps(
-        {
-            "modelos": sorted(_OCR_FILES.items()),
-            "use_cls": _OCR_USE_CLS,
-            "rapidocr": importlib.metadata.version("rapidocr"),
-            "formato_texto": _FORMATO_TEXTO,
-            "calidad_ocr": calidad_ocr.VERSION,
-            "dpi": DPI,
-            "formato_cache": _FORMATO_CACHE,
-        },
-        separators=(",", ":"),
-    ).encode()
-    return hashlib.sha256(identidad).hexdigest()
+    identidad = {
+        "modelos": sorted(_OCR_FILES.items()),
+        "use_cls": _OCR_USE_CLS,
+        "rapidocr": importlib.metadata.version("rapidocr"),
+        "formato_texto": _FORMATO_TEXTO,
+        "calidad_ocr": calidad_ocr.VERSION,
+        "dpi": DPI,
+        "formato_cache": _FORMATO_CACHE,
+    }
+    # F76: el motor entra en la llave solo si no es el anterior, para que la
+    # caché ya guardada siga valiendo con onnxruntime. Los procesos y los hilos
+    # no cambian el texto y no entran.
+    if motor() != "onnxruntime":
+        identidad["motor"] = motor()
+        identidad[motor()] = importlib.metadata.version(motor())
+    return hashlib.sha256(
+        json.dumps(identidad, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
-@lru_cache(maxsize=1)
-def _ocr():
-    """Carga recursos locales fijados; el proceso no descarga modelos."""
-    from rapidocr import RapidOCR
-
+def _modelos() -> dict:
+    """Rutas de los modelos fijados, tras comprobar su SHA-256."""
     paths = {name: OCR_MODELS / name for name in _OCR_FILES}
     for name, path in paths.items():
         if (
@@ -103,17 +142,107 @@ def _ocr():
             or hashlib.sha256(path.read_bytes()).hexdigest() != _OCR_FILES[name]
         ):
             raise RuntimeError(f"Recurso OCR ausente o inválido: {name}")
-    return RapidOCR(
-        params={
-            "Global.use_cls": _OCR_USE_CLS,
-            "Global.log_level": "error",
-            # F33: sin reserva, cada lote de líneas de ancho distinto pide y
-            # libera memoria; con ella la página real tarda ~18 % menos.
-            "EngineConfig.onnxruntime.enable_cpu_mem_arena": True,
-            "Det.model_path": str(paths["ch_PP-OCRv5_mobile_det.onnx"]),
-            "Rec.model_path": str(paths["latin_PP-OCRv5_rec_mobile_infer.onnx"]),
-        }
-    )
+    return paths
+
+
+@lru_cache(maxsize=1)
+def _ocr():
+    """Carga recursos locales fijados; el proceso no descarga modelos."""
+    from rapidocr import RapidOCR
+
+    paths = _modelos()
+    params = {
+        "Global.use_cls": _OCR_USE_CLS,
+        "Global.log_level": "error",
+        "Det.model_path": str(paths["ch_PP-OCRv5_mobile_det.onnx"]),
+        "Rec.model_path": str(paths["latin_PP-OCRv5_rec_mobile_infer.onnx"]),
+    }
+    if motor() == "openvino":
+        # F76: mismos modelos .onnx, ejecutados por OpenVINO.
+        from rapidocr import EngineType
+
+        params["Det.engine_type"] = EngineType.OPENVINO
+        params["Rec.engine_type"] = EngineType.OPENVINO
+        if hilos():
+            params["EngineConfig.openvino.inference_num_threads"] = hilos()
+    else:
+        # F33: sin reserva, cada lote de líneas de ancho distinto pide y
+        # libera memoria; con ella la página real tarda ~18 % menos.
+        params["EngineConfig.onnxruntime.enable_cpu_mem_arena"] = True
+        if hilos():
+            params["EngineConfig.onnxruntime.intra_op_num_threads"] = hilos()
+    return RapidOCR(params=params)
+
+
+def comprobar_motor() -> None:
+    """Valida la configuración de lectura sin cargar el motor (F76).
+
+    El worker la llama al arrancar: con varios procesos de lectura, el motor se
+    carga en ellos y no en el proceso principal.
+    """
+    import importlib.util
+
+    procesos(), hilos(), _modelos()
+    if importlib.util.find_spec(motor()) is None:
+        raise RuntimeError(
+            f"OCR_MOTOR={motor()} no está instalado. "
+            "Instálelo o use OCR_MOTOR=onnxruntime."
+        )
+
+
+# F76: procesos de lectura. Se crean una vez por worker y cada uno carga su motor.
+_GRUPO = None
+
+
+def cerrar_grupo() -> None:
+    global _GRUPO
+    if _GRUPO is not None:
+        _GRUPO[1].shutdown(wait=False, cancel_futures=True)
+        _GRUPO = None
+
+
+def _grupo():
+    global _GRUPO
+    clave = (procesos(), motor(), hilos())
+    if _GRUPO is not None and _GRUPO[0] != clave:
+        cerrar_grupo()
+    if _GRUPO is None:
+        import multiprocessing
+        from concurrent.futures import ProcessPoolExecutor
+
+        # Procesos nuevos, no copias del principal: copiar un proceso que ya
+        # cargó un motor (hilos incluidos) deja la lectura colgada en Linux.
+        _GRUPO = (
+            clave,
+            ProcessPoolExecutor(
+                clave[0],
+                mp_context=multiprocessing.get_context("spawn"),
+                initializer=_ocr,
+            ),
+        )
+    return _GRUPO[1]
+
+
+atexit.register(cerrar_grupo)
+
+
+def _en_grupo(funcion, argumentos):
+    """Resultados en el orden de `argumentos`; un proceso muerto descarta el grupo."""
+    from concurrent.futures.process import BrokenProcessPool
+
+    try:
+        yield from _grupo().map(funcion, *zip(*argumentos))
+    except BrokenProcessPool:
+        cerrar_grupo()
+        raise
+
+
+def _leer_pagina_pdf(ruta: str, indice: int) -> dict:
+    """Rasteriza y lee una página; corre en un proceso de lectura."""
+    import pymupdf
+
+    with pymupdf.open(ruta) as doc:
+        return ocr_informe(_matriz_pagina(doc[indice].get_pixmap(dpi=DPI)))
 
 
 def _cacheado(clave: bytes, calcular):
@@ -303,34 +432,49 @@ def _pdf_informe(p):
     import pymupdf
 
     with pymupdf.open(p) as doc:
+        capas = [pg.get_text() for pg in doc]
+        dudosas = [i for i, txt in enumerate(capas) if capa_pdf_dudosa(txt)]
+        if procesos() > 1 and dudosas:
+            # F76: cada página escaneada se lee sola, así que el reparto no
+            # cambia el resultado; el orden lo da el índice.
+            lecturas = _en_grupo(_leer_pagina_pdf, [(str(p), i) for i in dudosas])
+        else:
+            lecturas = (
+                ocr_informe(_matriz_pagina(doc[i].get_pixmap(dpi=DPI))) for i in dudosas
+            )
         paginas = []
-        for i, pg in enumerate(doc, 1):
-            txt = pg.get_text()
-            if capa_pdf_dudosa(txt):
-                print(f"    pagina {i}: lectura dudosa, aplicando OCR", file=sys.stderr)
-                informe = ocr_informe(_matriz_pagina(pg.get_pixmap(dpi=DPI)))
-                legibles = sum(c.isalnum() for c in txt)
-                recuperados = sum(c.isalnum() for c in informe["texto"])
-                if txt.strip() and (
-                    not informe["texto"].strip()
-                    or recuperados < legibles * 0.8
-                    or (
-                        informe.get("requiere_revision", False)
-                        # Una lectura dudosa solo sustituye una capa corta si aporta más.
-                        and (legibles >= 50 or recuperados <= legibles)
-                    )
-                ):
-                    txt = "".join(
-                        "\ufffd" if ord(c) < 32 and c not in "\n\r\t\f" else c
-                        for c in txt
-                    )
-                    informe = _informe_nativo(
-                        txt, "texto_pdf", ["capa_dudosa_sin_mejora"]
-                    )
+        for i, pg in enumerate(doc):
+            txt = capas[i]
+            if i in dudosas:
+                print(
+                    f"    pagina {i + 1}: lectura dudosa, aplicando OCR",
+                    file=sys.stderr,
+                )
+                informe = _elegir_lectura(txt, next(lecturas))
             else:
                 informe = _informe_nativo(_filas_pdf(pg), "texto_pdf")
             paginas.append(informe)
     return tuple(paginas)
+
+
+def _elegir_lectura(txt, informe):
+    """La capa de texto dudosa se conserva si el OCR no la mejora."""
+    legibles = sum(c.isalnum() for c in txt)
+    recuperados = sum(c.isalnum() for c in informe["texto"])
+    if txt.strip() and (
+        not informe["texto"].strip()
+        or recuperados < legibles * 0.8
+        or (
+            informe.get("requiere_revision", False)
+            # Una lectura dudosa solo sustituye una capa corta si aporta más.
+            and (legibles >= 50 or recuperados <= legibles)
+        )
+    ):
+        txt = "".join(
+            "\ufffd" if ord(c) < 32 and c not in "\n\r\t\f" else c for c in txt
+        )
+        return _informe_nativo(txt, "texto_pdf", ["capa_dudosa_sin_mejora"])
+    return informe
 
 
 def _matriz_pagina(pix):
@@ -656,6 +800,13 @@ def leer_con_calidad(p: Path) -> dict:
     }
 
 
+def _leer_imagen(p: Path) -> dict:
+    # F76: con procesos de lectura, este proceso no carga otra copia del motor.
+    if procesos() > 1:
+        return next(_en_grupo(ocr_informe, [(p,)]))
+    return ocr_informe(p)
+
+
 def _leer_informes(p):
     s = p.suffix.lower()
     p = p.resolve(strict=True)
@@ -676,7 +827,7 @@ def _leer_informes(p):
             for pg in paginas
         )
     if s in IMGS:
-        pagina = _cacheado(p.read_bytes(), lambda: ocr_informe(p))
+        pagina = _cacheado(p.read_bytes(), lambda: _leer_imagen(p))
         if isinstance(pagina, str):
             pagina = _informe_nativo(pagina, "historico", ["calidad_no_disponible"])
         return (pagina,)

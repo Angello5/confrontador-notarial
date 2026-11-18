@@ -212,3 +212,134 @@ def test_comando_recupera_vencido_al_arrancar_y_lo_procesa(
     documento.refresh_from_db()
     assert documento.estado == "LISTO"
     assert not ruta.exists()
+
+
+# --- F76 ---
+
+
+def _pendiente(expediente, usuario, rol, indice):
+    from expedientes.models import Documento
+
+    return Documento.objects.create(
+        expediente=expediente,
+        rol=rol,
+        nombre_original=f"f76-{indice}.txt",
+        hash_archivo=f"{indice:x}" * 64,
+        tamano_bytes=1,
+        ruta_temporal="",
+        subido_por=usuario,
+    )
+
+
+def test_la_cola_toma_primero_borrador_y_minuta(usuario_ficticio):
+    from expedientes.models import Expediente
+    from expedientes.services import tomar_pendiente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F76-COLA", creado_por=usuario_ficticio
+    )
+    recaudo_1 = _pendiente(expediente, usuario_ficticio, "CLIENTE", 1)
+    recaudo_2 = _pendiente(expediente, usuario_ficticio, "CLIENTE", 2)
+    minuta = _pendiente(expediente, usuario_ficticio, "MINUTA", 3)
+    borrador = _pendiente(expediente, usuario_ficticio, "BORRADOR", 4)
+
+    tomados = [tomar_pendiente().pk for _ in range(4)]
+
+    assert tomados == [minuta.pk, borrador.pk, recaudo_1.pk, recaudo_2.pk]
+    assert tomar_pendiente() is None
+
+
+def test_las_metricas_guardan_con_que_se_leyo(usuario_ficticio, monkeypatch, tmp_path):
+    from expedientes.models import Documento, Expediente
+    from expedientes.services import procesar_documento
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F76-METRICAS", creado_por=usuario_ficticio
+    )
+    ruta = tmp_path / "metricas-ficticio.tmp"
+    ruta.write_bytes(b"contenido ficticio")
+    documento = Documento.objects.create(
+        expediente=expediente,
+        rol="CLIENTE",
+        nombre_original="metricas-ficticio.pdf",
+        hash_archivo="a" * 64,
+        tamano_bytes=ruta.stat().st_size,
+        ruta_temporal=str(ruta),
+        subido_por=usuario_ficticio,
+    )
+    monkeypatch.setattr(
+        "expedientes.services.extraccion.version_extractor", lambda: "ocr-ficticio-f76"
+    )
+    monkeypatch.setattr(
+        "expedientes.services.extraccion.leer_con_calidad",
+        lambda _: {
+            "texto": "texto ficticio",
+            "calidad": {"version": 4, "paginas": [{"pagina": 1}, {"pagina": 2}]},
+        },
+    )
+
+    procesar_documento(documento.pk)
+    documento.refresh_from_db()
+
+    assert documento.estado == "LISTO"
+    assert documento.metricas["openvino"] is False
+    assert documento.metricas["procesos"] == 1
+    assert documento.metricas["paginas"] == 2
+
+
+def test_fallo_de_lectura_deja_error_sin_texto_y_sin_temporal(
+    usuario_ficticio, monkeypatch, tmp_path
+):
+    from expedientes.models import Documento, Expediente
+    from expedientes.services import procesar_documento
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F76-FALLO", creado_por=usuario_ficticio
+    )
+    ruta = tmp_path / "fallo-ficticio.tmp"
+    ruta.write_bytes(b"contenido ficticio")
+    documento = Documento.objects.create(
+        expediente=expediente,
+        rol="CLIENTE",
+        nombre_original="fallo-ficticio.pdf",
+        hash_archivo="b" * 64,
+        tamano_bytes=ruta.stat().st_size,
+        ruta_temporal=str(ruta),
+        subido_por=usuario_ficticio,
+    )
+
+    def falla(_):
+        from concurrent.futures.process import BrokenProcessPool
+
+        raise BrokenProcessPool("proceso de lectura ficticio terminado")
+
+    monkeypatch.setattr(
+        "expedientes.services.extraccion.version_extractor", lambda: "ocr-ficticio-f76"
+    )
+    monkeypatch.setattr("expedientes.services.extraccion.leer_con_calidad", falla)
+
+    procesar_documento(documento.pk)
+    documento.refresh_from_db()
+
+    assert documento.estado == "ERROR"
+    assert documento.error == "No se pudo procesar el archivo."
+    assert documento.texto_extraido is None
+    assert not ruta.exists()
+
+
+def test_el_worker_no_arranca_con_configuracion_invalida(usuario_ficticio, monkeypatch):
+    from django.core.management.base import CommandError
+
+    from expedientes.models import Expediente
+    from expedientes.services import tomar_pendiente
+
+    expediente = Expediente.objects.create(
+        codigo="EXP-FICTICIO-F76-ARRANQUE", creado_por=usuario_ficticio
+    )
+    _pendiente(expediente, usuario_ficticio, "CLIENTE", 5)
+    monkeypatch.setenv("OCR_MOTOR", "motor-ficticio")
+
+    with pytest.raises(CommandError, match="OCR_MOTOR"):
+        call_command("procesar_documentos")
+
+    assert tomar_pendiente() is not None
