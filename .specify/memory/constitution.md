@@ -75,7 +75,20 @@ Sync Impact Report
   waitress es el despliegue vigente. Reemplaza lo decidido en 2.1.0 (F63) y
   2.2.0 (F8)
 - Fecha: 2026-11-14
-- TODO pendientes: ninguno.
+- Version: 2.3.0 → 2.4.0 (MINOR: se amplían de forma material tres principios;
+  ninguno se elimina ni se redefine)
+- Principios modificados: I. Determinismo (validación de colegiatura sin
+  autoridad), IV. Privacidad (el recorte del sello es temporal; qué se guarda
+  del sello y de la consulta) y VI. Seguridad (única salida a internet: el
+  buscador del Colegio de Abogados de Lima)
+- Motivo: el usuario pidió validar la colegiatura de los abogados cuyo sello
+  aparece en los documentos, consultando el registro oficial por el número
+  CAL. Decidió que el OCR sigue en el servidor de la notaría, sin servicios
+  externos, y que el sello solo se usa durante el proceso y después se elimina
+- Fecha: 2026-11-16
+- TODO pendientes: TODO(CAL_AUTORIZACION): el buscador no publica API ni
+  condiciones de uso; la notaría gestiona la autorización del Colegio antes de
+  activar la consulta en producción.
 -->
 
 # Constitución del ERP Notarial (Confrontador)
@@ -115,6 +128,18 @@ la minuta y los documentos del cliente, y señalar las diferencias.
     como sin ella.
   - Sus dependencias van aparte (`requirements-sentido.txt`) y solo se
     instalan en el servidor que la activa.
+- La validación de colegiatura (número CAL de los sellos de abogado) no es una
+  capa de confrontación y no tiene autoridad:
+  - Su resultado depende de un registro externo que cambia con el tiempo. Por
+    eso va en una sección propia, fuera de los hallazgos y de la huella de la
+    corrida, siempre con la fecha y hora de la consulta.
+  - Nunca bloquea ni invalida una confrontación: si la consulta falla o está
+    pendiente, la confrontación se comporta exactamente como sin ella.
+  - El número CAL se lee por código y no se completa por suposición: un número
+    incompleto o de lectura dudosa no se consulta y queda para revisión.
+  - El estado se muestra tal como lo devuelve el Colegio, sin reinterpretarlo.
+    Que el registro exista y que el abogado esté habilitado son dos datos
+    distintos. Una consulta fallida nunca se muestra como «no encontrado».
 
 ### II. Núcleo de dominio puro
 
@@ -172,6 +197,16 @@ la minuta y los documentos del cliente, y señalar las diferencias.
     expediente concreto (derecho de supresión, Ley 29733).
   - El texto no sale del servidor ni aparece en logs, mensajes de error o
     respaldos fuera de la base de datos.
+- Sellos de abogado: el recorte de la imagen de un sello es tan temporal como
+  el documento del que sale. Se usa durante la lectura y se borra en el mismo
+  bloque `finally`; no se guarda ni se respalda. Solo se persisten el número
+  CAL leído, el documento, la página, las coordenadas y la confianza de la
+  lectura.
+- Consulta de colegiatura: se guarda por número CAL lo que devuelve el registro
+  oficial (número, nombre, estado) con la fecha de la consulta. Tiene una
+  vigencia configurable, pasada la cual se vuelve a consultar, y se puede
+  actualizar a mano. La supresión a solicitud borra también los sellos del
+  expediente.
 - Los logs y mensajes de error no incluyen DNI, nombres ni contenido de
   documentos.
 
@@ -202,7 +237,21 @@ la minuta y los documentos del cliente, y señalar las diferencias.
 - Auditoría de acciones relevantes: quién confrontó qué, cuándo y con qué hash.
 - Funciona 100 % en la LAN, sin dependencias de internet en tiempo de ejecución:
   modelos de OCR, diccionario `es_PE`, modelos de la capa de sentido y assets
-  front se aprovisionan en el despliegue.
+  front se aprovisionan en el despliegue. El OCR corre en el servidor de la
+  notaría: ningún documento, imagen ni texto extraído sale de la LAN.
+- Única excepción: la validación de colegiatura consulta el buscador oficial
+  del Colegio de Abogados de Lima (`abogados.cal.org.pe`). Condiciones:
+  - Solo sale el número CAL. Nunca nombres, DNI, imágenes ni texto de los
+    documentos.
+  - Un único destino, fijo en el código, por HTTPS. Las consultas van de una en
+    una, sin evadir controles de acceso del sitio, y un mismo número no se
+    vuelve a consultar mientras su resultado esté vigente.
+  - Interruptor: apagada por defecto. Apagada, o sin internet, el ERP se
+    comporta exactamente como sin ella.
+  - TODO(CAL_AUTORIZACION): el buscador no publica una API ni condiciones de
+    uso. Antes de activarla en producción, la notaría gestiona la autorización
+    del Colegio; sin ella, la consulta se hace a mano y el ERP solo registra el
+    resultado.
 
 ### VII. DevSecOps: la seguridad se verifica en cada cambio
 
@@ -345,4 +394,4 @@ con teclado, foco visible y contraste suficiente.
 - El "Constitution Check" de cada `plan.md` verifica los principios I–VIII; una
   violación bloquea el plan o se justifica en "Complexity Tracking".
 
-**Version**: 2.3.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-11-14
+**Version**: 2.4.0 | **Ratified**: 2026-09-16 | **Last Amended**: 2026-11-16
