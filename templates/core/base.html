@@ -126,7 +126,7 @@
     {% if messages %}
       <div class="toasts" aria-live="polite">
         {% for message in messages %}
-          <div class="toast" role="status" data-tono="{{ message.tags }}" x-data="{ visible: true }" x-show="visible" x-init="setTimeout(() => visible = false, 6000)">
+          <div class="toast" role="status" data-tono="{{ message.tags }}" x-data="{ visible: true }" x-show="visible" x-transition:leave="ne-sale-activa" x-transition:leave-end="ne-sale-fin" x-init="setTimeout(() => visible = false, 6000)">
             <svg class="ico" aria-hidden="true"><use href="#{% if message.level >= 30 %}i-circle-alert{% else %}i-circle-check{% endif %}"/></svg>
             <div>{{ message }}</div>
             <button type="button" class="modal-cerrar" aria-label="Cerrar aviso" @click="visible = false"><svg class="ico" aria-hidden="true"><use href="#i-x"/></svg></button>

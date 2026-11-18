@@ -16,7 +16,7 @@ parte en dos, Django renderiza el resto como texto visible al usuario.
   {% if zona.documentos %}
     <ul class="archivos" aria-label="Archivos de {{ zona.titulo }}">
       {% for documento in zona.documentos %}
-        <li class="archivo" data-estado="{{ documento.estado }}" :data-estado="documentos.find(item => item.id === {{ documento.pk }})?.estado">
+        <li class="archivo" data-estado="{{ documento.estado }}" :data-estado="documentos.find(item => item.id === {{ documento.pk }})?.estado" :class="{ 'recien-listo': documentos.find(item => item.id === {{ documento.pk }})?.recien }">
           <svg class="ico" aria-hidden="true"><use href="#i-file-text"/></svg>
           <div class="archivo-texto">
             <span class="archivo-nombre" title="{{ documento.nombre_original }}">{{ documento.nombre_original }}</span>

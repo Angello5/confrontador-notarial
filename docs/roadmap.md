@@ -93,6 +93,7 @@ reservada para el flujo entre dos personas.
 | **F9** | Catálogo por tipo de acto | Campos a verificar definidos por tipo (donación, mutuo…) | F5 | Tipos de acto iniciales. La transferencia vehicular (F43–F45) ya tiene flujo propio |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
 | **F76** | Lectura rápida de escaneos | Los escaneos se leen varias veces más rápido en el servidor, con el mismo texto y los mismos avisos. En curso: spec (`specs/057-lectura-paralela/`) | F33 | Resuelta: motor OpenVINO y lectura de páginas en paralelo, dimensionados para el Xeon de 6 núcleos; se descartan la caché por página y el clasificador de orientación |
+| **F77** | Interfaz fluida | Páginas, ventanas, avisos y estados de lectura sin saltos. Implementado; falta revisar las pantallas internas con una sesión iniciada (`specs/058-interfaz-fluida/`) | F29 | Movimiento solo con propósito, según la frecuencia de uso; sin imágenes generadas |
 
 ### Pendiente fuera de las fases
 
@@ -206,6 +207,10 @@ F74: DNI del cónyuge y registro de otra entidad. Los usuarios, al validar con c
 F76: lectura rápida de escaneos en el servidor. El usuario pidió la máxima velocidad de lectura sin perder calidad, con el OCR en el servidor de la notaría y dimensionado para ese equipo. Tras medir cuatro vías (`docs/mediciones-ocr.md`), aprobó añadir OpenVINO como motor de ejecución. Entran también la lectura de páginas en paralelo, la prioridad de borrador y minuta en la cola y el tiempo límite por avance. No cambian modelos, resolución ni reglas. Alcance en `specs/057-lectura-paralela/`.
 
 Pendientes del mismo pedido, cada uno en su fase: sellos de abogado y número CAL, consulta de colegiatura (constitución 2.4.0, PR #148) y bandeja de documentos con estados por etapa.
+
+## Continuación autorizada · 2026-11-16 (interfaz)
+
+F77: interfaz fluida. El usuario pidió que la interfaz se sienta más fluida. Fundido entre páginas, botones que responden a la pulsación, ventanas y avisos con entrada y salida, y el estado de lectura de cada documento a la vista. Solo CSS y una marca en el sondeo; sin dependencias ni imágenes nuevas. Alcance en `specs/058-interfaz-fluida/`.
 
 ## Prompts de arranque para `/speckit-specify`
 

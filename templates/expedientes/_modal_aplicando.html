@@ -1,5 +1,5 @@
 {% comment %}F40: avance de «Aplicar correcciones» y descarga directa (static/js/aplicar-correcciones.js).{% endcomment %}
-<div class="modal-fondo" x-show="modal === 'aplicando'" x-cloak @click.self="aplicandoTerminado() && (modal = null)" @keydown.escape.window="aplicandoTerminado() && modal === 'aplicando' && (modal = null)">
+<div class="modal-fondo" x-show="modal === 'aplicando'" x-cloak x-transition:leave="ne-sale-activa" x-transition:leave-end="ne-funde-fin" @click.self="aplicandoTerminado() && (modal = null)" @keydown.escape.window="aplicandoTerminado() && modal === 'aplicando' && (modal = null)">
   <div class="modal" :data-tono="aplicando.fase === 'ERROR' ? 'peligro' : 'exito'" role="alertdialog" aria-modal="true" aria-labelledby="aplicando-titulo" aria-describedby="aplicando-estado">
     <div class="modal-cuerpo">
       <h2 id="aplicando-titulo" x-text="aplicandoTitulo()">Aplicando correcciones</h2>

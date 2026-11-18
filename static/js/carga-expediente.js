@@ -193,7 +193,13 @@
       reintentar(tarea) { if (!tarea.archivo) return; tarea.estado = 'PENDIENTE'; tarea.error = ''; tarea.progreso = 0; this.procesarCola(); },
       descartar(tarea) { this.transferencias = this.transferencias.filter(t => t.id !== tarea.id); },
       recibirEstado(datos) {
-        this.documentos = datos.documentos.map(d => ({ ...this.documentos.find(a => a.id === d.id), ...d }));
+        // F77: `recien` marca el documento que pasó a LISTO en esta visita, para
+        // confirmarlo una sola vez en pantalla.
+        this.documentos = datos.documentos.map(d => {
+          const antes = this.documentos.find(a => a.id === d.id);
+          const recien = d.estado === 'LISTO' && Boolean(antes && (antes.recien || (antes.estado && antes.estado !== 'LISTO')));
+          return { ...antes, ...d, recien };
+        });
         this.confrontaciones = datos.borradores;
         const esperado = this.estadoDe(this.resultadoEsperado);
         if (['CANCELADA', 'CAMBIADA', 'ERROR'].includes(esperado.etapa)) this.resultadoEsperado = null;
