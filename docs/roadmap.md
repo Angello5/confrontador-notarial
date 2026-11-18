@@ -92,6 +92,7 @@ reservada para el flujo entre dos personas.
 | **F8** | Despliegue | Funciona en el Windows Server, con respaldo diario. En curso: constitución 2.2.0, spec, plan y tareas integrados (#124); 1 de 29 tareas hechas (`specs/046-despliegue/`) | F5 | Resuelta: nativo en Windows con IIS + waitress y PostgreSQL 17 (constitución 2.3.0) |
 | **F9** | Catálogo por tipo de acto | Campos a verificar definidos por tipo (donación, mutuo…) | F5 | Tipos de acto iniciales. La transferencia vehicular (F43–F45) ya tiene flujo propio |
 | **F10** | Capa de léxico | Erratas detectadas contra el corpus de escrituras firmadas | F5 | De dónde sale el corpus |
+| **F76** | Lectura rápida de escaneos | Los escaneos se leen varias veces más rápido en el servidor, con el mismo texto y los mismos avisos. En curso: spec (`specs/057-lectura-paralela/`) | F33 | Resuelta: motor OpenVINO y lectura de páginas en paralelo, dimensionados para el Xeon de 6 núcleos; se descartan la caché por página y el clasificador de orientación |
 | **F77** | Interfaz fluida | Páginas, ventanas, avisos y estados de lectura sin saltos. Implementado; falta revisar las pantallas internas con una sesión iniciada (`specs/058-interfaz-fluida/`) | F29 | Movimiento solo con propósito, según la frecuencia de uso; sin imágenes generadas |
 
 ### Pendiente fuera de las fases
@@ -200,6 +201,12 @@ F71: lista sin fragmento y pruebas aisladas. El usuario pidió quitar el fragmen
 F73: rediseño de cuatro pantallas. El usuario eligió en Claude Design: barra de filtros en el Inicio (periodo y persona), columna con el siguiente paso en el kardex, modal amplio con vista previa del informe y detalle desplegado en la lista del resultado. F72 queda reservada para el flujo entre dos personas. Alcance en `specs/055-rediseno-pantallas/`.
 
 F74: DNI del cónyuge y registro de otra entidad. Los usuarios, al validar con casos reales, reportaron que el sistema cambiaba «Registro de Personas Jurídicas» por el registro del bien y que asignaba a la esposa el DNI del esposo en la fórmula «CASADO CON». Un registro de personas ya no se observa frente a uno de bienes, y el nombre tras «CASADO CON» nunca se queda con el DNI. Alcance en `specs/056-conyuge-y-registro/`.
+
+## Continuación autorizada · 2026-11-16
+
+F76: lectura rápida de escaneos en el servidor. El usuario pidió la máxima velocidad de lectura sin perder calidad, con el OCR en el servidor de la notaría y dimensionado para ese equipo. Tras medir cuatro vías (`docs/mediciones-ocr.md`), aprobó añadir OpenVINO como motor de ejecución. Entran también la lectura de páginas en paralelo, la prioridad de borrador y minuta en la cola y el tiempo límite por avance. No cambian modelos, resolución ni reglas. Alcance en `specs/057-lectura-paralela/`.
+
+Pendientes del mismo pedido, cada uno en su fase: sellos de abogado y número CAL, consulta de colegiatura (constitución 2.4.0, PR #148) y bandeja de documentos con estados por etapa.
 
 ## Continuación autorizada · 2026-11-16 (interfaz)
 

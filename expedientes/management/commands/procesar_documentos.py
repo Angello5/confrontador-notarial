@@ -1,9 +1,10 @@
 from contextlib import suppress
 from time import sleep
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import DatabaseError, connections
 
+from adaptadores import extraccion
 from expedientes.sentido import analizar_pendientes
 from expedientes.services import (
     confrontar_automaticamente,
@@ -26,6 +27,11 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        try:
+            # F76: sin motor o con valores inválidos no se toma ningún documento.
+            extraccion.comprobar_motor()
+        except (RuntimeError, ValueError) as exc:
+            raise CommandError(str(exc)) from exc
         try:
             while True:
                 try:

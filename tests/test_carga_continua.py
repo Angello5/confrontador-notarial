@@ -197,6 +197,10 @@ def test_duraciones_separadas_sin_contenido_documental(
         "cola_segundos",
         "lectura_segundos",
         "reutilizada",
+        # F76: con qué se leyó; tampoco es contenido documental.
+        "openvino",
+        "procesos",
+        "paginas",
     }
     confrontar_automaticamente()
     metricas = Corrida.objects.get().presentacion["metricas"]
