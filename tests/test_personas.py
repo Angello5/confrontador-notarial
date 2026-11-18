@@ -1897,3 +1897,94 @@ def test_estado_civil_de_otro_compareciente_de_la_clausula_no_se_atribuye():
     assert (
         revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1)) == ()
     )
+
+
+@pytest.mark.parametrize(
+    ("civil", "frase", "tipos"),
+    [
+        # RENIEC soltero, borrador divorciada / viuda: contradice la fuente.
+        (
+            "SOLTERO",
+            "QUIEN MANIFESTO SER DE ESTADO CIVIL DIVORCIADA,",
+            ["ESTADO_CIVIL_DISCREPANTE"],
+        ),
+        (
+            "SOLTERO",
+            "QUIEN MANIFESTO SER DE ESTADO CIVIL VIUDA,",
+            ["ESTADO_CIVIL_DISCREPANTE"],
+        ),
+        (
+            "CASADO",
+            "QUIEN MANIFESTO SER DE ESTADO CIVIL DIVORCIADO,",
+            ["ESTADO_CIVIL_DISCREPANTE"],
+        ),
+        # Casado bajo régimen patrimonial: sigue siendo casado, con cónyuge o no.
+        (
+            "CASADO",
+            "QUIEN MANIFESTO SER DE ESTADO CIVIL CASADO BAJO EL REGIMEN DE SEPARACION DE PATRIMONIOS,",
+            [],
+        ),
+        # Estado civil sin rellenar: el borrador conserva los puntos de la plantilla.
+        (
+            "SOLTERO",
+            "QUIEN MANIFESTO SER DE ESTADO CIVIL ……………, DE OCUPACIÓN ……,",
+            ["ESTADO_CIVIL_DISCREPANTE"],
+        ),
+        (
+            "SOLTERO",
+            "QUIEN MANIFESTO SER DE ESTADO CIVIL ..........., DE OCUPACIÓN ...,",
+            ["ESTADO_CIVIL_DISCREPANTE"],
+        ),
+        # Lo que ya cuadraba sigue sin observación.
+        ("SOLTERO", "QUIEN MANIFESTO SER DE ESTADO CIVIL SOLTERA,", []),
+        ("DIVORCIADO", "QUIEN MANIFESTO SER DE ESTADO CIVIL DIVORCIADA,", []),
+    ],
+)
+def test_estado_civil_de_la_fuente_contra_el_del_borrador(civil, frase, tipos):
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        estado_civil=civil,
+        procedencia_estado_civil=origen,
+    )
+    borrador = (
+        f"ALBA LUMARIA ZAFIRO.- DE NACIONALIDAD PERUANA, {frase} "
+        "IDENTIFICADA CON DNI NUMERO 90000011."
+    )
+    obs = revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1))
+    assert [fila["tipo"] for fila in obs] == tipos
+
+
+def test_estado_civil_de_otra_persona_posterior_no_se_atribuye():
+    """Solo vale el primer estado civil tras el nombre: el siguiente es de otra."""
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        estado_civil="SOLTERO",
+        procedencia_estado_civil=origen,
+    )
+    borrador = (
+        "ALBA LUMARIA ZAFIRO, DNI 90000011, ESTADO CIVIL SOLTERA, Y "
+        "BRUNO TELURIO NEBULOSA, DNI 90000022, ESTADO CIVIL DIVORCIADO."
+    )
+    assert (
+        revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1)) == ()
+    )
+
+
+def test_casado_sin_conyuge_ni_regimen_sigue_sin_conyuge_mencionado():
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        estado_civil="CASADO",
+        procedencia_estado_civil=origen,
+    )
+    borrador = "ALBA LUMARIA ZAFIRO, DNI 90000011, DE ESTADO CIVIL CASADA, PERUANA."
+    obs = revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1))
+    assert [fila["tipo"] for fila in obs] == ["CONYUGE_NO_MENCIONADO"]

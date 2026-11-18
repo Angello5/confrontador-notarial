@@ -1080,7 +1080,15 @@ _REPRESENTACION = re.compile(
     r"(?<![A-ZÑ])(?:REPRESENTACION|REPRESENTANTE|APODERAD[AO])(?![A-ZÑ])"
 )
 _CIVIL_BORRADOR = re.compile(
-    r"\b(CASAD[AO]\s+CON|SOLTER[AO]|VIUD[AO]|DIVORCIAD[AO]|CONVIVIENTE)\b"
+    r"\b(CASAD[AO]\s+(?:CON|BAJO)|SOLTER[AO]|VIUD[AO]|DIVORCIAD[AO]|CONVIVIENTE)\b"
+)
+# Estado civil sin rellenar: norm() quita los puntos de la plantilla y queda la coma.
+_CIVIL_EN_BLANCO = re.compile(r"ESTADO\s+CIVIL\s*(?:,|;|DE\s+OCUPACION)")
+_ESTADO_DEL_MARCADOR = (
+    ("SOLTER", "SOLTERO"),
+    ("CASAD", "CASADO"),
+    ("VIUD", "VIUDO"),
+    ("DIVORCIAD", "DIVORCIADO"),
 )
 _VIAS = {
     "AV": "AVENIDA",
@@ -1430,24 +1438,19 @@ def revisar_persona_ampliada(
                 r"CASAD[AO]\s+CON\s+(?:(?:LA|EL)\s+)?(?:SEÑORA?|SRA?\.?|DOÑA|DON)?\s*$",
                 clausula[: propio.start()],
             )
+            resto = clausula[propio.end() :] if propio else clausula
             marcadores = (
-                ["CASADO CON"]
-                if conyuge_de_otro
-                else _CIVIL_BORRADOR.findall(
-                    clausula[propio.end() :] if propio else clausula
-                )
+                ["CASADO CON"] if conyuge_de_otro else _CIVIL_BORRADOR.findall(resto)
             )
             hallado = marcadores[0] if marcadores else "Sin marcador de estado civil"
-            if persona.estado_civil == "CASADO" and (
-                not marcadores or any(m.startswith("SOLTER") for m in marcadores)
-            ):
-                tipo = (
-                    "ESTADO_CIVIL_DISCREPANTE"
-                    if marcadores
-                    else "CONYUGE_NO_MENCIONADO"
-                )
+            # El estado civil es uno: el primero tras el nombre; el siguiente es de otra persona.
+            declarado = next(
+                (e for p, e in _ESTADO_DEL_MARCADOR if hallado.startswith(p)), None
+            )
+            if persona.estado_civil == "CASADO" and not marcadores:
+                tipo = "CONYUGE_NO_MENCIONADO"
                 # Decisión 2026-10-05: declarar bien propio es un aviso a confirmar.
-                if tipo == "CONYUGE_NO_MENCIONADO" and any(
+                if any(
                     _BIEN_PROPIO.search(norm(linea))
                     for linea in borrador.splitlines()
                     if persona.documento in linea
@@ -1455,10 +1458,11 @@ def revisar_persona_ampliada(
                 ):
                     tipo = "CONYUGE_BIEN_PROPIO"
                     hallado = "Interviene sin su cónyuge por ser bien propio"
-            elif persona.estado_civil == "SOLTERO" and any(
-                m.startswith("CASAD") for m in marcadores
-            ):
+            elif declarado and declarado != persona.estado_civil:
                 tipo = "ESTADO_CIVIL_DISCREPANTE"
+            elif not marcadores and _CIVIL_EN_BLANCO.search(resto):
+                tipo = "ESTADO_CIVIL_DISCREPANTE"
+                hallado = "Estado civil sin rellenar"
             else:
                 tipo = None
             if tipo:
