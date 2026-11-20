@@ -38,6 +38,7 @@ Como notario, quiero que el sistema avise cuando la fuente oficial dice que un c
 5. **Given** una persona con cualquier estado civil en la fuente, **When** el primer estado civil que el borrador le atribuye es otro (soltero, casado, viudo o divorciado), **Then** se genera observación. Solo cuenta el primero tras su nombre: el siguiente es de otra persona de la línea. (Observación de la notaría, 2026-11: fuente soltera, borrador divorciada, sin aviso.)
 6. **Given** una persona casada en la fuente, **When** el borrador dice «casado bajo el régimen de …», **Then** no hay observación: el régimen presupone el cónyuge.
 7. **Given** una persona con estado civil en la fuente, **When** el borrador deja el estado civil sin rellenar (puntos de la plantilla), **Then** se genera observación «Estado civil sin rellenar». (Observación de la notaría, 2026-11: se avisaba la dirección en blanco, no el estado civil.)
+8. **Given** una persona casada en la fuente y un borrador que dice «casado» a secas (sin «con …»), en una línea donde luego otra persona figura como soltera, **When** se confronta, **Then** el estado civil de la persona es «casado» y el de la otra no se le atribuye; como no nombra al cónyuge, sigue el aviso «Cónyuge no mencionado». (Observación de la notaría, 2026-11: se informaba «soltero» a dos apoderados casados.)
 
 ### User Story 2 - Menor de edad (Priority: P1)
 

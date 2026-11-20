@@ -1988,3 +1988,29 @@ def test_casado_sin_conyuge_ni_regimen_sigue_sin_conyuge_mencionado():
     borrador = "ALBA LUMARIA ZAFIRO, DNI 90000011, DE ESTADO CIVIL CASADA, PERUANA."
     obs = revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1))
     assert [fila["tipo"] for fila in obs] == ["CONYUGE_NO_MENCIONADO"]
+
+
+def test_casado_a_secas_no_toma_el_estado_civil_de_otra_persona_de_la_linea():
+    """«casado, empresario, con DNI …» no trae «con»: el siguiente marcador de la
+    línea («soltero», del adquirente) es de otra persona."""
+    origen = Procedencia("reniec-ficticio.pdf", 1)
+    persona = Persona(
+        "ALBA LUMARIA ZAFIRO",
+        "90000011",
+        (origen,),
+        estado_civil="CASADO",
+        procedencia_estado_civil=origen,
+    )
+    borrador = (
+        "ALBA LUMARIA ZAFIRO.- DE NACIONALIDAD PERUANA, QUIEN MANIFESTO SER DE "
+        "ESTADO CIVIL casado, DE OCUPACION EMPRESARIA, IDENTIFICADA CON DNI "
+        "NUMERO 90000011.\n"
+        "Sírvase extender el contrato que celebra, representado por ALBA LUMARIA "
+        "ZAFIRO, casado, empresario, con DNI N° 90000011, y BRUNO TELURIO "
+        "NEBULOSA, casado, empresario, con DNI N° 90000022; y de otra parte, "
+        "CARLOS OTRO PERSONA, identificado con DNI° 90000033, de estado civil "
+        "Soltero, con domicilio en Lima."
+    )
+    obs = revisar_persona_ampliada(Catalogo((persona,)), borrador, date(2025, 1, 1))
+    assert [fila["tipo"] for fila in obs] == ["CONYUGE_NO_MENCIONADO"]
+    assert obs[0]["hallado"] == "Sin marcador de estado civil"
