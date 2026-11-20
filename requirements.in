@@ -1,6 +1,6 @@
 # Extracción y OCR local
 rapidocr==3.10.0
-onnxruntime==1.31.1
+onnxruntime==1.32.0
 # F76: motor de ejecución del OCR en el servidor (CPU Intel)
 openvino==2026.4.1
 pymupdf==1.28.2
@@ -14,11 +14,11 @@ rapidfuzz==3.14.6
 spylls==0.1.7
 
 # Interfaz
-pandas==3.1.0
+pandas==3.1.1
 
 # ERP F2
 Django==5.2.17
-psycopg[binary]==3.3.6
+psycopg[binary]==3.3.9
 django-crispy-forms==2.7
 crispy-bootstrap5==2026.9
 
