@@ -1080,7 +1080,7 @@ _REPRESENTACION = re.compile(
     r"(?<![A-ZÑ])(?:REPRESENTACION|REPRESENTANTE|APODERAD[AO])(?![A-ZÑ])"
 )
 _CIVIL_BORRADOR = re.compile(
-    r"\b(CASAD[AO]\s+(?:CON|BAJO)|SOLTER[AO]|VIUD[AO]|DIVORCIAD[AO]|CONVIVIENTE)\b"
+    r"\b(CASAD[AO](?:\s+(?:CON|BAJO))?|SOLTER[AO]|VIUD[AO]|DIVORCIAD[AO]|CONVIVIENTE)\b"
 )
 # Estado civil sin rellenar: norm() quita los puntos de la plantilla y queda la coma.
 _CIVIL_EN_BLANCO = re.compile(r"ESTADO\s+CIVIL\s*(?:,|;|DE\s+OCUPACION)")
@@ -1447,8 +1447,13 @@ def revisar_persona_ampliada(
             declarado = next(
                 (e for p, e in _ESTADO_DEL_MARCADOR if hallado.startswith(p)), None
             )
-            if persona.estado_civil == "CASADO" and not marcadores:
+            # «CASADO» a secas es su estado civil, pero no nombra al cónyuge.
+            con_conyuge = any(" " in m for m in marcadores)
+            if declarado and declarado != persona.estado_civil:
+                tipo = "ESTADO_CIVIL_DISCREPANTE"
+            elif persona.estado_civil == "CASADO" and not con_conyuge:
                 tipo = "CONYUGE_NO_MENCIONADO"
+                hallado = "Sin marcador de estado civil"
                 # Decisión 2026-10-05: declarar bien propio es un aviso a confirmar.
                 if any(
                     _BIEN_PROPIO.search(norm(linea))
@@ -1458,8 +1463,6 @@ def revisar_persona_ampliada(
                 ):
                     tipo = "CONYUGE_BIEN_PROPIO"
                     hallado = "Interviene sin su cónyuge por ser bien propio"
-            elif declarado and declarado != persona.estado_civil:
-                tipo = "ESTADO_CIVIL_DISCREPANTE"
             elif not marcadores and _CIVIL_EN_BLANCO.search(resto):
                 tipo = "ESTADO_CIVIL_DISCREPANTE"
                 hallado = "Estado civil sin rellenar"
