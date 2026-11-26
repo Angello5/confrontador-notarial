@@ -444,6 +444,11 @@ def menciones_de_conyuge(t: str) -> set[str]:
     }
 
 
+def _sin_puntuacion_de_borde(valor: str) -> str:
+    """Quita la puntuación suelta que el OCR deja pegada al valor («IRENE.»)."""
+    return valor.strip(" .,;:·'\"|_-")
+
+
 def nombre_reniec(raw: str) -> str | None:
     """Arma el nombre desde los rotulos del informe RENIEC (nombres + 2 apellidos).
     Lee por columnas: ocr_lineas separa celdas con dos espacios."""
@@ -456,8 +461,11 @@ def nombre_reniec(raw: str) -> str | None:
                 if cel != etq:
                     continue
                 valor = celdas[i + 1] if i + 1 < len(celdas) else ""
+                valor = _sin_puntuacion_de_borde(valor)
                 if not valor.replace(" ", "").isalpha():
-                    valor = norm(_primera_celda_siguiente(lineas, j))
+                    valor = _sin_puntuacion_de_borde(
+                        norm(_primera_celda_siguiente(lineas, j))
+                    )
                 if valor.replace(" ", "").isalpha() and not (
                     _VALORES_NO_NOMBRE.fullmatch(valor)
                 ):

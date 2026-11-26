@@ -1791,6 +1791,26 @@ def test_nombre_reniec_desplazado_a_la_linea_siguiente(viejo, nuevo):
     )
 
 
+@pytest.mark.parametrize(
+    "viejo, nuevo",
+    [
+        ("Nombres:  IRENE", "Nombres:  IRENE."),
+        ("Nombres:  IRENE", "Nombres:  IRENE,"),
+        ("Nombres:  IRENE", "Nombres:  IRENE ;"),
+        ("Nombres:  IRENE", "Nombres:  .IRENE"),
+        ("Paterno:  QUIMERA", "Paterno:  QUIMERA."),
+        ("Materno:  TORNASOL", "Materno:  TORNASOL,"),
+        ("Nombres:  IRENE", "Nombres:\nIRENE."),
+    ],
+)
+def test_nombre_reniec_ignora_puntuacion_suelta_del_ocr(viejo, nuevo):
+    (persona,) = _irene(n=(viejo, nuevo)).personas
+    assert (persona.nombre, persona.documento) == (
+        "IRENE QUIMERA TORNASOL",
+        "90000061",
+    )
+
+
 def test_nombre_reniec_no_toma_un_rotulo_de_la_linea_siguiente():
     resultado = _irene(n=("Nombres:  IRENE", "Nombres:  10:45"))
     assert resultado.personas == ()
